@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, TRIAL_COOKIE } from "@/lib/auth-constants";
 
 const SESSION_DAYS = 30;
+const TRIAL_EMAIL_DOMAIN = "@trial.local";
 
 export type CurrentUser = {
   id: string;
@@ -18,29 +19,6 @@ export type CurrentUser = {
   status: "ACTIVE" | "SUSPENDED";
   isTrial?: boolean;
 };
-
-function getTrialSecret() {
-  return process.env.APP_SECRET || "dev-only-change-before-production";
-}
-
-function verifyTrialCookie(token: string): { id: string; exp: number } | null {
-  const dotIndex = token.lastIndexOf(".");
-  if (dotIndex === -1) return null;
-  const payload = token.slice(0, dotIndex);
-  const sig = token.slice(dotIndex + 1);
-  const expectedSig = crypto
-    .createHmac("sha256", getTrialSecret())
-    .update(payload)
-    .digest("base64url");
-  if (sig !== expectedSig) return null;
-  try {
-    const data = JSON.parse(Buffer.from(payload, "base64url").toString());
-    if (!data.id || !data.exp || data.exp < Date.now()) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
 
 function getBootstrapAdminEmails() {
   return (process.env.INITIAL_ADMIN_EMAILS || "")
@@ -61,10 +39,16 @@ export async function verifyPassword(password: string, hash: string) {
   return bcrypt.compare(password, hash);
 }
 
-export async function createAuthSession(userId: string) {
+export async function createAuthSession(
+  userId: string,
+  options?: { durationMs?: number; persistCookie?: boolean },
+) {
   const token = crypto.randomBytes(32).toString("base64url");
   const tokenHash = hashSessionToken(token);
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const persistCookie = options?.persistCookie ?? true;
+  const durationMs =
+    options?.durationMs ?? SESSION_DAYS * 24 * 60 * 60 * 1000;
+  const expiresAt = new Date(Date.now() + durationMs);
 
   await prisma.authSession.create({
     data: {
@@ -79,12 +63,13 @@ export async function createAuthSession(userId: string) {
   });
 
   const cookieStore = await cookies();
+  cookieStore.delete(TRIAL_COOKIE);
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
     path: "/",
+    ...(persistCookie ? { expires: expiresAt } : {}),
   });
 }
 
@@ -99,6 +84,7 @@ export async function clearAuthSession() {
   }
 
   cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(TRIAL_COOKIE);
 }
 
 export function getInitialRoleForEmail(email: string): UserRole {
@@ -109,22 +95,6 @@ export function getInitialRoleForEmail(email: string): UserRole {
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
-
-  // Check trial cookie first (no DB required)
-  const trialToken = cookieStore.get(TRIAL_COOKIE)?.value;
-  if (trialToken) {
-    const data = verifyTrialCookie(trialToken);
-    if (data) {
-      return {
-        id: data.id,
-        email: `${data.id}@trial.local`,
-        name: "Trial User",
-        role: UserRole.USER,
-        status: "ACTIVE",
-        isTrial: true,
-      };
-    }
-  }
 
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) {
@@ -140,12 +110,15 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return null;
   }
 
+  const isTrial = session.user.email.endsWith(TRIAL_EMAIL_DOMAIN);
+
   return {
     id: session.user.id,
     email: session.user.email,
     name: session.user.name,
     role: session.user.role,
     status: session.user.status,
+    isTrial,
   };
 }
 

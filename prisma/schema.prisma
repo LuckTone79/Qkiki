@@ -100,6 +100,7 @@ model User {
   aiRequests              AiRequest[]
   presets                 Preset[]
   attachments             SessionAttachment[]
+  trialAccess             TrialAccess?
 }
 
 model AuthAccount {
@@ -291,6 +292,22 @@ model AiRequest {
   @@index([provider, model])
   @@index([status, createdAt])
   @@map("ai_requests")
+}
+
+model TrialAccess {
+  id               String   @id @default(cuid())
+  ipHash           String   @unique
+  trialUserId      String   @unique
+  conversationCount Int     @default(0)
+  startedAt        DateTime @default(now())
+  lastUsedAt       DateTime?
+  limitReachedAt   DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  trialUser User @relation(fields: [trialUserId], references: [id], onDelete: Cascade)
+
+  @@index([startedAt])
 }
 
 model Preset {

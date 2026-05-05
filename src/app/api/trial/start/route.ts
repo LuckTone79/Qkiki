@@ -1,30 +1,75 @@
-import { NextResponse } from "next/server";
 import crypto from "crypto";
-import { cookies } from "next/headers";
-import { TRIAL_COOKIE } from "@/lib/auth-constants";
+import { NextResponse } from "next/server";
+import {
+  buildTrialLoginRedirect,
+  getRequestIp,
+  hashIpAddress,
+  TRIAL_SESSION_HOURS,
+} from "@/lib/access-policy";
+import { createAuthSession, getCurrentUser, hashPassword } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-function getTrialSecret() {
-  return process.env.APP_SECRET || "dev-only-change-before-production";
-}
+const TRIAL_SESSION_DURATION_MS = TRIAL_SESSION_HOURS * 60 * 60 * 1000;
 
-export async function POST() {
-  const trialId = `trial-${crypto.randomBytes(8).toString("hex")}`;
-  const exp = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-  const payload = Buffer.from(JSON.stringify({ id: trialId, exp })).toString("base64url");
-  const sig = crypto
-    .createHmac("sha256", getTrialSecret())
-    .update(payload)
-    .digest("base64url");
-  const token = `${payload}.${sig}`;
+export async function POST(request: Request) {
+  const currentUser = await getCurrentUser();
+  if (currentUser) {
+    return NextResponse.json({
+      success: true,
+      redirectUrl: currentUser.isTrial ? "/app/workbench?trial=true" : "/app/workbench",
+    });
+  }
 
-  const cookieStore = await cookies();
-  cookieStore.set(TRIAL_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    expires: new Date(exp),
-    path: "/",
+  const ipAddress = getRequestIp(request);
+  if (!ipAddress) {
+    return NextResponse.json(
+      { error: "Unable to verify trial access. Sign in to continue.", redirectUrl: buildTrialLoginRedirect() },
+      { status: 401 },
+    );
+  }
+
+  const ipHash = hashIpAddress(ipAddress);
+  const existing = await prisma.trialAccess.findUnique({
+    where: { ipHash },
   });
 
-  return NextResponse.json({ success: true, redirectUrl: "/app/workbench?trial=true" });
+  if (existing) {
+    return NextResponse.json(
+      {
+        error: "This device has already used the trial. Sign in to continue.",
+        redirectUrl: buildTrialLoginRedirect(),
+      },
+      { status: 401 },
+    );
+  }
+
+  const passwordHash = await hashPassword(crypto.randomUUID());
+  const trialUser = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email: `trial-${crypto.randomBytes(8).toString("hex")}@trial.local`,
+        name: "Trial User",
+        passwordHash,
+      },
+    });
+
+    await tx.trialAccess.create({
+      data: {
+        ipHash,
+        trialUserId: user.id,
+      },
+    });
+
+    return user;
+  });
+
+  await createAuthSession(trialUser.id, {
+    durationMs: TRIAL_SESSION_DURATION_MS,
+    persistCookie: false,
+  });
+
+  return NextResponse.json({
+    success: true,
+    redirectUrl: "/app/workbench?trial=true",
+  });
 }

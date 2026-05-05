@@ -7,22 +7,45 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 export default function LandingPage() {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [trialError, setTrialError] = useState("");
 
   const handleTrialStart = async () => {
+    setTrialError("");
     setIsLoading(true);
     try {
       const response = await fetch("/api/trial/start", {
         method: "POST",
       });
-      const data = await response.json();
-      if (data.success) {
+      const data = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+        redirectUrl?: string;
+      };
+      if (data.redirectUrl && !response.ok) {
         router.push(data.redirectUrl);
+        return;
       }
+      if (data.success && data.redirectUrl) {
+        router.push(data.redirectUrl);
+        return;
+      }
+      setTrialError(
+        data.error ||
+          (language === "ko"
+            ? "체험판을 시작할 수 없습니다."
+            : "Unable to start the trial."),
+      );
     } catch (error) {
       console.error("Trial start error:", error);
+      setTrialError(
+        language === "ko"
+          ? "체험판을 시작할 수 없습니다."
+          : "Unable to start the trial.",
+      );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -64,6 +87,12 @@ export default function LandingPage() {
               {t("signIn")}
             </Link>
           </div>
+
+          {trialError ? (
+            <p className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+              {trialError}
+            </p>
+          ) : null}
 
           <ul className="mt-10 grid gap-3 text-sm text-stone-700">
             {features.map((feature) => (

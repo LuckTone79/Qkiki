@@ -103,6 +103,11 @@ type WorkflowControlState = {
   qualityThreshold: number;
 };
 
+type ApiErrorPayload = {
+  error?: string;
+  redirectUrl?: string;
+};
+
 const outputStyles = ["detailed", "short", "bullet", "table", "executive"];
 const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
   detailed: { en: "detailed", ko: "\uc790\uc138\ud788" },
@@ -434,6 +439,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     useState<MobilePanel>("input");
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleAuthRedirect(response: Response, data?: ApiErrorPayload) {
+    if (response.status === 401 && data?.redirectUrl) {
+      window.location.href = data.redirectUrl;
+      return true;
+    }
+    return false;
+  }
 
   async function loadProviders() {
     const response = await fetch("/api/providers");
@@ -959,8 +972,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         stopReason?: string | null;
       };
       error?: string;
+      redirectUrl?: string;
     };
     setRunning(false);
+
+    if (handleAuthRedirect(response, data)) {
+      return;
+    }
 
     if (!response.ok || !data.session) {
       setError(language === "ko" ? t("runFailed") : data.error || t("runFailed"));
@@ -1003,7 +1021,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const data = (await response.json().catch(() => ({}))) as {
       results?: WorkbenchResult[];
       error?: string;
+      redirectUrl?: string;
     };
+
+    if (handleAuthRedirect(response, data)) {
+      return;
+    }
 
     if (!response.ok) {
       setError(
@@ -1027,7 +1050,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const data = (await response.json().catch(() => ({}))) as {
       result?: WorkbenchResult;
       error?: string;
+      redirectUrl?: string;
     };
+
+    if (handleAuthRedirect(response, data)) {
+      return;
+    }
 
     if (!response.ok || !data.result) {
       setError(
@@ -1167,12 +1195,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
             <div>
               <p className="font-semibold text-blue-950">
-                {language === "ko" ? "체험 모드입니다" : "Trial Mode"}
+                {language === "ko" ? "체험 모드" : "Trial Mode"}
               </p>
               <p className="text-sm text-blue-800">
                 {language === "ko"
-                  ? "기능을 자유롭게 체험해보세요. 24시간 동안 모든 기능을 이용할 수 있습니다."
-                  : "Experience all features freely. Your trial session is valid for 24 hours."}
+                  ? "로그인 없이 5번까지 구독자와 동일하게 사용할 수 있습니다. 6번째부터는 로그인 후 계속 이용할 수 있습니다."
+                  : "Use the full workbench for 5 conversations without signing in. Starting from the 6th, sign in to continue."}
               </p>
             </div>
           </div>

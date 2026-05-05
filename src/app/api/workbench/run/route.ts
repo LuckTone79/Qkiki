@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
+import {
+  apiErrorResponse,
+  consumeTrialConversation,
+  requireApiGenerationUser,
+} from "@/lib/api-auth";
 import {
   executeParallelRun,
   executeSequentialRun,
@@ -10,7 +14,7 @@ import type { ProviderName } from "@/lib/ai/types";
 
 export async function POST(request: Request) {
   try {
-    const user = await requireApiUser();
+    const user = await requireApiGenerationUser();
     const parsed = runWorkbenchSchema.safeParse(await request.json());
 
     if (!parsed.success) {
@@ -34,6 +38,10 @@ export async function POST(request: Request) {
       );
       if (providerError) {
         return NextResponse.json({ error: providerError }, { status: 400 });
+      }
+
+      if (user.isTrial) {
+        await consumeTrialConversation(user);
       }
 
       const result = await executeParallelRun({
@@ -61,6 +69,10 @@ export async function POST(request: Request) {
     );
     if (providerError) {
       return NextResponse.json({ error: providerError }, { status: 400 });
+    }
+
+    if (user.isTrial) {
+      await consumeTrialConversation(user);
     }
 
     const result = await executeSequentialRun({

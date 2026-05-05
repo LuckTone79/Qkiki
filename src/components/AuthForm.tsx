@@ -43,20 +43,39 @@ function getOAuthErrorMessage(errorCode: string | null, language: "en" | "ko") {
     : "Google sign-in failed. Please try again.";
 }
 
+function getAuthReasonMessage(reason: string | null, language: "en" | "ko") {
+  if (reason === "trial_limit") {
+    return language === "ko"
+      ? "체험판 5회를 모두 사용했습니다. 계속 사용하려면 로그인해 주세요."
+      : "You have used all 5 trial conversations. Sign in to continue.";
+  }
+
+  if (reason === "trial_login_required") {
+    return language === "ko"
+      ? "같은 기기에서 체험판을 다시 시작할 수 없습니다. 계속하려면 로그인해 주세요."
+      : "This device cannot start another anonymous trial. Sign in to continue.";
+  }
+
+  return "";
+}
+
 export function AuthForm({ mode }: AuthFormProps) {
   const { language, t } = useLanguage();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [nextPath, setNextPath] = useState("/app/workbench");
   const [oauthErrorCode, setOauthErrorCode] = useState<string | null>(null);
+  const [reasonCode, setReasonCode] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setNextPath(sanitizeNextPath(params.get("next")));
     setOauthErrorCode(params.get("error"));
+    setReasonCode(params.get("reason"));
   }, []);
 
   const oauthError = getOAuthErrorMessage(oauthErrorCode, language);
+  const authReason = getAuthReasonMessage(reasonCode, language);
   const googleCta =
     language === "ko" ? "\uad6c\uae00\ub85c \uacc4\uc18d\ud558\uae30" : "Continue with Google";
   const dividerText = language === "ko" ? "\ub610\ub294 \uc774\uba54\uc77c\ub85c" : "or with email";
@@ -169,9 +188,9 @@ export function AuthForm({ mode }: AuthFormProps) {
         {dividerText}
       </p>
 
-      {error || oauthError ? (
+      {error || oauthError || authReason ? (
         <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
-          {error || oauthError}
+          {error || oauthError || authReason}
         </p>
       ) : null}
 

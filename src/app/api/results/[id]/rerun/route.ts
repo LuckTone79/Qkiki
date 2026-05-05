@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
+import {
+  apiErrorResponse,
+  consumeTrialConversation,
+  requireApiGenerationUser,
+} from "@/lib/api-auth";
 import { executeAndPersistResult } from "@/lib/ai/workflow";
 import { isProviderName } from "@/lib/ai/provider-catalog";
 import { hydrateRuntimeAttachments } from "@/lib/attachments";
@@ -11,7 +15,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const user = await requireApiUser();
+    const user = await requireApiGenerationUser();
     const { id } = await context.params;
     const result = await prisma.result.findFirst({
       where: { id, session: { userId: user.id } },
@@ -39,6 +43,10 @@ export async function POST(
     );
     if (providerError) {
       return NextResponse.json({ error: providerError }, { status: 400 });
+    }
+
+    if (user.isTrial) {
+      await consumeTrialConversation(user);
     }
 
     const rerun = await executeAndPersistResult({

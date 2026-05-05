@@ -8,14 +8,12 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const projects = user.isTrial
-    ? []
-    : await prisma.project.findMany({
-        where: { userId: user.id },
-        orderBy: { updatedAt: "desc" },
-        take: 6,
-        select: { id: true, name: true },
-      });
+  const projects = await prisma.project.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: "desc" },
+    take: 6,
+    select: { id: true, name: true },
+  });
 
   return (
     <AppShell user={user} projects={projects}>
