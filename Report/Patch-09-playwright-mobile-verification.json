@@ -1,0 +1,188 @@
+{
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "routes": [
+    {
+      "name": "admin-sign-in-mobile",
+      "url": "/admin/sign-in",
+      "path": "/admin/sign-in",
+      "bodyLength": 206,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": []
+    },
+    {
+      "name": "admin-dashboard-mobile",
+      "url": "/admin",
+      "path": "/admin",
+      "bodyLength": 1171,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    },
+    {
+      "name": "admin-users-mobile",
+      "url": "/admin/users",
+      "path": "/admin/users",
+      "bodyLength": 351,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    },
+    {
+      "name": "admin-conversations-mobile",
+      "url": "/admin/conversations",
+      "path": "/admin/conversations",
+      "bodyLength": 298,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    },
+    {
+      "name": "admin-coupons-mobile",
+      "url": "/admin/coupons",
+      "path": "/admin/coupons",
+      "bodyLength": 580,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    },
+    {
+      "name": "admin-providers-mobile",
+      "url": "/admin/providers",
+      "path": "/admin/providers",
+      "bodyLength": 1629,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    },
+    {
+      "name": "admin-audit-logs-mobile",
+      "url": "/admin/audit-logs",
+      "path": "/admin/audit-logs",
+      "bodyLength": 1095,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    },
+    {
+      "name": "admin-user-detail-mobile",
+      "url": "/admin/users/cmnvvnwk70000u2n86dek1xpr",
+      "path": "/admin/users/cmnvvnwk70000u2n86dek1xpr",
+      "bodyLength": 395,
+      "hasOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "navItems": [
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs",
+        "Dashboard",
+        "Users",
+        "Conversations",
+        "Coupons",
+        "Provider Settings",
+        "Audit Logs"
+      ]
+    }
+  ],
+  "consoleProblems": []
+}

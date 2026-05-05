@@ -1,0 +1,461 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  SUPPORT_VIEWER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserAccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum CouponType {
+  MONTHLY_FREE_30D
+  LIFETIME_FREE
+}
+
+enum CouponRedemptionResult {
+  APPLIED
+  ALREADY_LIFETIME
+  INACTIVE
+  USED
+}
+
+enum SubscriptionEventType {
+  COUPON_REDEMPTION
+  MANUAL_GRANT
+}
+
+enum SubscriptionType {
+  MONTHLY_FREE_30D
+  LIFETIME_FREE
+  MANUAL
+}
+
+enum AttachmentKind {
+  TEXT
+  IMAGE
+  PDF
+}
+
+enum AdminAuditAction {
+  ADMIN_LOGIN
+  ADMIN_LOGOUT
+  ADMIN_MFA_SUCCESS
+  ADMIN_MFA_FAILURE
+  USER_DETAIL_VIEW
+  CONTENT_RAW_VIEW
+  COUPON_CREATE
+  COUPON_DEACTIVATE
+  SUBSCRIPTION_MANUAL_GRANT
+  PROVIDER_KEY_UPDATE
+  PROVIDER_MODEL_UPDATE
+  USER_SUSPEND
+  USER_UNSUSPEND
+  SYSTEM_SETTING_CHANGE
+}
+
+model User {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  name         String?
+  passwordHash String
+  role         UserRole          @default(USER)
+  status       UserAccountStatus @default(ACTIVE)
+  lastActiveAt DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  accounts                AuthAccount[]
+  authSessions            AuthSession[]
+  adminSessions           AdminSession[]          @relation("AdminSessions")
+  adminAuditLogs          AdminAuditLog[]         @relation("AdminAuditBy")
+  adminContentAccessLogs  AdminContentAccessLog[] @relation("AdminContentAccessBy")
+  viewedByAdminAccessLogs AdminContentAccessLog[] @relation("AdminContentAccessViewed")
+  createdCoupons          Coupon[]                @relation("CouponCreatedBy")
+  redeemedCoupons         Coupon[]                @relation("CouponRedeemedBy")
+  couponRedemptions       CouponRedemption[]
+  subscription            UserSubscription?
+  subscriptionLedger      SubscriptionLedger[]    @relation("SubscriptionLedgerUser")
+  grantedSubscriptions    SubscriptionLedger[]    @relation("SubscriptionGrantedByAdmin")
+  adminProviderConfigs    AdminProviderConfig[]   @relation("AdminProviderUpdatedBy")
+  adminSystemSettings     AdminSystemSetting[]    @relation("SystemSettingUpdatedBy")
+  projects                Project[]
+  sessions                WorkbenchSession[]
+  aiRequests              AiRequest[]
+  presets                 Preset[]
+  attachments             SessionAttachment[]
+}
+
+model AuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  sharedContext String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions WorkbenchSession[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model WorkbenchSession {
+  id                      String   @id @default(cuid())
+  userId                  String
+  projectId               String?
+  title                   String
+  originalInput           String
+  originalInputCiphertext String?
+  originalInputIv         String?
+  originalInputTag        String?
+  additionalInstruction   String?
+  outputStyle             String?
+  mode                    String
+  finalResultId           String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user                   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project                Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  workflowSteps          WorkflowStep[]
+  results                Result[]
+  aiRequests             AiRequest[]
+  adminContentAccessLogs AdminContentAccessLog[]
+  attachments            SessionAttachment[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([updatedAt])
+}
+
+model WorkflowStep {
+  id                  String   @id @default(cuid())
+  sessionId           String
+  orderIndex          Int
+  actionType          String
+  targetProvider      String
+  targetModel         String
+  sourceMode          String
+  sourceResultId      String?
+  instructionTemplate String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  session WorkbenchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  results Result[]
+
+  @@index([sessionId])
+  @@index([sourceResultId])
+}
+
+model Result {
+  id                   String   @id @default(cuid())
+  sessionId            String
+  workflowStepId       String?
+  parentResultId       String?
+  branchKey            String?
+  provider             String
+  model                String
+  promptSnapshot       String
+  outputText           String?
+  outputTextCiphertext String?
+  outputTextIv         String?
+  outputTextTag        String?
+  rawResponse          String?
+  status               String
+  errorMessage         String?
+  tokenUsagePrompt     Int?
+  tokenUsageCompletion Int?
+  estimatedCost        Float?
+  costIsEstimated      Boolean  @default(false)
+  latencyMs            Int?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  session         WorkbenchSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  workflowStep    WorkflowStep?      @relation(fields: [workflowStepId], references: [id], onDelete: SetNull)
+  parent          Result?            @relation("ResultBranches", fields: [parentResultId], references: [id], onDelete: SetNull)
+  children        Result[]           @relation("ResultBranches")
+  aiRequests      AiRequest[]        @relation("ResultAiRequests")
+  attachmentLinks ResultAttachment[]
+
+  @@index([sessionId])
+  @@index([workflowStepId])
+  @@index([parentResultId])
+}
+
+model SessionAttachment {
+  id            String         @id @default(cuid())
+  userId        String
+  sessionId     String?
+  name          String
+  mimeType      String
+  kind          AttachmentKind
+  sizeBytes     Int
+  storagePath   String
+  extractedText String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session     WorkbenchSession?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  resultLinks ResultAttachment[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+model ResultAttachment {
+  resultId     String
+  attachmentId String
+  createdAt    DateTime @default(now())
+
+  result     Result            @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  attachment SessionAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+
+  @@id([resultId, attachmentId])
+  @@index([attachmentId])
+}
+
+model AiRequest {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  conversationId   String?  @map("conversation_id")
+  messageId        String?  @map("message_id")
+  provider         String
+  model            String
+  requestType      String   @map("request_type")
+  status           String
+  inputTokens      Int?     @map("input_tokens")
+  outputTokens     Int?     @map("output_tokens")
+  estimatedCostUsd Float?   @map("estimated_cost_usd")
+  latencyMs        Int?     @map("latency_ms")
+  errorCode        String?  @map("error_code")
+  errorMessage     String?  @map("error_message")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation WorkbenchSession? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  message      Result?           @relation("ResultAiRequests", fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([conversationId])
+  @@index([messageId])
+  @@index([provider, model])
+  @@index([status, createdAt])
+  @@map("ai_requests")
+}
+
+model Preset {
+  id           String   @id @default(cuid())
+  userId       String
+  name         String
+  description  String?
+  workflowJson String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AdminSession {
+  id            String    @id @default(cuid())
+  userId        String
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  mfaVerifiedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user User @relation("AdminSessions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AdminAuditLog {
+  id          String           @id @default(cuid())
+  adminUserId String?
+  action      AdminAuditAction
+  targetType  String?
+  targetId    String?
+  detailJson  String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime         @default(now())
+
+  adminUser User? @relation("AdminAuditBy", fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model AdminContentAccessLog {
+  id               String   @id @default(cuid())
+  adminUserId      String
+  viewedUserId     String
+  conversationId   String
+  accessReasonCode String
+  createdAt        DateTime @default(now())
+
+  adminUser    User             @relation("AdminContentAccessBy", fields: [adminUserId], references: [id], onDelete: Cascade)
+  viewedUser   User             @relation("AdminContentAccessViewed", fields: [viewedUserId], references: [id], onDelete: Cascade)
+  conversation WorkbenchSession @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+  @@index([viewedUserId])
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model Coupon {
+  id               String     @id @default(cuid())
+  code             String     @unique
+  type             CouponType
+  isActive         Boolean    @default(true)
+  createdByAdminId String
+  redeemedByUserId String?
+  redeemedAt       DateTime?
+  note             String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  createdByAdmin     User                 @relation("CouponCreatedBy", fields: [createdByAdminId], references: [id], onDelete: Restrict)
+  redeemedByUser     User?                @relation("CouponRedeemedBy", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
+  redemptions        CouponRedemption[]
+  subscriptionLedger SubscriptionLedger[]
+
+  @@index([type, isActive])
+  @@index([redeemedAt])
+}
+
+model CouponRedemption {
+  id              String                 @id @default(cuid())
+  couponId        String
+  userId          String
+  result          CouponRedemptionResult
+  note            String?
+  grantStartAt    DateTime?
+  grantEndAt      DateTime?
+  grantIsLifetime Boolean                @default(false)
+  createdAt       DateTime               @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model UserSubscription {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  planEndsAt DateTime?
+  isLifetime Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SubscriptionLedger {
+  id               String                @id @default(cuid())
+  userId           String
+  couponId         String?
+  grantedByAdminId String?
+  eventType        SubscriptionEventType
+  subscriptionType SubscriptionType
+  startAt          DateTime
+  endAt            DateTime?
+  isLifetime       Boolean               @default(false)
+  note             String?
+  createdAt        DateTime              @default(now())
+
+  user           User    @relation("SubscriptionLedgerUser", fields: [userId], references: [id], onDelete: Cascade)
+  coupon         Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  grantedByAdmin User?   @relation("SubscriptionGrantedByAdmin", fields: [grantedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model AdminProviderConfig {
+  id                  String    @id @default(cuid())
+  providerName        String    @unique
+  defaultModel        String
+  isEnabled           Boolean   @default(false)
+  fallbackProvider    String?
+  perUserDailyLimit   Int       @default(100)
+  timeoutSeconds      Int       @default(60)
+  healthStatus        String    @default("unknown")
+  lastHealthCheckedAt DateTime?
+  apiKeyCiphertext    String?
+  apiKeyIv            String?
+  apiKeyTag           String?
+  apiKeyMasked        String?
+  updatedByAdminId    String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  updatedByAdmin User? @relation("AdminProviderUpdatedBy", fields: [updatedByAdminId], references: [id], onDelete: SetNull)
+}
+
+model AdminSystemSetting {
+  id               String   @id @default(cuid())
+  settingKey       String   @unique
+  valueJson        String
+  updatedByAdminId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  updatedByAdmin User? @relation("SystemSettingUpdatedBy", fields: [updatedByAdminId], references: [id], onDelete: SetNull)
+}

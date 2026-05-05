@@ -1,0 +1,32 @@
+
+> qkiki-workbench@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.25.29:3000
+- Environments: .env
+✓ Ready in 903ms
+
+ GET /app/workbench 307 in 865ms (next.js: 511ms, application-code: 353ms)
+ GET /sign-in 200 in 84ms (next.js: 40ms, application-code: 43ms)
+ POST /api/auth/sign-up 200 in 1031ms (next.js: 648ms, application-code: 383ms)
+ POST /api/auth/sign-up 200 in 365ms (next.js: 4ms, application-code: 361ms)
+ POST /api/attachments 200 in 930ms (next.js: 884ms, application-code: 46ms)
+ GET /sign-up 200 in 88ms (next.js: 28ms, application-code: 59ms)
+ GET /sign-up 200 in 54ms (next.js: 5ms, application-code: 49ms)
+ POST /api/auth/sign-up 200 in 334ms (next.js: 4ms, application-code: 331ms)
+ GET /app/workbench 200 in 101ms (next.js: 8ms, application-code: 93ms)
+ GET /api/providers 200 in 111ms (next.js: 41ms, application-code: 70ms)
+ GET /api/presets 200 in 113ms (next.js: 80ms, application-code: 33ms)
+ GET /app/workbench 200 in 207ms (next.js: 14ms, application-code: 193ms)
+ GET /api/providers 200 in 19ms (next.js: 4ms, application-code: 16ms)
+ GET /api/presets 200 in 22ms (next.js: 9ms, application-code: 12ms)
+ GET /sign-up 200 in 54ms (next.js: 5ms, application-code: 49ms)
+ POST /api/auth/sign-up 200 in 373ms (next.js: 2ms, application-code: 370ms)
+ GET /app/workbench 200 in 110ms (next.js: 7ms, application-code: 103ms)
+ GET /api/providers 200 in 41ms (next.js: 5ms, application-code: 37ms)
+ GET /api/presets 200 in 45ms (next.js: 14ms, application-code: 32ms)
+ GET /app/workbench 200 in 103ms (next.js: 4ms, application-code: 99ms)
+ GET /api/providers 200 in 19ms (next.js: 3ms, application-code: 15ms)
+ GET /api/presets 200 in 23ms (next.js: 9ms, application-code: 13ms)

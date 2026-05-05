@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/src/app/api -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(find /c/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/src/lib -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(cat src/app/app/projects/[id]/page.tsx)"
+    ]
+  }
+}

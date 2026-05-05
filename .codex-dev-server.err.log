@@ -1,0 +1,920 @@
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⨯ Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return ( {
+  digest: '472895061'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Uncaught Error: Attempted to call useLanguage() from the server but useLanguage is on the client. It's not possible to invoke a client function from the server, it can only be rendered as a Component or passed to props of a Client Component.
+    at AdminShell (src\components\admin\AdminShell.tsx:49:35)
+    at resolveErrorDev (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:1919:150)
+    at processFullStringRow (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2434:29)
+    at processFullBinaryRow (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2393:9)
+    at processBinaryChunk (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2502:221)
+    at progress (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:2689:13)
+  47 |   children: React.ReactNode;
+  48 | }) {
+> 49 |   const { language } = useLanguage();
+     |                                   ^
+  50 |   const t = adminText[language];
+  51 |
+  52 |   return (
+⨯ ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminCouponsClient[0m } [36mfrom[0m [32m"@/components/admin/AdminCouponsClient"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m
+  [90m3 |[0m [36mexport[0m [36mdefault[0m [36mfunction[0m [33mAdminCouponsPage[0m() {
+  [90m4 |[0m   [36mreturn[0m <[33mAdminCouponsClient[0m />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminCouponsClient[0m } [36mfrom[0m [32m"@/components/admin/AdminCouponsClient"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m
+  [90m3 |[0m [36mexport[0m [36mdefault[0m [36mfunction[0m [33mAdminCouponsPage[0m() {
+  [90m4 |[0m   [36mreturn[0m <[33mAdminCouponsClient[0m />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[browser] Uncaught Error: ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+> 1 | import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | export default function AdminCouponsPage() {
+  4 |   return <AdminCouponsClient />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/admin/(panel)/coupons/page.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/admin/(panel)/coupons/page.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+> 1 | import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | export default function AdminCouponsPage() {
+  4 |   return <AdminCouponsClient />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/admin/(panel)/coupons/page.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/admin/(panel)/coupons/page.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+> 1 | import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | export default function AdminCouponsPage() {
+  4 |   return <AdminCouponsClient />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+> 1 | import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | export default function AdminCouponsPage() {
+  4 |   return <AdminCouponsClient />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+> 1 | import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | export default function AdminCouponsPage() {
+  4 |   return <AdminCouponsClient />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/coupons/page.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminCouponsClient'
+> 1 | import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 |
+  3 | export default function AdminCouponsPage() {
+  4 |   return <AdminCouponsClient />;
+
+Import map: aliased to relative './src/components/admin/AdminCouponsClient' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+[31m[1m>[0m [90m1 |[0m [36mimport[0m { [33mAdminShell[0m } [36mfrom[0m [32m"@/components/admin/AdminShell"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m2 |[0m [36mimport[0m { requireAdminViewer } [36mfrom[0m [32m"@/lib/admin-auth"[0m;
+  [90m3 |[0m
+  [90m4 |[0m [36mexport[0m [36mdefault[0m [36masync[0m [36mfunction[0m [33mAdminPanelLayout[0m({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[browser] Uncaught Error: ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/admin/(panel)/layout.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/admin/(panel)/layout.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/admin/(panel)/layout.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/admin/(panel)/layout.tsx:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/app/admin/(panel)/layout.tsx:1:1
+Module not found: Can't resolve '@/components/admin/AdminShell'
+> 1 | import { AdminShell } from "@/components/admin/AdminShell";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import { requireAdminViewer } from "@/lib/admin-auth";
+  3 |
+  4 | export default async function AdminPanelLayout({
+
+Import map: aliased to relative './src/components/admin/AdminShell' inside of [project]/
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ Error: useLanguage must be used within LanguageProvider.
+    at useLanguage (src\components\i18n\LanguageProvider.tsx:544:11)
+    at AppShell (src\components\AppShell.tsx:25:28)
+  542 |
+  543 |   if (!context) {
+> 544 |     throw new Error("useLanguage must be used within LanguageProvider.");
+      |           ^
+  545 |   }
+  546 |
+  547 |   return context; {
+  digest: '873904762'
+}
+⨯ ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  [90m1 |[0m [32m"use client"[0m;
+  [90m2 |[0m
+[31m[1m>[0m [90m3 |[0m [36mimport[0m { [33mAdminAuthForm[0m } [36mfrom[0m [32m"@/components/admin/AdminAuthForm"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m4 |[0m [36mimport[0m { useLanguage } [36mfrom[0m [32m"@/components/i18n/LanguageProvider"[0m;
+  [90m5 |[0m
+  [90m6 |[0m [36mconst[0m signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  [90m1 |[0m [32m"use client"[0m;
+  [90m2 |[0m
+[31m[1m>[0m [90m3 |[0m [36mimport[0m { [33mAdminAuthForm[0m } [36mfrom[0m [32m"@/components/admin/AdminAuthForm"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m4 |[0m [36mimport[0m { useLanguage } [36mfrom[0m [32m"@/components/i18n/LanguageProvider"[0m;
+  [90m5 |[0m
+  [90m6 |[0m [36mconst[0m signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  [90m1 |[0m [32m"use client"[0m;
+  [90m2 |[0m
+[31m[1m>[0m [90m3 |[0m [36mimport[0m { [33mAdminAuthForm[0m } [36mfrom[0m [32m"@/components/admin/AdminAuthForm"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m4 |[0m [36mimport[0m { useLanguage } [36mfrom[0m [32m"@/components/i18n/LanguageProvider"[0m;
+  [90m5 |[0m
+  [90m6 |[0m [36mconst[0m signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  [90m1 |[0m [32m"use client"[0m;
+  [90m2 |[0m
+[31m[1m>[0m [90m3 |[0m [36mimport[0m { [33mAdminAuthForm[0m } [36mfrom[0m [32m"@/components/admin/AdminAuthForm"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m4 |[0m [36mimport[0m { useLanguage } [36mfrom[0m [32m"@/components/i18n/LanguageProvider"[0m;
+  [90m5 |[0m
+  [90m6 |[0m [36mconst[0m signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[browser] Uncaught Error: ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  1 | "use client";
+  2 |
+> 3 | import { AdminAuthForm } from "@/components/admin/AdminAuthForm";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useLanguage } from "@/components/i18n/LanguageProvider";
+  5 |
+  6 | const signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/components/admin/AdminSignInCard.tsx:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/components/admin/AdminSignInCard.tsx:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  1 | "use client";
+  2 |
+> 3 | import { AdminAuthForm } from "@/components/admin/AdminAuthForm";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useLanguage } from "@/components/i18n/LanguageProvider";
+  5 |
+  6 | const signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/components/admin/AdminSignInCard.tsx:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/components/admin/AdminSignInCard.tsx:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  1 | "use client";
+  2 |
+> 3 | import { AdminAuthForm } from "@/components/admin/AdminAuthForm";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useLanguage } from "@/components/i18n/LanguageProvider";
+  5 |
+  6 | const signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/admin/AdminSignInCard.tsx:3:1
+Module not found: Can't resolve '@/components/admin/AdminAuthForm'
+  1 | "use client";
+  2 |
+> 3 | import { AdminAuthForm } from "@/components/admin/AdminAuthForm";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  4 | import { useLanguage } from "@/components/i18n/LanguageProvider";
+  5 |
+  6 | const signInCardText = {
+
+Import map: aliased to relative './src/components/admin/AdminAuthForm' inside of [project]/
+
+Import trace:
+  Server Component:
+    ./src/components/admin/AdminSignInCard.tsx
+    ./src/app/admin/sign-in/page.tsx
+
+https://nextjs.org/docs/messages/module-not-found 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./src/components/i18n/LanguageProvider.tsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⨯ ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m1052 |[0m           </button>
+  [90m1053 |[0m         </div>
+[31m[1m>[0m [90m1054 |[0m       ) : [36mnull[0m}
+  [90m     |[0m               [31m[1m^[0m
+  [90m1055 |[0m
+  [90m1056 |[0m       {notice ? (
+  [90m1057 |[0m         <div className=[32m"rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx
+
+
+⨯ ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m1052 |[0m           </button>
+  [90m1053 |[0m         </div>
+[31m[1m>[0m [90m1054 |[0m       ) : [36mnull[0m}
+  [90m     |[0m               [31m[1m^[0m
+  [90m1055 |[0m
+  [90m1056 |[0m       {notice ? (
+  [90m1057 |[0m         <div className=[32m"rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx
+
+
+⨯ ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  [90m1052 |[0m           </button>
+  [90m1053 |[0m         </div>
+[31m[1m>[0m [90m1054 |[0m       ) : [36mnull[0m}
+  [90m     |[0m               [31m[1m^[0m
+  [90m1055 |[0m
+  [90m1056 |[0m       {notice ? (
+  [90m1057 |[0m         <div className=[32m"rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...[0m
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx
+
+
+[browser] Uncaught Error: ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  1052 |           </button>
+  1053 |         </div>
+> 1054 |       ) : null}
+       |               ^
+  1055 |
+  1056 |       {notice ? (
+  1057 |         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx
+
+
+    at <unknown> (Error: ./src/components/workbench/WorkbenchClient.tsx:1054:15)
+    at <unknown> (Error: (./src/components/workbench/WorkbenchClient.tsx:1054:15)
+[browser] Uncaught Error: ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  1052 |           </button>
+  1053 |         </div>
+> 1054 |       ) : null}
+       |               ^
+  1055 |
+  1056 |       {notice ? (
+  1057 |         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx
+
+
+    at <unknown> (Error: ./src/components/workbench/WorkbenchClient.tsx:1054:15)
+    at <unknown> (Error: (./src/components/workbench/WorkbenchClient.tsx:1054:15)
+[browser] ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  1052 |           </button>
+  1053 |         </div>
+> 1054 |       ) : null}
+       |               ^
+  1055 |
+  1056 |       {notice ? (
+  1057 |         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./src/components/workbench/WorkbenchClient.tsx:1054:15
+Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+  1052 |           </button>
+  1053 |         </div>
+> 1054 |       ) : null}
+       |               ^
+  1055 |
+  1056 |       {notice ? (
+  1057 |         <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm t...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/components/workbench/WorkbenchClient.tsx
+    ./src/app/app/workbench/page.tsx 
+    at handleErrors (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://C:/Users/LUCK2/OneDrive/문서/개발/프로그램/멀티AI/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+⨯ Error: useLanguage must be used within LanguageProvider.
+    at useLanguage (src\components\i18n\LanguageProvider.tsx:554:11)
+    at AppShell (src\components\AppShell.tsx:25:28)
+  552 |
+  553 |   if (!context) {
+> 554 |     throw new Error("useLanguage must be used within LanguageProvider.");
+      |           ^
+  555 |   }
+  556 |
+  557 |   return context; {
+  digest: '2576187897'
+}
+^C
