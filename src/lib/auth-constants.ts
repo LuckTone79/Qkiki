@@ -1,2 +1,3 @@
 export const SESSION_COOKIE = "qkiki_session";
 export const ADMIN_SESSION_COOKIE = "qkiki_admin_session";
+export const TRIAL_COOKIE = "qkiki_trial";

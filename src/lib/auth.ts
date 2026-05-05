@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE } from "@/lib/auth-constants";
+import { SESSION_COOKIE, TRIAL_COOKIE } from "@/lib/auth-constants";
 
 const SESSION_DAYS = 30;
 
@@ -16,7 +16,31 @@ export type CurrentUser = {
   name: string | null;
   role: UserRole;
   status: "ACTIVE" | "SUSPENDED";
+  isTrial?: boolean;
 };
+
+function getTrialSecret() {
+  return process.env.APP_SECRET || "dev-only-change-before-production";
+}
+
+function verifyTrialCookie(token: string): { id: string; exp: number } | null {
+  const dotIndex = token.lastIndexOf(".");
+  if (dotIndex === -1) return null;
+  const payload = token.slice(0, dotIndex);
+  const sig = token.slice(dotIndex + 1);
+  const expectedSig = crypto
+    .createHmac("sha256", getTrialSecret())
+    .update(payload)
+    .digest("base64url");
+  if (sig !== expectedSig) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString());
+    if (!data.id || !data.exp || data.exp < Date.now()) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 function getBootstrapAdminEmails() {
   return (process.env.INITIAL_ADMIN_EMAILS || "")
@@ -85,8 +109,24 @@ export function getInitialRoleForEmail(email: string): UserRole {
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
 
+  // Check trial cookie first (no DB required)
+  const trialToken = cookieStore.get(TRIAL_COOKIE)?.value;
+  if (trialToken) {
+    const data = verifyTrialCookie(trialToken);
+    if (data) {
+      return {
+        id: data.id,
+        email: `${data.id}@trial.local`,
+        name: "Trial User",
+        role: UserRole.USER,
+        status: "ACTIVE",
+        isTrial: true,
+      };
+    }
+  }
+
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) {
     return null;
   }
