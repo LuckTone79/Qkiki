@@ -55,7 +55,7 @@ export default function LandingPage() {
               disabled={isLoading}
               className="rounded-md bg-stone-950 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? t("loading") || "Loading..." : t("getStarted")}
+              {isLoading ? "Loading..." : t("getStarted")}
             </button>
             <Link
               href="/sign-in"
