@@ -4,6 +4,8 @@ import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { AdminUserDetailClient, type UserDetailData } from "@/components/admin/AdminUserDetailClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminUserDetailPage({
   params,
 }: {

@@ -6,6 +6,8 @@ import {
   type RecentAuditItem,
 } from "@/components/admin/AdminDashboardClient";
 
+export const dynamic = "force-dynamic";
+
 function startOfToday() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { AdminUsersClient, type UserRow } from "@/components/admin/AdminUsersClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminUsersPage({
   searchParams,
 }: {

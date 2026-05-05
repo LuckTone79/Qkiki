@@ -5,6 +5,8 @@ import {
   type ContentAccessLogItem,
 } from "@/components/admin/AdminAuditLogsClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminAuditLogsPage() {
   const [auditLogs, contentAccessLogs] = await Promise.all([
     prisma.adminAuditLog.findMany({

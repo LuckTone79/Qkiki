@@ -6,6 +6,8 @@ import {
   type ConversationDetailData,
 } from "@/components/admin/AdminConversationDetailClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminConversationDetailPage({
   params,
 }: {
