@@ -395,7 +395,11 @@ function mergeResults(current: WorkbenchResult[], incoming: WorkbenchResult[]) {
   );
 }
 
-export function WorkbenchClient() {
+type WorkbenchClientProps = {
+  isTrialMode?: boolean;
+};
+
+export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = {}) {
   const { language, t } = useLanguage();
   const builderText = workflowBuilderText[language];
   const [providers, setProviders] = useState<ProviderOption[]>([]);
@@ -1155,6 +1159,26 @@ export function WorkbenchClient() {
 
   return (
     <div className="space-y-5">
+      {isTrialMode && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+              <span className="text-sm font-semibold text-blue-700">✨</span>
+            </div>
+            <div>
+              <p className="font-semibold text-blue-950">
+                {language === "ko" ? "체험 모드입니다" : "Trial Mode"}
+              </p>
+              <p className="text-sm text-blue-800">
+                {language === "ko"
+                  ? "기능을 자유롭게 체험해보세요. 24시간 동안 모든 기능을 이용할 수 있습니다."
+                  : "Experience all features freely. Your trial session is valid for 24 hours."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <SectionHeader
         eyebrow={t("workbench")}
         title={t("compareBranchRoute")}

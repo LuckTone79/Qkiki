@@ -2,10 +2,31 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 export default function LandingPage() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleTrialStart = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/trial/start", {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (data.success) {
+        router.push(data.redirectUrl);
+      }
+    } catch (error) {
+      console.error("Trial start error:", error);
+      setIsLoading(false);
+    }
+  };
+
   const features = [t("featureCompare"), t("featureRoute"), t("featureSave")];
   const routeExample = [
     ["GPT", t("stepDraftAnswer")],
@@ -29,12 +50,13 @@ export default function LandingPage() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/sign-up"
-              className="rounded-md bg-stone-950 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-stone-800"
+            <button
+              onClick={handleTrialStart}
+              disabled={isLoading}
+              className="rounded-md bg-stone-950 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {t("getStarted")}
-            </Link>
+              {isLoading ? t("loading") || "Loading..." : t("getStarted")}
+            </button>
             <Link
               href="/sign-in"
               className="rounded-md border border-stone-300 bg-white px-5 py-3 text-center text-sm font-semibold text-stone-800 hover:bg-stone-50"
