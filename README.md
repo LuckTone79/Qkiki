@@ -148,7 +148,7 @@ The MVP supports:
 - Follow-up Branch: any result card can spawn child results from selected models.
 - Review with Other Model: any result can be critiqued, improved, summarized, simplified, fact-check-style reviewed, or consistency-reviewed by another provider.
 - Project Context: related sessions can live inside one project folder. Runs from a project include shared project notes and compact recent project outputs.
-- Current provider model catalog: GPT-5.4, Claude 4.6/4.5, Gemini 3.1/3, and Grok 4.20 families.
+- Current provider model catalog: GPT-5.5/5.4, Claude 4.7/4.6/4.5, Gemini 3.1/3/2.5, and Grok 4.3/4.20 families.
 
 Workflow presets store the step list as JSON. Presets can be saved from the workbench and managed at `/app/presets`.
 

@@ -220,7 +220,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 1,
       actionType: "generate",
       targetProvider: "openai",
-      targetModel: "gpt-5.4",
+      targetModel: "gpt-5.5",
       sourceMode: "original",
       instructionTemplate:
         language === "ko"
@@ -232,7 +232,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 2,
       actionType: "critique",
       targetProvider: "xai",
-      targetModel: "grok-4.20",
+      targetModel: "grok-4.3",
       sourceMode: "previous",
       instructionTemplate:
         language === "ko"
@@ -258,6 +258,28 @@ function sortSteps(steps: WorkflowStepState[]) {
   return steps
     .map((step, index) => ({ ...step, orderIndex: index + 1 }))
     .sort((a, b) => a.orderIndex - b.orderIndex);
+}
+
+function normalizeStepsForProviders(
+  steps: WorkflowStepState[],
+  providers: ProviderOption[],
+) {
+  return sortSteps(
+    steps.map((step) => {
+      const provider = providers.find(
+        (item) => item.providerName === step.targetProvider,
+      );
+
+      if (!provider || provider.models.includes(step.targetModel)) {
+        return step;
+      }
+
+      return {
+        ...step,
+        targetModel: provider.defaultModel,
+      };
+    }),
+  );
 }
 
 function clampInteger(value: number, min: number, max: number) {
@@ -466,16 +488,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       });
       return next;
     });
-    setWorkflowSteps((steps) =>
-      steps.map((step) => {
-        const provider = data.providers.find(
-          (item) => item.providerName === step.targetProvider,
-        );
-        return provider && !provider.models.includes(step.targetModel)
-          ? { ...step, targetModel: provider.defaultModel }
-          : step;
-      }),
-    );
+    setWorkflowSteps((steps) => normalizeStepsForProviders(steps, data.providers));
   }
 
   function applyPreset(preset: Preset) {
@@ -486,14 +499,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     );
 
     if (parsedSteps?.length) {
-      setWorkflowSteps(
-        sortSteps(
-          parsedSteps.map((step) => ({
-            ...step,
-            uid: newUid(),
-          })),
-        ),
+      const nextSteps = normalizeStepsForProviders(
+        parsedSteps.map((step) => ({
+          ...step,
+          uid: newUid(),
+        })),
+        providers,
       );
+      setWorkflowSteps(nextSteps);
       setWorkflowControl(workflowControlFromPreset(parsed, parsedSteps.length));
       setMode("sequential");
       setNotice(`${t("loadPreset")}: ${preset.name}`);
@@ -559,7 +572,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setResults(session.results);
     if (session.workflowSteps.length) {
       setWorkflowSteps(
-        sortSteps(
+        normalizeStepsForProviders(
           session.workflowSteps.map((step) => ({
             uid: step.id || newUid(),
             orderIndex: step.orderIndex,
@@ -570,6 +583,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             sourceResultId: step.sourceResultId,
             instructionTemplate: step.instructionTemplate,
           })),
+          providers,
         ),
       );
     }
@@ -791,7 +805,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           orderIndex: workflowSteps.length + 1,
           actionType: "improve",
           targetProvider: provider?.providerName ?? last?.targetProvider ?? "openai",
-          targetModel: provider?.defaultModel ?? last?.targetModel ?? "gpt-5.4",
+          targetModel: provider?.defaultModel ?? last?.targetModel ?? "gpt-5.5",
           sourceMode: "previous",
           instructionTemplate:
             language === "ko"

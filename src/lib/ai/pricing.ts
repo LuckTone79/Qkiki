@@ -6,47 +6,53 @@ type Pricing = {
 };
 
 const pricing: Record<string, Pricing> = {
-  // OpenAI - GPT-4o family (2025 pricing)
-  "openai:gpt-4o": { promptPerMillion: 5, completionPerMillion: 15 },
-  "openai:gpt-4o-mini": { promptPerMillion: 0.15, completionPerMillion: 0.6 },
-  "openai:gpt-4-turbo": { promptPerMillion: 10, completionPerMillion: 30 },
-  "openai:gpt-4": { promptPerMillion: 30, completionPerMillion: 60 },
-  "openai:gpt-3.5-turbo": { promptPerMillion: 0.5, completionPerMillion: 1.5 },
-  "openai:o1-preview": { promptPerMillion: 15, completionPerMillion: 60 },
-  "openai:o1-mini": { promptPerMillion: 3, completionPerMillion: 12 },
+  // OpenAI - GPT-5.4/5.5 family (2026 pricing)
+  "openai:gpt-5.5": { promptPerMillion: 5, completionPerMillion: 30 },
+  "openai:gpt-5.4": { promptPerMillion: 2.5, completionPerMillion: 15 },
+  "openai:gpt-5.4-mini": { promptPerMillion: 0.75, completionPerMillion: 4.5 },
+  "openai:gpt-5.4-nano": { promptPerMillion: 0.2, completionPerMillion: 1.25 },
 
-  // Anthropic - Claude family (2025 pricing)
-  "anthropic:claude-3-5-sonnet-20241022": {
-    promptPerMillion: 3,
-    completionPerMillion: 15,
+  // Anthropic - Claude 4 family (2026 pricing)
+  "anthropic:claude-opus-4-7": { promptPerMillion: 5, completionPerMillion: 25 },
+  "anthropic:claude-sonnet-4-6": { promptPerMillion: 3, completionPerMillion: 15 },
+  "anthropic:claude-haiku-4-5": { promptPerMillion: 1, completionPerMillion: 5 },
+
+  // Google - Gemini family (2026 standard pricing)
+  "google:gemini-3.1-pro-preview": {
+    promptPerMillion: 2,
+    completionPerMillion: 12,
   },
-  "anthropic:claude-3-5-haiku-20241022": {
-    promptPerMillion: 0.8,
-    completionPerMillion: 4,
+  "google:gemini-3-flash-preview": {
+    promptPerMillion: 0.5,
+    completionPerMillion: 3,
   },
-  "anthropic:claude-3-opus-20250219": {
-    promptPerMillion: 15,
-    completionPerMillion: 75,
+  "google:gemini-2.5-pro": {
+    promptPerMillion: 1.25,
+    completionPerMillion: 10,
   },
-  "anthropic:claude-3-sonnet-20240229": {
-    promptPerMillion: 3,
-    completionPerMillion: 15,
+  "google:gemini-2.5-flash": {
+    promptPerMillion: 0.3,
+    completionPerMillion: 2.5,
   },
-  "anthropic:claude-3-haiku-20240307": {
-    promptPerMillion: 0.8,
-    completionPerMillion: 4,
+  "google:gemini-2.5-flash-lite": {
+    promptPerMillion: 0.1,
+    completionPerMillion: 0.4,
   },
 
-  // Google - Gemini family (2025 pricing)
-  "google:gemini-2.0-flash": { promptPerMillion: 0.075, completionPerMillion: 0.3 },
-  "google:gemini-1.5-pro": { promptPerMillion: 7.5, completionPerMillion: 30 },
-  "google:gemini-1.5-flash": { promptPerMillion: 0.075, completionPerMillion: 0.3 },
-  "google:gemini-1-pro": { promptPerMillion: 0.5, completionPerMillion: 1.5 },
-
-  // xAI - Grok family (2025 pricing)
-  "xai:grok-3": { promptPerMillion: 5, completionPerMillion: 15 },
-  "xai:grok-2": { promptPerMillion: 3, completionPerMillion: 10 },
-  "xai:grok-2-mini": { promptPerMillion: 0.15, completionPerMillion: 0.6 },
+  // xAI - Grok family (2026 pricing)
+  "xai:grok-4.3": { promptPerMillion: 1.25, completionPerMillion: 2.5 },
+  "xai:grok-4.20-multi-agent": {
+    promptPerMillion: 1.25,
+    completionPerMillion: 2.5,
+  },
+  "xai:grok-4.20-reasoning": {
+    promptPerMillion: 1.25,
+    completionPerMillion: 2.5,
+  },
+  "xai:grok-4.20-non-reasoning": {
+    promptPerMillion: 1.25,
+    completionPerMillion: 2.5,
+  },
 };
 
 export function estimateCost(input: {
