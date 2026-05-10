@@ -219,20 +219,20 @@ function BranchComposer({
     mode === "follow_up" ? "follow_up" : "critique",
   );
   const [instruction, setInstruction] = useState("");
-  const [selected, setSelected] = useState<Record<string, boolean>>(() => {
+  const [selectedModels, setSelectedModels] = useState<Record<string, string[]>>(() => {
     const first = providers[0];
-    return first ? { [first.providerName]: true } : {};
+    return first ? { [first.providerName]: [first.defaultModel] } : {};
   });
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const targets = providers
-      .filter((provider) => selected[provider.providerName])
-      .map((provider) => ({
+    const targets = providers.flatMap((provider) =>
+      (selectedModels[provider.providerName] ?? []).map((model) => ({
         provider: provider.providerName,
-        model: provider.defaultModel,
-      }));
+        model,
+      })),
+    );
 
     if (!targets.length || !instruction.trim()) {
       return;
@@ -273,25 +273,51 @@ function BranchComposer({
 
         <div>
           <p className="text-xs font-medium text-stone-500">{t("targetModels")}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <div className="mt-2 space-y-3">
             {providers.map((provider) => (
-              <label
+              <div
                 key={provider.providerName}
-                className="min-h-9 rounded-md border border-stone-300 bg-white px-2 py-2 text-xs text-stone-700"
+                className="rounded-md border border-stone-200 bg-white p-3"
               >
-                <input
-                  type="checkbox"
-                  checked={Boolean(selected[provider.providerName])}
-                  onChange={(event) =>
-                    setSelected({
-                      ...selected,
-                      [provider.providerName]: event.target.checked,
-                    })
-                  }
-                  className="mr-1 accent-teal-700"
-                />
-                {provider.shortName}
-              </label>
+                <p className="text-xs font-semibold text-stone-700">
+                  {provider.shortName}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {provider.models.map((model) => {
+                    const checked = (selectedModels[provider.providerName] ?? []).includes(
+                      model,
+                    );
+                    return (
+                      <label
+                        key={`${provider.providerName}-${model}`}
+                        className={`min-h-9 rounded-md border px-2 py-2 text-xs ${
+                          checked
+                            ? "border-teal-300 bg-teal-50 text-teal-900"
+                            : "border-stone-300 bg-white text-stone-700"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const current =
+                              selectedModels[provider.providerName] ?? [];
+                            const next = event.target.checked
+                              ? [...current, model]
+                              : current.filter((item) => item !== model);
+                            setSelectedModels({
+                              ...selectedModels,
+                              [provider.providerName]: next,
+                            });
+                          }}
+                          className="mr-1 accent-teal-700"
+                        />
+                        {model}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
         </div>

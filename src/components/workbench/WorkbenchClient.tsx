@@ -36,7 +36,7 @@ import {
 
 type ProviderSelection = {
   enabled: boolean;
-  model: string;
+  models: string[];
 };
 
 type MobilePanel = "models" | "input" | "workflow" | "results";
@@ -402,6 +402,25 @@ function normalizeStepsForProviders(
       };
     }),
   );
+}
+
+function dedupeModels(models: string[]) {
+  return Array.from(new Set(models));
+}
+
+function normalizeProviderSelection(
+  selection: (Partial<ProviderSelection> & { model?: string }) | undefined,
+  provider: ProviderOption,
+): ProviderSelection {
+  const nextModels = dedupeModels([
+    ...(Array.isArray(selection?.models) ? selection.models : []),
+    ...(typeof selection?.model === "string" ? [selection.model] : []),
+  ]).filter((model) => provider.models.includes(model));
+
+  return {
+    enabled: selection?.enabled ?? provider.isEnabled,
+    models: nextModels.length ? nextModels : [],
+  };
 }
 
 function clampInteger(value: number, min: number, max: number) {
@@ -776,9 +795,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setSelections((current) => {
       const next = { ...current };
       data.providers.forEach((provider) => {
-        next[provider.providerName] = next[provider.providerName] ?? {
-          enabled: provider.isEnabled,
-          model: provider.defaultModel,
+        const normalized = normalizeProviderSelection(
+          next[provider.providerName],
+          provider,
+        );
+        next[provider.providerName] = {
+          enabled: normalized.enabled,
+          models:
+            normalized.models.length || !normalized.enabled
+              ? normalized.models
+              : [provider.defaultModel],
         };
       });
       return next;
@@ -1189,12 +1215,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   );
 
   const selectedTargets = useMemo<TargetModelInput[]>(() => {
-    return providers
-      .filter((provider) => selections[provider.providerName]?.enabled)
-      .map((provider) => ({
+    return providers.flatMap((provider) => {
+      const selection = normalizeProviderSelection(
+        selections[provider.providerName],
+        provider,
+      );
+
+      if (!selection.enabled || !selection.models.length) {
+        return [];
+      }
+
+      return selection.models.map((model) => ({
         provider: provider.providerName,
-        model: selections[provider.providerName]?.model || provider.defaultModel,
+        model,
       }));
+    });
   }, [providers, selections]);
 
   const normalizedWorkflowControl = useMemo(
@@ -1871,38 +1906,42 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               {t("enableProviderShort")}
             </p>
             <div className="mt-4 space-y-3">
-              {providers.map((provider) => (
-                <ProviderSelectorRow
-                  key={provider.providerName}
-                  provider={provider}
-                  enabled={Boolean(selections[provider.providerName]?.enabled)}
-                  model={
-                    selections[provider.providerName]?.model ||
-                    provider.defaultModel
-                  }
-                  onEnabledChange={(enabled) =>
-                    setSelections({
-                      ...selections,
-                      [provider.providerName]: {
-                        enabled,
-                        model:
-                          selections[provider.providerName]?.model ||
-                          provider.defaultModel,
-                      },
-                    })
-                  }
-                  onModelChange={(model) =>
-                    setSelections({
-                      ...selections,
-                      [provider.providerName]: {
-                        enabled:
-                          selections[provider.providerName]?.enabled ?? false,
-                        model,
-                      },
-                    })
-                  }
-                />
-              ))}
+              {providers.map((provider) => {
+                const selection = normalizeProviderSelection(
+                  selections[provider.providerName],
+                  provider,
+                );
+
+                return (
+                  <ProviderSelectorRow
+                    key={provider.providerName}
+                    provider={provider}
+                    enabled={selection.enabled}
+                    selectedModels={selection.models}
+                    onEnabledChange={(enabled) =>
+                      setSelections({
+                        ...selections,
+                        [provider.providerName]: {
+                          enabled,
+                          models:
+                            enabled && !selection.models.length
+                              ? [provider.defaultModel]
+                              : selection.models,
+                        },
+                      })
+                    }
+                    onSelectedModelsChange={(models) =>
+                      setSelections({
+                        ...selections,
+                        [provider.providerName]: {
+                          enabled: models.length > 0,
+                          models: dedupeModels(models),
+                        },
+                      })
+                    }
+                  />
+                );
+              })}
             </div>
           </div>
         </aside>

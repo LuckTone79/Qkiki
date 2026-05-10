@@ -1,6 +1,7 @@
 "use client";
 
 import { StatusBadge } from "@/components/StatusBadge";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderName } from "@/lib/ai/types";
 
 export type ProviderOption = {
@@ -16,18 +17,19 @@ export type ProviderOption = {
 type ProviderSelectorRowProps = {
   provider: ProviderOption;
   enabled: boolean;
-  model: string;
+  selectedModels: string[];
   onEnabledChange: (enabled: boolean) => void;
-  onModelChange: (model: string) => void;
+  onSelectedModelsChange: (models: string[]) => void;
 };
 
 export function ProviderSelectorRow({
   provider,
   enabled,
-  model,
+  selectedModels,
   onEnabledChange,
-  onModelChange,
+  onSelectedModelsChange,
 }: ProviderSelectorRowProps) {
+  const { language } = useLanguage();
   const isReady = provider.status === "ready";
   const statusMessage =
     isReady
@@ -56,18 +58,49 @@ export function ProviderSelectorRow({
         </label>
         <StatusBadge status={provider.status} />
       </div>
-      <select
-        value={model}
-        disabled={!isReady}
-        onChange={(event) => onModelChange(event.target.value)}
-        className="mt-3 min-h-10 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 disabled:cursor-not-allowed disabled:bg-stone-100"
-      >
-        {provider.models.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+      <div className="mt-3 rounded-md border border-stone-200 bg-[#fbfcf8] p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="text-xs font-medium text-stone-500">
+            {language === "ko" ? "선택 모델" : "Selected models"}
+          </p>
+          <span className="text-[11px] text-stone-400">
+            {selectedModels.length
+              ? `${selectedModels.length}${language === "ko" ? "개 선택" : " selected"}`
+              : language === "ko"
+                ? "선택 없음"
+                : "None selected"}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {provider.models.map((option) => {
+            const checked = selectedModels.includes(option);
+            return (
+              <label
+                key={option}
+                className={`min-h-9 rounded-md border px-2 py-2 text-xs ${
+                  checked
+                    ? "border-teal-300 bg-teal-50 text-teal-900"
+                    : "border-stone-300 bg-white text-stone-700"
+                } ${!isReady ? "cursor-not-allowed opacity-50" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  disabled={!isReady}
+                  onChange={(event) => {
+                    const next = event.target.checked
+                      ? [...selectedModels, option]
+                      : selectedModels.filter((model) => model !== option);
+                    onSelectedModelsChange(next);
+                  }}
+                  className="mr-1 accent-teal-700"
+                />
+                {option}
+              </label>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
