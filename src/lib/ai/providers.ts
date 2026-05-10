@@ -36,6 +36,55 @@ function getText(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+function extractContentPartsText(value: unknown) {
+  if (!Array.isArray(value)) {
+    return "";
+  }
+
+  return value
+    .map((part) => {
+      if (!part || typeof part !== "object") {
+        return "";
+      }
+
+      if ("text" in part && typeof part.text === "string") {
+        return part.text;
+      }
+
+      if ("refusal" in part && typeof part.refusal === "string") {
+        return part.refusal;
+      }
+
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+function extractChatMessageText(message: JsonRecord | undefined) {
+  if (!message) {
+    return "";
+  }
+
+  const directContent = getText(message.content);
+  if (directContent) {
+    return directContent;
+  }
+
+  const contentPartsText = extractContentPartsText(message.content);
+  if (contentPartsText) {
+    return contentPartsText;
+  }
+
+  const nestedContentPartsText = extractContentPartsText(message.content_parts);
+  if (nestedContentPartsText) {
+    return nestedContentPartsText;
+  }
+
+  return getText(message.refusal);
+}
+
 function normalizeUsage(input: {
   promptTokens?: unknown;
   completionTokens?: unknown;
@@ -315,7 +364,7 @@ async function callOpenAi(
   const choices = Array.isArray(body.choices) ? body.choices : [];
   const firstChoice = choices[0] as JsonRecord | undefined;
   const message = firstChoice?.message as JsonRecord | undefined;
-  const outputText = getText(message?.content) || "";
+  const outputText = extractChatMessageText(message);
   const usageBody = body.usage as JsonRecord | undefined;
 
   return withCost({
@@ -466,7 +515,7 @@ async function callXai(
   const choices = Array.isArray(body.choices) ? body.choices : [];
   const firstChoice = choices[0] as JsonRecord | undefined;
   const message = firstChoice?.message as JsonRecord | undefined;
-  const outputText = getText(message?.content) || "";
+  const outputText = extractChatMessageText(message);
   const usageBody = body.usage as JsonRecord | undefined;
 
   return withCost({
