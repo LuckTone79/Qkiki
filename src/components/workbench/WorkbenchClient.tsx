@@ -131,6 +131,34 @@ type RunMonitor = {
   entries: RunProgressEntry[];
 };
 
+type ParallelComparisonSummary = {
+  summary: string;
+  provider: ProviderName;
+  model: string;
+  generatedAt: string;
+  comparedResultIds: string[];
+};
+
+type ParallelComparisonState =
+  | {
+      signature: string;
+      status: "idle";
+    }
+  | {
+      signature: string;
+      status: "loading";
+    }
+  | {
+      signature: string;
+      status: "completed";
+      comparison: ParallelComparisonSummary;
+    }
+  | {
+      signature: string;
+      status: "failed";
+      error: string;
+    };
+
 const outputStyles = ["detailed", "short", "bullet", "table", "executive"];
 const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
   detailed: { en: "detailed", ko: "\uc790\uc138\ud788" },
@@ -243,6 +271,15 @@ const workbenchUiText = {
     parallelRun: "Parallel run",
     sequentialStep: "Step",
     noProgress: "Run a task to see per-model progress updates here.",
+    compareTitle: "AI difference summary",
+    compareDescription:
+      "Top-level parallel results are compared model by model, with shared points and differences summarized below.",
+    compareLoading: "Comparing completed parallel results now.",
+    compareEmpty:
+      "Complete at least two top-level parallel results to generate a difference summary.",
+    compareFailed: "Could not generate the difference summary.",
+    compareGeneratedWith: "Compared with",
+    compareModels: "Compared models",
   },
   ko: {
     progressTitle: "AI 진행 상태",
@@ -268,6 +305,15 @@ const workbenchUiText = {
     parallelRun: "병렬 실행",
     sequentialStep: "단계",
     noProgress: "작업을 실행하면 여기에서 모델별 진행 상태를 확인할 수 있습니다.",
+    compareTitle: "AI 결과 차이 비교",
+    compareDescription:
+      "병렬 비교에서 완료된 상위 결과를 모델별로 비교해 공통점과 차이점을 요약합니다.",
+    compareLoading: "완료된 병렬 결과의 차이점을 비교하고 있습니다.",
+    compareEmpty:
+      "차이 비교 요약을 생성하려면 상위 병렬 결과가 최소 2개 이상 필요합니다.",
+    compareFailed: "결과 차이 요약을 생성하지 못했습니다.",
+    compareGeneratedWith: "비교 생성 모델",
+    compareModels: "비교 대상 모델",
   },
 } as const;
 
@@ -552,8 +598,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [activeMobilePanel, setActiveMobilePanel] =
     useState<MobilePanel>("input");
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
-  const [resultLayout, setResultLayout] = useState<ResultLayout>("single");
+  const [resultLayout, setResultLayout] = useState<ResultLayout>("double");
   const [runMonitor, setRunMonitor] = useState<RunMonitor | null>(null);
+  const [parallelComparison, setParallelComparison] =
+    useState<ParallelComparisonState>({
+      signature: "",
+      status: "idle",
+    });
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -848,14 +899,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, []);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("qkiki-result-layout");
+    const stored = window.localStorage.getItem("qkiki-result-layout-v2");
     if (stored === "double" || stored === "single") {
       setResultLayout(stored);
     }
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("qkiki-result-layout", resultLayout);
+    window.localStorage.setItem("qkiki-result-layout-v2", resultLayout);
   }, [resultLayout]);
 
   useEffect(() => {
@@ -869,6 +920,132 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     return () => window.clearInterval(timer);
   }, [runMonitor]);
+
+  useEffect(() => {
+    if (mode === "parallel" && activeMobilePanel === "workflow") {
+      setActiveMobilePanel("input");
+    }
+
+    if (mode !== "parallel") {
+      setParallelComparison({ signature: "", status: "idle" });
+    }
+  }, [activeMobilePanel, mode]);
+
+  useEffect(() => {
+    if (mode !== "parallel" || !sessionId) {
+      return;
+    }
+
+    const latestByProviderModel = new Map<string, WorkbenchResult>();
+
+    results
+      .filter(
+        (result) =>
+          result.parentResultId === null &&
+          result.status === "completed" &&
+          Boolean(result.outputText?.trim()),
+      )
+      .forEach((result) => {
+        const key = `${result.provider}:${result.model}`;
+        const current = latestByProviderModel.get(key);
+
+        if (
+          !current ||
+          new Date(result.createdAt).getTime() >=
+            new Date(current.createdAt).getTime()
+        ) {
+          latestByProviderModel.set(key, result);
+        }
+      });
+
+    const candidates = Array.from(latestByProviderModel.values()).sort(
+      (left, right) =>
+        new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+    );
+    const signature = candidates.map((result) => result.id).join("|");
+
+    if (running || candidates.length < 2) {
+      if (
+        candidates.length < 2 &&
+        !(
+          parallelComparison.status === "idle" &&
+          parallelComparison.signature === signature
+        )
+      ) {
+        setParallelComparison({
+          signature,
+          status: "idle",
+        });
+      }
+      return;
+    }
+
+    if (
+      parallelComparison.signature === signature &&
+      parallelComparison.status !== "idle"
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    setParallelComparison({
+      signature,
+      status: "loading",
+    });
+
+    fetch("/api/workbench/compare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId,
+        resultIds: candidates.map((result) => result.id),
+      }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = (await response.json().catch(() => ({}))) as {
+          comparison?: ParallelComparisonSummary;
+          error?: string;
+        };
+
+        if (!response.ok || !data.comparison) {
+          throw new Error(data.error || uiText.compareFailed);
+        }
+
+        if (!controller.signal.aborted) {
+          setParallelComparison({
+            signature,
+            status: "completed",
+            comparison: data.comparison,
+          });
+        }
+      })
+      .catch((compareError: unknown) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setParallelComparison({
+          signature,
+          status: "failed",
+          error:
+            compareError instanceof Error
+              ? compareError.message
+              : uiText.compareFailed,
+        });
+      });
+
+    return () => controller.abort();
+  }, [
+    mode,
+    parallelComparison.signature,
+    parallelComparison.status,
+    results,
+    running,
+    sessionId,
+    uiText.compareFailed,
+  ]);
 
   // ── Draft autosave: debounced 2 s, only when no server session exists ──
   useEffect(() => {
@@ -980,6 +1157,39 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     results.forEach(depthOf);
     return depthMap;
   }, [results]);
+
+  const parallelComparisonCandidates = useMemo(() => {
+    if (mode !== "parallel") {
+      return [] as WorkbenchResult[];
+    }
+
+    const latestByProviderModel = new Map<string, WorkbenchResult>();
+
+    results
+      .filter(
+        (result) =>
+          result.parentResultId === null &&
+          result.status === "completed" &&
+          Boolean(result.outputText?.trim()),
+      )
+      .forEach((result) => {
+        const key = `${result.provider}:${result.model}`;
+        const current = latestByProviderModel.get(key);
+
+        if (
+          !current ||
+          new Date(result.createdAt).getTime() >=
+            new Date(current.createdAt).getTime()
+        ) {
+          latestByProviderModel.set(key, result);
+        }
+      });
+
+    return Array.from(latestByProviderModel.values()).sort(
+      (left, right) =>
+        new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+    );
+  }, [mode, results]);
 
   const resultStats = useMemo(
     () => ({
@@ -1169,6 +1379,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     setProgressNow(Date.now());
     setRunMonitor(createRunMonitor(mode));
+    if (mode === "parallel") {
+      setParallelComparison({ signature: "", status: "idle" });
+    }
     setRunning(true);
     const response = await fetch("/api/workbench/run", {
       method: "POST",
@@ -1436,7 +1649,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const mobilePanels: Array<{ id: MobilePanel; label: string }> = [
     { id: "models", label: t("mobileModels") },
     { id: "input", label: t("mobileInput") },
-    { id: "workflow", label: t("mobileWorkflow") },
     {
       id: "results",
       label: results.length
@@ -1444,6 +1656,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         : t("mobileResults"),
     },
   ];
+
+  if (mode === "sequential") {
+    mobilePanels.splice(2, 0, {
+      id: "workflow",
+      label: t("mobileWorkflow"),
+    });
+  }
 
   const mobilePanelClass = (panel: MobilePanel) =>
     activeMobilePanel === panel ? "block" : "hidden xl:block";
@@ -1737,11 +1956,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
           </div>
 
-          <div
-            className={`rounded-lg border border-stone-200 bg-[#fbfcf8] p-4 ${mobilePanelClass(
-              "workflow",
-            )}`}
-          >
+          {mode === "sequential" ? (
+            <div
+              className={`rounded-lg border border-stone-200 bg-[#fbfcf8] p-4 ${mobilePanelClass(
+                "workflow",
+              )}`}
+            >
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-stone-950">
@@ -2003,7 +2223,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 {t("saveRoute")}
               </button>
             </div>
-          </div>
+            </div>
+          ) : null}
         </section>
       </div>
 
@@ -2043,7 +2264,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         </p>
                       </div>
                       <span
-                        className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
                           entry.status === "completed"
                             ? "bg-teal-100 text-teal-800"
                             : entry.status === "failed"
@@ -2055,6 +2276,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                                   : "bg-stone-100 text-stone-600"
                         }`}
                       >
+                        {entry.status === "active" ? (
+                          <svg
+                            viewBox="0 0 16 16"
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5 animate-[spin_1.2s_linear_infinite]"
+                            fill="currentColor"
+                          >
+                            <path d="M4 2h8v2c0 1.63-1.03 3.09-2.56 4 1.53.91 2.56 2.37 2.56 4v2H4v-2c0-1.63 1.03-3.09 2.56-4C5.03 7.09 4 5.63 4 4V2Zm2 1v1c0 1.1.83 2.15 2 2.9 1.17-.75 2-1.8 2-2.9V3H6Zm0 10h4v-1c0-1.1-.83-2.15-2-2.9-1.17.75-2 1.8-2 2.9v1Z" />
+                          </svg>
+                        ) : null}
                         {entry.status === "completed"
                           ? t("statusCompleted")
                           : entry.status === "failed"
@@ -2132,6 +2363,70 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
           </div>
         </div>
+
+        {mode === "parallel" ? (
+          <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-stone-950">
+                  {uiText.compareTitle}
+                </h2>
+                <p className="text-sm text-stone-600">
+                  {uiText.compareDescription}
+                </p>
+              </div>
+              {parallelComparison.status === "completed" ? (
+                <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
+                  {uiText.compareGeneratedWith}:{" "}
+                  {parallelComparison.comparison.provider}/
+                  {parallelComparison.comparison.model}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-medium text-stone-500">
+                {uiText.compareModels}
+              </p>
+              <div className="flex flex-wrap gap-2">
+              {parallelComparisonCandidates.map((result) => (
+                <span
+                  key={result.id}
+                  className="rounded-full border border-stone-200 bg-[#f7f8f3] px-3 py-1 text-xs font-medium text-stone-700"
+                >
+                  {result.provider}/{result.model}
+                </span>
+              ))}
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
+              {parallelComparison.status === "loading" ? (
+                <p className="flex items-center gap-2 text-sm leading-6 text-stone-700">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block animate-[spin_1.2s_linear_infinite]"
+                  >
+                    ⏳
+                  </span>
+                  {uiText.compareLoading}
+                </p>
+              ) : parallelComparison.status === "completed" ? (
+                <p className="whitespace-pre-wrap text-sm leading-7 text-stone-800">
+                  {parallelComparison.comparison.summary}
+                </p>
+              ) : parallelComparison.status === "failed" ? (
+                <p className="text-sm leading-6 text-rose-700">
+                  {parallelComparison.error || uiText.compareFailed}
+                </p>
+              ) : (
+                <p className="text-sm leading-6 text-stone-500">
+                  {uiText.compareEmpty}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

@@ -9,6 +9,7 @@ import {
 } from "@/lib/attachments";
 import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
+import { getProviderCatalog } from "@/lib/ai/provider-catalog";
 import { encryptTextContent } from "@/lib/secret-crypto";
 import type {
   ActionType,
@@ -252,6 +253,136 @@ function toProviderAttachments(attachments: RuntimeAttachment[] | undefined) {
     extractedText: attachment.extractedText,
     dataBase64: attachment.dataBase64,
   }));
+}
+
+function buildParallelComparisonPrompt(input: {
+  originalInput: string;
+  results: Array<{
+    provider: ProviderName;
+    model: string;
+    outputText: string;
+  }>;
+}) {
+  return [
+    "You are comparing parallel AI outputs for the same task.",
+    "Write in Korean if the task or outputs are mostly Korean. Otherwise write in English.",
+    "Summarize the results with these sections:",
+    "1. Shared points",
+    "2. Main differences by model",
+    "3. Distinct strengths or risks",
+    "4. When each answer is the better choice",
+    "Be specific and mention the model names exactly as provided.",
+    "",
+    "[Original task]",
+    input.originalInput,
+    "",
+    "[Parallel results]",
+    ...input.results.map((result, index) =>
+      [
+        `${index + 1}. ${result.provider}/${result.model}`,
+        result.outputText.slice(0, 4000),
+      ].join("\n"),
+    ),
+  ].join("\n");
+}
+
+export async function generateParallelComparisonSummary(input: {
+  userId: string;
+  sessionId: string;
+  resultIds?: string[];
+}) {
+  const session = await prisma.workbenchSession.findFirst({
+    where: {
+      id: input.sessionId,
+      userId: input.userId,
+    },
+    select: {
+      id: true,
+      originalInput: true,
+    },
+  });
+
+  if (!session) {
+    throw new Error("Session was not found for comparison.");
+  }
+
+  const results = await prisma.result.findMany({
+    where: {
+      sessionId: session.id,
+      ...(input.resultIds?.length ? { id: { in: input.resultIds } } : {}),
+    },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      provider: true,
+      model: true,
+      outputText: true,
+      status: true,
+    },
+  });
+
+  const comparableResults = results.filter(
+    (result) =>
+      result.status === "completed" &&
+      typeof result.outputText === "string" &&
+      result.outputText.trim().length > 0,
+  );
+
+  if (comparableResults.length < 2) {
+    throw new Error("At least two completed results are required for comparison.");
+  }
+
+  const provider: ProviderName = "openai";
+  const model = getProviderCatalog(provider).defaultModel;
+  const providerResult = await callProvider(input.userId, {
+    provider,
+    model,
+    prompt: buildParallelComparisonPrompt({
+      originalInput: session.originalInput,
+      results: comparableResults.map((result) => ({
+        provider: result.provider as ProviderName,
+        model: result.model,
+        outputText: result.outputText ?? "",
+      })),
+    }),
+  });
+
+  await prisma.aiRequest.create({
+    data: {
+      userId: input.userId,
+      conversationId: session.id,
+      provider,
+      model,
+      requestType: "summarize",
+      status: providerResult.status,
+      inputTokens: providerResult.usage?.promptTokens ?? null,
+      outputTokens: providerResult.usage?.completionTokens ?? null,
+      estimatedCostUsd: providerResult.estimatedCost ?? null,
+      latencyMs: providerResult.latencyMs,
+      errorCode:
+        providerResult.status === "failed"
+          ? "PARALLEL_COMPARISON_FAILED"
+          : null,
+      errorMessage: providerResult.errorMessage || null,
+    },
+  });
+
+  if (
+    providerResult.status === "failed" ||
+    !providerResult.outputText.trim()
+  ) {
+    throw new Error(
+      providerResult.errorMessage || "Could not generate comparison summary.",
+    );
+  }
+
+  return {
+    summary: providerResult.outputText,
+    provider,
+    model,
+    generatedAt: new Date().toISOString(),
+    comparedResultIds: comparableResults.map((result) => result.id),
+  };
 }
 
 export async function upsertWorkbenchSession(
