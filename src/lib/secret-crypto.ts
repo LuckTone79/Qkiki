@@ -6,6 +6,11 @@ export type CipherBundle = {
   tag: string;
 };
 
+type EncryptionKeySource =
+  | "db_encryption_key"
+  | "app_secret"
+  | "dev_fallback";
+
 type EncryptedSecret = {
   ciphertext: string;
   iv: string;
@@ -14,15 +19,71 @@ type EncryptedSecret = {
 };
 
 const algorithm = "aes-256-gcm";
+const devFallbackSecret = "dev-only-change-before-production";
 
-function getKey() {
-  const secret = process.env.APP_SECRET ?? "dev-only-change-before-production";
+function toKey(secret: string) {
   return crypto.createHash("sha256").update(secret).digest();
+}
+
+function getPrimaryEncryptionSecret(): {
+  secret: string;
+  source: EncryptionKeySource;
+} {
+  const dbEncryptionKey = process.env.DB_ENCRYPTION_KEY?.trim();
+  if (dbEncryptionKey) {
+    return { secret: dbEncryptionKey, source: "db_encryption_key" };
+  }
+
+  const appSecret = process.env.APP_SECRET?.trim();
+  if (appSecret) {
+    return { secret: appSecret, source: "app_secret" };
+  }
+
+  return { secret: devFallbackSecret, source: "dev_fallback" };
+}
+
+function getDecryptionSecrets(): Array<{
+  secret: string;
+  source: EncryptionKeySource;
+}> {
+  const candidates: Array<{
+    secret: string;
+    source: EncryptionKeySource;
+  }> = [];
+
+  const dbEncryptionKey = process.env.DB_ENCRYPTION_KEY?.trim();
+  if (dbEncryptionKey) {
+    candidates.push({
+      secret: dbEncryptionKey,
+      source: "db_encryption_key",
+    });
+  }
+
+  const appSecret = process.env.APP_SECRET?.trim();
+  if (appSecret && appSecret !== dbEncryptionKey) {
+    candidates.push({
+      secret: appSecret,
+      source: "app_secret",
+    });
+  }
+
+  if (!candidates.length) {
+    candidates.push({
+      secret: devFallbackSecret,
+      source: "dev_fallback",
+    });
+  }
+
+  return candidates;
 }
 
 function encryptRaw(value: string): CipherBundle {
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(algorithm, getKey(), iv);
+  const cipher = crypto.createCipheriv(
+    algorithm,
+    toKey(getPrimaryEncryptionSecret().secret),
+    iv,
+  );
   const ciphertext = Buffer.concat([
     cipher.update(value, "utf8"),
     cipher.final(),
@@ -46,19 +107,38 @@ export function encryptSecret(value: string): EncryptedSecret {
 }
 
 function decryptRaw(input: CipherBundle) {
-  const decipher = crypto.createDecipheriv(
-    algorithm,
-    getKey(),
-    Buffer.from(input.iv, "base64"),
-  );
-  decipher.setAuthTag(Buffer.from(input.tag, "base64"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(input.ciphertext, "base64")),
-    decipher.final(),
-  ]).toString("utf8");
+  let lastError: Error | null = null;
+
+  for (const candidate of getDecryptionSecrets()) {
+    try {
+      const decipher = crypto.createDecipheriv(
+        algorithm,
+        toKey(candidate.secret),
+        Buffer.from(input.iv, "base64"),
+      );
+      decipher.setAuthTag(Buffer.from(input.tag, "base64"));
+      const value = Buffer.concat([
+        decipher.update(Buffer.from(input.ciphertext, "base64")),
+        decipher.final(),
+      ]).toString("utf8");
+
+      return {
+        value,
+        keySource: candidate.source,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Decrypt failed.");
+    }
+  }
+
+  throw lastError ?? new Error("Decrypt failed.");
 }
 
 export function decryptSecret(input: CipherBundle) {
+  return decryptRaw(input).value;
+}
+
+export function decryptSecretWithMetadata(input: CipherBundle) {
   return decryptRaw(input);
 }
 
@@ -67,7 +147,11 @@ export function encryptTextContent(value: string): CipherBundle {
 }
 
 export function decryptTextContent(input: CipherBundle) {
-  return decryptRaw(input);
+  return decryptRaw(input).value;
+}
+
+export function hasDedicatedDbEncryptionKey() {
+  return Boolean(process.env.DB_ENCRYPTION_KEY?.trim());
 }
 
 export function maskApiKey(value: string) {

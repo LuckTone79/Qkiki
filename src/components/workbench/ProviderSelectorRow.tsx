@@ -28,8 +28,9 @@ export function ProviderSelectorRow({
   onEnabledChange,
   onModelChange,
 }: ProviderSelectorRowProps) {
+  const isReady = provider.status === "ready";
   const statusMessage =
-    provider.status === "ready"
+    isReady
       ? "Configured by administrator"
       : provider.status === "disabled"
         ? "Disabled by administrator"
@@ -42,8 +43,9 @@ export function ProviderSelectorRow({
           <input
             type="checkbox"
             checked={enabled}
+            disabled={!isReady}
             onChange={(event) => onEnabledChange(event.target.checked)}
-            className="h-4 w-4 accent-teal-700"
+            className="h-4 w-4 accent-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
           />
           <span>
             <span className="block text-sm font-semibold text-stone-950">
@@ -56,8 +58,9 @@ export function ProviderSelectorRow({
       </div>
       <select
         value={model}
+        disabled={!isReady}
         onChange={(event) => onModelChange(event.target.value)}
-        className="mt-3 min-h-10 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
+        className="mt-3 min-h-10 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 disabled:cursor-not-allowed disabled:bg-stone-100"
       >
         {provider.models.map((option) => (
           <option key={option} value={option}>

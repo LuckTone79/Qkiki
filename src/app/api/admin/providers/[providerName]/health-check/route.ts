@@ -27,9 +27,11 @@ export async function POST(
     });
     const hasEnvKey = Boolean(catalog && process.env[catalog.envKey]?.trim());
     const hasStoredKey = Boolean(config?.apiKeyCiphertext);
-    const healthStatus = !config?.isEnabled
+    const hasCredential = hasEnvKey || hasStoredKey;
+    const effectiveEnabled = config ? config.isEnabled : hasCredential;
+    const healthStatus = !effectiveEnabled
       ? "disabled"
-      : hasEnvKey || hasStoredKey
+      : hasCredential
         ? "ready"
         : "missing_key";
     const checkedAt = new Date();
@@ -39,7 +41,7 @@ export async function POST(
       create: {
         providerName,
         defaultModel: catalog?.defaultModel ?? providerName,
-        isEnabled: false,
+        isEnabled: hasCredential,
         healthStatus,
         lastHealthCheckedAt: checkedAt,
         updatedByAdminId: admin.id,

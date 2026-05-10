@@ -13,7 +13,8 @@ export async function GET() {
       const config = configs.find((item) => item.providerName === provider.name);
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
-      const isEnabled = config?.isEnabled ?? false;
+      const hasCredential = hasEnvKey || hasStoredKey;
+      const isEnabled = config ? config.isEnabled : hasCredential;
       const configuredModel = config?.defaultModel ?? provider.defaultModel;
       const defaultModel = provider.models.includes(configuredModel)
         ? configuredModel
@@ -28,7 +29,7 @@ export async function GET() {
         isEnabled,
         status: !isEnabled
           ? "disabled"
-          : hasEnvKey || hasStoredKey
+          : hasCredential
             ? "ready"
             : "missing_key",
       };

@@ -31,7 +31,7 @@ npm install
 cp .env.example .env
 ```
 
-3. Set a long random `APP_SECRET` in `.env`.
+3. Set long random values for both `APP_SECRET` and `DB_ENCRYPTION_KEY` in `.env`.
 
 4. Apply the database schema:
 
@@ -52,6 +52,7 @@ Open [http://localhost:3000](http://localhost:3000).
 ```bash
 DATABASE_URL="file:./dev.db"
 APP_SECRET="replace-with-a-long-random-secret"
+DB_ENCRYPTION_KEY="replace-with-a-different-long-random-secret"
 
 OPENAI_API_KEY=""
 ANTHROPIC_API_KEY=""
@@ -69,6 +70,7 @@ Provider keys can be configured in two ways:
 - Per-user encrypted provider settings saved through `/app/providers`.
 
 Environment keys take priority over stored user keys.
+`DB_ENCRYPTION_KEY` should be different from `APP_SECRET`. It is used for database-encrypted secrets and encrypted stored content, while `APP_SECRET` remains the auth and session secret.
 
 For Google sign-in, set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` from Google Cloud Console.  
 `GOOGLE_OAUTH_REDIRECT_URI` is optional; when omitted, it defaults to `{your-origin}/api/auth/google/callback`.
@@ -186,6 +188,7 @@ SQLite is used to make the MVP easy to run locally. For a deployed SaaS version,
 Before production deployment:
 
 - Set a strong `APP_SECRET`.
+- Set a separate strong `DB_ENCRYPTION_KEY`.
 - Configure Google OAuth consent screen and authorize your callback URL (`/api/auth/google/callback`) if Google sign-in is enabled.
 - Use HTTPS-only cookies.
 - Rotate any provider keys that were used in local testing.

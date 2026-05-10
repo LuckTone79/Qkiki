@@ -19,6 +19,8 @@ export async function GET() {
       const config = configs.find((item) => item.providerName === provider.name);
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
+      const hasCredential = hasEnvKey || hasStoredKey;
+      const effectiveEnabled = config ? config.isEnabled : hasCredential;
       const configuredModel = config?.defaultModel ?? provider.defaultModel;
 
       return {
@@ -29,7 +31,7 @@ export async function GET() {
         defaultModel: provider.models.includes(configuredModel)
           ? configuredModel
           : provider.defaultModel,
-        isEnabled: config?.isEnabled ?? false,
+        isEnabled: effectiveEnabled,
         fallbackProvider: config?.fallbackProvider ?? null,
         perUserDailyLimit: config?.perUserDailyLimit ?? 100,
         timeoutSeconds: config?.timeoutSeconds ?? 60,
@@ -38,9 +40,9 @@ export async function GET() {
         hasEnvKey,
         hasStoredKey,
         apiKeyMasked: config?.apiKeyMasked ?? null,
-        status: !config?.isEnabled
+        status: !effectiveEnabled
           ? "disabled"
-          : hasEnvKey || hasStoredKey
+          : hasCredential
             ? "ready"
             : "missing_key",
       };

@@ -23,20 +23,34 @@ export async function assertProvidersReadyForRun(
   });
 
   for (const providerName of uniqueNames) {
-    const config = configs.find((item) => item.providerName === providerName);
+    let config = configs.find((item) => item.providerName === providerName);
     const catalog = PROVIDERS.find((item) => item.name === providerName);
     const hasEnvKey = Boolean(catalog && process.env[catalog.envKey]?.trim());
     const hasStoredKey = Boolean(config?.apiKeyCiphertext);
+    const hasCredential = hasEnvKey || hasStoredKey;
 
-    if (!config?.isEnabled) {
+    if (!config && catalog && hasCredential) {
+      config = await prisma.adminProviderConfig.create({
+        data: {
+          providerName,
+          defaultModel: catalog.defaultModel,
+          isEnabled: true,
+          healthStatus: "ready",
+        },
+      });
+    }
+
+    const effectiveEnabled = config ? config.isEnabled : hasCredential;
+
+    if (!effectiveEnabled) {
       return `${providerName} is disabled by administrator.`;
     }
 
-    if (!hasEnvKey && !hasStoredKey) {
+    if (!hasCredential) {
       return `${providerName} API key is not configured by administrator.`;
     }
 
-    if (userId && config.perUserDailyLimit > 0) {
+    if (userId && config?.perUserDailyLimit && config.perUserDailyLimit > 0) {
       const usedToday = await prisma.aiRequest.count({
         where: {
           userId,

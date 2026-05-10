@@ -28,11 +28,11 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "Claude / Anthropic",
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
-    defaultModel: "claude-sonnet-4-6",
+    defaultModel: "claude-sonnet-4-20250514",
     models: [
-      "claude-opus-4-7",
-      "claude-sonnet-4-6",
-      "claude-haiku-4-5",
+      "claude-opus-4-1-20250805",
+      "claude-sonnet-4-20250514",
+      "claude-3-5-haiku-20241022",
     ],
   },
   {

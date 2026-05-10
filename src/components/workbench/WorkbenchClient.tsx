@@ -108,6 +108,29 @@ type ApiErrorPayload = {
   redirectUrl?: string;
 };
 
+type ResultLayout = "single" | "double";
+
+type RunProgressStatus =
+  | "queued"
+  | "active"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+type RunProgressEntry = {
+  key: string;
+  title: string;
+  subtitle: string;
+  status: RunProgressStatus;
+  detail?: string | null;
+};
+
+type RunMonitor = {
+  mode: "parallel" | "sequential";
+  startedAt: number;
+  entries: RunProgressEntry[];
+};
+
 const outputStyles = ["detailed", "short", "bullet", "table", "executive"];
 const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
   detailed: { en: "detailed", ko: "\uc790\uc138\ud788" },
@@ -194,6 +217,59 @@ const workflowBuilderText: Record<
     repeatedBlock: "\uBC18\uBCF5 \uAD6C\uAC04",
   },
 };
+
+const workbenchUiText = {
+  en: {
+    progressTitle: "AI progress",
+    progressDescription:
+      "Live status text for each run. This shows work stages, not private chain-of-thought.",
+    resultOverview: "Result overview",
+    resultLayout: "Result layout",
+    resultLayoutSingle: "1 column",
+    resultLayoutDouble: "2 columns",
+    totalResults: "Total",
+    completedResults: "Completed",
+    failedResults: "Failed",
+    runningResults: "Running",
+    finalSelection: "Final",
+    finalPending: "Not selected",
+    queued: "Queued and waiting to start.",
+    preparing: "Preparing the prompt and context.",
+    running: "The model is generating a response.",
+    wrapping: "Saving the output and updating the result card.",
+    completed: "Output received and saved.",
+    failed: "The run ended with an error.",
+    skipped: "Skipped because the sequence stopped early.",
+    parallelRun: "Parallel run",
+    sequentialStep: "Step",
+    noProgress: "Run a task to see per-model progress updates here.",
+  },
+  ko: {
+    progressTitle: "AI 진행 상태",
+    progressDescription:
+      "각 실행의 현재 단계를 텍스트로 보여줍니다. 내부 사고 전체가 아니라 작업 단계 상태입니다.",
+    resultOverview: "결과 개요",
+    resultLayout: "결과 배치",
+    resultLayoutSingle: "1열",
+    resultLayoutDouble: "2열",
+    totalResults: "전체",
+    completedResults: "완료",
+    failedResults: "실패",
+    runningResults: "진행중",
+    finalSelection: "최종 선택",
+    finalPending: "미선택",
+    queued: "대기열에 있으며 아직 시작 전입니다.",
+    preparing: "프롬프트와 맥락을 준비하고 있습니다.",
+    running: "모델이 응답을 생성하고 있습니다.",
+    wrapping: "출력을 저장하고 결과 카드를 정리하고 있습니다.",
+    completed: "출력을 받아 저장했습니다.",
+    failed: "실행이 오류와 함께 종료되었습니다.",
+    skipped: "순차 실행이 조기 종료되어 건너뛰었습니다.",
+    parallelRun: "병렬 실행",
+    sequentialStep: "단계",
+    noProgress: "작업을 실행하면 여기에서 모델별 진행 상태를 확인할 수 있습니다.",
+  },
+} as const;
 
 function newUid() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -422,6 +498,21 @@ function mergeResults(current: WorkbenchResult[], incoming: WorkbenchResult[]) {
   );
 }
 
+function formatElapsedTime(startedAt: number, now: number, language: AppLanguage) {
+  const elapsedSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
+  if (elapsedSeconds < 60) {
+    return language === "ko"
+      ? `${elapsedSeconds}초 경과`
+      : `${elapsedSeconds}s elapsed`;
+  }
+
+  const minutes = Math.floor(elapsedSeconds / 60);
+  const seconds = elapsedSeconds % 60;
+  return language === "ko"
+    ? `${minutes}분 ${seconds}초 경과`
+    : `${minutes}m ${seconds}s elapsed`;
+}
+
 type WorkbenchClientProps = {
   isTrialMode?: boolean;
 };
@@ -429,6 +520,7 @@ type WorkbenchClientProps = {
 export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = {}) {
   const { language, t } = useLanguage();
   const builderText = workflowBuilderText[language];
+  const uiText = workbenchUiText[language];
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [selections, setSelections] = useState<
     Partial<Record<ProviderName, ProviderSelection>>
@@ -460,7 +552,87 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [activeMobilePanel, setActiveMobilePanel] =
     useState<MobilePanel>("input");
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
+  const [resultLayout, setResultLayout] = useState<ResultLayout>("single");
+  const [runMonitor, setRunMonitor] = useState<RunMonitor | null>(null);
+  const [progressNow, setProgressNow] = useState(() => Date.now());
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function providerLabel(providerName: ProviderName) {
+    return (
+      providers.find((provider) => provider.providerName === providerName)?.shortName ||
+      providerName
+    );
+  }
+
+  function createRunMonitor(modeToRun: "parallel" | "sequential") {
+    const startedAt = Date.now();
+    if (modeToRun === "parallel") {
+      return {
+        mode: "parallel" as const,
+        startedAt,
+        entries: selectedTargets.map((target, index) => ({
+          key: `parallel-${target.provider}-${target.model}-${index}`,
+          title: `${providerLabel(target.provider as ProviderName)} / ${target.model}`,
+          subtitle: `${uiText.parallelRun} ${index + 1}`,
+          status: "active" as const,
+          detail: uiText.preparing,
+        })),
+      };
+    }
+
+    return {
+      mode: "sequential" as const,
+      startedAt,
+      entries: workflowSteps.map((step, index) => ({
+        key: `step-${step.uid}`,
+        title: `${providerLabel(step.targetProvider)} / ${step.targetModel}`,
+        subtitle: `${uiText.sequentialStep} ${step.orderIndex}`,
+        status: index === 0 ? ("active" as const) : ("queued" as const),
+        detail: index === 0 ? uiText.preparing : uiText.queued,
+      })),
+    };
+  }
+
+  function finalizeRunMonitor(input: {
+    mode: "parallel" | "sequential";
+    results: WorkbenchResult[];
+    executionSummary?: {
+      plannedTotal: number;
+      executedTotal: number;
+      stoppedEarly: boolean;
+      stopReason?: string | null;
+    };
+  }) {
+    setRunMonitor((current) => {
+      const base = current ?? createRunMonitor(input.mode);
+      const entries = base.entries.map((entry, index) => {
+        const result = input.results[index];
+
+        if (result) {
+          return {
+            ...entry,
+            status: result.status === "failed" ? ("failed" as const) : ("completed" as const),
+            detail: result.status === "failed" ? result.errorMessage || uiText.failed : uiText.completed,
+          };
+        }
+
+        if (input.executionSummary?.stoppedEarly) {
+          return {
+            ...entry,
+            status: "skipped" as const,
+            detail: uiText.skipped,
+          };
+        }
+
+        return entry;
+      });
+
+      return {
+        ...base,
+        entries,
+      };
+    });
+  }
 
   function handleAuthRedirect(response: Response, data?: ApiErrorPayload) {
     if (response.status === 401 && data?.redirectUrl) {
@@ -547,6 +719,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       description: data.project.description,
       sharedContext: data.project.sharedContext,
     });
+    setRunMonitor(null);
     setNotice(`${t("projectContextLoaded")} ${data.project.name}`);
   }
 
@@ -570,6 +743,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setFinalResultId(session.finalResultId);
     setAttachments(session.attachments || []);
     setResults(session.results);
+    setRunMonitor(null);
     if (session.workflowSteps.length) {
       setWorkflowSteps(
         normalizeStepsForProviders(
@@ -672,6 +846,29 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     // Load URL-provided session or preset once on initial entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem("qkiki-result-layout");
+    if (stored === "double" || stored === "single") {
+      setResultLayout(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("qkiki-result-layout", resultLayout);
+  }, [resultLayout]);
+
+  useEffect(() => {
+    if (!runMonitor || !runMonitor.entries.some((entry) => entry.status === "active")) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setProgressNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [runMonitor]);
 
   // ── Draft autosave: debounced 2 s, only when no server session exists ──
   useEffect(() => {
@@ -783,6 +980,44 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     results.forEach(depthOf);
     return depthMap;
   }, [results]);
+
+  const resultStats = useMemo(
+    () => ({
+      total: results.length,
+      completed: results.filter((result) => result.status === "completed").length,
+      failed: results.filter((result) => result.status === "failed").length,
+      running: results.filter((result) => result.status === "running").length,
+      finalLabel:
+        results.find((result) => result.id === finalResultId)?.provider ??
+        uiText.finalPending,
+    }),
+    [finalResultId, results, uiText.finalPending],
+  );
+
+  const progressEntries = useMemo(() => {
+    if (!runMonitor) {
+      return [];
+    }
+
+    const elapsed = progressNow - runMonitor.startedAt;
+    return runMonitor.entries.map((entry) => {
+      if (entry.status !== "active") {
+        return entry;
+      }
+
+      const detail =
+        elapsed < 2500
+          ? uiText.preparing
+          : elapsed < 12000
+            ? uiText.running
+            : uiText.wrapping;
+
+      return {
+        ...entry,
+        detail,
+      };
+    });
+  }, [progressNow, runMonitor, uiText.preparing, uiText.running, uiText.wrapping]);
 
   function updateStep(updated: WorkflowStepState) {
     setWorkflowSteps((steps) =>
@@ -932,6 +1167,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
+    setProgressNow(Date.now());
+    setRunMonitor(createRunMonitor(mode));
     setRunning(true);
     const response = await fetch("/api/workbench/run", {
       method: "POST",
@@ -995,7 +1232,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
 
     if (!response.ok || !data.session) {
-      setError(language === "ko" ? t("runFailed") : data.error || t("runFailed"));
+      setRunMonitor((current) =>
+        current
+          ? {
+              ...current,
+              entries: current.entries.map((entry) => ({
+                ...entry,
+                status: "failed",
+                detail: data.error || uiText.failed,
+              })),
+            }
+          : current,
+      );
+      setError(data.error || t("runFailed"));
       return;
     }
 
@@ -1006,6 +1255,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setActiveMobilePanel("results");
     clearDraft();
     setDraftBanner(null);
+    finalizeRunMonitor({
+      mode,
+      results: data.results || [],
+      executionSummary: data.executionSummary,
+    });
     const completionNotice =
       data.results?.some((result) => result.status === "failed")
         ? t("runCompletedPartial")
@@ -1073,7 +1327,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     if (!response.ok || !data.result) {
       setError(
-        language === "ko" ? t("rerunFailed") : data.error || t("rerunFailed"),
+        data.error || t("rerunFailed"),
       );
       return;
     }
@@ -1311,7 +1565,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[320px_1fr_0.95fr]">
+      <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
         <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
             <h2 className="text-sm font-semibold text-stone-950">
@@ -1357,7 +1611,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           </div>
         </aside>
 
-        <section className={`space-y-5 ${middlePanelClass}`}>
+        <section className={`min-w-0 space-y-5 ${middlePanelClass}`}>
           <div
             className={`rounded-lg border border-stone-200 bg-white p-4 shadow-sm ${mobilePanelClass(
               "input",
@@ -1751,35 +2005,198 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
           </div>
         </section>
+      </div>
 
-        <section className={`space-y-3 ${mobilePanelClass("results")}`}>
+      <section className={`space-y-4 ${mobilePanelClass("results")}`}>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-stone-950">
-                  {t("resultBoard")}
+                  {uiText.progressTitle}
                 </h2>
                 <p className="text-sm text-stone-600">
-                  {t("resultBoardDescription")}
+                  {uiText.progressDescription}
                 </p>
               </div>
+              {runMonitor ? (
+                <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
+                  {formatElapsedTime(runMonitor.startedAt, progressNow, language)}
+                </span>
+              ) : null}
+            </div>
+
+            {progressEntries.length ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {progressEntries.map((entry) => (
+                  <article
+                    key={entry.key}
+                    className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-stone-950">
+                          {entry.title}
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {entry.subtitle}
+                        </p>
+                      </div>
+                      <span
+                        className={`rounded-full px-2 py-1 text-[11px] font-semibold ${
+                          entry.status === "completed"
+                            ? "bg-teal-100 text-teal-800"
+                            : entry.status === "failed"
+                              ? "bg-rose-100 text-rose-700"
+                              : entry.status === "skipped"
+                                ? "bg-stone-200 text-stone-600"
+                                : entry.status === "active"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "bg-stone-100 text-stone-600"
+                        }`}
+                      >
+                        {entry.status === "completed"
+                          ? t("statusCompleted")
+                          : entry.status === "failed"
+                            ? t("statusFailed")
+                            : entry.status === "active"
+                              ? t("statusRunning")
+                              : entry.status === "skipped"
+                                ? language === "ko"
+                                  ? "건너뜀"
+                                  : "Skipped"
+                                : language === "ko"
+                                  ? "대기"
+                                  : "Queued"}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-stone-700">
+                      {entry.detail ||
+                        (entry.status === "queued" ? uiText.queued : uiText.running)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-lg border border-dashed border-stone-200 bg-[#fbfcf8] px-4 py-6 text-sm text-stone-500">
+                {uiText.noProgress}
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
+            <h2 className="text-base font-semibold text-stone-950">
+              {uiText.resultOverview}
+            </h2>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <p className="text-xs font-medium text-stone-500">
+                  {uiText.totalResults}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-stone-950">
+                  {resultStats.total}
+                </p>
+              </div>
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <p className="text-xs font-medium text-stone-500">
+                  {uiText.completedResults}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-teal-800">
+                  {resultStats.completed}
+                </p>
+              </div>
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <p className="text-xs font-medium text-stone-500">
+                  {uiText.failedResults}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-rose-700">
+                  {resultStats.failed}
+                </p>
+              </div>
+              <div className="rounded-lg border border-stone-200 bg-white p-3">
+                <p className="text-xs font-medium text-stone-500">
+                  {uiText.runningResults}
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-amber-700">
+                  {resultStats.running}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 rounded-lg border border-stone-200 bg-white p-3">
+              <p className="text-xs font-medium text-stone-500">
+                {uiText.finalSelection}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-stone-950">
+                {resultStats.finalLabel}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-stone-950">
+                {t("resultBoard")}
+              </h2>
+              <p className="text-sm text-stone-600">
+                {t("resultBoardDescription")}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               {sessionId ? (
                 <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
                   {t("saved")}
                 </span>
               ) : null}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-stone-500">
+                  {uiText.resultLayout}
+                </span>
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#f7f8f3] p-1">
+                  <button
+                    type="button"
+                    onClick={() => setResultLayout("single")}
+                    className={`rounded px-3 py-1.5 text-xs font-semibold ${
+                      resultLayout === "single"
+                        ? "bg-white text-stone-950 shadow-sm"
+                        : "text-stone-600"
+                    }`}
+                  >
+                    {uiText.resultLayoutSingle}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResultLayout("double")}
+                    className={`rounded px-3 py-1.5 text-xs font-semibold ${
+                      resultLayout === "double"
+                        ? "bg-white text-stone-950 shadow-sm"
+                        : "text-stone-600"
+                    }`}
+                  >
+                    {uiText.resultLayoutDouble}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          {results.length ? (
-            <div className="space-y-3">
-              {results.map((result) => {
-                const parent = result.parentResultId
-                  ? results.find((item) => item.id === result.parentResultId)
-                  : null;
-                return (
+        {results.length ? (
+          <div
+            className={
+              resultLayout === "double"
+                ? "grid gap-3 md:grid-cols-2"
+                : "space-y-3"
+            }
+          >
+            {results.map((result) => {
+              const parent = result.parentResultId
+                ? results.find((item) => item.id === result.parentResultId)
+                : null;
+              return (
+                <div key={result.id} className="min-w-0">
                   <ResultCard
-                    key={result.id}
                     result={result}
                     depth={resultDepths.get(result.id) ?? 0}
                     isFinal={finalResultId === result.id}
@@ -1794,17 +2211,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     onMarkFinal={markFinal}
                     onDelete={deleteBranch}
                   />
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState
-              title={t("noResultsTitle")}
-              description={t("noResultsDescription")}
-            />
-          )}
-        </section>
-      </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            title={t("noResultsTitle")}
+            description={t("noResultsDescription")}
+          />
+        )}
+      </section>
     </div>
   );
 }

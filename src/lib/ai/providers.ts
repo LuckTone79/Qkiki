@@ -1,9 +1,13 @@
 import "server-only";
 
-import { decryptSecret } from "@/lib/secret-crypto";
 import { prisma } from "@/lib/prisma";
 import { getProviderCatalog } from "@/lib/ai/provider-catalog";
 import { estimateCost } from "@/lib/ai/pricing";
+import {
+  decryptSecretWithMetadata,
+  encryptSecret,
+  hasDedicatedDbEncryptionKey,
+} from "@/lib/secret-crypto";
 import type {
   ProviderAttachmentInput,
   ProviderCallInput,
@@ -13,6 +17,12 @@ import type {
 } from "@/lib/ai/types";
 
 type JsonRecord = Record<string, unknown>;
+
+const ANTHROPIC_MODEL_ALIASES: Record<string, string> = {
+  "claude-opus-4-7": "claude-opus-4-1-20250805",
+  "claude-sonnet-4-6": "claude-sonnet-4-20250514",
+  "claude-haiku-4-5": "claude-3-5-haiku-20241022",
+};
 
 async function readJson(response: Response) {
   try {
@@ -105,19 +115,25 @@ function getImageAttachments(attachments?: ProviderAttachmentInput[]) {
   );
 }
 
-function buildOpenAiInput(input: ProviderCallInput) {
+function normalizeAnthropicModel(model: string) {
+  return ANTHROPIC_MODEL_ALIASES[model] ?? model;
+}
+
+function buildChatCompletionInput(input: ProviderCallInput) {
   const content: Array<Record<string, unknown>> = [
     {
-      type: "input_text",
+      type: "text",
       text: buildPromptText(input.prompt, input.attachments),
     },
   ];
 
   getImageAttachments(input.attachments).forEach((attachment) => {
     content.push({
-      type: "input_image",
-      image_url: `data:${attachment.mimeType};base64,${attachment.dataBase64}`,
-      detail: "high",
+      type: "image_url",
+      image_url: {
+        url: `data:${attachment.mimeType};base64,${attachment.dataBase64}`,
+        detail: "high",
+      },
     });
   });
 
@@ -165,25 +181,6 @@ function buildGoogleParts(input: ProviderCallInput) {
   return parts;
 }
 
-function buildXaiInput(input: ProviderCallInput) {
-  const content: Array<Record<string, unknown>> = [
-    {
-      type: "input_text",
-      text: buildPromptText(input.prompt, input.attachments),
-    },
-  ];
-
-  getImageAttachments(input.attachments).forEach((attachment) => {
-    content.push({
-      type: "input_image",
-      image_url: `data:${attachment.mimeType};base64,${attachment.dataBase64}`,
-      detail: "high",
-    });
-  });
-
-  return [{ role: "user", content }];
-}
-
 async function getProviderRuntimeConfig(provider: ProviderName) {
   const catalog = getProviderCatalog(provider);
   const envValue = process.env[catalog.envKey];
@@ -203,12 +200,29 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
     config.apiKeyIv &&
     config.apiKeyTag
   ) {
+    const decrypted = decryptSecretWithMetadata({
+      ciphertext: config.apiKeyCiphertext,
+      iv: config.apiKeyIv,
+      tag: config.apiKeyTag,
+    });
+
+    if (
+      hasDedicatedDbEncryptionKey() &&
+      decrypted.keySource !== "db_encryption_key"
+    ) {
+      const reencrypted = encryptSecret(decrypted.value);
+      await prisma.adminProviderConfig.update({
+        where: { providerName: provider },
+        data: {
+          apiKeyCiphertext: reencrypted.ciphertext,
+          apiKeyIv: reencrypted.iv,
+          apiKeyTag: reencrypted.tag,
+        },
+      });
+    }
+
     return {
-      apiKey: decryptSecret({
-        ciphertext: config.apiKeyCiphertext,
-        iv: config.apiKeyIv,
-        tag: config.apiKeyTag,
-      }),
+      apiKey: decrypted.value,
       timeoutSeconds: config.timeoutSeconds,
     };
   }
@@ -289,8 +303,7 @@ async function callOpenAi(
     },
     body: JSON.stringify({
       model: input.model,
-      messages: buildOpenAiInput(input),
-      temperature: 0.4,
+      messages: buildChatCompletionInput(input),
     }),
   });
   const body = await readJson(response);
@@ -331,11 +344,11 @@ async function callAnthropic(
     signal,
     headers: {
       "x-api-key": apiKey,
-      "anthropic-version": "2024-06-01",
+      "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: input.model,
+      model: normalizeAnthropicModel(input.model),
       max_tokens: 2048,
       messages: [{ role: "user", content: buildAnthropicContent(input) }],
       temperature: 0.4,
@@ -440,7 +453,7 @@ async function callXai(
     },
     body: JSON.stringify({
       model: input.model,
-      messages: buildXaiInput(input),
+      messages: buildChatCompletionInput(input),
       temperature: 0.4,
     }),
   });
