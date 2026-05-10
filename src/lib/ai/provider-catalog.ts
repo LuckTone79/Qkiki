@@ -17,7 +17,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "GPT",
     envKey: "OPENAI_API_KEY",
     defaultModel: "gpt-5.5",
-    defaultTimeoutSeconds: 180,
+    defaultTimeoutSeconds: 300,
     models: [
       "gpt-5.5",
       "gpt-5.4",

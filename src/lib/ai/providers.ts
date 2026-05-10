@@ -229,6 +229,25 @@ function buildChatCompletionInput(input: ProviderCallInput) {
   return [{ role: "user", content }];
 }
 
+function buildOpenAiResponsesInput(input: ProviderCallInput) {
+  const content: Array<Record<string, unknown>> = [
+    {
+      type: "input_text",
+      text: buildPromptText(input.prompt, input.attachments),
+    },
+  ];
+
+  getImageAttachments(input.attachments).forEach((attachment) => {
+    content.push({
+      type: "input_image",
+      image_url: `data:${attachment.mimeType};base64,${attachment.dataBase64}`,
+      detail: "high",
+    });
+  });
+
+  return [{ role: "user", content }];
+}
+
 function buildAnthropicContent(input: ProviderCallInput) {
   const content: Array<Record<string, unknown>> = [
     {
@@ -268,6 +287,94 @@ function buildGoogleParts(input: ProviderCallInput) {
   });
 
   return parts;
+}
+
+function extractOpenAiResponsesText(body: JsonRecord) {
+  const directOutputText = getText(body.output_text);
+  if (directOutputText) {
+    return directOutputText;
+  }
+
+  const output = Array.isArray(body.output) ? body.output : [];
+  const text = output
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") {
+        return [];
+      }
+
+      const content = Array.isArray(item.content)
+        ? (item.content as Array<Record<string, unknown>>)
+        : [];
+
+      return content.map((part) => {
+        if ("text" in part && typeof part.text === "string") {
+          return part.text;
+        }
+
+        if ("refusal" in part && typeof part.refusal === "string") {
+          return part.refusal;
+        }
+
+        return "";
+      });
+    })
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+
+  return text;
+}
+
+function getOpenAiResponsesStatus(body: JsonRecord) {
+  const status = getText(body.status);
+  return status || "unknown";
+}
+
+function getOpenAiResponsesError(body: JsonRecord) {
+  const status = getOpenAiResponsesStatus(body);
+  const error = body.error;
+  const incompleteDetails = body.incomplete_details;
+
+  if (error && typeof error === "object" && "message" in error) {
+    return `openai: ${String((error as { message: unknown }).message)}`;
+  }
+
+  if (
+    incompleteDetails &&
+    typeof incompleteDetails === "object" &&
+    "reason" in incompleteDetails
+  ) {
+    return `openai: response ended with status ${status} (${String(
+      (incompleteDetails as { reason: unknown }).reason,
+    )})`;
+  }
+
+  return `openai: response ended with status ${status}`;
+}
+
+async function waitForSignalSafeDelay(signal: AbortSignal, ms: number) {
+  if (signal.aborted) {
+    throw signal.reason ?? new Error("The operation was aborted.");
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      cleanup();
+      reject(signal.reason ?? new Error("The operation was aborted."));
+    };
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+    };
+
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 async function getProviderRuntimeConfig(provider: ProviderName) {
@@ -396,7 +503,7 @@ async function callOpenAi(
   signal: AbortSignal,
 ) {
   const reasoningEffort = getOpenAiReasoningEffort(input.model);
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const createResponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     signal,
     headers: {
@@ -405,20 +512,53 @@ async function callOpenAi(
     },
     body: JSON.stringify({
       model: input.model,
-      messages: buildChatCompletionInput(input),
-      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+      input: buildOpenAiResponsesInput(input),
+      background: true,
+      store: true,
+      ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
     }),
   });
-  const body = await readJson(response);
+  let body = await readJson(createResponse);
 
-  if (!response.ok) {
+  if (!createResponse.ok) {
     throw new Error(providerError("openai", body));
   }
 
-  const choices = Array.isArray(body.choices) ? body.choices : [];
-  const firstChoice = choices[0] as JsonRecord | undefined;
-  const message = firstChoice?.message as JsonRecord | undefined;
-  const outputText = extractChatMessageText(message);
+  const responseId = getText(body.id);
+  let status = getOpenAiResponsesStatus(body);
+
+  while (
+    responseId &&
+    (status === "queued" || status === "in_progress")
+  ) {
+    await waitForSignalSafeDelay(signal, 2000);
+
+    const pollResponse = await fetch(
+      `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,
+      {
+        method: "GET",
+        signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    body = await readJson(pollResponse);
+
+    if (!pollResponse.ok) {
+      throw new Error(providerError("openai", body));
+    }
+
+    status = getOpenAiResponsesStatus(body);
+  }
+
+  if (status !== "completed") {
+    throw new Error(getOpenAiResponsesError(body));
+  }
+
+  const outputText = extractOpenAiResponsesText(body);
   const usageBody = body.usage as JsonRecord | undefined;
 
   return withCost({
