@@ -31,7 +31,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
     defaultModel: "claude-sonnet-4-20250514",
-    defaultTimeoutSeconds: 90,
+    defaultTimeoutSeconds: 300,
     models: [
       "claude-opus-4-1-20250805",
       "claude-sonnet-4-20250514",
@@ -44,7 +44,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Gemini",
     envKey: "GOOGLE_API_KEY",
     defaultModel: "gemini-3.1-pro-preview",
-    defaultTimeoutSeconds: 90,
+    defaultTimeoutSeconds: 300,
     models: [
       "gemini-3.1-pro-preview",
       "gemini-3-flash-preview",
@@ -60,7 +60,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Grok",
     envKey: "XAI_API_KEY",
     defaultModel: "grok-4.3",
-    defaultTimeoutSeconds: 90,
+    defaultTimeoutSeconds: 300,
     models: [
       "grok-4.3",
       "grok-4.20-multi-agent",
@@ -98,10 +98,9 @@ export function resolveProviderTimeoutSeconds(
     return defaultTimeoutSeconds;
   }
 
-  // OpenAI used a legacy global default of 60 seconds. Preserve explicit custom
-  // values while automatically upgrading that legacy default to the safer,
-  // provider-specific timeout for reasoning-heavy GPT-5 responses.
-  if (provider === "openai" && configuredTimeoutSeconds === 60) {
+  // Upgrade legacy provider defaults to the new global default while preserving
+  // clearly customized timeout values.
+  if ([60, 90, 180].includes(configuredTimeoutSeconds)) {
     return defaultTimeoutSeconds;
   }
 

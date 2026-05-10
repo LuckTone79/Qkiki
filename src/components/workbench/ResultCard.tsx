@@ -23,6 +23,7 @@ export type WorkbenchResult = {
   costIsEstimated: boolean;
   latencyMs: number | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 type ResultCardProps = {

@@ -544,6 +544,78 @@ function mergeResults(current: WorkbenchResult[], incoming: WorkbenchResult[]) {
   );
 }
 
+function sortResultsForDisplay(results: WorkbenchResult[], mode: "parallel" | "sequential") {
+  if (mode !== "parallel") {
+    return [...results].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+  }
+
+  const childrenByParent = new Map<string, WorkbenchResult[]>();
+  const roots: WorkbenchResult[] = [];
+
+  for (const result of results) {
+    if (!result.parentResultId) {
+      roots.push(result);
+      continue;
+    }
+
+    const siblings = childrenByParent.get(result.parentResultId) ?? [];
+    siblings.push(result);
+    childrenByParent.set(result.parentResultId, siblings);
+  }
+
+  const sortByCreatedAt = (items: WorkbenchResult[]) =>
+    [...items].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
+
+  const rootCompletionRank = (result: WorkbenchResult) => {
+    if (result.status === "completed" || result.status === "failed") {
+      return 0;
+    }
+
+    if (result.status === "running") {
+      return 1;
+    }
+
+    return 2;
+  };
+
+  const sortedRoots = [...roots].sort((a, b) => {
+    const rankDiff = rootCompletionRank(a) - rootCompletionRank(b);
+    if (rankDiff !== 0) {
+      return rankDiff;
+    }
+
+    const updatedDiff =
+      new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+    if (updatedDiff !== 0) {
+      return updatedDiff;
+    }
+
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  });
+
+  const ordered: WorkbenchResult[] = [];
+  const appendBranch = (result: WorkbenchResult) => {
+    ordered.push(result);
+
+    const children = sortByCreatedAt(childrenByParent.get(result.id) ?? []);
+    for (const child of children) {
+      appendBranch(child);
+    }
+  };
+
+  for (const root of sortedRoots) {
+    appendBranch(root);
+  }
+
+  return ordered;
+}
+
 function formatElapsedTime(startedAt: number, now: number, language: AppLanguage) {
   const elapsedSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
   if (elapsedSeconds < 60) {
@@ -1158,6 +1230,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     return depthMap;
   }, [results]);
 
+  const displayResults = useMemo(
+    () => sortResultsForDisplay(results, mode),
+    [mode, results],
+  );
+
   const parallelComparisonCandidates = useMemo(() => {
     if (mode !== "parallel") {
       return [] as WorkbenchResult[];
@@ -1187,7 +1264,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     return Array.from(latestByProviderModel.values()).sort(
       (left, right) =>
-        new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+        new Date(left.updatedAt).getTime() - new Date(right.updatedAt).getTime(),
     );
   }, [mode, results]);
 
@@ -2485,7 +2562,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 : "space-y-3"
             }
           >
-            {results.map((result) => {
+            {displayResults.map((result) => {
               const parent = result.parentResultId
                 ? results.find((item) => item.id === result.parentResultId)
                 : null;
