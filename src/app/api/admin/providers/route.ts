@@ -4,7 +4,12 @@ import {
   getRequestMeta,
   requireApiAdminManager,
 } from "@/lib/admin-api-auth";
-import { PROVIDERS, isProviderName } from "@/lib/ai/provider-catalog";
+import {
+  PROVIDERS,
+  getDefaultTimeoutSeconds,
+  isProviderName,
+  resolveProviderTimeoutSeconds,
+} from "@/lib/ai/provider-catalog";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { encryptSecret, maskApiKey } from "@/lib/secret-crypto";
@@ -34,7 +39,10 @@ export async function GET() {
         isEnabled: effectiveEnabled,
         fallbackProvider: config?.fallbackProvider ?? null,
         perUserDailyLimit: config?.perUserDailyLimit ?? 100,
-        timeoutSeconds: config?.timeoutSeconds ?? 60,
+        timeoutSeconds: resolveProviderTimeoutSeconds(
+          provider.name,
+          config?.timeoutSeconds,
+        ),
         healthStatus: config?.healthStatus ?? "unknown",
         lastHealthCheckedAt: config?.lastHealthCheckedAt ?? null,
         hasEnvKey,
@@ -81,7 +89,9 @@ export async function PUT(request: Request) {
     const encrypted = apiKey ? encryptSecret(apiKey) : null;
     const fallbackProvider = parsed.data.fallbackProvider ?? null;
     const perUserDailyLimit = parsed.data.perUserDailyLimit ?? 100;
-    const timeoutSeconds = parsed.data.timeoutSeconds ?? 60;
+    const timeoutSeconds =
+      parsed.data.timeoutSeconds ??
+      getDefaultTimeoutSeconds(parsed.data.providerName);
     const existing = await prisma.adminProviderConfig.findUnique({
       where: { providerName: parsed.data.providerName },
     });

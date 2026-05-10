@@ -6,6 +6,7 @@ export type ProviderCatalogItem = {
   shortName: string;
   envKey: string;
   defaultModel: string;
+  defaultTimeoutSeconds: number;
   models: string[];
 };
 
@@ -16,6 +17,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "GPT",
     envKey: "OPENAI_API_KEY",
     defaultModel: "gpt-5.5",
+    defaultTimeoutSeconds: 180,
     models: [
       "gpt-5.5",
       "gpt-5.4",
@@ -29,6 +31,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
     defaultModel: "claude-sonnet-4-20250514",
+    defaultTimeoutSeconds: 90,
     models: [
       "claude-opus-4-1-20250805",
       "claude-sonnet-4-20250514",
@@ -41,6 +44,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Gemini",
     envKey: "GOOGLE_API_KEY",
     defaultModel: "gemini-3.1-pro-preview",
+    defaultTimeoutSeconds: 90,
     models: [
       "gemini-3.1-pro-preview",
       "gemini-3-flash-preview",
@@ -56,6 +60,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Grok",
     envKey: "XAI_API_KEY",
     defaultModel: "grok-4.3",
+    defaultTimeoutSeconds: 90,
     models: [
       "grok-4.3",
       "grok-4.20-multi-agent",
@@ -77,4 +82,28 @@ export function getProviderCatalog(provider: ProviderName) {
 
 export function isProviderName(value: string): value is ProviderName {
   return PROVIDERS.some((entry) => entry.name === value);
+}
+
+export function getDefaultTimeoutSeconds(provider: ProviderName) {
+  return getProviderCatalog(provider).defaultTimeoutSeconds;
+}
+
+export function resolveProviderTimeoutSeconds(
+  provider: ProviderName,
+  configuredTimeoutSeconds?: number | null,
+) {
+  const defaultTimeoutSeconds = getDefaultTimeoutSeconds(provider);
+
+  if (!configuredTimeoutSeconds || configuredTimeoutSeconds <= 0) {
+    return defaultTimeoutSeconds;
+  }
+
+  // OpenAI used a legacy global default of 60 seconds. Preserve explicit custom
+  // values while automatically upgrading that legacy default to the safer,
+  // provider-specific timeout for reasoning-heavy GPT-5 responses.
+  if (provider === "openai" && configuredTimeoutSeconds === 60) {
+    return defaultTimeoutSeconds;
+  }
+
+  return configuredTimeoutSeconds;
 }

@@ -4,7 +4,11 @@ import {
   getRequestMeta,
   requireApiAdminManager,
 } from "@/lib/admin-api-auth";
-import { PROVIDERS, isProviderName } from "@/lib/ai/provider-catalog";
+import {
+  PROVIDERS,
+  getDefaultTimeoutSeconds,
+  isProviderName,
+} from "@/lib/ai/provider-catalog";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 
@@ -42,6 +46,9 @@ export async function POST(
         providerName,
         defaultModel: catalog?.defaultModel ?? providerName,
         isEnabled: hasCredential,
+        timeoutSeconds: catalog
+          ? getDefaultTimeoutSeconds(catalog.name)
+          : 60,
         healthStatus,
         lastHealthCheckedAt: checkedAt,
         updatedByAdminId: admin.id,

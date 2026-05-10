@@ -1,7 +1,10 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { getProviderCatalog } from "@/lib/ai/provider-catalog";
+import {
+  getProviderCatalog,
+  resolveProviderTimeoutSeconds,
+} from "@/lib/ai/provider-catalog";
 import { estimateCost } from "@/lib/ai/pricing";
 import {
   decryptSecretWithMetadata,
@@ -168,6 +171,43 @@ function normalizeAnthropicModel(model: string) {
   return ANTHROPIC_MODEL_ALIASES[model] ?? model;
 }
 
+function isOpenAiReasoningModel(model: string) {
+  return model.startsWith("gpt-5");
+}
+
+function getOpenAiReasoningEffort(model: string) {
+  if (!isOpenAiReasoningModel(model)) {
+    return undefined;
+  }
+
+  return "low";
+}
+
+function isTimeoutLikeError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === "TimeoutError" ||
+    error.name === "AbortError" ||
+    /timed? out/i.test(error.message) ||
+    /aborted due to timeout/i.test(error.message)
+  );
+}
+
+function formatProviderRuntimeError(
+  provider: ProviderName,
+  timeoutSeconds: number,
+  error: unknown,
+) {
+  if (isTimeoutLikeError(error)) {
+    return `${provider}: request exceeded ${timeoutSeconds} seconds before a response was completed.`;
+  }
+
+  return error instanceof Error ? error.message : "Provider request failed.";
+}
+
 function buildChatCompletionInput(input: ProviderCallInput) {
   const content: Array<Record<string, unknown>> = [
     {
@@ -240,7 +280,10 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
   if (envValue?.trim()) {
     return {
       apiKey: envValue.trim(),
-      timeoutSeconds: config?.timeoutSeconds ?? 60,
+      timeoutSeconds: resolveProviderTimeoutSeconds(
+        provider,
+        config?.timeoutSeconds,
+      ),
     };
   }
 
@@ -272,13 +315,19 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
 
     return {
       apiKey: decrypted.value,
-      timeoutSeconds: config.timeoutSeconds,
+      timeoutSeconds: resolveProviderTimeoutSeconds(
+        provider,
+        config.timeoutSeconds,
+      ),
     };
   }
 
   return {
     apiKey: null,
-    timeoutSeconds: config?.timeoutSeconds ?? 60,
+    timeoutSeconds: resolveProviderTimeoutSeconds(
+      provider,
+      config?.timeoutSeconds,
+    ),
   };
 }
 
@@ -331,8 +380,11 @@ export async function callProvider(
       rawResponse: null,
       latencyMs: Date.now() - startedAt,
       status: "failed",
-      errorMessage:
-        error instanceof Error ? error.message : "Provider request failed.",
+      errorMessage: formatProviderRuntimeError(
+        input.provider,
+        runtime.timeoutSeconds,
+        error,
+      ),
     };
   }
 }
@@ -343,6 +395,7 @@ async function callOpenAi(
   startedAt: number,
   signal: AbortSignal,
 ) {
+  const reasoningEffort = getOpenAiReasoningEffort(input.model);
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     signal,
@@ -353,6 +406,7 @@ async function callOpenAi(
     body: JSON.stringify({
       model: input.model,
       messages: buildChatCompletionInput(input),
+      ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
     }),
   });
   const body = await readJson(response);
