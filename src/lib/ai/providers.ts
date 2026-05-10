@@ -567,8 +567,9 @@ async function callOpenAi(
     outputText,
     rawResponse: body,
     usage: normalizeUsage({
-      promptTokens: usageBody?.prompt_tokens,
-      completionTokens: usageBody?.completion_tokens,
+      promptTokens: usageBody?.prompt_tokens ?? usageBody?.input_tokens,
+      completionTokens:
+        usageBody?.completion_tokens ?? usageBody?.output_tokens,
       totalTokens: usageBody?.total_tokens,
     }),
     latencyMs: Date.now() - startedAt,
