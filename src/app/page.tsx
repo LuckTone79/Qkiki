@@ -86,6 +86,12 @@ export default function LandingPage() {
             >
               {t("signIn")}
             </Link>
+            <Link
+              href="/guide"
+              className="rounded-md border border-teal-200 bg-teal-50 px-5 py-3 text-center text-sm font-semibold text-teal-800 hover:bg-teal-100"
+            >
+              {language === "ko" ? "가이드북" : "Guidebook"}
+            </Link>
           </div>
 
           {trialError ? (
