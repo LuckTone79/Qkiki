@@ -12,6 +12,7 @@ export default async function AdminDashboardPage() {
       providerUsage={data.providerUsageRows}
       modelUsage={data.modelUsageRows}
       topUserRows={data.topUserRows}
+      monthlyUserCostRows={data.monthlyUserCostRows}
       recentAudits={data.recentAudits}
     />
   );

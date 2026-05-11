@@ -26,7 +26,13 @@ function addThirtyDays(date: Date) {
 }
 
 export function generateCouponCode(type: CouponType) {
-  const prefix = type === "MONTHLY_FREE_30D" ? "M30" : "LIFE";
+  const prefixMap: Record<CouponType, string> = {
+    MONTHLY_FREE_30D: "M30",
+    MONTHLY_FREE_30D_DAILY_50: "M30-50",
+    LIFETIME_FREE: "LIFE",
+    LIFETIME_FREE_DAILY_50: "LIFE-50",
+  };
+  const prefix = prefixMap[type];
   const random = cryptoRandom(10);
   return `${prefix}-${random}`;
 }
@@ -132,7 +138,10 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
     let grantEndAt: Date | null = null;
     let grantIsLifetime = false;
 
-    if (coupon.type === CouponType.MONTHLY_FREE_30D) {
+    if (
+      coupon.type === CouponType.MONTHLY_FREE_30D ||
+      coupon.type === CouponType.MONTHLY_FREE_30D_DAILY_50
+    ) {
       if (current?.isLifetime) {
         redemptionResult = CouponRedemptionResult.ALREADY_LIFETIME;
         note = "already_lifetime";
@@ -144,16 +153,24 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
             : now;
         const nextEnd = addThirtyDays(baseStart);
 
+        const couponDailyLimit =
+          coupon.type === CouponType.MONTHLY_FREE_30D_DAILY_50 ? 50 : null;
         await tx.userSubscription.upsert({
           where: { userId: input.userId },
           update: {
             isLifetime: false,
             planEndsAt: nextEnd,
+            couponDailyLimit,
+            couponLimitEndsAt: nextEnd,
+            couponLimitIsLifetime: false,
           },
           create: {
             userId: input.userId,
             isLifetime: false,
             planEndsAt: nextEnd,
+            couponDailyLimit,
+            couponLimitEndsAt: nextEnd,
+            couponLimitIsLifetime: false,
           },
         });
 
@@ -166,7 +183,10 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
             startAt: baseStart,
             endAt: nextEnd,
             isLifetime: false,
-            note: "monthly_free_30d",
+            note:
+              coupon.type === CouponType.MONTHLY_FREE_30D_DAILY_50
+                ? "monthly_free_30d_daily_50"
+                : "monthly_free_30d",
           },
         });
 
@@ -175,22 +195,33 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
       }
     }
 
-    if (coupon.type === CouponType.LIFETIME_FREE) {
+    if (
+      coupon.type === CouponType.LIFETIME_FREE ||
+      coupon.type === CouponType.LIFETIME_FREE_DAILY_50
+    ) {
       if (current?.isLifetime) {
         redemptionResult = CouponRedemptionResult.ALREADY_LIFETIME;
         note = "already_lifetime";
         grantIsLifetime = true;
       } else {
+        const couponDailyLimit =
+          coupon.type === CouponType.LIFETIME_FREE_DAILY_50 ? 50 : null;
         await tx.userSubscription.upsert({
           where: { userId: input.userId },
           update: {
             isLifetime: true,
             planEndsAt: null,
+            couponDailyLimit,
+            couponLimitEndsAt: null,
+            couponLimitIsLifetime: true,
           },
           create: {
             userId: input.userId,
             isLifetime: true,
             planEndsAt: null,
+            couponDailyLimit,
+            couponLimitEndsAt: null,
+            couponLimitIsLifetime: true,
           },
         });
 
@@ -203,7 +234,10 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
             startAt: now,
             endAt: null,
             isLifetime: true,
-            note: "lifetime_free",
+            note:
+              coupon.type === CouponType.LIFETIME_FREE_DAILY_50
+                ? "lifetime_free_daily_50"
+                : "lifetime_free",
           },
         });
 
@@ -263,11 +297,17 @@ export async function grantManualSubscription(input: {
         update: {
           isLifetime: true,
           planEndsAt: null,
+          couponDailyLimit: null,
+          couponLimitEndsAt: null,
+          couponLimitIsLifetime: false,
         },
         create: {
           userId: input.targetUserId,
           isLifetime: true,
           planEndsAt: null,
+          couponDailyLimit: null,
+          couponLimitEndsAt: null,
+          couponLimitIsLifetime: false,
         },
       });
 
@@ -323,11 +363,17 @@ export async function grantManualSubscription(input: {
       update: {
         isLifetime: false,
         planEndsAt: nextEnd,
+        couponDailyLimit: null,
+        couponLimitEndsAt: null,
+        couponLimitIsLifetime: false,
       },
       create: {
         userId: input.targetUserId,
         isLifetime: false,
         planEndsAt: nextEnd,
+        couponDailyLimit: null,
+        couponLimitEndsAt: null,
+        couponLimitIsLifetime: false,
       },
     });
 

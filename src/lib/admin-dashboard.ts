@@ -19,6 +19,7 @@ function startOfToday() {
 
 export async function getAdminDashboardData() {
   const today = startOfToday();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const usageDate = getKstUsageDate();
 
   const [
@@ -38,6 +39,7 @@ export async function getAdminDashboardData() {
     providerUsage,
     modelUsage,
     topUserCosts,
+    monthlyUserCosts,
     recentAudits,
     usageLimits,
     activePaidUsers,
@@ -92,6 +94,16 @@ export async function getAdminDashboardData() {
       _count: { _all: true },
       _sum: { estimatedCostUsd: true },
     }),
+    prisma.aiRequest.groupBy({
+      by: ["userId"],
+      where: { createdAt: { gte: monthStart } },
+      _count: { _all: true },
+      _sum: {
+        estimatedCostUsd: true,
+        inputTokens: true,
+        outputTokens: true,
+      },
+    }),
     prisma.adminAuditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -124,6 +136,16 @@ export async function getAdminDashboardData() {
   const topUsers = topUserIds.length
     ? await prisma.user.findMany({
         where: { id: { in: topUserIds } },
+        select: { id: true, email: true, name: true },
+      })
+    : [];
+  const monthlyTopUserIds = monthlyUserCosts
+    .sort((a, b) => (b._sum.estimatedCostUsd ?? 0) - (a._sum.estimatedCostUsd ?? 0))
+    .slice(0, 20)
+    .map((item) => item.userId);
+  const monthlyTopUsers = monthlyTopUserIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: monthlyTopUserIds } },
         select: { id: true, email: true, name: true },
       })
     : [];
@@ -202,6 +224,19 @@ export async function getAdminDashboardData() {
       })
       .sort((a, b) => b.estimatedCost - a.estimatedCost)
       .slice(0, 5),
+    monthlyUserCostRows: monthlyUserCosts
+      .map((item) => {
+        const user = monthlyTopUsers.find((candidate) => candidate.id === item.userId);
+        return {
+          label: user?.name || user?.email || "Unknown user",
+          requests: item._count._all,
+          estimatedCost: item._sum.estimatedCostUsd ?? 0,
+          inputTokens: item._sum.inputTokens ?? 0,
+          outputTokens: item._sum.outputTokens ?? 0,
+        };
+      })
+      .sort((a, b) => b.estimatedCost - a.estimatedCost)
+      .slice(0, 20),
     recentAudits: recentAudits.map((log) => ({
       id: log.id,
       createdAt: log.createdAt.toISOString(),

@@ -37,6 +37,27 @@ export default async function AdminUserDetailPage({
           coupon: { select: { code: true, type: true } },
         },
       },
+      aiRequests: {
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          requestType: true,
+          provider: true,
+          model: true,
+          status: true,
+          inputTokens: true,
+          outputTokens: true,
+          estimatedCostUsd: true,
+          createdAt: true,
+          conversation: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -70,6 +91,19 @@ export default async function AdminUserDetailPage({
       result: item.result,
       note: item.note,
       createdAt: item.createdAt.toISOString(),
+    })),
+    aiRequests: user.aiRequests.map((item) => ({
+      id: item.id,
+      requestType: item.requestType,
+      provider: item.provider,
+      model: item.model,
+      status: item.status,
+      inputTokens: item.inputTokens ?? 0,
+      outputTokens: item.outputTokens ?? 0,
+      estimatedCostUsd: item.estimatedCostUsd ?? 0,
+      createdAt: item.createdAt.toISOString(),
+      conversationId: item.conversation?.id ?? null,
+      conversationTitle: item.conversation?.title ?? null,
     })),
     subscription: user.subscription
       ? {

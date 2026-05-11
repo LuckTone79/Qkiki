@@ -21,7 +21,11 @@ export function UsageStatus({
 }) {
   const { language } = useLanguage();
   const used = usage.dailyUsed;
-  const limit = usage.dailyLimit;
+  const limitLabel = usage.isUnlimitedDaily
+    ? language === "ko"
+      ? "무제한"
+      : "Unlimited"
+    : `${usage.dailyLimit}`;
 
   const title =
     language === "ko"
@@ -46,8 +50,8 @@ export function UsageStatus({
 
   const primary =
     language === "ko"
-      ? `오늘 남은 사용량: ${usage.remaining} / ${limit}회`
-      : `Remaining today: ${usage.remaining} / ${limit}`;
+      ? `오늘 남은 사용량: ${usage.remaining} / ${limitLabel}회`
+      : `Remaining today: ${usage.remaining} / ${limitLabel}`;
 
   const secondary =
     language === "ko"
@@ -55,12 +59,12 @@ export function UsageStatus({
         ? `Boost 종료까지 ${usage.boostDaysRemaining}일 남았어요.`
         : usage.planType === "FREE"
           ? "무료 사용자는 하루 10회까지 여러 AI 모델을 비교할 수 있어요."
-          : `오늘 사용량: ${used} / ${limit}회`
+          : `오늘 사용량: ${used} / ${limitLabel}회`
       : usage.isBoostActive
         ? `${usage.boostDaysRemaining} day(s) left in Boost.`
         : usage.planType === "FREE"
           ? "Free users can compare multiple AI models up to 10 times per day."
-          : `Used today: ${used} / ${limit}`;
+          : `Used today: ${used} / ${limitLabel}`;
 
   const warning =
     usage.isLimitReached
@@ -99,7 +103,7 @@ export function UsageStatus({
             </p>
           </div>
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
-            <p className="text-xs text-stone-500">{language === "ko" ? "입력 한도" : "Input"}</p>
+            <p className="text-xs text-stone-500">{language === "ko" ? "입력 제한" : "Input"}</p>
             <p className="mt-1 font-semibold text-stone-950">
               {usage.inputCharLimit.toLocaleString()}
               {language === "ko" ? "자" : " chars"}

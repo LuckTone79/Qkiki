@@ -119,7 +119,12 @@ export const projectSchema = z.object({
 });
 
 export const couponCreateSchema = z.object({
-  type: z.enum(["MONTHLY_FREE_30D", "LIFETIME_FREE"]),
+  type: z.enum([
+    "MONTHLY_FREE_30D",
+    "MONTHLY_FREE_30D_DAILY_50",
+    "LIFETIME_FREE",
+    "LIFETIME_FREE_DAILY_50",
+  ]),
   code: z.string().trim().max(64).optional(),
   note: z.string().trim().max(500).optional(),
 });
