@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createAuthSession, getInitialRoleForEmail, hashPassword } from "@/lib/auth";
+import { grantWelcomeBoostToUser } from "@/lib/usage-policy";
 import {
   GOOGLE_OAUTH_PROVIDER,
   GOOGLE_OAUTH_STATE_COOKIE,
@@ -161,6 +162,15 @@ export async function GET(request: Request) {
 
   if (user.status === "SUSPENDED") {
     return signInErrorRedirect(request.url, "account_suspended");
+  }
+
+  const linkedExistingUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { isTrialUsed: true },
+  });
+
+  if (linkedExistingUser && !linkedExistingUser.isTrialUsed) {
+    await grantWelcomeBoostToUser(user.id);
   }
 
   await createAuthSession(user.id);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAuthSession, getInitialRoleForEmail, hashPassword } from "@/lib/auth";
+import { grantWelcomeBoostToUser } from "@/lib/usage-policy";
 import { signUpSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
     },
   });
 
+  await grantWelcomeBoostToUser(user.id);
   await createAuthSession(user.id);
 
   return NextResponse.json({ ok: true });

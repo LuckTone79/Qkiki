@@ -53,6 +53,20 @@ enum AttachmentKind {
   PDF
 }
 
+enum PlanType {
+  FREE
+  STARTER
+  PRO
+  TEAM
+}
+
+enum BillingType {
+  NONE
+  MONTHLY
+  YEARLY
+  CREDIT
+}
+
 enum AdminAuditAction {
   ADMIN_LOGIN
   ADMIN_LOGOUT
@@ -77,6 +91,11 @@ model User {
   passwordHash String
   role         UserRole          @default(USER)
   status       UserAccountStatus @default(ACTIVE)
+  planType     PlanType          @default(FREE)
+  billingType  BillingType       @default(NONE)
+  trialStartedAt DateTime?
+  trialEndsAt    DateTime?
+  isTrialUsed    Boolean         @default(false)
   lastActiveAt DateTime?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
@@ -101,6 +120,9 @@ model User {
   presets                 Preset[]
   attachments             SessionAttachment[]
   trialAccess             TrialAccess?
+  usageLimits             UsageLimit[]
+  usageLogs               UsageLog[]
+  creditWallet            CreditWallet?
 }
 
 model AuthAccount {
@@ -423,6 +445,74 @@ model UserSubscription {
   updatedAt  DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UsageLimit {
+  id                 String   @id @default(cuid())
+  userId             String
+  usageDate          DateTime @db.Date
+  dailyRequestLimit  Int      @default(10)
+  dailyRequestUsed   Int      @default(0)
+  bonusRequestLimit  Int      @default(0)
+  resetAt            DateTime
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, usageDate])
+  @@index([userId, usageDate])
+  @@index([resetAt])
+}
+
+model UsageLog {
+  id                 String      @id @default(cuid())
+  userId             String
+  requestType        String
+  selectedModels     String[]
+  planTypeSnapshot   PlanType
+  billingTypeSnapshot BillingType
+  isBoostSnapshot    Boolean     @default(false)
+  inputCharCount     Int         @default(0)
+  inputTokenCount    Int         @default(0)
+  outputTokenCount   Int         @default(0)
+  requestCountCharged Int        @default(1)
+  estimatedCostUsd   Decimal     @default(0) @db.Decimal(10, 6)
+  creditsUsed        Int         @default(0)
+  createdAt          DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([requestType, createdAt])
+  @@index([planTypeSnapshot, createdAt])
+  @@index([isBoostSnapshot, createdAt])
+}
+
+model CreditWallet {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  paidCredits      Int      @default(0)
+  bonusCredits     Int      @default(0)
+  totalUsedCredits Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PaymentPlan {
+  id                 String      @id @default(cuid())
+  name               String
+  planType           PlanType
+  billingCycle       String
+  priceKrw           Int
+  dailyRequestLimit  Int?
+  monthlyCreditLimit Int?
+  isActive           Boolean     @default(true)
+  createdAt          DateTime    @default(now())
+
+  @@index([planType, isActive])
 }
 
 model SubscriptionLedger {

@@ -86,23 +86,21 @@ export function ResultCard({
   const readyProviders = providers.filter((provider) => provider.status === "ready");
 
   const meta = useMemo(() => {
-    const prompt = result.tokenUsagePrompt ?? 0;
-    const completion = result.tokenUsageCompletion ?? 0;
-    const cost =
-      result.estimatedCost !== null
-        ? `$${result.estimatedCost.toFixed(5)}${
-            result.costIsEstimated ? ` ${t("estimatedShort")}` : ""
-          }`
-        : t("costNotAvailable");
-
     return [
-      prompt || completion
-        ? `${prompt}/${completion} ${t("tokens")}`
-        : t("usageNotAvailable"),
+      result.status === "completed"
+        ? language === "ko"
+          ? "비교 결과 생성 완료"
+          : "Comparison generated"
+        : result.status === "failed"
+          ? language === "ko"
+            ? "생성 실패"
+            : "Generation failed"
+          : language === "ko"
+            ? "생성 중"
+            : "Generating",
       result.latencyMs ? `${result.latencyMs} ms` : t("latencyNotAvailable"),
-      cost,
     ].join(" / ");
-  }, [result, t]);
+  }, [language, result, t]);
 
   async function copy() {
     await navigator.clipboard.writeText(result.outputText || result.errorMessage || "");

@@ -4,12 +4,13 @@ import type { CurrentUser } from "@/lib/auth";
 import {
   buildTrialLimitRedirect,
   buildTrialLoginRedirect,
-  FREE_USER_DAILY_TOKEN_LIMIT,
-  getFreeUserTokenUsageToday,
-  isSubscribedUser,
   TRIAL_CONVERSATION_LIMIT,
 } from "@/lib/access-policy";
 import { prisma } from "@/lib/prisma";
+import {
+  UsageInputLimitError,
+  UsageLimitReachedError,
+} from "@/lib/usage-policy";
 
 export class ApiUnauthorizedError extends Error {
   redirectUrl?: string;
@@ -80,32 +81,8 @@ export async function consumeTrialConversation(user: CurrentUser) {
   });
 }
 
-async function assertFreeUserTokenQuota(user: CurrentUser) {
-  if (user.isTrial) {
-    return;
-  }
-
-  const subscribed = await isSubscribedUser(user.id);
-  if (subscribed) {
-    return;
-  }
-
-  const usedTokens = await getFreeUserTokenUsageToday(user.id);
-  if (usedTokens >= FREE_USER_DAILY_TOKEN_LIMIT) {
-    throw new ApiForbiddenError(
-      `Free account daily token limit reached (${FREE_USER_DAILY_TOKEN_LIMIT.toLocaleString()} tokens).`,
-    );
-  }
-}
-
 export async function requireApiGenerationUser() {
   const user = await requireApiUser();
-
-  if (user.isTrial) {
-    return user;
-  }
-
-  await assertFreeUserTokenQuota(user);
   return user;
 }
 
@@ -126,6 +103,26 @@ export function apiErrorResponse(error: unknown) {
   }
   if (error instanceof ApiForbiddenError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
+  }
+  if (error instanceof UsageLimitReachedError) {
+    return NextResponse.json(
+      {
+        error: error.message,
+        code: "LIMIT_REACHED",
+        usage: error.summary,
+      },
+      { status: 403 },
+    );
+  }
+  if (error instanceof UsageInputLimitError) {
+    return NextResponse.json(
+      {
+        error: error.message,
+        code: "INPUT_TOO_LONG",
+        usage: error.summary,
+      },
+      { status: 400 },
+    );
   }
 
   return NextResponse.json(

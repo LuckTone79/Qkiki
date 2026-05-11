@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
+import { LimitReachedModal } from "@/components/billing/LimitReachedModal";
+import { UsageStatus } from "@/components/billing/UsageStatus";
 import {
   type AppLanguage,
   useLanguage,
@@ -33,6 +35,7 @@ import {
   writeSessionCache,
   readSessionCache,
 } from "@/lib/local-cache";
+import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -101,11 +104,6 @@ type WorkflowControlState = {
   stopConditionEnabled: boolean;
   stopConditionStep: number;
   qualityThreshold: number;
-};
-
-type ApiErrorPayload = {
-  error?: string;
-  redirectUrl?: string;
 };
 
 type ResultLayout = "single" | "double";
@@ -691,6 +689,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [resultLayout, setResultLayout] = useState<ResultLayout>("double");
   const [runMonitor, setRunMonitor] = useState<RunMonitor | null>(null);
+  const [usage, setUsage] = useState<UsageStatusType | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const [parallelComparison, setParallelComparison] =
     useState<ParallelComparisonState>({
       signature: "",
@@ -776,12 +777,42 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
   }
 
-  function handleAuthRedirect(response: Response, data?: ApiErrorPayload) {
+  function handleAuthRedirect(response: Response, data?: UsageErrorPayload) {
     if (response.status === 401 && data?.redirectUrl) {
       window.location.href = data.redirectUrl;
       return true;
     }
     return false;
+  }
+
+  function handleUsageError(data?: UsageErrorPayload) {
+    if (!data?.usage) {
+      return false;
+    }
+
+    setUsage(data.usage);
+    if (data.code === "LIMIT_REACHED") {
+      setLimitModalOpen(true);
+      return true;
+    }
+
+    return false;
+  }
+
+  async function loadUsageStatus() {
+    setUsageLoading(true);
+    try {
+      const response = await fetch("/api/usage");
+      const data = (await response.json().catch(() => ({}))) as {
+        usage?: UsageStatusType;
+      };
+
+      if (response.ok && data.usage) {
+        setUsage(data.usage);
+      }
+    } finally {
+      setUsageLoading(false);
+    }
   }
 
   async function loadProviders() {
@@ -964,6 +995,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const projectId = params.get("project");
 
     loadProviders();
+    loadUsageStatus();
     loadPresets(presetId);
     if (loadId) {
       loadSession(loadId);
@@ -1547,12 +1579,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         stoppedEarly: boolean;
         stopReason?: string | null;
       };
-      error?: string;
-      redirectUrl?: string;
-    };
+      usage?: UsageStatusType;
+    } & UsageErrorPayload;
     setRunning(false);
 
     if (handleAuthRedirect(response, data)) {
+      return;
+    }
+
+    if (handleUsageError(data)) {
+      setError(data.error || t("runFailed"));
       return;
     }
 
@@ -1576,6 +1612,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setSessionId(data.session.id);
     setSessionTitle(data.session.title);
     setFinalResultId(data.session.finalResultId || null);
+    if (data.usage) {
+      setUsage(data.usage);
+    }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
     clearDraft();
@@ -1613,11 +1652,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
     const data = (await response.json().catch(() => ({}))) as {
       results?: WorkbenchResult[];
-      error?: string;
-      redirectUrl?: string;
-    };
+      usage?: UsageStatusType;
+    } & UsageErrorPayload;
 
     if (handleAuthRedirect(response, data)) {
+      return;
+    }
+
+    if (handleUsageError(data)) {
+      setError(data.error || t("branchRunFailed"));
       return;
     }
 
@@ -1630,6 +1673,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
+    if (data.usage) {
+      setUsage(data.usage);
+    }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
     setNotice(t("branchAdded"));
@@ -1642,11 +1688,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
     const data = (await response.json().catch(() => ({}))) as {
       result?: WorkbenchResult;
-      error?: string;
-      redirectUrl?: string;
-    };
+      usage?: UsageStatusType;
+    } & UsageErrorPayload;
 
     if (handleAuthRedirect(response, data)) {
+      return;
+    }
+
+    if (handleUsageError(data)) {
+      setError(data.error || t("rerunFailed"));
       return;
     }
 
@@ -1658,6 +1708,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
 
     const rerun = data.result;
+    if (data.usage) {
+      setUsage(data.usage);
+    }
     setResults((current) => mergeResults(current, [rerun]));
     setActiveMobilePanel("results");
     setNotice(t("rerunAdded"));
@@ -1786,6 +1839,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
   return (
     <div className="space-y-5">
+      <LimitReachedModal
+        usage={usage}
+        open={limitModalOpen}
+        onClose={() => setLimitModalOpen(false)}
+      />
+
       {isTrialMode && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
           <div className="flex items-center gap-3">
@@ -1811,6 +1870,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         title={t("compareBranchRoute")}
         description={t("workbenchDescription")}
       />
+
+      {usage && !isTrialMode ? <UsageStatus usage={usage} compact /> : null}
+      {usageLoading && !isTrialMode ? (
+        <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500 shadow-sm">
+          {language === "ko" ? "사용량 정보를 불러오는 중..." : "Loading usage status..."}
+        </div>
+      ) : null}
 
       {project ? (
         <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3">

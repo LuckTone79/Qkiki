@@ -2,9 +2,12 @@
 
 import { FormEvent, useState } from "react";
 import { useEffect } from "react";
+import Link from "next/link";
+import { UsageStatus } from "@/components/billing/UsageStatus";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import type { UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
 export function AccountClient({
   initialName,
@@ -20,20 +23,30 @@ export function AccountClient({
     isLifetime: boolean;
     planEndsAt: string | null;
   } | null>(null);
+  const [usage, setUsage] = useState<UsageStatusType | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
   async function loadSubscription() {
-    const response = await fetch("/api/subscription");
+    const [response, usageResponse] = await Promise.all([
+      fetch("/api/subscription"),
+      fetch("/api/usage"),
+    ]);
     const data = (await response.json().catch(() => ({}))) as {
       subscription?: {
         isLifetime: boolean;
         planEndsAt: string | null;
       };
     };
+    const usageData = (await usageResponse.json().catch(() => ({}))) as {
+      usage?: UsageStatusType;
+    };
 
     if (response.ok && data.subscription) {
       setSubscription(data.subscription);
+    }
+    if (usageResponse.ok && usageData.usage) {
+      setUsage(usageData.usage);
     }
   }
 
@@ -173,6 +186,26 @@ export function AccountClient({
           {language === "ko" ? "이용권 및 쿠폰" : "Plan and coupons"}
         </h2>
         <p className="mt-1 text-sm text-stone-600">{planLabel}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/app/pricing?intent=monthly"
+            className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+          >
+            {language === "ko" ? "월구독 시작하기" : "Start monthly plan"}
+          </Link>
+          <Link
+            href="/app/pricing?intent=yearly"
+            className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            {language === "ko" ? "연구독으로 할인받기" : "Get yearly discount"}
+          </Link>
+          <Link
+            href="/app/pricing?intent=credit"
+            className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            {language === "ko" ? "필요한 만큼만 충전하기" : "Buy credit pack"}
+          </Link>
+        </div>
 
         <form onSubmit={redeemCoupon} className="mt-4 space-y-3">
           <label className="block">
@@ -194,6 +227,8 @@ export function AccountClient({
           </button>
         </form>
       </section>
+
+      {usage ? <UsageStatus usage={usage} /> : null}
     </div>
   );
 }

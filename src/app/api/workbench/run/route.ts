@@ -9,6 +9,10 @@ import {
   executeSequentialRun,
 } from "@/lib/ai/workflow";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
+import {
+  recordUsageSuccess,
+  requireUsageAccess,
+} from "@/lib/usage-policy";
 import { runWorkbenchSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
@@ -16,6 +20,9 @@ export async function POST(request: Request) {
   try {
     const user = await requireApiGenerationUser();
     const parsed = runWorkbenchSchema.safeParse(await request.json());
+    const inputCharCount =
+      (parsed.success ? parsed.data.originalInput.length : 0) +
+      (parsed.success ? parsed.data.additionalInstruction?.length ?? 0 : 0);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -23,6 +30,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const usageContext = user.isTrial
+      ? null
+      : await requireUsageAccess({
+          userId: user.id,
+          inputCharCount,
+        });
 
     if (parsed.data.mode === "parallel") {
       if (!parsed.data.targets?.length) {
@@ -53,7 +67,31 @@ export async function POST(request: Request) {
         })),
       });
 
-      return NextResponse.json(result);
+      const usage = user.isTrial
+        ? undefined
+        : await recordUsageSuccess({
+            userId: user.id,
+            requestType: "compare",
+            selectedModels: parsed.data.targets.map(
+              (target) => `${target.provider}/${target.model}`,
+            ),
+            inputCharCount,
+            inputTokenCount: (result.results || []).reduce(
+              (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+              0,
+            ),
+            outputTokenCount: (result.results || []).reduce(
+              (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+              0,
+            ),
+            estimatedCostUsd: (result.results || []).reduce(
+              (sum, item) => sum + (item.estimatedCost ?? 0),
+              0,
+            ),
+            context: usageContext ?? undefined,
+          });
+
+      return NextResponse.json({ ...result, usage });
     }
 
     if (!parsed.data.steps?.length) {
@@ -106,7 +144,31 @@ export async function POST(request: Request) {
         : undefined,
     });
 
-    return NextResponse.json(result);
+    const usage = user.isTrial
+      ? undefined
+      : await recordUsageSuccess({
+          userId: user.id,
+          requestType: "compare",
+          selectedModels: parsed.data.steps.map(
+            (step) => `${step.targetProvider}/${step.targetModel}`,
+          ),
+          inputCharCount,
+          inputTokenCount: (result.results || []).reduce(
+            (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+            0,
+          ),
+          outputTokenCount: (result.results || []).reduce(
+            (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+            0,
+          ),
+          estimatedCostUsd: (result.results || []).reduce(
+            (sum, item) => sum + (item.estimatedCost ?? 0),
+            0,
+          ),
+          context: usageContext ?? undefined,
+        });
+
+    return NextResponse.json({ ...result, usage });
   } catch (error) {
     return apiErrorResponse(error);
   }

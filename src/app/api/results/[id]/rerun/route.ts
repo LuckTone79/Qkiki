@@ -9,6 +9,10 @@ import { isProviderName } from "@/lib/ai/provider-catalog";
 import { hydrateRuntimeAttachments } from "@/lib/attachments";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import { prisma } from "@/lib/prisma";
+import {
+  recordUsageSuccess,
+  requireUsageAccess,
+} from "@/lib/usage-policy";
 
 export async function POST(
   _request: Request,
@@ -16,6 +20,12 @@ export async function POST(
 ) {
   try {
     const user = await requireApiGenerationUser();
+    const usageContext = user.isTrial
+      ? null
+      : await requireUsageAccess({
+          userId: user.id,
+          inputCharCount: 0,
+        });
     const { id } = await context.params;
     const result = await prisma.result.findFirst({
       where: { id, session: { userId: user.id } },
@@ -64,7 +74,20 @@ export async function POST(
       ),
     });
 
-    return NextResponse.json({ result: rerun });
+    const usage = user.isTrial
+      ? undefined
+      : await recordUsageSuccess({
+          userId: user.id,
+          requestType: "rerun",
+          selectedModels: [`${rerun.provider}/${rerun.model}`],
+          inputCharCount: 0,
+          inputTokenCount: rerun.tokenUsagePrompt ?? 0,
+          outputTokenCount: rerun.tokenUsageCompletion ?? 0,
+          estimatedCostUsd: rerun.estimatedCost ?? 0,
+          context: usageContext ?? undefined,
+        });
+
+    return NextResponse.json({ result: rerun, usage });
   } catch (error) {
     return apiErrorResponse(error);
   }

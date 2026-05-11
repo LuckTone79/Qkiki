@@ -6,6 +6,10 @@ import {
 } from "@/lib/api-auth";
 import { executeBranchRun } from "@/lib/ai/workflow";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
+import {
+  recordUsageSuccess,
+  requireUsageAccess,
+} from "@/lib/usage-policy";
 import { branchRunSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
@@ -20,6 +24,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const usageContext = user.isTrial
+      ? null
+      : await requireUsageAccess({
+          userId: user.id,
+          inputCharCount: parsed.data.instruction.length,
+        });
 
     const providerError = await assertProvidersReadyForRun(
       parsed.data.targets.map((target) => target.provider as ProviderName),
@@ -44,7 +55,31 @@ export async function POST(request: Request) {
       })),
     });
 
-    return NextResponse.json(result);
+    const usage = user.isTrial
+      ? undefined
+      : await recordUsageSuccess({
+          userId: user.id,
+          requestType: parsed.data.actionType,
+          selectedModels: parsed.data.targets.map(
+            (target) => `${target.provider}/${target.model}`,
+          ),
+          inputCharCount: parsed.data.instruction.length,
+          inputTokenCount: (result.results || []).reduce(
+            (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+            0,
+          ),
+          outputTokenCount: (result.results || []).reduce(
+            (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+            0,
+          ),
+          estimatedCostUsd: (result.results || []).reduce(
+            (sum, item) => sum + (item.estimatedCost ?? 0),
+            0,
+          ),
+          context: usageContext ?? undefined,
+        });
+
+    return NextResponse.json({ ...result, usage });
   } catch (error) {
     return apiErrorResponse(error);
   }
