@@ -4,7 +4,7 @@ import process from "node:process";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
+import pg from "pg";
 
 function printHelp() {
   console.log(`Usage:
@@ -100,6 +100,19 @@ function loadEnvironment() {
   }
 }
 
+function getNormalizedDatabaseUrl() {
+  const rawDatabaseUrl = process.env.DATABASE_URL?.trim();
+
+  if (!rawDatabaseUrl) {
+    throw new Error("DATABASE_URL is not configured.");
+  }
+
+  const normalized = new URL(rawDatabaseUrl);
+  normalized.searchParams.delete("sslmode");
+
+  return normalized.toString();
+}
+
 async function promptForPassword() {
   process.stdout.write("New password: ");
 
@@ -184,13 +197,21 @@ async function main() {
     throw new Error("Password reset cancelled.");
   }
 
-  const prisma = new PrismaClient({ log: ["error"] });
+  const client = new pg.Client({
+    connectionString: getNormalizedDatabaseUrl(),
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
 
   try {
-    const user = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, role: true, status: true },
-    });
+    await client.connect();
+    const userResult = await client.query(
+      'SELECT "id", "email", "role", "status" FROM "User" WHERE "email" = $1 LIMIT 1',
+      [email],
+    );
+
+    const user = userResult.rows[0];
 
     if (!user) {
       throw new Error(`No user found for ${email}.`);
@@ -198,18 +219,20 @@ async function main() {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: user.id },
-        data: { passwordHash },
-      }),
-      prisma.authSession.deleteMany({
-        where: { userId: user.id },
-      }),
-      prisma.adminSession.deleteMany({
-        where: { userId: user.id },
-      }),
-    ]);
+    await client.query("BEGIN");
+    await client.query(
+      'UPDATE "User" SET "passwordHash" = $1 WHERE "id" = $2',
+      [passwordHash, user.id],
+    );
+    await client.query(
+      'DELETE FROM "AuthSession" WHERE "userId" = $1',
+      [user.id],
+    );
+    await client.query(
+      'DELETE FROM "AdminSession" WHERE "userId" = $1',
+      [user.id],
+    );
+    await client.query("COMMIT");
 
     console.log("");
     console.log("Password reset completed.");
@@ -217,8 +240,14 @@ async function main() {
     console.log(`Role: ${user.role}`);
     console.log(`Status: ${user.status}`);
     console.log("Existing user and admin sessions were cleared.");
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+
+    throw error;
   } finally {
-    await prisma.$disconnect();
+    await client.end().catch(() => {});
   }
 }
 
