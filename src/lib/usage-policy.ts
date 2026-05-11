@@ -47,6 +47,8 @@ const TEAM_POLICY = {
   advancedReasoningDailyLimit: 200,
 };
 
+const UNLIMITED_DAILY_LIMIT = 1_000_000_000;
+
 type UserUsageProfile = {
   id: string;
   planType: PlanType;
@@ -64,6 +66,7 @@ export type UsageStatusSummary = {
   boostEndsAt: string | null;
   boostDaysRemaining: number;
   dailyLimit: number;
+  isUnlimitedDaily: boolean;
   dailyUsed: number;
   remaining: number;
   inputCharLimit: number;
@@ -143,7 +146,7 @@ function daysRemainingInclusive(endsAt: Date | null, now = new Date()) {
 }
 
 async function getUserUsageProfile(userId: string) {
-  const [user, subscription] = await Promise.all([
+  const [user, subscription, userSubscription] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -156,18 +159,29 @@ async function getUserUsageProfile(userId: string) {
       },
     }),
     getUserSubscriptionState(userId),
+    prisma.userSubscription.findUnique({
+      where: { userId },
+      select: {
+        couponDailyLimit: true,
+        couponLimitEndsAt: true,
+        couponLimitIsLifetime: true,
+      },
+    }),
   ]);
 
   if (!user) {
     throw new Error("User not found.");
   }
 
-  return { user, subscription };
+  return { user, subscription, userSubscription };
 }
 
 function resolvePolicy(input: {
   profile: UserUsageProfile;
   hasLegacySubscription: boolean;
+  couponDailyLimit: number | null;
+  couponLimitEndsAt: Date | null;
+  couponLimitIsLifetime: boolean;
   now?: Date;
 }): ResolvedUsagePolicy {
   const now = input.now ?? new Date();
@@ -187,12 +201,21 @@ function resolvePolicy(input: {
       isBoostActive: false,
       boostEndsAt: null,
       boostDaysRemaining: 0,
+      isUnlimitedDaily: false,
       resetAt,
       ...TEAM_POLICY,
     };
   }
 
   if (input.profile.planType === PlanType.PRO || input.hasLegacySubscription) {
+    const couponLimitActive = Boolean(
+      input.couponLimitIsLifetime ||
+        (input.couponLimitEndsAt && input.couponLimitEndsAt.getTime() > now.getTime()),
+    );
+    const isUnlimitedDaily = couponLimitActive && input.couponDailyLimit == null;
+    const resolvedDailyLimit = couponLimitActive
+      ? (input.couponDailyLimit ?? UNLIMITED_DAILY_LIMIT)
+      : PRO_POLICY.dailyLimit;
     return {
       planType: PlanType.PRO,
       billingType: input.hasLegacySubscription && input.profile.billingType === BillingType.NONE
@@ -204,6 +227,8 @@ function resolvePolicy(input: {
       boostDaysRemaining: 0,
       resetAt,
       ...PRO_POLICY,
+      dailyLimit: resolvedDailyLimit,
+      isUnlimitedDaily,
     };
   }
 
@@ -215,6 +240,7 @@ function resolvePolicy(input: {
       isBoostActive: false,
       boostEndsAt: null,
       boostDaysRemaining: 0,
+      isUnlimitedDaily: false,
       resetAt,
       ...STARTER_POLICY,
     };
@@ -228,6 +254,7 @@ function resolvePolicy(input: {
       isBoostActive: true,
       boostEndsAt: input.profile.trialEndsAt?.toISOString() ?? null,
       boostDaysRemaining: daysRemainingInclusive(input.profile.trialEndsAt, now),
+      isUnlimitedDaily: false,
       resetAt,
       ...BOOST_POLICY,
     };
@@ -240,6 +267,7 @@ function resolvePolicy(input: {
     isBoostActive: false,
     boostEndsAt: input.profile.trialEndsAt?.toISOString() ?? null,
     boostDaysRemaining: 0,
+    isUnlimitedDaily: false,
     resetAt,
     ...FREE_POLICY,
   };
@@ -297,10 +325,13 @@ function toSummary(policy: ResolvedUsagePolicy, dailyUsed: number): UsageStatusS
 }
 
 export async function getUsageStatus(userId: string) {
-  const { user, subscription } = await getUserUsageProfile(userId);
+  const { user, subscription, userSubscription } = await getUserUsageProfile(userId);
   const policy = resolvePolicy({
     profile: user,
     hasLegacySubscription: hasActiveSubscription(subscription),
+    couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
+    couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
+    couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
   });
   const usage = await getOrCreateUsageRecord(userId, policy);
   return toSummary(policy, usage.dailyRequestUsed);
@@ -310,10 +341,13 @@ export async function requireUsageAccess(input: {
   userId: string;
   inputCharCount: number;
 }) {
-  const { user, subscription } = await getUserUsageProfile(input.userId);
+  const { user, subscription, userSubscription } = await getUserUsageProfile(input.userId);
   const policy = resolvePolicy({
     profile: user,
     hasLegacySubscription: hasActiveSubscription(subscription),
+    couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
+    couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
+    couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
   });
   const usage = await getOrCreateUsageRecord(input.userId, policy);
   const summary = toSummary(policy, usage.dailyRequestUsed);

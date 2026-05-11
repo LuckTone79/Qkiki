@@ -6,7 +6,11 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 type CouponItem = {
   id: string;
   code: string;
-  type: "MONTHLY_FREE_30D" | "LIFETIME_FREE";
+  type:
+    | "MONTHLY_FREE_30D"
+    | "MONTHLY_FREE_30D_DAILY_50"
+    | "LIFETIME_FREE"
+    | "LIFETIME_FREE_DAILY_50";
   isActive: boolean;
   redeemedAt: string | null;
   createdAt: string;
@@ -73,8 +77,10 @@ const couponText = {
     failedDelete: "Failed to delete coupon.",
     failedCopy: "Could not copy code.",
     noPeriod: "-",
-    monthlyType: "monthly_free_30d",
-    lifetimeType: "lifetime_free",
+    monthlyType: "monthly_free_30d (daily unlimited)",
+    monthly50Type: "monthly_free_30d (daily 50)",
+    lifetimeType: "lifetime_free (daily unlimited)",
+    lifetime50Type: "lifetime_free (daily 50)",
   },
   ko: {
     title: "\uCFE0\uD3F0",
@@ -119,8 +125,10 @@ const couponText = {
     failedDelete: "\uCFE0\uD3F0 \uC0AD\uC81C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
     failedCopy: "\uCF54\uB4DC \uBCF5\uC0AC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
     noPeriod: "-",
-    monthlyType: "monthly_free_30d",
-    lifetimeType: "lifetime_free",
+    monthlyType: "30일 무료 쿠폰 (일일 무제한)",
+    monthly50Type: "30일 무료 쿠폰 (일일 50회)",
+    lifetimeType: "평생 무료 쿠폰 (일일 무제한)",
+    lifetime50Type: "평생 무료 쿠폰 (일일 50회)",
   },
 } as const;
 
@@ -141,7 +149,12 @@ export function AdminCouponsClient() {
   const { language } = useLanguage();
   const t = couponText[language];
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [type, setType] = useState<"MONTHLY_FREE_30D" | "LIFETIME_FREE">(
+  const [type, setType] = useState<
+    | "MONTHLY_FREE_30D"
+    | "MONTHLY_FREE_30D_DAILY_50"
+    | "LIFETIME_FREE"
+    | "LIFETIME_FREE_DAILY_50"
+  >(
     "MONTHLY_FREE_30D",
   );
   const [code, setCode] = useState("");
@@ -342,12 +355,20 @@ export function AdminCouponsClient() {
             <select
               value={type}
               onChange={(event) =>
-                setType(event.target.value as "MONTHLY_FREE_30D" | "LIFETIME_FREE")
+                setType(
+                  event.target.value as
+                    | "MONTHLY_FREE_30D"
+                    | "MONTHLY_FREE_30D_DAILY_50"
+                    | "LIFETIME_FREE"
+                    | "LIFETIME_FREE_DAILY_50",
+                )
               }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
             >
               <option value="MONTHLY_FREE_30D">{t.monthlyType}</option>
+              <option value="MONTHLY_FREE_30D_DAILY_50">{t.monthly50Type}</option>
               <option value="LIFETIME_FREE">{t.lifetimeType}</option>
+              <option value="LIFETIME_FREE_DAILY_50">{t.lifetime50Type}</option>
             </select>
           </label>
 

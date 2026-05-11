@@ -19,6 +19,12 @@ export function LimitReachedModal({
     return null;
   }
 
+  const limitLabel = usage.isUnlimitedDaily
+    ? language === "ko"
+      ? "무제한"
+      : "Unlimited"
+    : `${usage.dailyLimit}`;
+
   const title =
     language === "ko"
       ? usage.isBoostActive
@@ -28,22 +34,18 @@ export function LimitReachedModal({
 
   const description =
     language === "ko"
-      ? `내일 다시 ${usage.dailyLimit}회가 충전됩니다.`
-      : `${usage.dailyLimit} uses will refresh tomorrow.`;
+      ? `내일 다시 ${limitLabel}회가 충전됩니다.`
+      : `${limitLabel} uses will refresh tomorrow.`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4">
       <div className="w-full max-w-lg rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
-          Qkiki
-        </p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">
-          {title}
-        </h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Qkiki</p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">{title}</h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">{description}</p>
         <p className="mt-2 text-sm leading-6 text-stone-600">
           {language === "ko"
-            ? "계속 사용하려면 아래 옵션을 선택할 수 있어요."
+            ? "지금 계속 사용하려면 아래 옵션을 선택할 수 있어요."
             : "Choose one of the options below to keep going."}
         </p>
 

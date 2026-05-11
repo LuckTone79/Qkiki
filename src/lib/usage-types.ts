@@ -6,6 +6,7 @@ export type UsageStatus = {
   boostEndsAt: string | null;
   boostDaysRemaining: number;
   dailyLimit: number;
+  isUnlimitedDaily: boolean;
   dailyUsed: number;
   remaining: number;
   inputCharLimit: number;
