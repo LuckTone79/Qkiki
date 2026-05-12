@@ -35,6 +35,7 @@ import {
   writeSessionCache,
   readSessionCache,
 } from "@/lib/local-cache";
+import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
 type ProviderSelection = {
@@ -715,7 +716,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         startedAt,
         entries: selectedTargets.map((target, index) => ({
           key: `parallel-${target.provider}-${target.model}-${index}`,
-          title: `${providerLabel(target.provider as ProviderName)} / ${target.model}`,
+          title: `${providerLabel(target.provider as ProviderName)} / ${getModelDisplayName(
+            target.provider as ProviderName,
+            target.model,
+          )}`,
           subtitle: `${uiText.parallelRun} ${index + 1}`,
           status: "active" as const,
           detail: uiText.preparing,
@@ -728,7 +732,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       startedAt,
       entries: workflowSteps.map((step, index) => ({
         key: `step-${step.uid}`,
-        title: `${providerLabel(step.targetProvider)} / ${step.targetModel}`,
+          title: `${providerLabel(step.targetProvider)} / ${getModelDisplayName(
+            step.targetProvider,
+            step.targetModel,
+          )}`,
         subtitle: `${uiText.sequentialStep} ${step.orderIndex}`,
         status: index === 0 ? ("active" as const) : ("queued" as const),
         detail: index === 0 ? uiText.preparing : uiText.queued,
@@ -1241,7 +1248,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     () =>
       results.map((result, index) => ({
         id: result.id,
-        label: `${index + 1}. ${result.provider}/${result.model}`,
+        label: `${index + 1}. ${result.provider}/${getModelDisplayName(
+          result.provider,
+          result.model,
+        )}`,
       })),
     [results],
   );
@@ -2561,7 +2571,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
                   {uiText.compareGeneratedWith}:{" "}
                   {parallelComparison.comparison.provider}/
-                  {parallelComparison.comparison.model}
+                  {getModelDisplayName(
+                    parallelComparison.comparison.provider,
+                    parallelComparison.comparison.model,
+                  )}
                 </span>
               ) : null}
             </div>
@@ -2576,7 +2589,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   key={result.id}
                   className="rounded-full border border-stone-200 bg-[#f7f8f3] px-3 py-1 text-xs font-medium text-stone-700"
                 >
-                  {result.provider}/{result.model}
+                  {result.provider}/{getModelDisplayName(
+                    result.provider,
+                    result.model,
+                  )}
                 </span>
               ))}
               </div>
@@ -2680,7 +2696,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     providers={providers}
                     sourceLabel={
                       parent
-                        ? `${t("source")}: ${parent.provider}/${parent.model}`
+                        ? `${t("source")}: ${parent.provider}/${getModelDisplayName(
+                            parent.provider,
+                            parent.model,
+                          )}`
                         : undefined
                     }
                     onBranch={runBranch}

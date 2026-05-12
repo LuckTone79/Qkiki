@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { getModelDisplayName } from "@/lib/ai/model-display";
+import type { ProviderName } from "@/lib/ai/types";
 
 const text = {
   en: {
@@ -109,7 +111,11 @@ export function AdminConversationRawViewer({
             {raw.results.map((result) => (
               <article key={result.id} className="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {result.provider}/{result.model}
+                  {result.provider}/
+                  {getModelDisplayName(
+                    result.provider as ProviderName,
+                    result.model,
+                  )}
                 </p>
                 <pre className="mt-2 whitespace-pre-wrap text-sm text-slate-900">
                   {result.outputText || result.errorMessage || "(empty)"}

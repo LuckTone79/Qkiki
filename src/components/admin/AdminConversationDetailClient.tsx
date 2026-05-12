@@ -2,6 +2,8 @@
 
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AdminConversationRawViewer } from "@/components/admin/AdminConversationRawViewer";
+import { getModelDisplayName } from "@/lib/ai/model-display";
+import type { ProviderName } from "@/lib/ai/types";
 
 const text = {
   en: {
@@ -98,7 +100,11 @@ export function AdminConversationDetailClient({
               >
                 <p className="font-medium text-slate-900">
                   {t.step} {step.orderIndex}: {step.actionType} {"→"}{" "}
-                  {step.targetProvider}/{step.targetModel}
+                  {step.targetProvider}/
+                  {getModelDisplayName(
+                    step.targetProvider as ProviderName,
+                    step.targetModel,
+                  )}
                 </p>
                 <p className="text-xs text-slate-500">
                   {t.source} {step.sourceMode}
@@ -122,7 +128,11 @@ export function AdminConversationDetailClient({
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="font-medium text-slate-900">
-                    {result.provider}/{result.model}
+                    {result.provider}/
+                    {getModelDisplayName(
+                      result.provider as ProviderName,
+                      result.model,
+                    )}
                   </p>
                   <span className="text-xs text-slate-500">{result.status}</span>
                 </div>

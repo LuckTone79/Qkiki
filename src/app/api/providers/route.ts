@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { PROVIDERS } from "@/lib/ai/provider-catalog";
+import {
+  PROVIDERS,
+  normalizeProviderModel,
+} from "@/lib/ai/provider-catalog";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -15,7 +18,10 @@ export async function GET() {
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
       const isEnabled = config ? config.isEnabled : hasCredential;
-      const configuredModel = config?.defaultModel ?? provider.defaultModel;
+      const configuredModel = normalizeProviderModel(
+        provider.name,
+        config?.defaultModel ?? provider.defaultModel,
+      );
       const defaultModel = provider.models.includes(configuredModel)
         ? configuredModel
         : provider.defaultModel;

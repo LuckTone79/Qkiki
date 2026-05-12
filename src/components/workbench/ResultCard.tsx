@@ -5,6 +5,10 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
+import {
+  getModelDisplayName,
+  getModelOptionLabel,
+} from "@/lib/ai/model-display";
 
 export type WorkbenchResult = {
   id: string;
@@ -117,7 +121,7 @@ export function ResultCard({
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-[#e9f7ef] px-2 py-1 text-xs font-semibold text-teal-800">
-              {result.provider} / {result.model}
+              {result.provider} / {getModelDisplayName(result.provider, result.model)}
             </span>
             <StatusBadge status={result.status} />
             {isFinal ? (
@@ -310,7 +314,7 @@ function BranchComposer({
                           }}
                           className="mr-1 accent-teal-700"
                         />
-                        {model}
+                        {getModelOptionLabel(provider.providerName, model)}
                       </label>
                     );
                   })}

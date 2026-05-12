@@ -1,5 +1,11 @@
 import type { ProviderName } from "@/lib/ai/types";
 
+const ANTHROPIC_LEGACY_MODEL_MAP: Record<string, string> = {
+  "claude-opus-4-1-20250805": "claude-opus-4-7",
+  "claude-sonnet-4-20250514": "claude-sonnet-4-6",
+  "claude-3-5-haiku-20241022": "claude-haiku-4-5",
+};
+
 export type ProviderCatalogItem = {
   name: ProviderName;
   displayName: string;
@@ -30,12 +36,12 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "Claude / Anthropic",
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
-    defaultModel: "claude-sonnet-4-20250514",
+    defaultModel: "claude-sonnet-4-6",
     defaultTimeoutSeconds: 300,
     models: [
-      "claude-opus-4-1-20250805",
-      "claude-sonnet-4-20250514",
-      "claude-3-5-haiku-20241022",
+      "claude-opus-4-7",
+      "claude-sonnet-4-6",
+      "claude-haiku-4-5",
     ],
   },
   {
@@ -82,6 +88,17 @@ export function getProviderCatalog(provider: ProviderName) {
 
 export function isProviderName(value: string): value is ProviderName {
   return PROVIDERS.some((entry) => entry.name === value);
+}
+
+export function normalizeProviderModel(
+  provider: ProviderName,
+  model: string,
+) {
+  if (provider === "anthropic") {
+    return ANTHROPIC_LEGACY_MODEL_MAP[model] ?? model;
+  }
+
+  return model;
 }
 
 export function getDefaultTimeoutSeconds(provider: ProviderName) {

@@ -8,6 +8,7 @@ import {
   PROVIDERS,
   getDefaultTimeoutSeconds,
   isProviderName,
+  normalizeProviderModel,
   resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
 import { logAdminAudit } from "@/lib/admin-audit";
@@ -26,7 +27,10 @@ export async function GET() {
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
       const effectiveEnabled = config ? config.isEnabled : hasCredential;
-      const configuredModel = config?.defaultModel ?? provider.defaultModel;
+      const configuredModel = normalizeProviderModel(
+        provider.name,
+        config?.defaultModel ?? provider.defaultModel,
+      );
 
       return {
         providerName: provider.name,
@@ -86,6 +90,10 @@ export async function PUT(request: Request) {
     }
 
     const apiKey = parsed.data.apiKey?.trim();
+    const normalizedDefaultModel = normalizeProviderModel(
+      parsed.data.providerName,
+      parsed.data.defaultModel,
+    );
     const encrypted = apiKey ? encryptSecret(apiKey) : null;
     const fallbackProvider = parsed.data.fallbackProvider ?? null;
     const perUserDailyLimit = parsed.data.perUserDailyLimit ?? 100;
@@ -101,7 +109,7 @@ export async function PUT(request: Request) {
       create: {
         providerName: parsed.data.providerName,
         isEnabled: parsed.data.isEnabled,
-        defaultModel: parsed.data.defaultModel,
+        defaultModel: normalizedDefaultModel,
         fallbackProvider,
         perUserDailyLimit,
         timeoutSeconds,
@@ -113,7 +121,7 @@ export async function PUT(request: Request) {
       },
       update: {
         isEnabled: parsed.data.isEnabled,
-        defaultModel: parsed.data.defaultModel,
+        defaultModel: normalizedDefaultModel,
         fallbackProvider,
         perUserDailyLimit,
         timeoutSeconds,
@@ -137,7 +145,7 @@ export async function PUT(request: Request) {
       },
     });
 
-    if (existing?.defaultModel !== parsed.data.defaultModel) {
+    if (existing?.defaultModel !== normalizedDefaultModel) {
       await logAdminAudit({
         adminUserId: admin.id,
         action: "PROVIDER_MODEL_UPDATE",
@@ -145,7 +153,7 @@ export async function PUT(request: Request) {
         targetId: updated.providerName,
         detail: {
           from: existing?.defaultModel ?? null,
-          to: parsed.data.defaultModel,
+          to: normalizedDefaultModel,
         },
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,

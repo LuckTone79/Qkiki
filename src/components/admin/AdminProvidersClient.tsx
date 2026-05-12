@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import type { ProviderName } from "@/lib/ai/types";
+import { getModelOptionLabel } from "@/lib/ai/model-display";
 
 const text = {
   en: {
@@ -57,7 +59,7 @@ const text = {
 } as const;
 
 type AdminProviderOption = {
-  providerName: string;
+  providerName: ProviderName;
   displayName: string;
   shortName: string;
   models: string[];
@@ -272,7 +274,7 @@ export function AdminProvidersClient() {
                   >
                     {provider.models.map((model) => (
                       <option key={model} value={model}>
-                        {model}
+                        {getModelOptionLabel(provider.providerName, model)}
                       </option>
                     ))}
                   </select>

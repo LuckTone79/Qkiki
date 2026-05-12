@@ -3,6 +3,7 @@
 import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderName } from "@/lib/ai/types";
+import { getModelOptionLabel } from "@/lib/ai/model-display";
 
 export type ProviderOption = {
   providerName: ProviderName;
@@ -74,6 +75,7 @@ export function ProviderSelectorRow({
         <div className="flex flex-wrap gap-2">
           {provider.models.map((option) => {
             const checked = selectedModels.includes(option);
+            const label = getModelOptionLabel(provider.providerName, option);
             return (
               <label
                 key={option}
@@ -82,8 +84,8 @@ export function ProviderSelectorRow({
                     ? "border-teal-300 bg-teal-50 text-teal-900"
                     : "border-stone-300 bg-white text-stone-700"
                 } ${!isReady ? "cursor-not-allowed opacity-50" : ""}`}
-              >
-                <input
+                >
+                  <input
                   type="checkbox"
                   checked={checked}
                   disabled={!isReady}
@@ -95,7 +97,7 @@ export function ProviderSelectorRow({
                   }}
                   className="mr-1 accent-teal-700"
                 />
-                {option}
+                {label}
               </label>
             );
           })}

@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import {
   getProviderCatalog,
+  normalizeProviderModel,
   resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
 import { estimateCost } from "@/lib/ai/pricing";
@@ -20,12 +21,6 @@ import type {
 } from "@/lib/ai/types";
 
 type JsonRecord = Record<string, unknown>;
-
-const ANTHROPIC_MODEL_ALIASES: Record<string, string> = {
-  "claude-opus-4-7": "claude-opus-4-1-20250805",
-  "claude-sonnet-4-6": "claude-sonnet-4-20250514",
-  "claude-haiku-4-5": "claude-3-5-haiku-20241022",
-};
 
 async function readJson(response: Response) {
   try {
@@ -168,7 +163,7 @@ function getImageAttachments(attachments?: ProviderAttachmentInput[]) {
 }
 
 function normalizeAnthropicModel(model: string) {
-  return ANTHROPIC_MODEL_ALIASES[model] ?? model;
+  return normalizeProviderModel("anthropic", model);
 }
 
 function isOpenAiReasoningModel(model: string) {

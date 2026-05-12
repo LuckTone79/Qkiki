@@ -3,6 +3,7 @@
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ActionType, ProviderName, SourceMode } from "@/lib/ai/types";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
+import { getModelOptionLabel } from "@/lib/ai/model-display";
 
 export type WorkflowStepState = {
   uid: string;
@@ -109,7 +110,7 @@ export function WorkflowStepRow({
             >
               {(currentProvider?.models ?? [step.targetModel]).map((model) => (
                 <option key={model} value={model}>
-                  {model}
+                  {getModelOptionLabel(step.targetProvider, model)}
                 </option>
               ))}
             </select>
