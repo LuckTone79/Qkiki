@@ -6,6 +6,7 @@ import {
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
+import { revokeCouponGrantForUserByAdmin } from "@/lib/subscription";
 
 export async function DELETE(
   request: Request,
@@ -21,7 +22,9 @@ export async function DELETE(
       select: {
         id: true,
         code: true,
-        redeemedAt: true,
+        isActive: true,
+        type: true,
+        redeemedByUserId: true,
       },
     });
 
@@ -29,15 +32,19 @@ export async function DELETE(
       return NextResponse.json({ error: "Coupon not found." }, { status: 404 });
     }
 
-    if (coupon.redeemedAt) {
-      return NextResponse.json(
-        { error: "Used coupons cannot be deleted." },
-        { status: 409 },
-      );
-    }
+    await prisma.$transaction(async (tx) => {
+      if (coupon.isActive && coupon.redeemedByUserId) {
+        await revokeCouponGrantForUserByAdmin(tx, {
+          userId: coupon.redeemedByUserId,
+          couponId: coupon.id,
+          couponType: coupon.type,
+          reason: "delete",
+        });
+      }
 
-    await prisma.coupon.delete({
-      where: { id: coupon.id },
+      await tx.coupon.delete({
+        where: { id: coupon.id },
+      });
     });
 
     await logAdminAudit({

@@ -6,6 +6,7 @@ import {
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
+import { revokeCouponGrantForUserByAdmin } from "@/lib/subscription";
 
 export async function POST(
   request: Request,
@@ -16,10 +17,35 @@ export async function POST(
     const { id } = await context.params;
     const meta = getRequestMeta(request);
 
-    const coupon = await prisma.coupon.update({
+    const coupon = await prisma.coupon.findUnique({
       where: { id },
-      data: { isActive: false },
-      select: { id: true, code: true, isActive: true },
+      select: {
+        id: true,
+        code: true,
+        isActive: true,
+        type: true,
+        redeemedByUserId: true,
+      },
+    });
+
+    if (!coupon) {
+      return NextResponse.json({ error: "Coupon not found." }, { status: 404 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.coupon.update({
+        where: { id: coupon.id },
+        data: { isActive: false },
+      });
+
+      if (coupon.isActive && coupon.redeemedByUserId) {
+        await revokeCouponGrantForUserByAdmin(tx, {
+          userId: coupon.redeemedByUserId,
+          couponId: coupon.id,
+          couponType: coupon.type,
+          reason: "deactivate",
+        });
+      }
     });
 
     await logAdminAudit({
@@ -34,7 +60,13 @@ export async function POST(
       userAgent: meta.userAgent,
     });
 
-    return NextResponse.json({ coupon });
+    return NextResponse.json({
+      coupon: {
+        id: coupon.id,
+        code: coupon.code,
+        isActive: false,
+      },
+    });
   } catch (error) {
     return adminApiErrorResponse(error);
   }

@@ -449,7 +449,7 @@ export function AdminCouponsClient() {
               >
                 {t.copy}
               </button>
-              {!coupon.redeemedAt && coupon.isActive ? (
+              {coupon.isActive ? (
                 <button
                   type="button"
                   onClick={() => deactivateCoupon(coupon.id)}
@@ -458,15 +458,13 @@ export function AdminCouponsClient() {
                   {t.deactivate}
                 </button>
               ) : null}
-              {!coupon.redeemedAt ? (
-                <button
-                  type="button"
-                  onClick={() => deleteCoupon(coupon.id)}
-                  className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  {t.delete}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => deleteCoupon(coupon.id)}
+                className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                {t.delete}
+              </button>
             </div>
           </article>
         ))}
@@ -524,28 +522,24 @@ export function AdminCouponsClient() {
                     : formatDate(coupon.appliedRedemption?.grantEndAt ?? null)}
                 </td>
                 <td className="px-3 py-3">
-                  {!coupon.redeemedAt ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      {coupon.isActive ? (
-                        <button
-                          type="button"
-                          onClick={() => deactivateCoupon(coupon.id)}
-                          className="rounded-md border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
-                        >
-                          {t.deactivate}
-                        </button>
-                      ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {coupon.isActive ? (
                       <button
                         type="button"
-                        onClick={() => deleteCoupon(coupon.id)}
-                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        onClick={() => deactivateCoupon(coupon.id)}
+                        className="rounded-md border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50"
                       >
-                        {t.delete}
+                        {t.deactivate}
                       </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-400">{t.searchEmpty}</span>
-                  )}
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => deleteCoupon(coupon.id)}
+                      className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    >
+                      {t.delete}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

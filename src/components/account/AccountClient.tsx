@@ -22,6 +22,7 @@ export function AccountClient({
   const [subscription, setSubscription] = useState<{
     isLifetime: boolean;
     planEndsAt: string | null;
+    couponStatus: "DEACTIVATED" | null;
   } | null>(null);
   const [usage, setUsage] = useState<UsageStatusType | null>(null);
   const [notice, setNotice] = useState("");
@@ -36,6 +37,7 @@ export function AccountClient({
       subscription?: {
         isLifetime: boolean;
         planEndsAt: string | null;
+        couponStatus: "DEACTIVATED" | null;
       };
     };
     const usageData = (await usageResponse.json().catch(() => ({}))) as {
@@ -186,6 +188,9 @@ export function AccountClient({
           {language === "ko" ? "이용권 및 쿠폰" : "Plan and coupons"}
         </h2>
         <p className="mt-1 text-sm text-stone-600">{planLabel}</p>
+        {subscription?.couponStatus === "DEACTIVATED" ? (
+          <p className="mt-2 text-sm font-semibold text-rose-700">쿠폰 비활성화</p>
+        ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href="/app/pricing?intent=monthly"

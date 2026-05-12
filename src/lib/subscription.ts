@@ -11,6 +11,8 @@ import {
 import { prisma } from "@/lib/prisma";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const COUPON_DEACTIVATED_NOTE = "coupon_deactivated_by_admin";
+const COUPON_DELETED_NOTE = "coupon_deleted_by_admin";
 
 export class CouponRedeemError extends Error {
   status: number;
@@ -52,14 +54,80 @@ function normalizeCouponCode(code: string) {
 }
 
 export async function getUserSubscriptionState(userId: string) {
-  const subscription = await prisma.userSubscription.findUnique({
-    where: { userId },
-  });
+  const [subscription, lastCouponAdminEvent] = await Promise.all([
+    prisma.userSubscription.findUnique({
+      where: { userId },
+    }),
+    prisma.subscriptionLedger.findFirst({
+      where: {
+        userId,
+        eventType: SubscriptionEventType.COUPON_REDEMPTION,
+        note: {
+          in: [COUPON_DEACTIVATED_NOTE, COUPON_DELETED_NOTE],
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        note: true,
+      },
+    }),
+  ]);
 
   return {
     isLifetime: subscription?.isLifetime ?? false,
     planEndsAt: subscription?.planEndsAt ?? null,
+    couponStatus:
+      lastCouponAdminEvent?.note === COUPON_DEACTIVATED_NOTE ||
+      lastCouponAdminEvent?.note === COUPON_DELETED_NOTE
+        ? "DEACTIVATED"
+        : null,
   };
+}
+
+function mapCouponTypeToSubscriptionType(type: CouponType) {
+  if (type === CouponType.MONTHLY_FREE_30D || type === CouponType.MONTHLY_FREE_30D_DAILY_50) {
+    return SubscriptionType.MONTHLY_FREE_30D;
+  }
+
+  return SubscriptionType.LIFETIME_FREE;
+}
+
+export async function revokeCouponGrantForUserByAdmin(
+  tx: Prisma.TransactionClient,
+  input: {
+    userId: string;
+    couponId: string;
+    couponType: CouponType;
+    reason: "deactivate" | "delete";
+  },
+) {
+  const now = new Date();
+  const note = input.reason === "delete" ? COUPON_DELETED_NOTE : COUPON_DEACTIVATED_NOTE;
+
+  await tx.userSubscription.updateMany({
+    where: { userId: input.userId },
+    data: {
+      isLifetime: false,
+      planEndsAt: null,
+      couponDailyLimit: null,
+      couponLimitEndsAt: null,
+      couponLimitIsLifetime: false,
+    },
+  });
+
+  await tx.subscriptionLedger.create({
+    data: {
+      userId: input.userId,
+      couponId: input.couponId,
+      eventType: SubscriptionEventType.COUPON_REDEMPTION,
+      subscriptionType: mapCouponTypeToSubscriptionType(input.couponType),
+      startAt: now,
+      endAt: now,
+      isLifetime: false,
+      note,
+    },
+  });
 }
 
 export async function redeemCouponCode(input: { userId: string; couponCode: string }) {
