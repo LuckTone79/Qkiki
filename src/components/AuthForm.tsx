@@ -107,7 +107,7 @@ export function AuthForm({ mode }: AuthFormProps) {
     const data = (await response.json().catch(() => ({}))) as { error?: string };
 
     if (!response.ok) {
-      setError(language === "ko" ? t("authFailed") : data.error || t("authFailed"));
+      setError(data.error || t("authFailed"));
       setLoading(false);
       return;
     }
