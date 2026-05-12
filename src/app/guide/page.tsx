@@ -119,6 +119,104 @@ const guide = {
       },
     ],
 
+    /* parallel compare tutorial */
+    parallelTutorial: {
+      title: "Parallel Compare — Step-by-Step Tutorial",
+      subtitle:
+        "Send your question to multiple AI models at once and compare their answers side by side!",
+      steps: [
+        {
+          num: "1",
+          title: "Select Parallel Compare mode",
+          desc: 'At the top of the Workbench, click "Parallel Compare." The button lights up to show it\'s selected.',
+        },
+        {
+          num: "2",
+          title: "Turn on your AI models",
+          desc: "In the model list, you'll see: GPT, Claude, Gemini, and Grok. Click the checkbox next to each model you want to use. Try picking 2 or 3!",
+        },
+        {
+          num: "3",
+          title: "Type your question",
+          desc: 'Click the big text box and type your question. Example: "Explain why the sky is blue in simple words."',
+        },
+        {
+          num: "4",
+          title: "Pick an output style (optional)",
+          desc: 'Choose how you want answers formatted: Detailed (long), Short (brief), Bullet (list), Table (grid), or Executive (summary). Not sure? Just leave it on "Detailed."',
+        },
+        {
+          num: "5",
+          title: "Attach files if needed (optional)",
+          desc: "Click the attach button to add images, PDFs, or text files. All selected AI models will read your files automatically.",
+        },
+        {
+          num: "6",
+          title: "Press the Run button",
+          desc: 'Click the green "▶ Run" button. All your selected AI models start working on your question at the same time!',
+        },
+        {
+          num: "7",
+          title: "Wait a moment",
+          desc: "Each model shows a progress indicator. They all think simultaneously — it usually takes just a few seconds.",
+        },
+        {
+          num: "8",
+          title: "Compare the results!",
+          desc: "Results appear as cards — one per AI model. Read them side by side to see how each AI answered differently. Each card also shows time taken and tokens used.",
+        },
+      ],
+    },
+
+    /* sequential review chain tutorial */
+    sequentialTutorial: {
+      title: "Sequential Review Chain — Step-by-Step Tutorial",
+      subtitle:
+        "AI models work like a relay team — each one reads and improves the previous answer!",
+      steps: [
+        {
+          num: "1",
+          title: "Select Sequential Review Chain mode",
+          desc: 'At the top of the Workbench, click "Sequential Review Chain." The screen changes to show a chain of connected steps.',
+        },
+        {
+          num: "2",
+          title: "Look at the default chain",
+          desc: "You'll see 3 steps already set up: Step 1 (GPT → Generate) → Step 2 (Grok → Critique) → Step 3 (Gemini → Improve). This is your starting chain!",
+        },
+        {
+          num: "3",
+          title: "Customize each step",
+          desc: 'For each step you can pick: which AI model (dropdown), what action (Generate, Critique, Improve, Summarize, Fact-check, Simplify), and add special instructions like "Focus on grammar mistakes."',
+        },
+        {
+          num: "4",
+          title: "Add or remove steps",
+          desc: 'Click "+" to add a new step at the end. Click the trash icon to remove a step. You can have as many or as few as you want!',
+        },
+        {
+          num: "5",
+          title: "Type your starting question",
+          desc: 'In the text box, type the question for Step 1 to work on. Example: "Write a short story about a robot who learns to paint."',
+        },
+        {
+          num: "6",
+          title: "Press the Run button",
+          desc: 'Click the green "▶ Run" button. The chain starts running from Step 1.',
+        },
+        {
+          num: "7",
+          title: "Watch the chain work",
+          desc: "Step 1 runs first and creates an answer. That answer automatically goes to Step 2, which does its job (like critiquing). Then Step 2's result goes to Step 3, and so on — like a relay race!",
+        },
+        {
+          num: "8",
+          title: "See all the results!",
+          desc: "When the chain finishes, you can read every step's output. The last step has the final, polished answer. Click any step to see what that AI wrote.",
+        },
+      ],
+    },
+
     /* features overview */
     featuresTitle: "Feature Overview",
     features: [
@@ -133,10 +231,6 @@ const guide = {
     /* FAQ */
     faqTitle: "FAQ",
     faqs: [
-      {
-        q: "Do I need to set up my own API keys?",
-        a: "No. AI providers are pre-configured by the platform administrator. Just open the Workbench and start using the models that show as \"ready\" in the Model Selection panel.",
-      },
       {
         q: "Is my data secure?",
         a: "Yes. All AI calls happen server-side only — your inputs never go directly to external providers from your browser. Sessions use HttpOnly cookies, and all credentials are encrypted.",
@@ -275,6 +369,104 @@ const guide = {
       },
     ],
 
+    /* parallel compare tutorial */
+    parallelTutorial: {
+      title: "병렬 비교 — 따라하기 가이드",
+      subtitle:
+        "내 질문을 여러 AI에게 동시에 보내고, 답변을 나란히 비교해보세요!",
+      steps: [
+        {
+          num: "1",
+          title: "병렬 비교 모드 선택하기",
+          desc: "워크벤치 위쪽에서 \"병렬 비교\"를 클릭하세요. 버튼이 켜져서 선택된 것을 알 수 있어요.",
+        },
+        {
+          num: "2",
+          title: "AI 모델 켜기",
+          desc: "모델 목록에 GPT, Claude, Gemini, Grok이 보여요. 사용하고 싶은 모델 옆의 체크박스를 클릭하세요. 처음에는 2~3개를 골라보세요!",
+        },
+        {
+          num: "3",
+          title: "질문 입력하기",
+          desc: "큰 텍스트 상자를 클릭하고 질문을 입력하세요. 예시: \"하늘이 파란 이유를 쉽게 설명해줘.\"",
+        },
+        {
+          num: "4",
+          title: "출력 스타일 고르기 (선택)",
+          desc: "답변 형식을 골라보세요: 상세(길게), 짧게(간단히), 글머리(목록), 표(격자), 요약(핵심만). 잘 모르겠으면 \"상세\"로 두면 돼요.",
+        },
+        {
+          num: "5",
+          title: "파일 첨부하기 (선택)",
+          desc: "첨부 버튼을 누르면 이미지, PDF, 텍스트 파일을 추가할 수 있어요. 선택한 모든 AI 모델이 파일을 자동으로 읽어요.",
+        },
+        {
+          num: "6",
+          title: "실행 버튼 누르기",
+          desc: "초록색 \"▶ 실행\" 버튼을 클릭하세요. 선택한 모든 AI 모델이 동시에 질문을 처리하기 시작해요!",
+        },
+        {
+          num: "7",
+          title: "잠깐 기다리기",
+          desc: "각 모델마다 진행 표시가 나타나요. 모두 동시에 생각하니까 보통 몇 초면 끝나요.",
+        },
+        {
+          num: "8",
+          title: "결과 비교하기!",
+          desc: "결과가 카드로 나타나요 — AI 모델마다 하나씩. 나란히 읽으면서 각 AI가 어떻게 다르게 답했는지 비교해보세요. 각 카드에는 걸린 시간과 토큰 수도 표시돼요.",
+        },
+      ],
+    },
+
+    /* sequential review chain tutorial */
+    sequentialTutorial: {
+      title: "순차 검토 체인 — 따라하기 가이드",
+      subtitle:
+        "AI 모델들이 릴레이처럼 협력해요 — 앞 AI의 답변을 다음 AI가 읽고 개선해요!",
+      steps: [
+        {
+          num: "1",
+          title: "순차 검토 체인 모드 선택하기",
+          desc: "워크벤치 위쪽에서 \"순차 검토 체인\"을 클릭하세요. 화면이 체인 형태로 바뀌어요.",
+        },
+        {
+          num: "2",
+          title: "기본 체인 확인하기",
+          desc: "이미 3단계가 만들어져 있어요: 1단계(GPT → 생성) → 2단계(Grok → 비판) → 3단계(Gemini → 개선). 이게 기본 체인이에요!",
+        },
+        {
+          num: "3",
+          title: "각 단계 바꾸기 (원하면)",
+          desc: "각 단계에서 바꿀 수 있는 것: 어떤 AI 모델을 쓸지(드롭다운), 무엇을 할지(생성, 비판, 개선, 요약, 팩트체크, 단순화), 그리고 특별 지시(예: \"문법 오류에 집중해줘.\").",
+        },
+        {
+          num: "4",
+          title: "단계 추가/삭제하기",
+          desc: "\"+\" 버튼을 클릭하면 새 단계가 추가돼요. 휴지통 아이콘을 클릭하면 단계가 삭제돼요. 원하는 만큼 자유롭게 조절할 수 있어요!",
+        },
+        {
+          num: "5",
+          title: "시작 질문 입력하기",
+          desc: "텍스트 상자에 1단계가 처리할 질문을 입력하세요. 예시: \"그림 그리는 법을 배우는 로봇에 대한 짧은 이야기를 써줘.\"",
+        },
+        {
+          num: "6",
+          title: "실행 버튼 누르기",
+          desc: "초록색 \"▶ 실행\" 버튼을 클릭하세요. 1단계부터 체인이 시작돼요.",
+        },
+        {
+          num: "7",
+          title: "체인이 일하는 모습 보기",
+          desc: "1단계가 먼저 실행되어 답변을 만들어요. 그 답변이 자동으로 2단계에 전달되고, 2단계가 작업(비판 등)을 해요. 2단계 결과가 3단계로 넘어가고... 릴레이 경주처럼 계속돼요!",
+        },
+        {
+          num: "8",
+          title: "모든 결과 확인하기!",
+          desc: "체인이 끝나면 모든 단계의 결과를 볼 수 있어요. 마지막 단계에 최종 완성된 답변이 있어요. 아무 단계나 클릭하면 그 AI가 쓴 내용을 볼 수 있답니다.",
+        },
+      ],
+    },
+
     /* features overview */
     featuresTitle: "기능 한눈에 보기",
     features: [
@@ -289,10 +481,6 @@ const guide = {
     /* FAQ */
     faqTitle: "자주 묻는 질문",
     faqs: [
-      {
-        q: "API 키를 직접 설정해야 하나요?",
-        a: "아닙니다. AI 프로바이더는 플랫폼 관리자가 미리 설정합니다. 워크벤치를 열고 모델 선택 패널에서 \"준비됨\"으로 표시된 모델을 바로 사용하시면 됩니다.",
-      },
       {
         q: "내 데이터는 안전한가요?",
         a: "네. 모든 AI 호출은 서버 측에서만 이루어지며 입력 내용이 브라우저에서 직접 외부로 전송되지 않습니다. HttpOnly 쿠키로 세션을 관리하고 모든 자격 증명은 암호화됩니다.",
@@ -510,6 +698,266 @@ export default function GuidePage() {
                         {step.tip}
                       </p>
                     ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/*  PARALLEL COMPARE TUTORIAL                                 */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <section className="mt-28">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-center text-3xl font-bold tracking-tight">
+              {t.parallelTutorial.title}
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-base text-stone-600">
+              {t.parallelTutorial.subtitle}
+            </p>
+
+            {/* ── Mock Screen Preview ── */}
+            <div className="mt-10 overflow-hidden rounded-2xl border-2 border-teal-200 bg-white shadow-lg">
+              {/* Window chrome */}
+              <div className="flex items-center gap-2 border-b border-stone-200 bg-stone-50 px-4 py-2.5">
+                <div className="flex gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </div>
+                <span className="text-xs font-medium text-stone-400">
+                  Qkiki Workbench
+                </span>
+              </div>
+
+              <div className="space-y-3.5 p-5">
+                {/* Mode selector */}
+                <div className="flex gap-2">
+                  <span className="rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
+                    {language === "ko" ? "● 병렬 비교" : "● Parallel Compare"}
+                  </span>
+                  <span className="rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs text-stone-400">
+                    {language === "ko"
+                      ? "순차 검토 체인"
+                      : "Sequential Review Chain"}
+                  </span>
+                </div>
+
+                {/* Model toggles */}
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-md border border-teal-300 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800">
+                    ☑ GPT
+                  </span>
+                  <span className="rounded-md border border-teal-300 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800">
+                    ☑ Claude
+                  </span>
+                  <span className="rounded-md border border-teal-300 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800">
+                    ☑ Gemini
+                  </span>
+                  <span className="rounded-md border border-stone-200 px-2.5 py-1 text-xs text-stone-400">
+                    ☐ Grok
+                  </span>
+                </div>
+
+                {/* Input area */}
+                <div className="rounded-lg border border-stone-200 bg-[#fafbf7] px-3.5 py-2.5 text-xs italic text-stone-400">
+                  {language === "ko"
+                    ? '"하늘이 파란 이유를 쉽게 설명해줘."'
+                    : '"Explain why the sky is blue in simple words."'}
+                </div>
+
+                {/* Output style */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-medium text-stone-500">
+                    {language === "ko" ? "출력 스타일:" : "Output Style:"}
+                  </span>
+                  <span className="rounded border border-stone-200 bg-white px-2 py-0.5 text-[10px] text-stone-600">
+                    Detailed ▾
+                  </span>
+                </div>
+
+                {/* Run button */}
+                <div className="text-center">
+                  <span className="inline-block rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-sm">
+                    {language === "ko" ? "▶ 실행" : "▶ Run"}
+                  </span>
+                </div>
+
+                {/* Result cards */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  {(
+                    [
+                      {
+                        name: "GPT",
+                        border: "border-blue-200",
+                        bg: "bg-blue-50/60",
+                        text: "text-blue-700",
+                        line: "bg-blue-200",
+                      },
+                      {
+                        name: "Claude",
+                        border: "border-violet-200",
+                        bg: "bg-violet-50/60",
+                        text: "text-violet-700",
+                        line: "bg-violet-200",
+                      },
+                      {
+                        name: "Gemini",
+                        border: "border-emerald-200",
+                        bg: "bg-emerald-50/60",
+                        text: "text-emerald-700",
+                        line: "bg-emerald-200",
+                      },
+                    ] as const
+                  ).map((m) => (
+                    <div
+                      key={m.name}
+                      className={`rounded-lg border ${m.border} ${m.bg} p-2.5`}
+                    >
+                      <p className={`text-[10px] font-bold ${m.text}`}>
+                        {m.name}
+                      </p>
+                      <div className="mt-1.5 space-y-1">
+                        <div className={`h-1.5 rounded-full ${m.line}`} />
+                        <div
+                          className={`h-1.5 w-4/5 rounded-full ${m.line}`}
+                        />
+                        <div
+                          className={`h-1.5 w-3/5 rounded-full ${m.line}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Tutorial Steps ── */}
+            <div className="mt-8 space-y-3">
+              {t.parallelTutorial.steps.map((s) => (
+                <div
+                  key={s.num}
+                  className="flex gap-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white">
+                    {s.num}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-stone-900">{s.title}</h4>
+                    <p className="mt-1 text-sm leading-6 text-stone-600">
+                      {s.desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/*  SEQUENTIAL REVIEW CHAIN TUTORIAL                          */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <section className="mt-28">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-center text-3xl font-bold tracking-tight">
+              {t.sequentialTutorial.title}
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-center text-base text-stone-600">
+              {t.sequentialTutorial.subtitle}
+            </p>
+
+            {/* ── Mock Screen Preview ── */}
+            <div className="mt-10 overflow-hidden rounded-2xl border-2 border-teal-200 bg-white shadow-lg">
+              {/* Window chrome */}
+              <div className="flex items-center gap-2 border-b border-stone-200 bg-stone-50 px-4 py-2.5">
+                <div className="flex gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                </div>
+                <span className="text-xs font-medium text-stone-400">
+                  Qkiki Workbench
+                </span>
+              </div>
+
+              <div className="space-y-3.5 p-5">
+                {/* Mode selector */}
+                <div className="flex gap-2">
+                  <span className="rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs text-stone-400">
+                    {language === "ko" ? "병렬 비교" : "Parallel Compare"}
+                  </span>
+                  <span className="rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
+                    {language === "ko"
+                      ? "● 순차 검토 체인"
+                      : "● Sequential Review Chain"}
+                  </span>
+                </div>
+
+                {/* Chain diagram */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-medium text-blue-800">
+                    GPT: {language === "ko" ? "생성" : "Generate"}
+                  </span>
+                  <span className="text-lg text-stone-300">→</span>
+                  <span className="rounded-md border border-orange-300 bg-orange-50 px-2.5 py-1.5 text-[11px] font-medium text-orange-800">
+                    Grok: {language === "ko" ? "비판" : "Critique"}
+                  </span>
+                  <span className="text-lg text-stone-300">→</span>
+                  <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800">
+                    Gemini: {language === "ko" ? "개선" : "Improve"}
+                  </span>
+                  <span className="rounded-md border border-dashed border-stone-300 px-2.5 py-1.5 text-[11px] text-stone-400">
+                    + {language === "ko" ? "추가" : "Add"}
+                  </span>
+                </div>
+
+                {/* Input area */}
+                <div className="rounded-lg border border-stone-200 bg-[#fafbf7] px-3.5 py-2.5 text-xs italic text-stone-400">
+                  {language === "ko"
+                    ? '"그림 그리는 법을 배우는 로봇에 대한 짧은 이야기를 써줘."'
+                    : '"Write a short story about a robot who learns to paint."'}
+                </div>
+
+                {/* Run button */}
+                <div className="text-center">
+                  <span className="inline-block rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-sm">
+                    {language === "ko" ? "▶ 실행" : "▶ Run"}
+                  </span>
+                </div>
+
+                {/* Chain execution preview */}
+                <div className="flex items-center justify-center gap-1.5 rounded-lg border border-stone-100 bg-stone-50 px-3 py-2.5">
+                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                    Step 1 ✓
+                  </span>
+                  <span className="text-xs text-stone-300">→</span>
+                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                    Step 2 ✓
+                  </span>
+                  <span className="text-xs text-stone-300">→</span>
+                  <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                    Step 3 ⏳
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Tutorial Steps ── */}
+            <div className="mt-8 space-y-3">
+              {t.sequentialTutorial.steps.map((s) => (
+                <div
+                  key={s.num}
+                  className="flex gap-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white">
+                    {s.num}
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-semibold text-stone-900">{s.title}</h4>
+                    <p className="mt-1 text-sm leading-6 text-stone-600">
+                      {s.desc}
+                    </p>
                   </div>
                 </div>
               ))}
