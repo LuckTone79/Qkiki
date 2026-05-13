@@ -3,6 +3,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import {
   getProviderCatalog,
+  isProviderName,
   normalizeProviderModel,
   resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
@@ -21,6 +22,14 @@ import type {
 } from "@/lib/ai/types";
 
 type JsonRecord = Record<string, unknown>;
+
+type ProviderRuntimeConfig = {
+  provider: ProviderName;
+  apiKey: string | null;
+  timeoutSeconds: number;
+  defaultModel: string;
+  fallbackProvider: ProviderName | null;
+};
 
 async function readJson(response: Response) {
   try {
@@ -378,14 +387,33 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
   const config = await prisma.adminProviderConfig.findUnique({
     where: { providerName: provider },
   });
+  const configuredModel = normalizeProviderModel(
+    provider,
+    config?.defaultModel ?? catalog.defaultModel,
+  );
+  const defaultModel = catalog.models.includes(configuredModel)
+    ? configuredModel
+    : catalog.defaultModel;
+  const fallbackProvider =
+    config?.fallbackProvider &&
+    isProviderName(config.fallbackProvider) &&
+    config.fallbackProvider !== provider
+      ? config.fallbackProvider
+      : null;
+  const runtimeBase: Omit<ProviderRuntimeConfig, "apiKey"> = {
+    provider,
+    timeoutSeconds: resolveProviderTimeoutSeconds(
+      provider,
+      config?.timeoutSeconds,
+    ),
+    defaultModel,
+    fallbackProvider,
+  };
 
   if (envValue?.trim()) {
     return {
+      ...runtimeBase,
       apiKey: envValue.trim(),
-      timeoutSeconds: resolveProviderTimeoutSeconds(
-        provider,
-        config?.timeoutSeconds,
-      ),
     };
   }
 
@@ -416,20 +444,14 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
     }
 
     return {
+      ...runtimeBase,
       apiKey: decrypted.value,
-      timeoutSeconds: resolveProviderTimeoutSeconds(
-        provider,
-        config.timeoutSeconds,
-      ),
     };
   }
 
   return {
+    ...runtimeBase,
     apiKey: null,
-    timeoutSeconds: resolveProviderTimeoutSeconds(
-      provider,
-      config?.timeoutSeconds,
-    ),
   };
 }
 
@@ -438,11 +460,33 @@ export async function getApiKeyForProvider(provider: ProviderName) {
   return runtime.apiKey;
 }
 
-export async function callProvider(
-  _userId: string,
+export async function getDefaultModelForProvider(provider: ProviderName) {
+  const runtime = await getProviderRuntimeConfig(provider);
+  return runtime.defaultModel;
+}
+
+function buildFallbackResponse(
+  input: ProviderCallInput,
+  failedResult: ProviderCallResult,
+  fallbackResult: ProviderCallResult,
+): ProviderCallResult {
+  return {
+    ...fallbackResult,
+    rawResponse: {
+      fallbackFrom: {
+        provider: input.provider,
+        model: input.model,
+        errorMessage: failedResult.errorMessage ?? null,
+      },
+      response: fallbackResult.rawResponse,
+    },
+  };
+}
+
+async function executeProviderCall(
+  runtime: ProviderRuntimeConfig,
   input: ProviderCallInput,
 ): Promise<ProviderCallResult> {
-  const runtime = await getProviderRuntimeConfig(input.provider);
   const apiKey = runtime.apiKey;
   const startedAt = Date.now();
 
@@ -491,6 +535,56 @@ export async function callProvider(
   }
 }
 
+export async function callProvider(
+  _userId: string,
+  input: ProviderCallInput,
+): Promise<ProviderCallResult> {
+  const runtime = await getProviderRuntimeConfig(input.provider);
+  const primaryResult = await executeProviderCall(runtime, input);
+
+  if (
+    primaryResult.status === "completed" ||
+    !runtime.fallbackProvider
+  ) {
+    return primaryResult;
+  }
+
+  console.warn("[provider] primary request failed", {
+    provider: input.provider,
+    model: input.model,
+    fallbackProvider: runtime.fallbackProvider,
+    errorMessage: primaryResult.errorMessage ?? null,
+  });
+
+  const fallbackRuntime = await getProviderRuntimeConfig(runtime.fallbackProvider);
+  const fallbackResult = await executeProviderCall(fallbackRuntime, {
+    ...input,
+    provider: runtime.fallbackProvider,
+    model: fallbackRuntime.defaultModel,
+  });
+
+  if (fallbackResult.status === "completed") {
+    console.warn("[provider] fallback request succeeded", {
+      requestedProvider: input.provider,
+      requestedModel: input.model,
+      fallbackProvider: fallbackResult.provider,
+      fallbackModel: fallbackResult.model,
+    });
+    return buildFallbackResponse(input, primaryResult, fallbackResult);
+  }
+
+  console.error("[provider] fallback request failed", {
+    requestedProvider: input.provider,
+    requestedModel: input.model,
+    requestedError: primaryResult.errorMessage ?? null,
+    fallbackProvider: fallbackResult.provider,
+    fallbackModel: fallbackResult.model,
+    fallbackError: fallbackResult.errorMessage ?? null,
+  });
+
+  return primaryResult;
+}
+
 async function callOpenAi(
   apiKey: string,
   input: ProviderCallInput,
@@ -508,8 +602,8 @@ async function callOpenAi(
     body: JSON.stringify({
       model: input.model,
       input: buildOpenAiResponsesInput(input),
-      background: true,
-      store: true,
+      background: false,
+      store: false,
       ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
     }),
   });
@@ -526,7 +620,7 @@ async function callOpenAi(
     responseId &&
     (status === "queued" || status === "in_progress")
   ) {
-    await waitForSignalSafeDelay(signal, 2000);
+    await waitForSignalSafeDelay(signal, 1000);
 
     const pollResponse = await fetch(
       `https://api.openai.com/v1/responses/${encodeURIComponent(responseId)}`,
@@ -590,7 +684,6 @@ async function callAnthropic(
       model: normalizeAnthropicModel(input.model),
       max_tokens: 2048,
       messages: [{ role: "user", content: buildAnthropicContent(input) }],
-      temperature: 0.4,
     }),
   });
   const body = await readJson(response);

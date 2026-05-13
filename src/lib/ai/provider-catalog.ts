@@ -22,12 +22,12 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "GPT / OpenAI",
     shortName: "GPT",
     envKey: "OPENAI_API_KEY",
-    defaultModel: "gpt-5.5",
-    defaultTimeoutSeconds: 300,
+    defaultModel: "gpt-5.4-mini",
+    defaultTimeoutSeconds: 75,
     models: [
+      "gpt-5.4-mini",
       "gpt-5.5",
       "gpt-5.4",
-      "gpt-5.4-mini",
       "gpt-5.4-nano",
     ],
   },
@@ -37,11 +37,11 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
     defaultModel: "claude-sonnet-4-6",
-    defaultTimeoutSeconds: 300,
+    defaultTimeoutSeconds: 60,
     models: [
-      "claude-opus-4-7",
       "claude-sonnet-4-6",
       "claude-haiku-4-5",
+      "claude-opus-4-7",
     ],
   },
   {
@@ -49,15 +49,15 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "Gemini / Google",
     shortName: "Gemini",
     envKey: "GOOGLE_API_KEY",
-    defaultModel: "gemini-3.1-pro-preview",
-    defaultTimeoutSeconds: 300,
+    defaultModel: "gemini-2.5-flash",
+    defaultTimeoutSeconds: 75,
     models: [
-      "gemini-3.1-pro-preview",
-      "gemini-3-flash-preview",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-pro",
       "gemini-2.5-flash",
+      "gemini-3.1-flash-lite",
       "gemini-2.5-flash-lite",
+      "gemini-3-flash-preview",
+      "gemini-2.5-pro",
+      "gemini-3.1-pro-preview",
     ],
   },
   {
@@ -66,12 +66,12 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Grok",
     envKey: "XAI_API_KEY",
     defaultModel: "grok-4.3",
-    defaultTimeoutSeconds: 300,
+    defaultTimeoutSeconds: 45,
     models: [
       "grok-4.3",
+      "grok-4.20-non-reasoning",
       "grok-4.20-multi-agent",
       "grok-4.20-reasoning",
-      "grok-4.20-non-reasoning",
     ],
   },
 ];
@@ -112,12 +112,6 @@ export function resolveProviderTimeoutSeconds(
   const defaultTimeoutSeconds = getDefaultTimeoutSeconds(provider);
 
   if (!configuredTimeoutSeconds || configuredTimeoutSeconds <= 0) {
-    return defaultTimeoutSeconds;
-  }
-
-  // Upgrade legacy provider defaults to the new global default while preserving
-  // clearly customized timeout values.
-  if ([60, 90, 180].includes(configuredTimeoutSeconds)) {
     return defaultTimeoutSeconds;
   }
 

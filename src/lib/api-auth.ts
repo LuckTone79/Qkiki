@@ -125,6 +125,8 @@ export function apiErrorResponse(error: unknown) {
     );
   }
 
+  console.error("[api] unhandled request failure", error);
+
   return NextResponse.json(
     { error: error instanceof Error ? error.message : "Request failed." },
     { status: 500 },

@@ -2,7 +2,6 @@ import "server-only";
 
 import { BillingType, PlanType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getUserSubscriptionState } from "@/lib/subscription";
 import { hasActiveSubscription } from "@/lib/access-policy";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -146,7 +145,7 @@ function daysRemainingInclusive(endsAt: Date | null, now = new Date()) {
 }
 
 async function getUserUsageProfile(userId: string) {
-  const [user, subscription, userSubscription] = await Promise.all([
+  const [user, userSubscription] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -158,10 +157,11 @@ async function getUserUsageProfile(userId: string) {
         isTrialUsed: true,
       },
     }),
-    getUserSubscriptionState(userId),
     prisma.userSubscription.findUnique({
       where: { userId },
       select: {
+        isLifetime: true,
+        planEndsAt: true,
         couponDailyLimit: true,
         couponLimitEndsAt: true,
         couponLimitIsLifetime: true,
@@ -173,7 +173,7 @@ async function getUserUsageProfile(userId: string) {
     throw new Error("User not found.");
   }
 
-  return { user, subscription, userSubscription };
+  return { user, userSubscription };
 }
 
 function resolvePolicy(input: {
@@ -275,34 +275,18 @@ function resolvePolicy(input: {
 
 async function getOrCreateUsageRecord(userId: string, policy: ResolvedUsagePolicy) {
   const { usageDate } = getKstDateInfo();
-  const existing = await prisma.usageLimit.findUnique({
+  return prisma.usageLimit.upsert({
     where: {
       userId_usageDate: {
         userId,
         usageDate,
       },
     },
-  });
-
-  if (existing) {
-    if (
-      existing.dailyRequestLimit !== policy.dailyLimit ||
-      existing.resetAt.getTime() !== policy.resetAt.getTime()
-    ) {
-      return prisma.usageLimit.update({
-        where: { id: existing.id },
-        data: {
-          dailyRequestLimit: policy.dailyLimit,
-          resetAt: policy.resetAt,
-        },
-      });
-    }
-
-    return existing;
-  }
-
-  return prisma.usageLimit.create({
-    data: {
+    update: {
+      dailyRequestLimit: policy.dailyLimit,
+      resetAt: policy.resetAt,
+    },
+    create: {
       userId,
       usageDate,
       dailyRequestLimit: policy.dailyLimit,
@@ -325,10 +309,13 @@ function toSummary(policy: ResolvedUsagePolicy, dailyUsed: number): UsageStatusS
 }
 
 export async function getUsageStatus(userId: string) {
-  const { user, subscription, userSubscription } = await getUserUsageProfile(userId);
+  const { user, userSubscription } = await getUserUsageProfile(userId);
   const policy = resolvePolicy({
     profile: user,
-    hasLegacySubscription: hasActiveSubscription(subscription),
+    hasLegacySubscription: hasActiveSubscription({
+      isLifetime: userSubscription?.isLifetime ?? false,
+      planEndsAt: userSubscription?.planEndsAt ?? null,
+    }),
     couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
     couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
@@ -341,10 +328,13 @@ export async function requireUsageAccess(input: {
   userId: string;
   inputCharCount: number;
 }) {
-  const { user, subscription, userSubscription } = await getUserUsageProfile(input.userId);
+  const { user, userSubscription } = await getUserUsageProfile(input.userId);
   const policy = resolvePolicy({
     profile: user,
-    hasLegacySubscription: hasActiveSubscription(subscription),
+    hasLegacySubscription: hasActiveSubscription({
+      isLifetime: userSubscription?.isLifetime ?? false,
+      planEndsAt: userSubscription?.planEndsAt ?? null,
+    }),
     couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
     couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,

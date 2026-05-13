@@ -1,18 +1,23 @@
-export function isPostgresUrl(url: string | null | undefined) {
+export function isDatabaseUrl(url: string | null | undefined) {
   if (!url) {
     return false;
   }
-  return url.startsWith("postgresql://") || url.startsWith("postgres://");
+  return (
+    url.startsWith("postgresql://") ||
+    url.startsWith("postgres://") ||
+    url.startsWith("prisma://") ||
+    url.startsWith("prisma+postgres://")
+  );
 }
 
 export function resolveDatabaseUrl() {
   const primary = process.env.DATABASE_URL?.trim();
   const fallback = process.env.POSTGRES_PRISMA_URL?.trim();
 
-  if (isPostgresUrl(primary)) {
+  if (isDatabaseUrl(primary)) {
     return primary;
   }
-  if (isPostgresUrl(fallback)) {
+  if (isDatabaseUrl(fallback)) {
     return fallback;
   }
   return null;

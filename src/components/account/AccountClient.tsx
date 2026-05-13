@@ -7,6 +7,7 @@ import { UsageStatus } from "@/components/billing/UsageStatus";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { readUsageCache, writeUsageCache } from "@/lib/local-cache";
 import type { UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
 export function AccountClient({
@@ -29,10 +30,17 @@ export function AccountClient({
   const [error, setError] = useState("");
 
   async function loadSubscription() {
-    const [response, usageResponse] = await Promise.all([
-      fetch("/api/subscription"),
-      fetch("/api/usage"),
-    ]);
+    const cachedUsage = readUsageCache<UsageStatusType>();
+    if (cachedUsage) {
+      setUsage(cachedUsage.data);
+    }
+
+    const responsePromise = fetch("/api/subscription");
+    const usageResponsePromise = cachedUsage ? null : fetch("/api/usage");
+    const response = await responsePromise;
+    const usageResponse = usageResponsePromise
+      ? await usageResponsePromise
+      : null;
     const data = (await response.json().catch(() => ({}))) as {
       subscription?: {
         isLifetime: boolean;
@@ -40,15 +48,18 @@ export function AccountClient({
         couponStatus: "DEACTIVATED" | null;
       };
     };
-    const usageData = (await usageResponse.json().catch(() => ({}))) as {
+    const usageData = usageResponse
+      ? ((await usageResponse.json().catch(() => ({}))) as {
       usage?: UsageStatusType;
-    };
+        })
+      : null;
 
     if (response.ok && data.subscription) {
       setSubscription(data.subscription);
     }
-    if (usageResponse.ok && usageData.usage) {
+    if (usageResponse?.ok && usageData?.usage) {
       setUsage(usageData.usage);
+      writeUsageCache(usageData.usage);
     }
   }
 

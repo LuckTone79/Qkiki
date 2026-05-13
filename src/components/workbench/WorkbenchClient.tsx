@@ -32,6 +32,8 @@ import {
   saveDraft,
   loadDraft,
   clearDraft,
+  readUsageCache,
+  writeUsageCache,
   writeSessionCache,
   readSessionCache,
 } from "@/lib/local-cache";
@@ -341,7 +343,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 1,
       actionType: "generate",
       targetProvider: "openai",
-      targetModel: "gpt-5.5",
+      targetModel: "gpt-5.4-mini",
       sourceMode: "original",
       instructionTemplate:
         language === "ko"
@@ -365,7 +367,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 3,
       actionType: "improve",
       targetProvider: "google",
-      targetModel: "gemini-3.1-pro-preview",
+      targetModel: "gemini-2.5-flash",
       sourceMode: "previous",
       instructionTemplate:
         language === "ko"
@@ -798,6 +800,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
 
     setUsage(data.usage);
+    writeUsageCache(data.usage);
     if (data.code === "LIMIT_REACHED") {
       setLimitModalOpen(true);
       return true;
@@ -807,6 +810,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }
 
   async function loadUsageStatus() {
+    const cached = readUsageCache<UsageStatusType>();
+    if (cached) {
+      setUsage(cached.data);
+      setUsageLoading(false);
+      return;
+    }
+
     setUsageLoading(true);
     try {
       const response = await fetch("/api/usage");
@@ -816,6 +826,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
       if (response.ok && data.usage) {
         setUsage(data.usage);
+        writeUsageCache(data.usage);
       }
     } finally {
       setUsageLoading(false);
@@ -1404,7 +1415,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           orderIndex: workflowSteps.length + 1,
           actionType: "improve",
           targetProvider: provider?.providerName ?? last?.targetProvider ?? "openai",
-          targetModel: provider?.defaultModel ?? last?.targetModel ?? "gpt-5.5",
+          targetModel:
+            provider?.defaultModel ?? last?.targetModel ?? "gpt-5.4-mini",
           sourceMode: "previous",
           instructionTemplate:
             language === "ko"
@@ -1624,6 +1636,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setFinalResultId(data.session.finalResultId || null);
     if (data.usage) {
       setUsage(data.usage);
+      writeUsageCache(data.usage);
     }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
@@ -1685,6 +1698,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     if (data.usage) {
       setUsage(data.usage);
+      writeUsageCache(data.usage);
     }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
@@ -1720,6 +1734,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const rerun = data.result;
     if (data.usage) {
       setUsage(data.usage);
+      writeUsageCache(data.usage);
     }
     setResults((current) => mergeResults(current, [rerun]));
     setActiveMobilePanel("results");

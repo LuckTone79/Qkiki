@@ -8,8 +8,7 @@ import {
   type RuntimeAttachment,
 } from "@/lib/attachments";
 import { composePrompt } from "@/lib/ai/prompt";
-import { callProvider } from "@/lib/ai/providers";
-import { getProviderCatalog } from "@/lib/ai/provider-catalog";
+import { callProvider, getDefaultModelForProvider } from "@/lib/ai/providers";
 import { encryptTextContent } from "@/lib/secret-crypto";
 import type {
   ActionType,
@@ -45,6 +44,8 @@ type ExecutePersistInput = {
 };
 
 const MAX_TOTAL_SEQUENTIAL_STEPS = 50;
+const MAX_PROJECT_CONTEXT_CHARS = 6000;
+const MAX_SOURCE_TEXT_CHARS = 12000;
 
 type ExpandedWorkflowStep = {
   executionOrder: number;
@@ -54,6 +55,23 @@ type ExpandedWorkflowStep = {
 function defaultTitle(input: string) {
   const compact = input.replace(/\s+/g, " ").trim();
   return compact.length > 70 ? `${compact.slice(0, 67)}...` : compact;
+}
+
+function truncatePromptContext(
+  text: string,
+  maxChars: number,
+  label: string,
+) {
+  const compact = text.trim();
+  if (compact.length <= maxChars) {
+    return compact;
+  }
+
+  return [
+    compact.slice(0, maxChars).trim(),
+    "",
+    `[${label} was truncated after ${maxChars} characters to keep this run stable and responsive.]`,
+  ].join("\n");
 }
 
 async function resolveProjectId(userId: string, projectId?: string | null) {
@@ -134,7 +152,11 @@ async function buildProjectPromptContext(input: {
     );
   }
 
-  return parts.join("\n\n");
+  return truncatePromptContext(
+    parts.join("\n\n"),
+    MAX_PROJECT_CONTEXT_CHARS,
+    "Project context",
+  );
 }
 
 function buildExpandedSteps(
@@ -333,7 +355,7 @@ export async function generateParallelComparisonSummary(input: {
   }
 
   const provider: ProviderName = "openai";
-  const model = getProviderCatalog(provider).defaultModel;
+  const model = await getDefaultModelForProvider(provider);
   const providerResult = await callProvider(input.userId, {
     provider,
     model,
@@ -351,8 +373,8 @@ export async function generateParallelComparisonSummary(input: {
     data: {
       userId: input.userId,
       conversationId: session.id,
-      provider,
-      model,
+      provider: providerResult.provider,
+      model: providerResult.model,
       requestType: "summarize",
       status: providerResult.status,
       inputTokens: providerResult.usage?.promptTokens ?? null,
@@ -378,8 +400,8 @@ export async function generateParallelComparisonSummary(input: {
 
   return {
     summary: providerResult.outputText,
-    provider,
-    model,
+    provider: providerResult.provider,
+    model: providerResult.model,
     generatedAt: new Date().toISOString(),
     comparedResultIds: comparableResults.map((result) => result.id),
   };
@@ -482,6 +504,8 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
         outputTextCiphertext: encryptedOutput?.ciphertext ?? null,
         outputTextIv: encryptedOutput?.iv ?? null,
         outputTextTag: encryptedOutput?.tag ?? null,
+        provider: providerResult.provider,
+        model: providerResult.model,
         rawResponse: providerResult.rawResponse
           ? JSON.stringify(providerResult.rawResponse)
           : null,
@@ -499,8 +523,8 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
         userId: input.userId,
         conversationId: input.sessionId,
         messageId: initial.id,
-        provider: input.provider,
-        model: input.model,
+        provider: providerResult.provider,
+        model: providerResult.model,
         requestType: input.requestType,
         status: providerResult.status,
         inputTokens: providerResult.usage?.promptTokens ?? null,
@@ -591,7 +615,11 @@ async function resolveSourceText(input: {
   previousResultText?: string | null;
 }) {
   if (input.sourceMode === "previous") {
-    return input.previousResultText || "";
+    return truncatePromptContext(
+      input.previousResultText || "",
+      MAX_SOURCE_TEXT_CHARS,
+      "Source result",
+    );
   }
 
   if (input.sourceMode === "selected_result" && input.sourceResultId) {
@@ -602,7 +630,11 @@ async function resolveSourceText(input: {
         session: { userId: input.userId },
       },
     });
-    return result?.outputText || result?.errorMessage || "";
+    return truncatePromptContext(
+      result?.outputText || result?.errorMessage || "",
+      MAX_SOURCE_TEXT_CHARS,
+      "Source result",
+    );
   }
 
   if (input.sourceMode === "all_results") {
@@ -611,14 +643,18 @@ async function resolveSourceText(input: {
       orderBy: { createdAt: "asc" },
     });
 
-    return results
-      .map((result, index) =>
+    return truncatePromptContext(
+      results
+        .map((result, index) =>
         [
           `Result ${index + 1} (${result.provider}/${result.model})`,
           result.outputText || result.errorMessage || "",
         ].join("\n"),
-      )
-      .join("\n\n");
+        )
+        .join("\n\n"),
+      MAX_SOURCE_TEXT_CHARS,
+      "Combined source results",
+    );
   }
 
   return "";

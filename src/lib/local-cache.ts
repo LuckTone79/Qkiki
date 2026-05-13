@@ -48,8 +48,10 @@ export type SessionCacheEntry<T> = {
 
 const DRAFT_KEY = "qkiki-draft";
 const SESSION_PREFIX = "qkiki-sc-";
+const USAGE_KEY = "qkiki-usage-cache";
 const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // 7 days
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;       // 12 hours
+const USAGE_TTL_MS = 15 * 1000; // 15 seconds
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
@@ -118,6 +120,25 @@ export function readSessionCache<T>(id: string): SessionCacheEntry<T> | null {
   if (!entry) return null;
   if (Date.now() - entry.cachedAt > SESSION_TTL_MS) {
     remove(`${SESSION_PREFIX}${id}`);
+    return null;
+  }
+  return entry;
+}
+
+/** Store the most recent usage snapshot to avoid repeated short-interval refetches. */
+export function writeUsageCache<T>(data: T): void {
+  write(USAGE_KEY, {
+    data,
+    cachedAt: Date.now(),
+  } satisfies SessionCacheEntry<T>);
+}
+
+/** Return the cached usage snapshot when it is still fresh. */
+export function readUsageCache<T>(): SessionCacheEntry<T> | null {
+  const entry = read<SessionCacheEntry<T>>(USAGE_KEY);
+  if (!entry) return null;
+  if (Date.now() - entry.cachedAt > USAGE_TTL_MS) {
+    remove(USAGE_KEY);
     return null;
   }
   return entry;
