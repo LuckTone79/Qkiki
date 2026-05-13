@@ -3,6 +3,8 @@ import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { generateParallelComparisonSummary } from "@/lib/ai/workflow";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 
+export const maxDuration = 300;
+
 export async function POST(request: Request) {
   try {
     const user = await requireApiUser();

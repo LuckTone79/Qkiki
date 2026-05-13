@@ -5,7 +5,6 @@ import {
   getProviderCatalog,
   isProviderName,
   normalizeProviderModel,
-  resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
 import { estimateCost } from "@/lib/ai/pricing";
 import {
@@ -26,7 +25,6 @@ type JsonRecord = Record<string, unknown>;
 type ProviderRuntimeConfig = {
   provider: ProviderName;
   apiKey: string | null;
-  timeoutSeconds: number;
   defaultModel: string;
   fallbackProvider: ProviderName | null;
 };
@@ -202,11 +200,10 @@ function isTimeoutLikeError(error: unknown) {
 
 function formatProviderRuntimeError(
   provider: ProviderName,
-  timeoutSeconds: number,
   error: unknown,
 ) {
   if (isTimeoutLikeError(error)) {
-    return `${provider}: request exceeded ${timeoutSeconds} seconds before a response was completed.`;
+    return `${provider}: provider request timed out before a response was completed.`;
   }
 
   return error instanceof Error ? error.message : "Provider request failed.";
@@ -402,10 +399,6 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
       : null;
   const runtimeBase: Omit<ProviderRuntimeConfig, "apiKey"> = {
     provider,
-    timeoutSeconds: resolveProviderTimeoutSeconds(
-      provider,
-      config?.timeoutSeconds,
-    ),
     defaultModel,
     fallbackProvider,
   };
@@ -503,7 +496,7 @@ async function executeProviderCall(
   }
 
   try {
-    const signal = AbortSignal.timeout(runtime.timeoutSeconds * 1000);
+    const signal = new AbortController().signal;
 
     if (input.provider === "openai") {
       return await callOpenAi(apiKey, input, startedAt, signal);
@@ -528,7 +521,6 @@ async function executeProviderCall(
       status: "failed",
       errorMessage: formatProviderRuntimeError(
         input.provider,
-        runtime.timeoutSeconds,
         error,
       ),
     };

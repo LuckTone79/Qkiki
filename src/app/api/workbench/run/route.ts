@@ -16,6 +16,8 @@ import {
 import { runWorkbenchSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
+export const maxDuration = 300;
+
 export async function POST(request: Request) {
   try {
     const user = await requireApiGenerationUser();

@@ -14,6 +14,8 @@ import {
   requireUsageAccess,
 } from "@/lib/usage-policy";
 
+export const maxDuration = 300;
+
 export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
