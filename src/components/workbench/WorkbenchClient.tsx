@@ -61,6 +61,7 @@ type LoadedSession = {
   originalInput: string;
   additionalInstruction: string | null;
   outputStyle: string | null;
+  outputLanguage?: string | null;
   mode: string;
   finalResultId: string | null;
   workflowSteps: Array<{
@@ -124,6 +125,7 @@ type RunProgressEntry = {
   subtitle: string;
   status: RunProgressStatus;
   detail?: string | null;
+  workLines?: [string, string];
 };
 
 type RunMonitor = {
@@ -131,6 +133,50 @@ type RunMonitor = {
   startedAt: number;
   entries: RunProgressEntry[];
 };
+
+type OutputLanguage = "en" | "ko" | "ja" | "zh" | "hi";
+
+type WorkbenchRunStreamEvent =
+  | {
+      type: "session";
+      session: { id: string; title: string; finalResultId?: string | null };
+    }
+  | {
+      type: "progress";
+      index: number;
+      title?: string;
+      subtitle?: string;
+      status?: RunProgressStatus;
+      detail?: string;
+    }
+  | {
+      type: "result";
+      index: number;
+      result: WorkbenchResult;
+    }
+  | {
+      type: "usage";
+      usage: UsageStatusType;
+    }
+  | {
+      type: "done";
+      session?: { id: string; title: string; finalResultId?: string | null };
+      results?: WorkbenchResult[];
+      executionSummary?: {
+        plannedTotal: number;
+        executedTotal: number;
+        stoppedEarly: boolean;
+        stopReason?: string | null;
+      };
+      usage?: UsageStatusType;
+    }
+  | {
+      type: "error";
+      error?: string;
+      code?: string;
+      redirectUrl?: string;
+      usage?: UsageStatusType;
+    };
 
 type ParallelComparisonSummary = {
   summary: string;
@@ -167,6 +213,15 @@ const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
   bullet: { en: "bullet", ko: "\uae00\uba38\ub9ac\ud45c" },
   table: { en: "table", ko: "\ud45c" },
   executive: { en: "executive", ko: "\uc784\uc6d0 \uc694\uc57d" },
+};
+
+const outputLanguages: OutputLanguage[] = ["en", "ko", "ja", "zh", "hi"];
+const outputLanguageLabels: Record<OutputLanguage, string> = {
+  en: "English",
+  ko: "\ud55c\uad6d\uc5b4",
+  ja: "\u65e5\u672c\u8a9e",
+  zh: "\u4e2d\u6587",
+  hi: "\u0939\u093f\u0928\u094d\u0926\u0940",
 };
 
 const MAX_TEMPLATE_STEPS = 50;
@@ -651,6 +706,63 @@ function formatElapsedTime(startedAt: number, now: number, language: AppLanguage
     : `${minutes}m ${seconds}s elapsed`;
 }
 
+function defaultOutputLanguageForAppLanguage(language: AppLanguage): OutputLanguage {
+  return language === "ko" ? "ko" : "en";
+}
+
+function compactPreview(value: string | null | undefined, fallback: string) {
+  const compact = (value || "").replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return fallback;
+  }
+  return compact.length > 92 ? `${compact.slice(0, 89)}...` : compact;
+}
+
+function buildWorkLines(input: {
+  language: AppLanguage;
+  primary: string;
+  secondary: string;
+}) {
+  if (input.language === "ko") {
+    return [
+      `\uacc4\uc0b0 \ucd08\uc810: ${input.primary}`,
+      `\ucc38\uc870 \ub0b4\uc6a9: ${input.secondary}`,
+    ] as [string, string];
+  }
+
+  return [
+    `Working focus: ${input.primary}`,
+    `Reference: ${input.secondary}`,
+  ] as [string, string];
+}
+
+function activeWorkLines(
+  entry: RunProgressEntry,
+  elapsedMs: number,
+  language: AppLanguage,
+) {
+  if (entry.status !== "active") {
+    return entry.workLines ?? null;
+  }
+
+  const stages =
+    language === "ko"
+      ? [
+          "\uc785\ub825\uacfc \uc9c0\uc2dc\uc0ac\ud56d\uc744 \uad6c\uc870\ud654\ud558\ub294 \uc911",
+          "\ud544\uc694\ud55c \ub9e5\ub77d\uacfc \uc81c\uc57d\uc744 \ub300\uc870\ud558\ub294 \uc911",
+          "\ub2f5\ubcc0 \ucd08\uc548\uc744 \uc0dd\uc131\ud558\ub294 \uc911",
+          "\uacb0\uacfc\ub97c \uc810\uac80\ud558\uace0 \uc800\uc7a5 \uc900\ube44 \uc911",
+        ]
+      : [
+          "Structuring the request and instructions",
+          "Checking context and constraints",
+          "Drafting the response content",
+          "Reviewing and preparing to save",
+        ];
+  const stage = stages[Math.floor(elapsedMs / 7000) % stages.length];
+  return [stage, entry.workLines?.[1] ?? entry.detail ?? ""] as [string, string];
+}
+
 type WorkbenchClientProps = {
   isTrialMode?: boolean;
 };
@@ -670,6 +782,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [originalInput, setOriginalInput] = useState("");
   const [additionalInstruction, setAdditionalInstruction] = useState("");
   const [outputStyle, setOutputStyle] = useState("detailed");
+  const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>(() =>
+    defaultOutputLanguageForAppLanguage(language),
+  );
   const [mode, setMode] = useState<"parallel" | "sequential">("parallel");
   const [workflowSteps, setWorkflowSteps] =
     useState<WorkflowStepState[]>(() => initialSteps(language));
@@ -702,12 +817,59 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressSectionRef = useRef<HTMLDivElement | null>(null);
 
   function providerLabel(providerName: ProviderName) {
     return (
       providers.find((provider) => provider.providerName === providerName)?.shortName ||
       providerName
     );
+  }
+
+  function focusProgressPanel() {
+    setActiveMobilePanel("results");
+    window.setTimeout(() => {
+      progressSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+  }
+
+  function updateProgressEntry(input: {
+    index: number;
+    status?: RunProgressStatus;
+    detail?: string | null;
+    title?: string;
+    subtitle?: string;
+    workLines?: [string, string];
+  }) {
+    setRunMonitor((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const entries = [...current.entries];
+      const existing = entries[input.index];
+      entries[input.index] = {
+        key: existing?.key ?? `stream-${input.index}`,
+        title: input.title || existing?.title || `${uiText.sequentialStep} ${input.index + 1}`,
+        subtitle:
+          input.subtitle ||
+          existing?.subtitle ||
+          `${current.mode === "parallel" ? uiText.parallelRun : uiText.sequentialStep} ${
+            input.index + 1
+          }`,
+        status: input.status || existing?.status || "active",
+        detail:
+          input.detail === undefined
+            ? existing?.detail ?? uiText.running
+            : input.detail,
+        workLines: input.workLines || existing?.workLines,
+      };
+
+      return { ...current, entries };
+    });
   }
 
   function createRunMonitor(modeToRun: "parallel" | "sequential") {
@@ -725,6 +887,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           subtitle: `${uiText.parallelRun} ${index + 1}`,
           status: "active" as const,
           detail: uiText.preparing,
+          workLines: buildWorkLines({
+            language,
+            primary:
+              language === "ko"
+                ? "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131"
+                : "Generating a parallel answer for the original task",
+            secondary: compactPreview(originalInput, uiText.preparing),
+          }),
         })),
       };
     }
@@ -741,6 +911,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         subtitle: `${uiText.sequentialStep} ${step.orderIndex}`,
         status: index === 0 ? ("active" as const) : ("queued" as const),
         detail: index === 0 ? uiText.preparing : uiText.queued,
+        workLines: buildWorkLines({
+          language,
+          primary: compactPreview(
+            step.instructionTemplate,
+            language === "ko"
+              ? "\uc21c\ucc28 \ub2e8\uacc4 \uc9c0\uc2dc\uc0ac\ud56d \uc801\uc6a9"
+              : "Applying the sequential step instruction",
+          ),
+          secondary: compactPreview(originalInput, uiText.preparing),
+        }),
       })),
     };
   }
@@ -937,6 +1117,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setOriginalInput(session.originalInput);
     setAdditionalInstruction(session.additionalInstruction || "");
     setOutputStyle(session.outputStyle || "detailed");
+    setOutputLanguage(
+      outputLanguages.includes(session.outputLanguage as OutputLanguage)
+        ? (session.outputLanguage as OutputLanguage)
+        : defaultOutputLanguageForAppLanguage(language),
+    );
     setMode(session.mode === "sequential" ? "sequential" : "parallel");
     setFinalResultId(session.finalResultId);
     setAttachments(session.attachments || []);
@@ -1026,6 +1211,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         setOriginalInput(draft.originalInput);
         setAdditionalInstruction(draft.additionalInstruction);
         setOutputStyle(draft.outputStyle);
+        setOutputLanguage(
+          outputLanguages.includes(draft.outputLanguage as OutputLanguage)
+            ? (draft.outputLanguage as OutputLanguage)
+            : defaultOutputLanguageForAppLanguage(language),
+        );
         setMode(draft.mode);
         setAttachments(draft.attachments || []);
         setWorkflowSteps(
@@ -1206,6 +1396,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         originalInput,
         additionalInstruction,
         outputStyle,
+        outputLanguage,
         mode,
         attachments,
         workflowSteps,
@@ -1220,6 +1411,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     originalInput,
     additionalInstruction,
     outputStyle,
+    outputLanguage,
     mode,
     attachments,
     workflowSteps,
@@ -1361,12 +1553,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       total: results.length,
       completed: results.filter((result) => result.status === "completed").length,
       failed: results.filter((result) => result.status === "failed").length,
-      running: results.filter((result) => result.status === "running").length,
+      running:
+        results.filter((result) => result.status === "running").length ||
+        runMonitor?.entries.filter((entry) => entry.status === "active").length ||
+        0,
       finalLabel:
         results.find((result) => result.id === finalResultId)?.provider ??
         uiText.finalPending,
     }),
-    [finalResultId, results, uiText.finalPending],
+    [finalResultId, results, runMonitor, uiText.finalPending],
   );
 
   const progressEntries = useMemo(() => {
@@ -1376,8 +1571,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     const elapsed = progressNow - runMonitor.startedAt;
     return runMonitor.entries.map((entry) => {
+      const workLines = activeWorkLines(entry, elapsed, language);
       if (entry.status !== "active") {
-        return entry;
+        return { ...entry, workLines: workLines ?? entry.workLines };
       }
 
       const detail =
@@ -1390,9 +1586,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return {
         ...entry,
         detail,
+        workLines: workLines ?? entry.workLines,
       };
     });
-  }, [progressNow, runMonitor, uiText.preparing, uiText.running, uiText.wrapping]);
+  }, [language, progressNow, runMonitor, uiText.preparing, uiText.running, uiText.wrapping]);
 
   function updateStep(updated: WorkflowStepState) {
     setWorkflowSteps((steps) =>
@@ -1514,6 +1711,139 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setAttachments((current) => current.filter((attachment) => attachment.id !== id));
   }
 
+  async function readRunStream(response: Response) {
+    if (!response.body) {
+      return null;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null = null;
+    let streamError = "";
+
+    const handleEvent = (event: WorkbenchRunStreamEvent) => {
+      if (event.type === "session") {
+        setSessionId(event.session.id);
+        setSessionTitle(event.session.title);
+        setFinalResultId(event.session.finalResultId || null);
+        return;
+      }
+
+      if (event.type === "progress") {
+        updateProgressEntry({
+          index: event.index,
+          status: event.status || "active",
+          title: event.title,
+          subtitle: event.subtitle,
+          detail: event.detail || uiText.running,
+          workLines: buildWorkLines({
+            language,
+            primary: event.detail || uiText.running,
+            secondary: compactPreview(originalInput, uiText.preparing),
+          }),
+        });
+        return;
+      }
+
+      if (event.type === "result") {
+        setResults((current) => mergeResults(current, [event.result]));
+        updateProgressEntry({
+          index: event.index,
+          status: event.result.status === "failed" ? "failed" : "completed",
+          detail:
+            event.result.status === "failed"
+              ? event.result.errorMessage || uiText.failed
+              : uiText.completed,
+          workLines: buildWorkLines({
+            language,
+            primary:
+              event.result.status === "failed"
+                ? uiText.failed
+                : uiText.completed,
+            secondary: compactPreview(
+              event.result.outputText || event.result.errorMessage,
+              event.result.provider,
+            ),
+          }),
+        });
+        return;
+      }
+
+      if (event.type === "usage") {
+        setUsage(event.usage);
+        writeUsageCache(event.usage);
+        return;
+      }
+
+      if (event.type === "done") {
+        donePayload = event;
+        if (event.session) {
+          setSessionId(event.session.id);
+          setSessionTitle(event.session.title);
+          setFinalResultId(event.session.finalResultId || null);
+        }
+        if (event.usage) {
+          setUsage(event.usage);
+          writeUsageCache(event.usage);
+        }
+        return;
+      }
+
+      if (event.type === "error") {
+        if (event.redirectUrl) {
+          window.location.href = event.redirectUrl;
+          return;
+        }
+        if (event.usage) {
+          setUsage(event.usage);
+          writeUsageCache(event.usage);
+        }
+        streamError = event.error || t("runFailed");
+        setRunMonitor((current) =>
+          current
+            ? {
+                ...current,
+                entries: current.entries.map((entry) =>
+                  entry.status === "active"
+                    ? { ...entry, status: "failed", detail: streamError }
+                    : entry,
+                ),
+              }
+            : current,
+        );
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.trim()) {
+          continue;
+        }
+        handleEvent(JSON.parse(line) as WorkbenchRunStreamEvent);
+      }
+
+      if (done) {
+        break;
+      }
+    }
+
+    if (buffer.trim()) {
+      handleEvent(JSON.parse(buffer) as WorkbenchRunStreamEvent);
+    }
+
+    if (streamError) {
+      throw new Error(streamError);
+    }
+
+    return donePayload;
+  }
+
   async function runWorkbench() {
     setError("");
     setNotice("");
@@ -1545,54 +1875,52 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     setProgressNow(Date.now());
     setRunMonitor(createRunMonitor(mode));
+    focusProgressPanel();
     if (mode === "parallel") {
       setParallelComparison({ signature: "", status: "idle" });
     }
     setRunning(true);
-    const response = await fetch("/api/workbench/run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId,
-        projectId: project?.id ?? null,
-        title: sessionTitle || null,
-        originalInput,
-        additionalInstruction,
-        outputStyle,
-        attachmentIds: attachments.map((attachment) => attachment.id),
-        mode,
-        targets: mode === "parallel" ? selectedTargets : undefined,
-        steps:
-          mode === "sequential"
-            ? workflowSteps.map((step) => ({
-                orderIndex: step.orderIndex,
-                actionType: step.actionType,
-                targetProvider: step.targetProvider,
-                targetModel: step.targetModel,
-                sourceMode: step.sourceMode,
-                sourceResultId: step.sourceResultId,
-                instructionTemplate: step.instructionTemplate,
-              }))
-            : undefined,
-        workflowControl:
-          mode === "sequential"
-            ? {
-                repeat: {
-                  enabled: normalizedWorkflowControl.repeatEnabled,
-                  startStepOrder: normalizedWorkflowControl.repeatStartStep,
-                  endStepOrder: normalizedWorkflowControl.repeatEndStep,
-                  repeatCount: normalizedWorkflowControl.repeatCount,
-                },
-                stopCondition: {
-                  enabled: normalizedWorkflowControl.stopConditionEnabled,
-                  checkStepOrder: normalizedWorkflowControl.stopConditionStep,
-                  qualityThreshold: normalizedWorkflowControl.qualityThreshold,
-                },
-              }
-            : undefined,
-      }),
-    });
-    const data = (await response.json().catch(() => ({}))) as {
+    const body = {
+      sessionId,
+      projectId: project?.id ?? null,
+      title: sessionTitle || null,
+      originalInput,
+      additionalInstruction,
+      outputStyle,
+      outputLanguage,
+      attachmentIds: attachments.map((attachment) => attachment.id),
+      mode,
+      targets: mode === "parallel" ? selectedTargets : undefined,
+      steps:
+        mode === "sequential"
+          ? workflowSteps.map((step) => ({
+              orderIndex: step.orderIndex,
+              actionType: step.actionType,
+              targetProvider: step.targetProvider,
+              targetModel: step.targetModel,
+              sourceMode: step.sourceMode,
+              sourceResultId: step.sourceResultId,
+              instructionTemplate: step.instructionTemplate,
+            }))
+          : undefined,
+      workflowControl:
+        mode === "sequential"
+          ? {
+              repeat: {
+                enabled: normalizedWorkflowControl.repeatEnabled,
+                startStepOrder: normalizedWorkflowControl.repeatStartStep,
+                endStepOrder: normalizedWorkflowControl.repeatEndStep,
+                repeatCount: normalizedWorkflowControl.repeatCount,
+              },
+              stopCondition: {
+                enabled: normalizedWorkflowControl.stopConditionEnabled,
+                checkStepOrder: normalizedWorkflowControl.stopConditionStep,
+                qualityThreshold: normalizedWorkflowControl.qualityThreshold,
+              },
+            }
+          : undefined,
+    };
+    let data: ({
       session?: { id: string; title: string; finalResultId?: string | null };
       results?: WorkbenchResult[];
       executionSummary?: {
@@ -1602,62 +1930,84 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         stopReason?: string | null;
       };
       usage?: UsageStatusType;
-    } & UsageErrorPayload;
-    setRunning(false);
+    } & UsageErrorPayload) = {};
 
-    if (handleAuthRedirect(response, data)) {
-      return;
-    }
+    try {
+      const response = await fetch("/api/workbench/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/x-ndjson",
+        },
+        body: JSON.stringify(body),
+      });
 
-    if (handleUsageError(data)) {
-      setError(data.error || t("runFailed"));
-      return;
-    }
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/x-ndjson")) {
+        const streamed = await readRunStream(response);
+        data = streamed || {};
+      } else {
+        data = (await response.json().catch(() => ({}))) as typeof data;
+      }
 
-    if (!response.ok || !data.session) {
-      setRunMonitor((current) =>
-        current
-          ? {
-              ...current,
-              entries: current.entries.map((entry) => ({
-                ...entry,
-                status: "failed",
-                detail: data.error || uiText.failed,
-              })),
-            }
-          : current,
-      );
-      setError(data.error || t("runFailed"));
-      return;
-    }
+      if (handleAuthRedirect(response, data)) {
+        return;
+      }
 
-    setSessionId(data.session.id);
-    setSessionTitle(data.session.title);
-    setFinalResultId(data.session.finalResultId || null);
-    if (data.usage) {
-      setUsage(data.usage);
-      writeUsageCache(data.usage);
+      if (handleUsageError(data)) {
+        setError(data.error || t("runFailed"));
+        return;
+      }
+
+      if (!response.ok || !data.session) {
+        setRunMonitor((current) =>
+          current
+            ? {
+                ...current,
+                entries: current.entries.map((entry) => ({
+                  ...entry,
+                  status: "failed",
+                  detail: data.error || uiText.failed,
+                })),
+              }
+            : current,
+        );
+        setError(data.error || t("runFailed"));
+        return;
+      }
+
+      setSessionId(data.session.id);
+      setSessionTitle(data.session.title);
+      setFinalResultId(data.session.finalResultId || null);
+      if (data.usage) {
+        setUsage(data.usage);
+        writeUsageCache(data.usage);
+      }
+      setResults((current) => mergeResults(current, data.results || []));
+      setActiveMobilePanel("results");
+      clearDraft();
+      setDraftBanner(null);
+      finalizeRunMonitor({
+        mode,
+        results: data.results || [],
+        executionSummary: data.executionSummary,
+      });
+      const completionNotice =
+        data.results?.some((result) => result.status === "failed")
+          ? t("runCompletedPartial")
+          : t("runCompleted");
+      if (mode === "sequential" && data.executionSummary?.stoppedEarly) {
+        setNotice(
+          `${completionNotice} (${data.executionSummary.executedTotal}/${data.executionSummary.plannedTotal})`,
+        );
+        return;
+      }
+      setNotice(completionNotice);
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : t("runFailed"));
+    } finally {
+      setRunning(false);
     }
-    setResults((current) => mergeResults(current, data.results || []));
-    setActiveMobilePanel("results");
-    clearDraft();
-    setDraftBanner(null);
-    finalizeRunMonitor({
-      mode,
-      results: data.results || [],
-      executionSummary: data.executionSummary,
-    });
-    const completionNotice =
-      data.results?.some((result) => result.status === "failed")
-        ? t("runCompletedPartial")
-        : t("runCompleted");
-    if (mode === "sequential" && data.executionSummary?.stoppedEarly) {
-      setNotice(
-        `${completionNotice} (${data.executionSummary.executedTotal}/${data.executionSummary.plannedTotal})`,
-      );
-      return;
-    }
-    setNotice(completionNotice);
   }
 
   async function runBranch(input: {
@@ -1671,7 +2021,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const response = await fetch("/api/workbench/branch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
+      body: JSON.stringify({ ...input, outputLanguage }),
     });
     const data = (await response.json().catch(() => ({}))) as {
       results?: WorkbenchResult[];
@@ -2137,17 +2487,37 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               )}
             </div>
 
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <label className="flex flex-col gap-1 text-sm text-stone-600 sm:block">
-                {t("outputStyle")}{" "}
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
+              <label className="flex flex-col gap-1 text-sm text-stone-600">
+                <span>{t("outputStyle")}</span>
                 <select
                   value={outputStyle}
                   onChange={(event) => setOutputStyle(event.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 sm:ml-2"
+                  className="rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
                 >
                   {outputStyles.map((style) => (
                     <option key={style} value={style}>
                       {outputStyleLabels[style]?.[language] ?? style}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-stone-600">
+                <span>
+                  {language === "ko"
+                    ? "\uae30\ubcf8 \ucd9c\ub825 \uc5b8\uc5b4"
+                    : "Default output language"}
+                </span>
+                <select
+                  value={outputLanguage}
+                  onChange={(event) =>
+                    setOutputLanguage(event.target.value as OutputLanguage)
+                  }
+                  className="rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
+                >
+                  {outputLanguages.map((option) => (
+                    <option key={option} value={option}>
+                      {outputLanguageLabels[option]}
                     </option>
                   ))}
                 </select>
@@ -2409,7 +2779,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
             ) : null}
 
-            <div className="mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto]">
+            <div className="mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
               <input
                 value={presetName}
                 onChange={(event) => setPresetName(event.target.value)}
@@ -2429,6 +2799,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               >
                 {t("saveRoute")}
               </button>
+              <button
+                type="button"
+                onClick={runWorkbench}
+                disabled={running || uploadingAttachments}
+                className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
+              >
+                {running ? t("running") : t("run")}
+              </button>
             </div>
             </div>
           ) : null}
@@ -2437,7 +2815,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
       <section className={`space-y-4 ${mobilePanelClass("results")}`}>
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div
+            ref={progressSectionRef}
+            className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+          >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-stone-950">
@@ -2512,6 +2893,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       {entry.detail ||
                         (entry.status === "queued" ? uiText.queued : uiText.running)}
                     </p>
+                    {entry.workLines ? (
+                      <div className="mt-3 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs leading-5 text-stone-600">
+                        <p className="truncate">{entry.workLines[0]}</p>
+                        <p className="truncate">{entry.workLines[1]}</p>
+                      </div>
+                    ) : null}
                   </article>
                 ))}
               </div>

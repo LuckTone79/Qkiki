@@ -26,6 +26,7 @@ type SessionInput = {
   originalInput: string;
   additionalInstruction?: string | null;
   outputStyle?: string | null;
+  outputLanguage?: string | null;
   mode: string;
   attachmentIds?: string[];
 };
@@ -50,6 +51,22 @@ const MAX_SOURCE_TEXT_CHARS = 12000;
 type ExpandedWorkflowStep = {
   executionOrder: number;
   templateStep: WorkflowStepInput;
+};
+
+type IncrementalProgressEvent = {
+  index: number;
+  title: string;
+  subtitle: string;
+  detail?: string;
+};
+
+type IncrementalRunCallbacks = {
+  onSession?: (session: Awaited<ReturnType<typeof upsertWorkbenchSession>>) => void | Promise<void>;
+  onStepStart?: (event: IncrementalProgressEvent) => void | Promise<void>;
+  onResult?: (event: {
+    index: number;
+    result: Awaited<ReturnType<typeof executeAndPersistResult>>;
+  }) => void | Promise<void>;
 };
 
 function defaultTitle(input: string) {
@@ -432,6 +449,7 @@ export async function upsertWorkbenchSession(
           originalInputTag: encryptedOriginalInput.tag,
           additionalInstruction: input.additionalInstruction || null,
           outputStyle: input.outputStyle || null,
+          outputLanguage: input.outputLanguage || existing.outputLanguage || null,
           mode: input.mode,
         },
       });
@@ -449,6 +467,7 @@ export async function upsertWorkbenchSession(
       originalInputTag: encryptedOriginalInput.tag,
       additionalInstruction: input.additionalInstruction || null,
       outputStyle: input.outputStyle || null,
+      outputLanguage: input.outputLanguage || null,
       mode: input.mode,
     },
   });
@@ -594,9 +613,92 @@ export async function executeParallelRun(input: {
           additionalInstruction: input.session.additionalInstruction,
           projectContext,
           outputStyle: input.session.outputStyle,
+          outputLanguage: input.session.outputLanguage,
         }),
       }),
     ),
+  );
+
+  await prisma.workbenchSession.update({
+    where: { id: session.id },
+    data: { updatedAt: new Date() },
+  });
+
+  return { session, results };
+}
+
+export async function executeParallelRunIncremental(input: {
+  userId: string;
+  session: SessionInput;
+  targets: TargetModelInput[];
+  callbacks?: IncrementalRunCallbacks;
+}) {
+  const session = await upsertWorkbenchSession(input.userId, {
+    ...input.session,
+    mode: "parallel",
+  });
+  await input.callbacks?.onSession?.(session);
+
+  const projectContext = await buildProjectPromptContext({
+    userId: input.userId,
+    projectId: session.projectId,
+    excludeSessionId: session.id,
+  });
+  const attachmentRecords = await claimSessionAttachments({
+    userId: input.userId,
+    sessionId: session.id,
+    attachmentIds: input.session.attachmentIds,
+  });
+  const runtimeAttachments = await hydrateRuntimeAttachments(attachmentRecords);
+  const branchKey = `parallel-${Date.now()}`;
+
+  const stepRecords = await Promise.all(
+    input.targets.map((target, index) =>
+      prisma.workflowStep.create({
+        data: {
+          sessionId: session.id,
+          orderIndex: index + 1,
+          actionType: "generate",
+          targetProvider: target.provider,
+          targetModel: target.model,
+          sourceMode: "original",
+          instructionTemplate: "Initial parallel comparison run",
+        },
+      }),
+    ),
+  );
+
+  const results = await Promise.all(
+    input.targets.map(async (target, index) => {
+      await input.callbacks?.onStepStart?.({
+        index,
+        title: `${target.provider} / ${target.model}`,
+        subtitle: `Parallel run ${index + 1}`,
+        detail: "Preparing the prompt and context.",
+      });
+
+      const result = await executeAndPersistResult({
+        userId: input.userId,
+        sessionId: session.id,
+        workflowStepId: stepRecords[index].id,
+        branchKey,
+        provider: target.provider,
+        model: target.model,
+        requestType: "generate",
+        attachments: runtimeAttachments,
+        prompt: composePrompt({
+          actionType: "generate",
+          originalInput: input.session.originalInput,
+          additionalInstruction: input.session.additionalInstruction,
+          projectContext,
+          outputStyle: input.session.outputStyle,
+          outputLanguage: input.session.outputLanguage,
+        }),
+      });
+
+      await input.callbacks?.onResult?.({ index, result });
+      return result;
+    }),
   );
 
   await prisma.workbenchSession.update({
@@ -747,6 +849,7 @@ export async function executeSequentialRun(input: {
         additionalInstruction: input.session.additionalInstruction,
         projectContext,
         outputStyle: input.session.outputStyle,
+        outputLanguage: input.session.outputLanguage,
         sourceText,
         instructionTemplate: mergedInstruction || null,
       }),
@@ -794,11 +897,161 @@ export async function executeSequentialRun(input: {
   };
 }
 
+export async function executeSequentialRunIncremental(input: {
+  userId: string;
+  session: SessionInput;
+  steps: WorkflowStepInput[];
+  workflowControl?: WorkflowControlInput;
+  callbacks?: IncrementalRunCallbacks;
+}) {
+  const session = await upsertWorkbenchSession(input.userId, {
+    ...input.session,
+    mode: "sequential",
+  });
+  await input.callbacks?.onSession?.(session);
+
+  const projectContext = await buildProjectPromptContext({
+    userId: input.userId,
+    projectId: session.projectId,
+    excludeSessionId: session.id,
+  });
+  const attachmentRecords = await claimSessionAttachments({
+    userId: input.userId,
+    sessionId: session.id,
+    attachmentIds: input.session.attachmentIds,
+  });
+  const runtimeAttachments = await hydrateRuntimeAttachments(attachmentRecords);
+  const stopCondition = input.workflowControl?.stopCondition;
+  if (
+    stopCondition?.enabled &&
+    (stopCondition.checkStepOrder < 1 ||
+      stopCondition.checkStepOrder > input.steps.length)
+  ) {
+    throw new Error("Stop-condition step is out of bounds.");
+  }
+  const expandedSteps = buildExpandedSteps(input.steps, input.workflowControl);
+  let previousResultText: string | null = null;
+  let previousResultId: string | null = null;
+  const results = [];
+  let stoppedEarly = false;
+  let stopReason: string | null = null;
+
+  for (const expandedStep of expandedSteps) {
+    const step = expandedStep.templateStep;
+    const qualityThreshold =
+      stopCondition?.enabled &&
+      stopCondition.checkStepOrder === step.orderIndex;
+    const monitorQuality = qualityThreshold ? stopCondition.qualityThreshold : null;
+    const mergedInstruction = [
+      step.instructionTemplate?.trim() || "",
+      monitorQuality !== null ? getQualityDirective(monitorQuality) : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const stepRecord = await prisma.workflowStep.create({
+      data: {
+        sessionId: session.id,
+        orderIndex: expandedStep.executionOrder,
+        actionType: step.actionType,
+        targetProvider: step.targetProvider,
+        targetModel: step.targetModel,
+        sourceMode: step.sourceMode,
+        sourceResultId: step.sourceResultId || null,
+        instructionTemplate: step.instructionTemplate || null,
+      },
+    });
+
+    const sourceText = await resolveSourceText({
+      userId: input.userId,
+      sessionId: session.id,
+      sourceMode: step.sourceMode,
+      sourceResultId: step.sourceResultId,
+      previousResultText,
+    });
+
+    await input.callbacks?.onStepStart?.({
+      index: expandedStep.executionOrder - 1,
+      title: `${step.targetProvider} / ${step.targetModel}`,
+      subtitle: `Step ${expandedStep.executionOrder}`,
+      detail: "Preparing the prompt and context.",
+    });
+
+    const result = await executeAndPersistResult({
+      userId: input.userId,
+      sessionId: session.id,
+      workflowStepId: stepRecord.id,
+      parentResultId:
+        step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
+      branchKey: `chain-${session.id}`,
+      provider: step.targetProvider,
+      model: step.targetModel,
+      requestType: step.actionType,
+      attachments: runtimeAttachments,
+      prompt: composePrompt({
+        actionType: step.actionType,
+        originalInput: input.session.originalInput,
+        additionalInstruction: input.session.additionalInstruction,
+        projectContext,
+        outputStyle: input.session.outputStyle,
+        outputLanguage: input.session.outputLanguage,
+        sourceText,
+        instructionTemplate: mergedInstruction || null,
+      }),
+    });
+
+    let effectiveOutput = result.outputText || "";
+    if (monitorQuality !== null) {
+      const score = extractQualityScore(result.outputText);
+      const strippedOutput = stripQualityScoreLine(result.outputText);
+      if (result.outputText && strippedOutput !== result.outputText) {
+        await updateResultOutputText(result.id, strippedOutput);
+        result.outputText = strippedOutput || null;
+        effectiveOutput = strippedOutput;
+      }
+
+      if (score !== null && score >= monitorQuality) {
+        stoppedEarly = true;
+        stopReason = `quality_score_${score}_gte_${monitorQuality}`;
+      }
+    }
+
+    previousResultText = effectiveOutput || result.errorMessage || "";
+    previousResultId = result.id;
+    results.push(result);
+    await input.callbacks?.onResult?.({
+      index: expandedStep.executionOrder - 1,
+      result,
+    });
+
+    if (stoppedEarly) {
+      break;
+    }
+  }
+
+  await prisma.workbenchSession.update({
+    where: { id: session.id },
+    data: { updatedAt: new Date() },
+  });
+
+  return {
+    session,
+    results,
+    executionSummary: {
+      plannedTotal: expandedSteps.length,
+      executedTotal: results.length,
+      stoppedEarly,
+      stopReason,
+    },
+  };
+}
+
 export async function executeBranchRun(input: {
   userId: string;
   parentResultId: string;
   actionType: ActionType;
   instruction: string;
+  outputLanguage?: string | null;
   targets: TargetModelInput[];
 }) {
   const parent = await prisma.result.findFirst({
@@ -837,6 +1090,7 @@ export async function executeBranchRun(input: {
           additionalInstruction: parent.session.additionalInstruction,
           projectContext,
           outputStyle: parent.session.outputStyle,
+          outputLanguage: input.outputLanguage,
           sourceText: parent.outputText || parent.errorMessage || "",
           instructionTemplate: input.instruction,
         }),

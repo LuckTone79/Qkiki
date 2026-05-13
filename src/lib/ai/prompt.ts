@@ -6,6 +6,7 @@ type ComposePromptInput = {
   additionalInstruction?: string | null;
   projectContext?: string | null;
   outputStyle?: string | null;
+  outputLanguage?: string | null;
   sourceText?: string | null;
   instructionTemplate?: string | null;
 };
@@ -32,6 +33,14 @@ export function getActionLabel(actionType: ActionType) {
   return actionLabels[actionType];
 }
 
+const outputLanguageNames: Record<string, string> = {
+  en: "English",
+  ko: "Korean",
+  ja: "Japanese",
+  zh: "Chinese",
+  hi: "Hindi",
+};
+
 export function composePrompt(input: ComposePromptInput) {
   const parts = [
     "You are participating in a Qkiki Orchestration Workbench.",
@@ -57,6 +66,16 @@ export function composePrompt(input: ComposePromptInput) {
 
   if (input.outputStyle?.trim()) {
     parts.push("", `Requested output style: ${input.outputStyle.trim()}`);
+  }
+
+  if (input.outputLanguage?.trim()) {
+    const language =
+      outputLanguageNames[input.outputLanguage.trim()] ||
+      input.outputLanguage.trim();
+    parts.push(
+      "",
+      `Default output language: ${language}. Use this language for the response unless the user's task explicitly asks for another language.`,
+    );
   }
 
   if (input.sourceText?.trim()) {

@@ -33,6 +33,7 @@ export async function POST(
         originalInputTag: session.originalInputTag,
         additionalInstruction: session.additionalInstruction,
         outputStyle: session.outputStyle,
+        outputLanguage: session.outputLanguage,
         mode: session.mode,
       },
     });

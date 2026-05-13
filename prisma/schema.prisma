@@ -181,6 +181,7 @@ model WorkbenchSession {
   originalInputTag        String?
   additionalInstruction   String?
   outputStyle             String?
+  outputLanguage          String?
   mode                    String
   finalResultId           String?
   createdAt               DateTime @default(now())

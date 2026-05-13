@@ -6,7 +6,9 @@ import {
 } from "@/lib/api-auth";
 import {
   executeParallelRun,
+  executeParallelRunIncremental,
   executeSequentialRun,
+  executeSequentialRunIncremental,
 } from "@/lib/ai/workflow";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import {
@@ -16,11 +18,50 @@ import {
 import { runWorkbenchSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
-export const maxDuration = 300;
+type StreamEmitter = (event: Record<string, unknown>) => void;
+
+function createNdjsonStream(
+  run: (emit: StreamEmitter) => Promise<void>,
+) {
+  const encoder = new TextEncoder();
+
+  return new Response(
+    new ReadableStream({
+      async start(controller) {
+        const emit: StreamEmitter = (event) => {
+          controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+        };
+
+        try {
+          await run(emit);
+        } catch (error) {
+          emit({
+            type: "error",
+            error:
+              error instanceof Error
+                ? error.message
+                : "The run failed while streaming results.",
+          });
+        } finally {
+          controller.close();
+        }
+      },
+    }),
+    {
+      headers: {
+        "Content-Type": "application/x-ndjson; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+      },
+    },
+  );
+}
 
 export async function POST(request: Request) {
   try {
     const user = await requireApiGenerationUser();
+    const wantsStream = request.headers
+      .get("accept")
+      ?.includes("application/x-ndjson");
     const parsed = runWorkbenchSchema.safeParse(await request.json());
     const inputCharCount =
       (parsed.success ? parsed.data.originalInput.length : 0) +
@@ -47,9 +88,10 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+      const targets = parsed.data.targets;
 
       const providerError = await assertProvidersReadyForRun(
-        parsed.data.targets.map((target) => target.provider as ProviderName),
+        targets.map((target) => target.provider as ProviderName),
         user.id,
       );
       if (providerError) {
@@ -60,10 +102,67 @@ export async function POST(request: Request) {
         await consumeTrialConversation(user);
       }
 
+      if (wantsStream) {
+        return createNdjsonStream(async (emit) => {
+          const result = await executeParallelRunIncremental({
+            userId: user.id,
+            session: parsed.data,
+            targets: targets.map((target) => ({
+              provider: target.provider as ProviderName,
+              model: target.model,
+            })),
+            callbacks: {
+              onSession: (session) => {
+                emit({ type: "session", session });
+              },
+              onStepStart: (event) => {
+                emit({ type: "progress", status: "active", ...event });
+              },
+              onResult: (event) => {
+                emit({
+                  type: "result",
+                  index: event.index,
+                  result: event.result,
+                });
+              },
+            },
+          });
+
+          const usage = user.isTrial
+            ? undefined
+            : await recordUsageSuccess({
+                userId: user.id,
+                requestType: "compare",
+                selectedModels: targets.map(
+                  (target) => `${target.provider}/${target.model}`,
+                ),
+                inputCharCount,
+                inputTokenCount: (result.results || []).reduce(
+                  (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+                  0,
+                ),
+                outputTokenCount: (result.results || []).reduce(
+                  (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+                  0,
+                ),
+                estimatedCostUsd: (result.results || []).reduce(
+                  (sum, item) => sum + (item.estimatedCost ?? 0),
+                  0,
+                ),
+                context: usageContext ?? undefined,
+              });
+
+          if (usage) {
+            emit({ type: "usage", usage });
+          }
+          emit({ type: "done", ...result, usage });
+        });
+      }
+
       const result = await executeParallelRun({
         userId: user.id,
         session: parsed.data,
-        targets: parsed.data.targets.map((target) => ({
+        targets: targets.map((target) => ({
           provider: target.provider as ProviderName,
           model: target.model,
         })),
@@ -74,7 +173,7 @@ export async function POST(request: Request) {
         : await recordUsageSuccess({
             userId: user.id,
             requestType: "compare",
-            selectedModels: parsed.data.targets.map(
+            selectedModels: targets.map(
               (target) => `${target.provider}/${target.model}`,
             ),
             inputCharCount,
@@ -102,9 +201,10 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    const steps = parsed.data.steps;
 
     const providerError = await assertProvidersReadyForRun(
-      parsed.data.steps.map((step) => step.targetProvider as ProviderName),
+      steps.map((step) => step.targetProvider as ProviderName),
       user.id,
     );
     if (providerError) {
@@ -115,10 +215,92 @@ export async function POST(request: Request) {
       await consumeTrialConversation(user);
     }
 
+    if (wantsStream) {
+      return createNdjsonStream(async (emit) => {
+        const mappedSteps = steps.map((step) => ({
+          ...step,
+          targetProvider: step.targetProvider as ProviderName,
+        }));
+        const workflowControl = parsed.data.workflowControl
+          ? {
+              repeat: parsed.data.workflowControl.repeat
+                ? {
+                    enabled: parsed.data.workflowControl.repeat.enabled,
+                    startStepOrder:
+                      parsed.data.workflowControl.repeat.startStepOrder,
+                    endStepOrder: parsed.data.workflowControl.repeat.endStepOrder,
+                    repeatCount: parsed.data.workflowControl.repeat.repeatCount,
+                  }
+                : undefined,
+              stopCondition: parsed.data.workflowControl.stopCondition
+                ? {
+                    enabled: parsed.data.workflowControl.stopCondition.enabled,
+                    checkStepOrder:
+                      parsed.data.workflowControl.stopCondition.checkStepOrder,
+                    qualityThreshold:
+                      parsed.data.workflowControl.stopCondition.qualityThreshold,
+                  }
+                : undefined,
+            }
+          : undefined;
+
+        const result = await executeSequentialRunIncremental({
+          userId: user.id,
+          session: parsed.data,
+          steps: mappedSteps,
+          workflowControl,
+          callbacks: {
+            onSession: (session) => {
+              emit({ type: "session", session });
+            },
+            onStepStart: (event) => {
+              emit({ type: "progress", status: "active", ...event });
+            },
+            onResult: (event) => {
+              emit({
+                type: "result",
+                index: event.index,
+                result: event.result,
+              });
+            },
+          },
+        });
+
+        const usage = user.isTrial
+          ? undefined
+          : await recordUsageSuccess({
+              userId: user.id,
+              requestType: "compare",
+              selectedModels: steps.map(
+                (step) => `${step.targetProvider}/${step.targetModel}`,
+              ),
+              inputCharCount,
+              inputTokenCount: (result.results || []).reduce(
+                (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+                0,
+              ),
+              outputTokenCount: (result.results || []).reduce(
+                (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+                0,
+              ),
+              estimatedCostUsd: (result.results || []).reduce(
+                (sum, item) => sum + (item.estimatedCost ?? 0),
+                0,
+              ),
+              context: usageContext ?? undefined,
+            });
+
+        if (usage) {
+          emit({ type: "usage", usage });
+        }
+        emit({ type: "done", ...result, usage });
+      });
+    }
+
     const result = await executeSequentialRun({
       userId: user.id,
       session: parsed.data,
-      steps: parsed.data.steps.map((step) => ({
+      steps: steps.map((step) => ({
         ...step,
         targetProvider: step.targetProvider as ProviderName,
       })),
@@ -151,7 +333,7 @@ export async function POST(request: Request) {
       : await recordUsageSuccess({
           userId: user.id,
           requestType: "compare",
-          selectedModels: parsed.data.steps.map(
+          selectedModels: steps.map(
             (step) => `${step.targetProvider}/${step.targetModel}`,
           ),
           inputCharCount,

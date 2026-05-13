@@ -13,8 +13,6 @@ import {
 import { branchRunSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
-export const maxDuration = 300;
-
 export async function POST(request: Request) {
   try {
     const user = await requireApiGenerationUser();
@@ -51,6 +49,7 @@ export async function POST(request: Request) {
       parentResultId: parsed.data.parentResultId,
       actionType: parsed.data.actionType,
       instruction: parsed.data.instruction,
+      outputLanguage: parsed.data.outputLanguage,
       targets: parsed.data.targets.map((target) => ({
         provider: target.provider as ProviderName,
         model: target.model,

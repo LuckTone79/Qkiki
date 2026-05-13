@@ -17,6 +17,7 @@ export type WorkbenchDraft = {
   originalInput: string;
   additionalInstruction: string;
   outputStyle: string;
+  outputLanguage?: string;
   mode: "parallel" | "sequential";
   attachments: Array<{
     id: string;
