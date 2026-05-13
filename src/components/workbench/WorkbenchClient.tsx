@@ -818,6 +818,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
+  const parallelComparisonRef = useRef(parallelComparison);
+
+  useEffect(() => {
+    parallelComparisonRef.current = parallelComparison;
+  }, [parallelComparison]);
 
   function providerLabel(providerName: ProviderName) {
     return (
@@ -1306,8 +1311,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       if (
         candidates.length < 2 &&
         !(
-          parallelComparison.status === "idle" &&
-          parallelComparison.signature === signature
+          parallelComparisonRef.current.status === "idle" &&
+          parallelComparisonRef.current.signature === signature
         )
       ) {
         setParallelComparison({
@@ -1319,8 +1324,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
 
     if (
-      parallelComparison.signature === signature &&
-      parallelComparison.status !== "idle"
+      parallelComparisonRef.current.signature === signature &&
+      parallelComparisonRef.current.status !== "idle"
     ) {
       return;
     }
@@ -1377,8 +1382,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     return () => controller.abort();
   }, [
     mode,
-    parallelComparison.signature,
-    parallelComparison.status,
     results,
     running,
     sessionId,

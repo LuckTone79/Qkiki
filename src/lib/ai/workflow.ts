@@ -8,7 +8,7 @@ import {
   type RuntimeAttachment,
 } from "@/lib/attachments";
 import { composePrompt } from "@/lib/ai/prompt";
-import { callProvider, getDefaultModelForProvider } from "@/lib/ai/providers";
+import { callProvider } from "@/lib/ai/providers";
 import { encryptTextContent } from "@/lib/secret-crypto";
 import type {
   ActionType,
@@ -330,6 +330,8 @@ export async function generateParallelComparisonSummary(input: {
   sessionId: string;
   resultIds?: string[];
 }) {
+  const provider: ProviderName = "openai";
+  const model = "gpt-5.4";
   const session = await prisma.workbenchSession.findFirst({
     where: {
       id: input.sessionId,
@@ -371,8 +373,6 @@ export async function generateParallelComparisonSummary(input: {
     throw new Error("At least two completed results are required for comparison.");
   }
 
-  const provider: ProviderName = "openai";
-  const model = await getDefaultModelForProvider(provider);
   const providerResult = await callProvider(input.userId, {
     provider,
     model,
