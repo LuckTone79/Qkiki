@@ -28,6 +28,10 @@ export type WorkbenchResult = {
   latencyMs: number | null;
   createdAt: string;
   updatedAt: string;
+  workflowStep?: {
+    orderIndex: number;
+    actionType: ActionType;
+  } | null;
 };
 
 type ResultCardProps = {
@@ -88,6 +92,9 @@ export function ResultCard({
   const [composer, setComposer] = useState<"follow_up" | "review" | null>(null);
   const [copied, setCopied] = useState(false);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
+  const stepLabel = result.workflowStep
+    ? `${t("step")} ${result.workflowStep.orderIndex}`
+    : null;
 
   const meta = useMemo(() => {
     return [
@@ -126,13 +133,14 @@ export function ResultCard({
             <StatusBadge status={result.status} />
             {isFinal ? (
               <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
-                {t("final")}
+                {language === "ko" ? "\ucd5c\uc885\uacb0\uacfc" : "Final result"}
               </span>
             ) : null}
           </div>
           <p className="mt-2 text-xs text-stone-500">
-            {sourceLabel ?? t("sourceOriginal")} /{" "}
-            {formatDate(result.createdAt, language)}
+            {[stepLabel, sourceLabel ?? t("sourceOriginal"), formatDate(result.createdAt, language)]
+              .filter(Boolean)
+              .join(" / ")}
           </p>
         </div>
         <p className="text-xs text-stone-500">{meta}</p>

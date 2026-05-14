@@ -162,6 +162,7 @@ type WorkbenchRunStreamEvent =
       type: "done";
       session?: { id: string; title: string; finalResultId?: string | null };
       results?: WorkbenchResult[];
+      streamError?: string;
       executionSummary?: {
         plannedTotal: number;
         executedTotal: number;
@@ -619,12 +620,34 @@ function mergeResults(current: WorkbenchResult[], incoming: WorkbenchResult[]) {
   );
 }
 
-function sortResultsForDisplay(results: WorkbenchResult[], mode: "parallel" | "sequential") {
+function pickDisplayFinalResultId(
+  results: WorkbenchResult[],
+  finalResultId: string | null,
+) {
+  const explicitFinal = results.find(
+    (result) => result.id === finalResultId && result.status === "completed",
+  );
+  return explicitFinal?.id ?? [...results].reverse().find((result) => result.status === "completed")?.id ?? null;
+}
+
+function sortResultsForDisplay(
+  results: WorkbenchResult[],
+  mode: "parallel" | "sequential",
+  finalResultId: string | null,
+) {
   if (mode !== "parallel") {
-    return [...results].sort(
+    const sorted = [...results].sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
+    const effectiveFinalResultId = pickDisplayFinalResultId(sorted, finalResultId);
+    if (!effectiveFinalResultId) {
+      return sorted;
+    }
+    return [
+      ...sorted.filter((result) => result.id === effectiveFinalResultId),
+      ...sorted.filter((result) => result.id !== effectiveFinalResultId),
+    ];
   }
 
   const childrenByParent = new Map<string, WorkbenchResult[]>();
@@ -759,8 +782,23 @@ function activeWorkLines(
           "Drafting the response content",
           "Reviewing and preparing to save",
         ];
-  const stage = stages[Math.floor(elapsedMs / 7000) % stages.length];
-  return [stage, entry.workLines?.[1] ?? entry.detail ?? ""] as [string, string];
+  const thinking =
+    language === "ko"
+      ? [
+          entry.workLines?.[1] ?? "\uc6d0\ubcf8 \uc785\ub825\uc744 \ud655\uc778\ud558\ub294 \uc911",
+          "\ub2f5\ubcc0\uc758 \uc6b0\uc120\uc21c\uc704\uc640 \ud575\uc2ec \ub17c\uc810\uc744 \uc815\ub9ac\ud558\ub294 \uc911",
+          "\uc774\uc804 \ub2e8\uacc4 \ucd9c\ub825\uacfc \ud604\uc7ac \uc9c0\uc2dc\ub97c \ub300\uc870\ud558\ub294 \uc911",
+          "\uc0ac\uc6a9\uc790\uac00 \ubc14\ub85c \uc77d\uc744 \uc218 \uc788\ub294 \ud615\ud0dc\ub85c \uc815\ub9ac\ud558\ub294 \uc911",
+        ]
+      : [
+          entry.workLines?.[1] ?? "Reading the original input",
+          "Ranking key points and constraints",
+          "Comparing prior output with the current instruction",
+          "Shaping the answer into a readable result",
+        ];
+  const stage = stages[Math.floor(elapsedMs / 2500) % stages.length];
+  const thought = thinking[Math.floor(elapsedMs / 1800) % thinking.length];
+  return [stage, thought] as [string, string];
 }
 
 type WorkbenchClientProps = {
@@ -790,6 +828,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     useState<WorkflowStepState[]>(() => initialSteps(language));
   const [workflowControl, setWorkflowControl] = useState<WorkflowControlState>(
     () => defaultWorkflowControlState(),
+  );
+  const [repeatCountText, setRepeatCountText] = useState(() =>
+    String(defaultWorkflowControlState().repeatCount),
   );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
@@ -939,6 +980,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       stoppedEarly: boolean;
       stopReason?: string | null;
     };
+    streamError?: string;
   }) {
     setRunMonitor((current) => {
       const base = current ?? createRunMonitor(input.mode);
@@ -958,6 +1000,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ...entry,
             status: "skipped" as const,
             detail: uiText.skipped,
+          };
+        }
+
+        if (input.streamError && entry.status === "active") {
+          return {
+            ...entry,
+            status: "failed" as const,
+            detail: input.streamError,
           };
         }
 
@@ -1485,6 +1535,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     [workflowControl, workflowSteps.length],
   );
 
+  useEffect(() => {
+    setRepeatCountText(String(normalizedWorkflowControl.repeatCount));
+  }, [normalizedWorkflowControl.repeatCount]);
+
   const estimatedSequentialExecutions = useMemo(
     () =>
       calculateSequentialExecutionCount(
@@ -1514,8 +1568,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, [results]);
 
   const displayResults = useMemo(
-    () => sortResultsForDisplay(results, mode),
-    [mode, results],
+    () => sortResultsForDisplay(results, mode, finalResultId),
+    [finalResultId, mode, results],
+  );
+
+  const effectiveFinalResultId = useMemo(
+    () => (mode === "sequential" ? pickDisplayFinalResultId(results, finalResultId) : finalResultId),
+    [finalResultId, mode, results],
   );
 
   const parallelComparisonCandidates = useMemo(() => {
@@ -1561,10 +1620,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         runMonitor?.entries.filter((entry) => entry.status === "active").length ||
         0,
       finalLabel:
-        results.find((result) => result.id === finalResultId)?.provider ??
+        results.find((result) => result.id === effectiveFinalResultId)?.provider ??
         uiText.finalPending,
     }),
-    [finalResultId, results, runMonitor, uiText.finalPending],
+    [effectiveFinalResultId, results, runMonitor, uiText.finalPending],
   );
 
   const progressEntries = useMemo(() => {
@@ -1724,9 +1783,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     let buffer = "";
     let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null = null;
     let streamError = "";
+    let receivedResults = 0;
+    let latestSession: { id: string; title: string; finalResultId?: string | null } | null = null;
+    const streamedResults: WorkbenchResult[] = [];
 
     const handleEvent = (event: WorkbenchRunStreamEvent) => {
       if (event.type === "session") {
+        latestSession = event.session;
         setSessionId(event.session.id);
         setSessionTitle(event.session.title);
         setFinalResultId(event.session.finalResultId || null);
@@ -1750,6 +1813,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       if (event.type === "result") {
+        receivedResults += 1;
+        streamedResults.push(event.result);
         setResults((current) => mergeResults(current, [event.result]));
         updateProgressEntry({
           index: event.index,
@@ -1840,11 +1905,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       handleEvent(JSON.parse(buffer) as WorkbenchRunStreamEvent);
     }
 
-    if (streamError) {
+    if (streamError && !donePayload && receivedResults === 0) {
       throw new Error(streamError);
     }
 
-    return donePayload;
+    return (
+      donePayload ??
+      (latestSession
+        ? ({
+            type: "done",
+            session: latestSession,
+            results: streamedResults,
+            streamError,
+          } as Extract<WorkbenchRunStreamEvent, { type: "done" }>)
+        : null)
+    );
   }
 
   async function runWorkbench() {
@@ -1932,6 +2007,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         stoppedEarly: boolean;
         stopReason?: string | null;
       };
+      streamError?: string;
       usage?: UsageStatusType;
     } & UsageErrorPayload) = {};
 
@@ -1994,11 +2070,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         mode,
         results: data.results || [],
         executionSummary: data.executionSummary,
+        streamError: data.streamError,
       });
       const completionNotice =
-        data.results?.some((result) => result.status === "failed")
+        data.streamError || data.results?.some((result) => result.status === "failed")
           ? t("runCompletedPartial")
           : t("runCompleted");
+      if (data.streamError) {
+        setError(data.streamError);
+      }
       if (mode === "sequential" && data.executionSummary?.stoppedEarly) {
         setNotice(
           `${completionNotice} (${data.executionSummary.executedTotal}/${data.executionSummary.plannedTotal})`,
@@ -2690,17 +2770,41 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       {builderText.repeatCount}
                     </span>
                     <input
-                      type="number"
-                      min={1}
-                      max={50}
-                      value={normalizedWorkflowControl.repeatCount}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={repeatCountText}
                       disabled={!normalizedWorkflowControl.repeatEnabled}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        if (nextValue !== "" && !/^\d{0,2}$/.test(nextValue)) {
+                          return;
+                        }
+                        setRepeatCountText(nextValue);
+                        if (!nextValue) {
+                          return;
+                        }
                         setWorkflowControl((current) => ({
                           ...current,
-                          repeatCount: Number(event.target.value),
-                        }))
-                      }
+                          repeatCount: clampInteger(
+                            Number(nextValue),
+                            1,
+                            MAX_TOTAL_SEQUENTIAL_EXECUTIONS,
+                          ),
+                        }));
+                      }}
+                      onBlur={() => {
+                        const normalized = clampInteger(
+                          Number(repeatCountText || 1),
+                          1,
+                          MAX_TOTAL_SEQUENTIAL_EXECUTIONS,
+                        );
+                        setRepeatCountText(String(normalized));
+                        setWorkflowControl((current) => ({
+                          ...current,
+                          repeatCount: normalized,
+                        }));
+                      }}
                       className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 disabled:bg-stone-100"
                     />
                   </label>
@@ -2897,9 +3001,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         (entry.status === "queued" ? uiText.queued : uiText.running)}
                     </p>
                     {entry.workLines ? (
-                      <div className="mt-3 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs leading-5 text-stone-600">
-                        <p className="truncate">{entry.workLines[0]}</p>
-                        <p className="truncate">{entry.workLines[1]}</p>
+                      <div className="mt-3 grid min-w-0 gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs leading-5 text-stone-600">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-stone-500">
+                            {language === "ko" ? "\uc2dc\uc2a4\ud15c \uc9c4\ud589" : "System progress"}
+                          </span>
+                          <p className="whitespace-normal break-words">{entry.workLines[0]}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-stone-500">
+                            {language === "ko" ? "\uc2e4\uc2dc\uac04 \uc5f0\uc0b0" : "Live computation"}
+                          </span>
+                          <p className="whitespace-normal break-words">{entry.workLines[1]}</p>
+                        </div>
                       </div>
                     ) : null}
                   </article>
@@ -3097,7 +3211,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   <ResultCard
                     result={result}
                     depth={resultDepths.get(result.id) ?? 0}
-                    isFinal={finalResultId === result.id}
+                    isFinal={effectiveFinalResultId === result.id}
                     providers={providers}
                     sourceLabel={
                       parent

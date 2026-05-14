@@ -56,6 +56,17 @@ function createNdjsonStream(
   );
 }
 
+async function recordUsageSuccessSafely(
+  input: Parameters<typeof recordUsageSuccess>[0],
+) {
+  try {
+    return await recordUsageSuccess(input);
+  } catch (error) {
+    console.error("[workbench/run] usage recording failed after generation", error);
+    return undefined;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const user = await requireApiGenerationUser();
@@ -130,7 +141,7 @@ export async function POST(request: Request) {
 
           const usage = user.isTrial
             ? undefined
-            : await recordUsageSuccess({
+            : await recordUsageSuccessSafely({
                 userId: user.id,
                 requestType: "compare",
                 selectedModels: targets.map(
@@ -170,7 +181,7 @@ export async function POST(request: Request) {
 
       const usage = user.isTrial
         ? undefined
-        : await recordUsageSuccess({
+        : await recordUsageSuccessSafely({
             userId: user.id,
             requestType: "compare",
             selectedModels: targets.map(
@@ -268,7 +279,7 @@ export async function POST(request: Request) {
 
         const usage = user.isTrial
           ? undefined
-          : await recordUsageSuccess({
+          : await recordUsageSuccessSafely({
               userId: user.id,
               requestType: "compare",
               selectedModels: steps.map(
@@ -330,7 +341,7 @@ export async function POST(request: Request) {
 
     const usage = user.isTrial
       ? undefined
-      : await recordUsageSuccess({
+      : await recordUsageSuccessSafely({
           userId: user.id,
           requestType: "compare",
           selectedModels: steps.map(

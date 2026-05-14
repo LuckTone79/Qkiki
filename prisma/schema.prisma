@@ -266,6 +266,7 @@ model SessionAttachment {
   sizeBytes     Int
   storagePath   String
   extractedText String?
+  dataBase64    String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 

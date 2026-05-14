@@ -21,7 +21,11 @@ export type RuntimeAttachment = AttachmentMeta & {
   dataBase64?: string;
 };
 
-const STORAGE_DIR = path.join(process.cwd(), "storage", "attachments");
+const STORAGE_DIR = path.join(
+  process.env.ATTACHMENT_STORAGE_DIR || process.env.TMPDIR || "/tmp",
+  "qkiki-storage",
+  "attachments",
+);
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_RUN = 8;
 const MAX_EXTRACTED_TEXT_LENGTH = 40000;
@@ -171,12 +175,15 @@ export async function createAttachment(input: {
     String(now.getUTCFullYear()),
     String(now.getUTCMonth() + 1).padStart(2, "0"),
   );
-  await mkdir(folder, { recursive: true });
-
   const storedName = `${Date.now()}-${randomUUID()}${extensionOf(safeName)}`;
   const absolutePath = path.join(folder, storedName);
   const buffer = Buffer.from(input.bytes);
-  await writeFile(absolutePath, buffer);
+  try {
+    await mkdir(folder, { recursive: true });
+    await writeFile(absolutePath, buffer);
+  } catch (error) {
+    console.warn("[attachments] falling back to database-backed storage", error);
+  }
 
   const extractedText = await extractAttachmentText(kind, mimeType, buffer);
 
@@ -190,6 +197,7 @@ export async function createAttachment(input: {
       sizeBytes: buffer.byteLength,
       storagePath: absolutePath,
       extractedText,
+      dataBase64: buffer.toString("base64"),
     },
   });
 
@@ -298,14 +306,31 @@ export async function hydrateRuntimeAttachments(
   return Promise.all(
     attachments.map(async (attachment) => {
       let dataBase64: string | undefined;
+      let extractedText = attachment.extractedText;
       if (attachment.kind === "IMAGE") {
-        const bytes = await readFile(attachment.storagePath);
-        dataBase64 = bytes.toString("base64");
+        dataBase64 = attachment.dataBase64 ?? undefined;
+        if (!dataBase64) {
+          try {
+            const bytes = await readFile(attachment.storagePath);
+            dataBase64 = bytes.toString("base64");
+          } catch (error) {
+            console.warn("[attachments] image bytes unavailable", {
+              attachmentId: attachment.id,
+              storagePath: attachment.storagePath,
+              error,
+            });
+          }
+        }
+        if (!dataBase64) {
+          extractedText =
+            extractedText ||
+            "[Attached image bytes are unavailable. Ask the user to upload this image again if visual details are required.]";
+        }
       }
 
       return {
         ...toMeta(attachment),
-        extractedText: attachment.extractedText,
+        extractedText,
         storagePath: attachment.storagePath,
         dataBase64,
       };

@@ -14,7 +14,14 @@ export async function GET(
       include: {
         project: { select: { id: true, name: true, sharedContext: true } },
         workflowSteps: { orderBy: { orderIndex: "asc" } },
-        results: { orderBy: { createdAt: "asc" } },
+        results: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            workflowStep: {
+              select: { orderIndex: true, actionType: true },
+            },
+          },
+        },
         attachments: {
           orderBy: { createdAt: "asc" },
           select: {

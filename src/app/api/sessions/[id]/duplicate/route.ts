@@ -67,6 +67,7 @@ export async function POST(
           sizeBytes: attachment.sizeBytes,
           storagePath: attachment.storagePath,
           extractedText: attachment.extractedText,
+          dataBase64: attachment.dataBase64,
         },
       });
       attachmentIdMap.set(attachment.id, created.id);

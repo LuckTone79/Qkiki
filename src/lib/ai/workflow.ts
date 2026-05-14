@@ -69,6 +69,10 @@ type IncrementalRunCallbacks = {
   }) => void | Promise<void>;
 };
 
+function pickFinalResultId(results: Array<{ id: string; status: string }>) {
+  return [...results].reverse().find((result) => result.status === "completed")?.id ?? null;
+}
+
 function defaultTitle(input: string) {
   const compact = input.replace(/\s+/g, " ").trim();
   return compact.length > 70 ? `${compact.slice(0, 67)}...` : compact;
@@ -518,6 +522,11 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
   const [updated] = await prisma.$transaction([
     prisma.result.update({
       where: { id: initial.id },
+      include: {
+        workflowStep: {
+          select: { orderIndex: true, actionType: true },
+        },
+      },
       data: {
         outputText: providerResult.outputText,
         outputTextCiphertext: encryptedOutput?.ciphertext ?? null,
@@ -880,13 +889,16 @@ export async function executeSequentialRun(input: {
     }
   }
 
-  await prisma.workbenchSession.update({
+  const updatedSession = await prisma.workbenchSession.update({
     where: { id: session.id },
-    data: { updatedAt: new Date() },
+    data: {
+      updatedAt: new Date(),
+      finalResultId: pickFinalResultId(results),
+    },
   });
 
   return {
-    session,
+    session: updatedSession,
     results,
     executionSummary: {
       plannedTotal: expandedSteps.length,
@@ -1029,13 +1041,16 @@ export async function executeSequentialRunIncremental(input: {
     }
   }
 
-  await prisma.workbenchSession.update({
+  const updatedSession = await prisma.workbenchSession.update({
     where: { id: session.id },
-    data: { updatedAt: new Date() },
+    data: {
+      updatedAt: new Date(),
+      finalResultId: pickFinalResultId(results),
+    },
   });
 
   return {
-    session,
+    session: updatedSession,
     results,
     executionSummary: {
       plannedTotal: expandedSteps.length,
