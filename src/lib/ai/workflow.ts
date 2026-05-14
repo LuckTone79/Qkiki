@@ -69,7 +69,7 @@ type IncrementalRunCallbacks = {
   }) => void | Promise<void>;
 };
 
-function pickFinalResultId(results: Array<{ id: string; status: string }>) {
+export function pickFinalResultId(results: Array<{ id: string; status: string }>) {
   return [...results].reverse().find((result) => result.status === "completed")?.id ?? null;
 }
 
@@ -112,7 +112,7 @@ async function resolveProjectId(userId: string, projectId?: string | null) {
   return project.id;
 }
 
-async function buildProjectPromptContext(input: {
+export async function buildProjectPromptContext(input: {
   userId: string;
   projectId?: string | null;
   excludeSessionId?: string | null;
@@ -180,7 +180,7 @@ async function buildProjectPromptContext(input: {
   );
 }
 
-function buildExpandedSteps(
+export function buildExpandedSteps(
   steps: WorkflowStepInput[],
   workflowControl?: WorkflowControlInput,
 ) {
@@ -233,7 +233,7 @@ function getQualityDirective(threshold: number) {
   ].join("\n");
 }
 
-function extractQualityScore(text: string | null | undefined) {
+export function extractQualityScore(text: string | null | undefined) {
   if (!text) {
     return null;
   }
@@ -257,7 +257,7 @@ function extractQualityScore(text: string | null | undefined) {
   return null;
 }
 
-function stripQualityScoreLine(text: string | null | undefined) {
+export function stripQualityScoreLine(text: string | null | undefined) {
   if (!text) {
     return "";
   }
@@ -269,7 +269,7 @@ function stripQualityScoreLine(text: string | null | undefined) {
     .trim();
 }
 
-async function updateResultOutputText(resultId: string, outputText: string) {
+export async function updateResultOutputText(resultId: string, outputText: string) {
   const encryptedOutput =
     outputText && outputText.trim()
       ? encryptTextContent(outputText)
@@ -718,7 +718,7 @@ export async function executeParallelRunIncremental(input: {
   return { session, results };
 }
 
-async function resolveSourceText(input: {
+export async function resolveSourceText(input: {
   userId: string;
   sessionId: string;
   sourceMode: SourceMode;

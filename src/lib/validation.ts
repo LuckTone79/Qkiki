@@ -149,3 +149,6 @@ export const adminProviderConfigSchema = z.object({
   apiKey: z.string().max(4000).optional(),
   clearStoredKey: z.boolean().optional(),
 });
+
+export type RunWorkbenchInput = z.infer<typeof runWorkbenchSchema>;
+export type BranchRunInput = z.infer<typeof branchRunSchema>;

@@ -860,6 +860,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
+  const activeRunIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
@@ -1773,18 +1774,33 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setAttachments((current) => current.filter((attachment) => attachment.id !== id));
   }
 
-  async function readRunStream(response: Response) {
-    if (!response.body) {
+  async function fetchRunStatus(runId: string) {
+    const response = await fetch(`/api/workbench/runs/${runId}`, {
+      headers: { Accept: "application/json" },
+    });
+
+    if (!response.ok) {
       return null;
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null = null;
+    return (await response.json().catch(() => null)) as
+      | {
+          status?: string;
+          errorMessage?: string | null;
+          streamError?: string | null;
+        }
+      | null;
+  }
+
+  async function readRunStream(runId: string) {
+    let cursor = 0;
+    let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null =
+      null;
     let streamError = "";
     let receivedResults = 0;
-    let latestSession: { id: string; title: string; finalResultId?: string | null } | null = null;
+    let latestSession:
+      | { id: string; title: string; finalResultId?: string | null }
+      | null = null;
     const streamedResults: WorkbenchResult[] = [];
 
     const handleEvent = (event: WorkbenchRunStreamEvent) => {
@@ -1884,25 +1900,91 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     };
 
     while (true) {
-      const { done, value } = await reader.read();
-      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
+      const streamUrl =
+        cursor > 0
+          ? `/api/workbench/runs/${runId}/stream?startIndex=${cursor}`
+          : `/api/workbench/runs/${runId}/stream`;
+      const response = await fetch(streamUrl, {
+        headers: {
+          Accept: "application/x-ndjson",
+        },
+      });
 
-      for (const line of lines) {
-        if (!line.trim()) {
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || !contentType.includes("application/x-ndjson")) {
+        const errorPayload = (await response.json().catch(() => ({}))) as
+          UsageErrorPayload & {
+            error?: string;
+            status?: string;
+          };
+
+        if (errorPayload.redirectUrl) {
+          window.location.href = errorPayload.redirectUrl;
+          return null;
+        }
+
+        if (response.status === 409 && errorPayload.status === "queued") {
+          await new Promise((resolve) => window.setTimeout(resolve, 350));
           continue;
         }
-        handleEvent(JSON.parse(line) as WorkbenchRunStreamEvent);
+
+        if (errorPayload.usage) {
+          setUsage(errorPayload.usage);
+          writeUsageCache(errorPayload.usage);
+        }
+
+        throw new Error(errorPayload.error || t("runFailed"));
       }
 
-      if (done) {
+      if (!response.body) {
+        return null;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.trim()) {
+            continue;
+          }
+          handleEvent(JSON.parse(line) as WorkbenchRunStreamEvent);
+          cursor += 1;
+        }
+
+        if (done) {
+          break;
+        }
+      }
+
+      if (buffer.trim()) {
+        handleEvent(JSON.parse(buffer) as WorkbenchRunStreamEvent);
+        cursor += 1;
+      }
+
+      if (donePayload) {
         break;
       }
-    }
 
-    if (buffer.trim()) {
-      handleEvent(JSON.parse(buffer) as WorkbenchRunStreamEvent);
+      const status = await fetchRunStatus(runId);
+      if (
+        status?.status &&
+        !["completed", "failed", "canceled", "cancelled"].includes(status.status)
+      ) {
+        await new Promise((resolve) => window.setTimeout(resolve, 350));
+        continue;
+      }
+
+      if (!streamError) {
+        streamError = status?.streamError || status?.errorMessage || "";
+      }
+      break;
     }
 
     if (streamError && !donePayload && receivedResults === 0) {
@@ -2016,27 +2098,45 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/x-ndjson",
+          Accept: "application/json",
         },
         body: JSON.stringify(body),
       });
 
-      const contentType = response.headers.get("content-type") || "";
-      if (contentType.includes("application/x-ndjson")) {
-        const streamed = await readRunStream(response);
-        data = streamed || {};
-      } else {
-        data = (await response.json().catch(() => ({}))) as typeof data;
-      }
+      const kickoff = (await response.json().catch(() => ({}))) as UsageErrorPayload & {
+        error?: string;
+        runId?: string;
+      };
 
-      if (handleAuthRedirect(response, data)) {
+      if (handleAuthRedirect(response, kickoff)) {
         return;
       }
 
-      if (handleUsageError(data)) {
-        setError(data.error || t("runFailed"));
+      if (handleUsageError(kickoff)) {
+        setError(kickoff.error || t("runFailed"));
         return;
       }
+
+      if (!response.ok || !kickoff.runId) {
+        setRunMonitor((current) =>
+          current
+            ? {
+                ...current,
+                entries: current.entries.map((entry) => ({
+                  ...entry,
+                  status: "failed",
+                  detail: kickoff.error || uiText.failed,
+                })),
+              }
+            : current,
+        );
+        setError(kickoff.error || t("runFailed"));
+        return;
+      }
+
+      activeRunIdRef.current = kickoff.runId;
+      const streamed = await readRunStream(kickoff.runId);
+      data = streamed || {};
 
       if (!response.ok || !data.session) {
         setRunMonitor((current) =>
@@ -2089,6 +2189,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : t("runFailed"));
     } finally {
+      activeRunIdRef.current = null;
       setRunning(false);
     }
   }
