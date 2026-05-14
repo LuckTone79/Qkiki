@@ -70,6 +70,12 @@ export type WorkflowRepeatConfigInput = {
   repeatCount: number;
 };
 
+export type WorkflowRepeatBlockInput = {
+  startStepOrder: number;
+  endStepOrder: number;
+  repeatCount: number;
+};
+
 export type WorkflowStopConditionInput = {
   enabled: boolean;
   checkStepOrder: number;
@@ -78,6 +84,7 @@ export type WorkflowStopConditionInput = {
 
 export type WorkflowControlInput = {
   repeat?: WorkflowRepeatConfigInput;
+  repeatBlocks?: WorkflowRepeatBlockInput[];
   stopCondition?: WorkflowStopConditionInput;
 };
 

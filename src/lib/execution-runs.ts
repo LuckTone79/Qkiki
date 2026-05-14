@@ -2,8 +2,9 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
-import type { WorkflowControlInput } from "@/lib/ai/types";
+import { calculateExpandedStepCount } from "@/lib/ai/workflow-control";
 import { prisma } from "@/lib/prisma";
+import type { WorkflowStepInput } from "@/lib/ai/types";
 import type { UsageCheckContext } from "@/lib/usage-policy";
 import type { RunWorkbenchInput } from "@/lib/validation";
 
@@ -109,6 +110,12 @@ export class ActiveRunLimitReachedError extends Error {
   }
 }
 
+export class ActiveSessionRunExistsError extends Error {
+  constructor(message = "This session already has an AI run in progress.") {
+    super(message);
+  }
+}
+
 export function serializeUsageCheckContext(
   context: UsageCheckContext,
 ): SerializedUsageCheckContext {
@@ -136,37 +143,6 @@ export function deserializeUsageCheckContext(
   };
 }
 
-function calculateRepeatedTotal(
-  steps: Array<{ orderIndex: number }>,
-  workflowControl?: WorkflowControlInput,
-) {
-  if (!steps.length) {
-    return 0;
-  }
-
-  const repeat = workflowControl?.repeat;
-  if (!repeat?.enabled) {
-    return steps.length;
-  }
-
-  const startIndex = repeat.startStepOrder - 1;
-  const endIndex = repeat.endStepOrder - 1;
-  if (
-    startIndex < 0 ||
-    endIndex < 0 ||
-    startIndex >= steps.length ||
-    endIndex >= steps.length ||
-    startIndex > endIndex
-  ) {
-    return steps.length;
-  }
-
-  const repeatedLength = endIndex - startIndex + 1;
-  const prefix = startIndex;
-  const suffix = steps.length - endIndex - 1;
-  return prefix + repeatedLength * repeat.repeatCount + suffix;
-}
-
 export function calculatePlannedExecutionTotal(
   input: Pick<
     RunWorkbenchInput,
@@ -177,7 +153,10 @@ export function calculatePlannedExecutionTotal(
     return input.targets?.length ?? 0;
   }
 
-  return calculateRepeatedTotal(input.steps ?? [], input.workflowControl);
+  return calculateExpandedStepCount(
+    (input.steps ?? []) as WorkflowStepInput[],
+    input.workflowControl,
+  );
 }
 
 function getRunTokenSecret() {
@@ -220,6 +199,23 @@ export async function createQueuedExecutionRun(input: CreateExecutionRunInput) {
           throw new ActiveRunLimitReachedError(
             `You already have ${activeCount} active AI runs. Wait for one to finish before starting another.`,
           );
+        }
+
+        if (input.sessionId) {
+          const sessionActiveRun = await tx.executionRun.findFirst({
+            where: {
+              userId: input.userId,
+              sessionId: input.sessionId,
+              status: { in: [...ACTIVE_RUN_STATUSES] },
+            },
+            select: { id: true },
+          });
+
+          if (sessionActiveRun) {
+            throw new ActiveSessionRunExistsError(
+              "This workbench session is already running. Wait for it to finish or resume the active run.",
+            );
+          }
         }
 
         return tx.executionRun.create({
@@ -339,6 +335,20 @@ export async function getExecutionRunForUser(input: {
       id: input.executionRunId,
       userId: input.userId,
     },
+  });
+}
+
+export async function getLatestActiveExecutionRunForSession(input: {
+  sessionId: string;
+  userId: string;
+}) {
+  return prisma.executionRun.findFirst({
+    where: {
+      sessionId: input.sessionId,
+      userId: input.userId,
+      status: { in: [...ACTIVE_RUN_STATUSES] },
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 

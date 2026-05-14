@@ -9,6 +9,7 @@ import {
 } from "@/lib/attachments";
 import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
+import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
 import { encryptTextContent } from "@/lib/secret-crypto";
 import type {
   ActionType,
@@ -27,6 +28,7 @@ type SessionInput = {
   additionalInstruction?: string | null;
   outputStyle?: string | null;
   outputLanguage?: string | null;
+  workflowControl?: WorkflowControlInput;
   mode: string;
   attachmentIds?: string[];
 };
@@ -45,7 +47,6 @@ type ExecutePersistInput = {
   attachments?: RuntimeAttachment[];
 };
 
-const MAX_TOTAL_SEQUENTIAL_STEPS = 50;
 const MAX_PROJECT_CONTEXT_CHARS = 6000;
 const MAX_SOURCE_TEXT_CHARS = 12000;
 
@@ -58,6 +59,7 @@ type IncrementalProgressEvent = {
   index: number;
   title: string;
   subtitle: string;
+  actionType?: ActionType;
   detail?: string;
 };
 
@@ -185,42 +187,7 @@ export function buildExpandedSteps(
   steps: WorkflowStepInput[],
   workflowControl?: WorkflowControlInput,
 ) {
-  if (!steps.length) {
-    throw new Error("At least one sequential step is required.");
-  }
-
-  const repeat = workflowControl?.repeat;
-  const expanded: WorkflowStepInput[] = [];
-
-  if (repeat?.enabled) {
-    const startIndex = repeat.startStepOrder - 1;
-    const endIndex = repeat.endStepOrder - 1;
-
-    if (startIndex < 0 || endIndex < 0 || startIndex >= steps.length || endIndex >= steps.length) {
-      throw new Error("Repeat range is out of step bounds.");
-    }
-
-    if (startIndex > endIndex) {
-      throw new Error("Repeat start step must be before or equal to end step.");
-    }
-
-    expanded.push(...steps.slice(0, startIndex));
-
-    const repeatedBlock = steps.slice(startIndex, endIndex + 1);
-    for (let i = 0; i < repeat.repeatCount; i += 1) {
-      expanded.push(...repeatedBlock);
-    }
-
-    expanded.push(...steps.slice(endIndex + 1));
-  } else {
-    expanded.push(...steps);
-  }
-
-  if (expanded.length > MAX_TOTAL_SEQUENTIAL_STEPS) {
-    throw new Error(`Total sequential executions cannot exceed ${MAX_TOTAL_SEQUENTIAL_STEPS}.`);
-  }
-
-  return expanded.map((step, index): ExpandedWorkflowStep => ({
+  return expandWorkflowSteps(steps, workflowControl).map((step, index): ExpandedWorkflowStep => ({
     executionOrder: index + 1,
     templateStep: step,
   }));
@@ -439,6 +406,9 @@ export async function upsertWorkbenchSession(
 ) {
   const projectId = await resolveProjectId(userId, input.projectId);
   const encryptedOriginalInput = encryptTextContent(input.originalInput);
+  const workflowControlJson = input.workflowControl
+    ? JSON.stringify(input.workflowControl)
+    : null;
 
   if (input.sessionId) {
     const existing = await prisma.workbenchSession.findFirst({
@@ -459,6 +429,7 @@ export async function upsertWorkbenchSession(
           additionalInstruction: input.additionalInstruction || null,
           outputStyle: input.outputStyle || null,
           outputLanguage: input.outputLanguage || existing.outputLanguage || null,
+          workflowControlJson,
           mode: input.mode,
         },
       });
@@ -477,6 +448,7 @@ export async function upsertWorkbenchSession(
       additionalInstruction: input.additionalInstruction || null,
       outputStyle: input.outputStyle || null,
       outputLanguage: input.outputLanguage || null,
+      workflowControlJson,
       mode: input.mode,
     },
   });
@@ -584,6 +556,7 @@ export async function executeParallelRun(input: {
 }) {
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
+    workflowControl: input.session.workflowControl,
     mode: "parallel",
   });
   const projectContext = await buildProjectPromptContext({
@@ -653,6 +626,7 @@ export async function executeParallelRunIncremental(input: {
 }) {
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
+    workflowControl: input.session.workflowControl,
     mode: "parallel",
   });
   await input.callbacks?.onSession?.(session);
@@ -788,6 +762,7 @@ export async function executeSequentialRun(input: {
 }) {
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
+    workflowControl: input.workflowControl,
     mode: "sequential",
   });
   const projectContext = await buildProjectPromptContext({
@@ -927,6 +902,7 @@ export async function executeSequentialRunIncremental(input: {
 }) {
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
+    workflowControl: input.workflowControl,
     mode: "sequential",
   });
   await input.callbacks?.onSession?.(session);
@@ -995,6 +971,7 @@ export async function executeSequentialRunIncremental(input: {
       index: expandedStep.executionOrder - 1,
       title: `${step.targetProvider} / ${step.targetModel}`,
       subtitle: `Step ${expandedStep.executionOrder}`,
+      actionType: step.actionType,
       detail: "Preparing the prompt and context.",
     });
 

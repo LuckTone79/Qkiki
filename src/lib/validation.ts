@@ -66,6 +66,12 @@ export const workflowRepeatSchema = z.object({
   repeatCount: z.number().int().min(1).max(50),
 });
 
+export const workflowRepeatBlockSchema = z.object({
+  startStepOrder: z.number().int().min(1).max(50),
+  endStepOrder: z.number().int().min(1).max(50),
+  repeatCount: z.number().int().min(1).max(50),
+});
+
 export const workflowStopConditionSchema = z.object({
   enabled: z.boolean(),
   checkStepOrder: z.number().int().min(1).max(50),
@@ -87,6 +93,7 @@ export const runWorkbenchSchema = z.object({
   workflowControl: z
     .object({
       repeat: workflowRepeatSchema.optional(),
+      repeatBlocks: z.array(workflowRepeatBlockSchema).max(10).optional(),
       stopCondition: workflowStopConditionSchema.optional(),
     })
     .optional(),

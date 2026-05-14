@@ -1,5 +1,5 @@
 import { getWritable } from "workflow";
-import type { ProviderName } from "@/lib/ai/types";
+import type { ActionType, ProviderName } from "@/lib/ai/types";
 import {
   executeParallelRunIncremental,
   executeSequentialRunIncremental,
@@ -40,6 +40,7 @@ type WorkbenchRunStreamEvent =
       index: number;
       title?: string;
       subtitle?: string;
+      actionType?: ActionType;
       status?: "queued" | "active" | "completed" | "failed" | "skipped";
       detail?: string;
     }
@@ -146,6 +147,7 @@ async function executeWorkbenchRunStep(
         index: number;
         title: string;
         subtitle: string;
+        actionType?: ActionType;
         detail?: string;
       }) => {
         await emit({
@@ -153,6 +155,7 @@ async function executeWorkbenchRunStep(
           index: event.index,
           title: event.title,
           subtitle: event.subtitle,
+          actionType: event.actionType,
           status: "active",
           detail: event.detail,
         });
@@ -218,6 +221,13 @@ async function executeWorkbenchRunStep(
                     repeatCount:
                       payload.session.workflowControl.repeat.repeatCount,
                   }
+                : undefined,
+              repeatBlocks: payload.session.workflowControl.repeatBlocks
+                ? payload.session.workflowControl.repeatBlocks.map((block) => ({
+                    startStepOrder: block.startStepOrder,
+                    endStepOrder: block.endStepOrder,
+                    repeatCount: block.repeatCount,
+                  }))
                 : undefined,
               stopCondition: payload.session.workflowControl.stopCondition
                 ? {

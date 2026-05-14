@@ -7,7 +7,10 @@ import {
   TRIAL_CONVERSATION_LIMIT,
 } from "@/lib/access-policy";
 import { prisma } from "@/lib/prisma";
-import { ActiveRunLimitReachedError } from "@/lib/execution-runs";
+import {
+  ActiveRunLimitReachedError,
+  ActiveSessionRunExistsError,
+} from "@/lib/execution-runs";
 import {
   UsageInputLimitError,
   UsageLimitReachedError,
@@ -132,6 +135,15 @@ export function apiErrorResponse(error: unknown) {
         code: "ACTIVE_RUN_LIMIT",
       },
       { status: 429 },
+    );
+  }
+  if (error instanceof ActiveSessionRunExistsError) {
+    return NextResponse.json(
+      {
+        error: error.message,
+        code: "SESSION_RUN_ACTIVE",
+      },
+      { status: 409 },
     );
   }
 

@@ -37,6 +37,7 @@ export type WorkbenchDraft = {
     sourceResultId?: string | null;
     instructionTemplate?: string | null;
   }>;
+  workflowControl?: unknown;
   savedAt: number; // Unix ms timestamp
 };
 

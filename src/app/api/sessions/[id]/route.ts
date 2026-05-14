@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
+import {
+  createSignedRunToken,
+  getLatestActiveExecutionRunForSession,
+} from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
@@ -40,7 +44,32 @@ export async function GET(
       return NextResponse.json({ error: "Session not found." }, { status: 404 });
     }
 
-    return NextResponse.json({ session });
+    const activeRun = await getLatestActiveExecutionRunForSession({
+      sessionId: session.id,
+      userId: user.id,
+    });
+
+    return NextResponse.json({
+      session: {
+        ...session,
+        activeRun: activeRun
+          ? {
+              runId: createSignedRunToken({
+                executionRunId: activeRun.id,
+                userId: user.id,
+                mode: activeRun.mode === "sequential" ? "sequential" : "parallel",
+                createdAt: activeRun.createdAt.toISOString(),
+              }),
+              executionRunId: activeRun.id,
+              mode: activeRun.mode,
+              status: activeRun.status,
+              totalStepsPlanned: activeRun.totalStepsPlanned,
+              totalStepsDone: activeRun.totalStepsDone,
+              createdAt: activeRun.createdAt.toISOString(),
+            }
+          : null,
+      },
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

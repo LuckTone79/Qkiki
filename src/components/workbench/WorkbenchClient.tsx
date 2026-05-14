@@ -22,6 +22,11 @@ import {
   ResultCard,
   WorkbenchResult,
 } from "@/components/workbench/ResultCard";
+import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
+import {
+  MAX_REPEAT_BLOCKS,
+  MAX_TOTAL_SEQUENTIAL_STEPS,
+} from "@/lib/ai/workflow-control";
 import type {
   ActionType,
   ProviderName,
@@ -64,6 +69,7 @@ type LoadedSession = {
   outputLanguage?: string | null;
   mode: string;
   finalResultId: string | null;
+  workflowControlJson?: string | null;
   workflowSteps: Array<{
     id: string;
     orderIndex: number;
@@ -82,6 +88,15 @@ type LoadedSession = {
   } | null;
   attachments: WorkbenchAttachment[];
   results: WorkbenchResult[];
+  activeRun?: {
+    runId: string;
+    executionRunId: string;
+    mode: "parallel" | "sequential";
+    status: string;
+    totalStepsPlanned: number;
+    totalStepsDone: number;
+    createdAt: string;
+  } | null;
 };
 
 type WorkbenchAttachment = {
@@ -100,11 +115,15 @@ type ProjectMeta = {
   sharedContext: string | null;
 };
 
-type WorkflowControlState = {
-  repeatEnabled: boolean;
-  repeatStartStep: number;
-  repeatEndStep: number;
+type RepeatBlockState = {
+  id: string;
+  startStep: number;
+  endStep: number;
   repeatCount: number;
+};
+
+type WorkflowControlState = {
+  repeatBlocks: RepeatBlockState[];
   stopConditionEnabled: boolean;
   stopConditionStep: number;
   qualityThreshold: number;
@@ -146,6 +165,7 @@ type WorkbenchRunStreamEvent =
       index: number;
       title?: string;
       subtitle?: string;
+      actionType?: ActionType;
       status?: RunProgressStatus;
       detail?: string;
     }
@@ -226,7 +246,6 @@ const outputLanguageLabels: Record<OutputLanguage, string> = {
 };
 
 const MAX_TEMPLATE_STEPS = 50;
-const MAX_TOTAL_SEQUENTIAL_EXECUTIONS = 50;
 const ATTACHMENT_ACCEPT =
   ".txt,.md,.csv,.json,.pdf,image/png,image/jpeg,image/webp,image/gif";
 const MAX_ATTACHMENTS_PER_RUN = 8;
@@ -250,6 +269,9 @@ const workflowBuilderText: Record<
     repeatStart: string;
     repeatEnd: string;
     repeatCount: string;
+    addRepeatBlock: string;
+    repeatBlockLimit: string;
+    noRepeatBlocks: string;
     estimatedTotal: string;
     totalLimitNotice: string;
     stopCondition: string;
@@ -268,6 +290,9 @@ const workflowBuilderText: Record<
     repeatStart: "Start step",
     repeatEnd: "End step",
     repeatCount: "Repeat count",
+    addRepeatBlock: "Add repeat block",
+    repeatBlockLimit: "You can configure up to 10 repeat blocks.",
+    noRepeatBlocks: "No repeat blocks yet. Add one to repeat part of the chain.",
     estimatedTotal: "Estimated total sequential executions",
     totalLimitNotice: "Total sequential executions must be 50 or fewer.",
     stopCondition: "Early stop condition",
@@ -286,6 +311,10 @@ const workflowBuilderText: Record<
     repeatStart: "\uC2DC\uC791 \uB2E8\uACC4",
     repeatEnd: "\uC885\uB8CC \uB2E8\uACC4",
     repeatCount: "\uBC18\uBCF5 \uD69F\uC218",
+    addRepeatBlock: "\uBC18\uBCF5 \uAD6C\uAC04 \uCD94\uAC00",
+    repeatBlockLimit: "\uBC18\uBCF5 \uAD6C\uAC04\uC740 \uCD5C\uB300 10\uAC1C\uAE4C\uC9C0 \uC124\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    noRepeatBlocks:
+      "\uC544\uC9C1 \uBC18\uBCF5 \uAD6C\uAC04\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uCCB4\uC778 \uC77C\uBD80\uB97C \uBC18\uBCF5\uD558\uB824\uBA74 \uAD6C\uAC04\uC744 \uCD94\uAC00\uD558\uC138\uC694.",
     estimatedTotal: "\uC608\uC0C1 \uC21C\uCC28 \uC2E4\uD589 \uCD1D\uD69F\uC218",
     totalLimitNotice:
       "\uC21C\uCC28 \uCD1D \uC2E4\uD589 \uD69F\uC218\uB294 50\uD68C\uB97C \uB118\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
@@ -528,12 +557,19 @@ function attachmentKindLabel(
   return "PDF";
 }
 
+function createRepeatBlock(stepCount: number): RepeatBlockState {
+  const maxStep = Math.max(1, stepCount);
+  return {
+    id: newUid(),
+    startStep: 1,
+    endStep: Math.min(2, maxStep),
+    repeatCount: 2,
+  };
+}
+
 function defaultWorkflowControlState(): WorkflowControlState {
   return {
-    repeatEnabled: false,
-    repeatStartStep: 1,
-    repeatEndStep: 3,
-    repeatCount: 2,
+    repeatBlocks: [],
     stopConditionEnabled: false,
     stopConditionStep: 2,
     qualityThreshold: 90,
@@ -545,15 +581,26 @@ function normalizeWorkflowControlState(
   stepCount: number,
 ) {
   const maxStep = Math.max(1, stepCount);
-  const repeatStartStep = clampInteger(control.repeatStartStep, 1, maxStep);
-  const repeatEndStep = clampInteger(control.repeatEndStep, repeatStartStep, maxStep);
   const stopConditionStep = clampInteger(control.stopConditionStep, 1, maxStep);
 
   return {
     ...control,
-    repeatStartStep,
-    repeatEndStep,
-    repeatCount: clampInteger(control.repeatCount, 1, MAX_TOTAL_SEQUENTIAL_EXECUTIONS),
+    repeatBlocks: (control.repeatBlocks || [])
+      .slice(0, MAX_REPEAT_BLOCKS)
+      .map((repeatBlock) => {
+        const startStep = clampInteger(repeatBlock.startStep, 1, maxStep);
+        const endStep = clampInteger(repeatBlock.endStep, startStep, maxStep);
+        return {
+          ...repeatBlock,
+          startStep,
+          endStep,
+          repeatCount: clampInteger(
+            repeatBlock.repeatCount,
+            1,
+            MAX_TOTAL_SEQUENTIAL_STEPS,
+          ),
+        };
+      }),
     stopConditionStep,
     qualityThreshold: clampInteger(control.qualityThreshold, 0, 100),
   };
@@ -567,40 +614,84 @@ function calculateSequentialExecutionCount(
     return 0;
   }
 
-  if (!control.repeatEnabled) {
+  if (!control.repeatBlocks.length) {
     return stepCount;
   }
 
-  const start = clampInteger(control.repeatStartStep, 1, stepCount);
-  const end = clampInteger(control.repeatEndStep, start, stepCount);
-  const repeatedLength = end - start + 1;
-  const prefix = start - 1;
-  const suffix = stepCount - end;
-  return prefix + repeatedLength * clampInteger(control.repeatCount, 1, 50) + suffix;
+  let total = 0;
+  let nextBaseStep = 1;
+
+  for (const repeatBlock of control.repeatBlocks) {
+    const startStep = clampInteger(repeatBlock.startStep, 1, stepCount);
+    const endStep = clampInteger(repeatBlock.endStep, startStep, stepCount);
+
+    if (startStep > nextBaseStep) {
+      total += startStep - nextBaseStep;
+    }
+
+    total +=
+      (endStep - startStep + 1) *
+      clampInteger(repeatBlock.repeatCount, 1, MAX_TOTAL_SEQUENTIAL_STEPS);
+    nextBaseStep = Math.max(nextBaseStep, endStep + 1);
+  }
+
+  if (nextBaseStep <= stepCount) {
+    total += stepCount - nextBaseStep + 1;
+  }
+
+  return total;
 }
 
-function workflowControlFromPreset(
-  parsed: Record<string, unknown>,
+function workflowControlToInput(
+  control: WorkflowControlState,
+) {
+  return {
+    repeatBlocks: control.repeatBlocks.map((repeatBlock) => ({
+      startStepOrder: repeatBlock.startStep,
+      endStepOrder: repeatBlock.endStep,
+      repeatCount: repeatBlock.repeatCount,
+    })),
+    stopCondition: {
+      enabled: control.stopConditionEnabled,
+      checkStepOrder: control.stopConditionStep,
+      qualityThreshold: control.qualityThreshold,
+    },
+  } satisfies WorkflowControlInput;
+}
+
+function workflowControlFromInput(
+  candidate: WorkflowControlInput | undefined,
   currentStepCount: number,
 ) {
   const fallback = normalizeWorkflowControlState(
     defaultWorkflowControlState(),
     currentStepCount,
   );
-  const candidate = parsed.workflowControl as
-    | WorkflowControlInput
-    | undefined;
 
   if (!candidate) {
     return fallback;
   }
 
+  const repeatBlocks = Array.isArray(candidate.repeatBlocks)
+    ? candidate.repeatBlocks
+    : candidate.repeat?.enabled
+      ? [
+          {
+            startStepOrder: candidate.repeat.startStepOrder,
+            endStepOrder: candidate.repeat.endStepOrder,
+            repeatCount: candidate.repeat.repeatCount,
+          },
+        ]
+      : [];
+
   return normalizeWorkflowControlState(
     {
-      repeatEnabled: candidate.repeat?.enabled ?? false,
-      repeatStartStep: candidate.repeat?.startStepOrder ?? fallback.repeatStartStep,
-      repeatEndStep: candidate.repeat?.endStepOrder ?? fallback.repeatEndStep,
-      repeatCount: candidate.repeat?.repeatCount ?? fallback.repeatCount,
+      repeatBlocks: repeatBlocks.map((repeatBlock, index) => ({
+        id: `repeat-${index + 1}`,
+        startStep: repeatBlock.startStepOrder,
+        endStep: repeatBlock.endStepOrder,
+        repeatCount: repeatBlock.repeatCount,
+      })),
       stopConditionEnabled: candidate.stopCondition?.enabled ?? false,
       stopConditionStep:
         candidate.stopCondition?.checkStepOrder ?? fallback.stopConditionStep,
@@ -829,9 +920,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [workflowControl, setWorkflowControl] = useState<WorkflowControlState>(
     () => defaultWorkflowControlState(),
   );
-  const [repeatCountText, setRepeatCountText] = useState(() =>
-    String(defaultWorkflowControlState().repeatCount),
-  );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -919,43 +1007,72 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
   }
 
-  function createRunMonitor(modeToRun: "parallel" | "sequential") {
+  function createRunMonitor(
+    modeToRun: "parallel" | "sequential",
+    monitorSteps?: WorkflowStepState[],
+  ) {
     const startedAt = Date.now();
+    const stepsForMonitor = monitorSteps ?? workflowSteps;
     if (modeToRun === "parallel") {
+      const parallelEntries =
+        stepsForMonitor.length > 0
+          ? stepsForMonitor.map((step, index) => ({
+              key: `parallel-step-${step.uid}`,
+              title: `${providerLabel(step.targetProvider)} / ${getModelDisplayName(
+                step.targetProvider,
+                step.targetModel,
+              )}`,
+              subtitle: `${uiText.parallelRun} ${index + 1}`,
+              status: "active" as const,
+              detail: uiText.preparing,
+              workLines: buildWorkLines({
+                language,
+                primary:
+                  language === "ko"
+                    ? "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131"
+                    : "Generating a parallel answer for the original task",
+                secondary: compactPreview(originalInput, uiText.preparing),
+              }),
+            }))
+          : selectedTargets.map((target, index) => ({
+              key: `parallel-${target.provider}-${target.model}-${index}`,
+              title: `${providerLabel(target.provider as ProviderName)} / ${getModelDisplayName(
+                target.provider as ProviderName,
+                target.model,
+              )}`,
+              subtitle: `${uiText.parallelRun} ${index + 1}`,
+              status: "active" as const,
+              detail: uiText.preparing,
+              workLines: buildWorkLines({
+                language,
+                primary:
+                  language === "ko"
+                    ? "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131"
+                    : "Generating a parallel answer for the original task",
+                secondary: compactPreview(originalInput, uiText.preparing),
+              }),
+            }));
+
       return {
         mode: "parallel" as const,
         startedAt,
-        entries: selectedTargets.map((target, index) => ({
-          key: `parallel-${target.provider}-${target.model}-${index}`,
-          title: `${providerLabel(target.provider as ProviderName)} / ${getModelDisplayName(
-            target.provider as ProviderName,
-            target.model,
-          )}`,
-          subtitle: `${uiText.parallelRun} ${index + 1}`,
-          status: "active" as const,
-          detail: uiText.preparing,
-          workLines: buildWorkLines({
-            language,
-            primary:
-              language === "ko"
-                ? "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131"
-                : "Generating a parallel answer for the original task",
-            secondary: compactPreview(originalInput, uiText.preparing),
-          }),
-        })),
+        entries: parallelEntries,
       };
     }
 
     return {
       mode: "sequential" as const,
       startedAt,
-      entries: workflowSteps.map((step, index) => ({
+      entries: stepsForMonitor.map((step, index) => ({
         key: `step-${step.uid}`,
-          title: `${providerLabel(step.targetProvider)} / ${getModelDisplayName(
-            step.targetProvider,
-            step.targetModel,
-          )}`,
-        subtitle: `${uiText.sequentialStep} ${step.orderIndex}`,
+        title: `${providerLabel(step.targetProvider)} / ${getModelDisplayName(
+          step.targetProvider,
+          step.targetModel,
+        )}`,
+        subtitle: `${uiText.sequentialStep} ${step.orderIndex} - ${getActionTypeDisplayLabel(
+          step.actionType,
+          language,
+        )}`,
         status: index === 0 ? ("active" as const) : ("queued" as const),
         detail: index === 0 ? uiText.preparing : uiText.queued,
         workLines: buildWorkLines({
@@ -1113,7 +1230,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         providers,
       );
       setWorkflowSteps(nextSteps);
-      setWorkflowControl(workflowControlFromPreset(parsed, parsedSteps.length));
+      setWorkflowControl(
+        workflowControlFromInput(
+          parsed.workflowControl as WorkflowControlInput | undefined,
+          parsedSteps.length,
+        ),
+      );
       setMode("sequential");
       setNotice(`${t("loadPreset")}: ${preset.name}`);
     }
@@ -1157,7 +1279,40 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setNotice(`${t("projectContextLoaded")} ${data.project.name}`);
   }
 
+  function parseWorkflowControlJson(value?: string | null) {
+    if (!value) {
+      return undefined;
+    }
+
+    try {
+      return JSON.parse(value) as WorkflowControlInput;
+    } catch {
+      return undefined;
+    }
+  }
+
+  function toSessionWorkflowSteps(session: LoadedSession) {
+    if (!session.workflowSteps.length) {
+      return initialSteps(language);
+    }
+
+    return normalizeStepsForProviders(
+      session.workflowSteps.map((step) => ({
+        uid: step.id || newUid(),
+        orderIndex: step.orderIndex,
+        actionType: step.actionType,
+        targetProvider: step.targetProvider,
+        targetModel: step.targetModel,
+        sourceMode: step.sourceMode,
+        sourceResultId: step.sourceResultId,
+        instructionTemplate: step.instructionTemplate,
+      })),
+      providers,
+    );
+  }
+
   function applySessionToState(session: LoadedSession) {
+    const sessionWorkflowSteps = toSessionWorkflowSteps(session);
     setSessionId(session.id);
     setProject(
       session.project
@@ -1183,29 +1338,48 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setAttachments(session.attachments || []);
     setResults(session.results);
     setRunMonitor(null);
-    if (session.workflowSteps.length) {
-      setWorkflowSteps(
-        normalizeStepsForProviders(
-          session.workflowSteps.map((step) => ({
-            uid: step.id || newUid(),
-            orderIndex: step.orderIndex,
-            actionType: step.actionType,
-            targetProvider: step.targetProvider,
-            targetModel: step.targetModel,
-            sourceMode: step.sourceMode,
-            sourceResultId: step.sourceResultId,
-            instructionTemplate: step.instructionTemplate,
-          })),
-          providers,
-        ),
-      );
-    }
+    setWorkflowSteps(sessionWorkflowSteps);
     setWorkflowControl(
-      normalizeWorkflowControlState(
-        defaultWorkflowControlState(),
-        session.workflowSteps.length || initialSteps(language).length,
+      workflowControlFromInput(
+        parseWorkflowControlJson(session.workflowControlJson),
+        sessionWorkflowSteps.length,
       ),
     );
+  }
+
+  async function resumeActiveRun(session: LoadedSession) {
+    if (!session.activeRun?.runId || activeRunIdRef.current) {
+      return;
+    }
+
+    const modeToRun =
+      session.activeRun.mode === "sequential" ? "sequential" : "parallel";
+
+    setError("");
+    setNotice(
+      language === "ko"
+        ? "진행 중인 실행을 이어받는 중입니다."
+        : "Resuming the active run.",
+    );
+    setProgressNow(Date.now());
+    setRunMonitor(createRunMonitor(modeToRun, toSessionWorkflowSteps(session)));
+    focusProgressPanel();
+    setRunning(true);
+    activeRunIdRef.current = session.activeRun.runId;
+
+    try {
+      const streamed = await readRunStream(session.activeRun.runId);
+      if (streamed) {
+        applyCompletedRun(streamed, modeToRun);
+      }
+    } catch (resumeError) {
+      setError(
+        resumeError instanceof Error ? resumeError.message : t("runFailed"),
+      );
+    } finally {
+      activeRunIdRef.current = null;
+      setRunning(false);
+    }
   }
 
   async function loadSession(id: string) {
@@ -1216,6 +1390,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     if (cached) {
       applySessionToState(cached.data);
       setNotice(`${t("sessionLoaded")} ${cached.data.title}`);
+      void resumeActiveRun(cached.data);
 
       // Background server sync — updates state and cache if data changed
       fetch(`/api/sessions/${id}`)
@@ -1224,6 +1399,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           if (data.session) {
             applySessionToState(data.session);
             writeSessionCache(id, data.session);
+            void resumeActiveRun(data.session);
           }
         })
         .catch(() => {});
@@ -1245,6 +1421,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     applySessionToState(data.session);
     writeSessionCache(id, data.session);
     setNotice(`${t("sessionLoaded")} ${data.session.title}`);
+    void resumeActiveRun(data.session);
   }
 
   useEffect(() => {
@@ -1283,6 +1460,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               targetProvider: s.targetProvider as ProviderName,
               sourceMode: s.sourceMode as WorkflowStepState["sourceMode"],
             })),
+          ),
+        );
+        setWorkflowControl(
+          workflowControlFromInput(
+            draft.workflowControl as WorkflowControlInput | undefined,
+            draft.workflowSteps.length || initialSteps(language).length,
           ),
         );
         setDraftBanner({ savedAt: draft.savedAt });
@@ -1454,6 +1637,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         mode,
         attachments,
         workflowSteps,
+        workflowControl: workflowControlToInput(
+          normalizeWorkflowControlState(workflowControl, workflowSteps.length),
+        ),
       });
     }, 2000);
 
@@ -1469,6 +1655,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     mode,
     attachments,
     workflowSteps,
+    workflowControl,
   ]);
 
   useEffect(() => {
@@ -1536,10 +1723,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     [workflowControl, workflowSteps.length],
   );
 
-  useEffect(() => {
-    setRepeatCountText(String(normalizedWorkflowControl.repeatCount));
-  }, [normalizedWorkflowControl.repeatCount]);
-
   const estimatedSequentialExecutions = useMemo(
     () =>
       calculateSequentialExecutionCount(
@@ -1550,7 +1733,42 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   );
 
   const exceedsSequentialLimit =
-    estimatedSequentialExecutions > MAX_TOTAL_SEQUENTIAL_EXECUTIONS;
+    estimatedSequentialExecutions > MAX_TOTAL_SEQUENTIAL_STEPS;
+
+  function addRepeatBlock() {
+    setWorkflowControl((current) => {
+      if (current.repeatBlocks.length >= MAX_REPEAT_BLOCKS) {
+        return current;
+      }
+
+      const nextBlock = createRepeatBlock(workflowSteps.length);
+      return {
+        ...current,
+        repeatBlocks: [...current.repeatBlocks, nextBlock],
+      };
+    });
+  }
+
+  function updateRepeatBlock(
+    repeatBlockId: string,
+    updater: (repeatBlock: RepeatBlockState) => RepeatBlockState,
+  ) {
+    setWorkflowControl((current) => ({
+      ...current,
+      repeatBlocks: current.repeatBlocks.map((repeatBlock) =>
+        repeatBlock.id === repeatBlockId ? updater(repeatBlock) : repeatBlock,
+      ),
+    }));
+  }
+
+  function deleteRepeatBlock(repeatBlockId: string) {
+    setWorkflowControl((current) => ({
+      ...current,
+      repeatBlocks: current.repeatBlocks.filter(
+        (repeatBlock) => repeatBlock.id !== repeatBlockId,
+      ),
+    }));
+  }
 
   const resultDepths = useMemo(() => {
     const byId = new Map(results.map((result) => [result.id, result]));
@@ -1817,7 +2035,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           index: event.index,
           status: event.status || "active",
           title: event.title,
-          subtitle: event.subtitle,
+          subtitle:
+            event.actionType && mode === "sequential"
+              ? `${uiText.sequentialStep} ${event.index + 1} - ${getActionTypeDisplayLabel(
+                  event.actionType,
+                  language,
+                )}`
+              : event.subtitle,
           detail: event.detail || uiText.running,
           workLines: buildWorkLines({
             language,
@@ -1975,7 +2199,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       const status = await fetchRunStatus(runId);
       if (
         status?.status &&
-        !["completed", "failed", "canceled", "cancelled"].includes(status.status)
+        !["completed", "partial", "failed", "canceled", "cancelled"].includes(
+          status.status,
+        )
       ) {
         await new Promise((resolve) => window.setTimeout(resolve, 350));
         continue;
@@ -2004,7 +2230,64 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     );
   }
 
+  function applyCompletedRun(
+    data: {
+      session?: { id: string; title: string; finalResultId?: string | null };
+      results?: WorkbenchResult[];
+      executionSummary?: {
+        plannedTotal: number;
+        executedTotal: number;
+        stoppedEarly: boolean;
+        stopReason?: string | null;
+      };
+      streamError?: string;
+      usage?: UsageStatusType;
+    },
+    modeToRun: "parallel" | "sequential",
+  ) {
+    if (!data.session) {
+      setError(t("runFailed"));
+      return;
+    }
+
+    setSessionId(data.session.id);
+    setSessionTitle(data.session.title);
+    setFinalResultId(data.session.finalResultId || null);
+    if (data.usage) {
+      setUsage(data.usage);
+      writeUsageCache(data.usage);
+    }
+    setResults((current) => mergeResults(current, data.results || []));
+    setActiveMobilePanel("results");
+    clearDraft();
+    setDraftBanner(null);
+    finalizeRunMonitor({
+      mode: modeToRun,
+      results: data.results || [],
+      executionSummary: data.executionSummary,
+      streamError: data.streamError,
+    });
+    const completionNotice =
+      data.streamError || data.results?.some((result) => result.status === "failed")
+        ? t("runCompletedPartial")
+        : t("runCompleted");
+    if (data.streamError) {
+      setError(data.streamError);
+    }
+    if (modeToRun === "sequential" && data.executionSummary?.stoppedEarly) {
+      setNotice(
+        `${completionNotice} (${data.executionSummary.executedTotal}/${data.executionSummary.plannedTotal})`,
+      );
+      return;
+    }
+    setNotice(completionNotice);
+  }
+
   async function runWorkbench() {
+    if (running || activeRunIdRef.current) {
+      return;
+    }
+
     setError("");
     setNotice("");
 
@@ -2039,6 +2322,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     if (mode === "parallel") {
       setParallelComparison({ signature: "", status: "idle" });
     }
+    activeRunIdRef.current = "pending";
     setRunning(true);
     const body = {
       sessionId,
@@ -2065,19 +2349,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           : undefined,
       workflowControl:
         mode === "sequential"
-          ? {
-              repeat: {
-                enabled: normalizedWorkflowControl.repeatEnabled,
-                startStepOrder: normalizedWorkflowControl.repeatStartStep,
-                endStepOrder: normalizedWorkflowControl.repeatEndStep,
-                repeatCount: normalizedWorkflowControl.repeatCount,
-              },
-              stopCondition: {
-                enabled: normalizedWorkflowControl.stopConditionEnabled,
-                checkStepOrder: normalizedWorkflowControl.stopConditionStep,
-                qualityThreshold: normalizedWorkflowControl.qualityThreshold,
-              },
-            }
+          ? workflowControlToInput(normalizedWorkflowControl)
           : undefined,
     };
     let data: ({
@@ -2155,37 +2427,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         return;
       }
 
-      setSessionId(data.session.id);
-      setSessionTitle(data.session.title);
-      setFinalResultId(data.session.finalResultId || null);
-      if (data.usage) {
-        setUsage(data.usage);
-        writeUsageCache(data.usage);
-      }
-      setResults((current) => mergeResults(current, data.results || []));
-      setActiveMobilePanel("results");
-      clearDraft();
-      setDraftBanner(null);
-      finalizeRunMonitor({
-        mode,
-        results: data.results || [],
-        executionSummary: data.executionSummary,
-        streamError: data.streamError,
-      });
-      const completionNotice =
-        data.streamError || data.results?.some((result) => result.status === "failed")
-          ? t("runCompletedPartial")
-          : t("runCompleted");
-      if (data.streamError) {
-        setError(data.streamError);
-      }
-      if (mode === "sequential" && data.executionSummary?.stoppedEarly) {
-        setNotice(
-          `${completionNotice} (${data.executionSummary.executedTotal}/${data.executionSummary.plannedTotal})`,
-        );
-        return;
-      }
-      setNotice(completionNotice);
+      applyCompletedRun(data, mode);
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : t("runFailed"));
     } finally {
@@ -2324,19 +2566,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         sourceResultId: step.sourceResultId,
         instructionTemplate: step.instructionTemplate,
       })),
-      workflowControl: {
-        repeat: {
-          enabled: normalizedWorkflowControl.repeatEnabled,
-          startStepOrder: normalizedWorkflowControl.repeatStartStep,
-          endStepOrder: normalizedWorkflowControl.repeatEndStep,
-          repeatCount: normalizedWorkflowControl.repeatCount,
-        },
-        stopCondition: {
-          enabled: normalizedWorkflowControl.stopConditionEnabled,
-          checkStepOrder: normalizedWorkflowControl.stopConditionStep,
-          qualityThreshold: normalizedWorkflowControl.qualityThreshold,
-        },
-      },
+      workflowControl: workflowControlToInput(normalizedWorkflowControl),
     });
     const response = await fetch("/api/presets", {
       method: "POST",
@@ -2790,126 +3020,130 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   </p>
                   <p className="mt-1 text-xs text-stone-600">
                     {builderText.estimatedTotal}: {estimatedSequentialExecutions}/
-                    {MAX_TOTAL_SEQUENTIAL_EXECUTIONS}
+                    {MAX_TOTAL_SEQUENTIAL_STEPS}
                   </p>
                 </div>
 
-                <label className="flex items-center gap-2 text-sm text-stone-700">
-                  <input
-                    type="checkbox"
-                    checked={normalizedWorkflowControl.repeatEnabled}
-                    onChange={(event) =>
-                      setWorkflowControl((current) => ({
-                        ...current,
-                        repeatEnabled: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 rounded border-stone-300 text-teal-700 focus:ring-teal-600"
-                  />
-                  <span>{builderText.repeatedBlock}</span>
-                </label>
+                <div className="space-y-3">
+                  {normalizedWorkflowControl.repeatBlocks.length ? (
+                    normalizedWorkflowControl.repeatBlocks.map((repeatBlock, index) => (
+                      <div
+                        key={repeatBlock.id}
+                        className="rounded-md border border-stone-200 bg-stone-50 p-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-stone-800">
+                            {builderText.repeatedBlock} {index + 1}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => deleteRepeatBlock(repeatBlock.id)}
+                            className="rounded-md border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-100"
+                          >
+                            {t("delete")}
+                          </button>
+                        </div>
 
-                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
-                  <label className="block">
-                    <span className="text-xs font-medium text-stone-500">
-                      {builderText.repeatRange} - {builderText.repeatStart}
-                    </span>
-                    <select
-                      value={normalizedWorkflowControl.repeatStartStep}
-                      disabled={!normalizedWorkflowControl.repeatEnabled}
-                      onChange={(event) =>
-                        setWorkflowControl((current) => ({
-                          ...current,
-                          repeatStartStep: Number(event.target.value),
-                          repeatEndStep: Math.max(
-                            Number(event.target.value),
-                            current.repeatEndStep,
-                          ),
-                        }))
-                      }
-                      className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 disabled:bg-stone-100"
-                    >
-                      {workflowSteps.map((step) => (
-                        <option key={`repeat-start-${step.uid}`} value={step.orderIndex}>
-                          {t("step")} {step.orderIndex}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
+                          <label className="block">
+                            <span className="text-xs font-medium text-stone-500">
+                              {builderText.repeatRange} - {builderText.repeatStart}
+                            </span>
+                            <select
+                              value={repeatBlock.startStep}
+                              onChange={(event) => {
+                                const nextStartStep = Number(event.target.value);
+                                updateRepeatBlock(repeatBlock.id, (current) => ({
+                                  ...current,
+                                  startStep: nextStartStep,
+                                  endStep: Math.max(nextStartStep, current.endStep),
+                                }));
+                              }}
+                              className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
+                            >
+                              {workflowSteps.map((step) => (
+                                <option key={`repeat-start-${repeatBlock.id}-${step.uid}`} value={step.orderIndex}>
+                                  {t("step")} {step.orderIndex}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
 
-                  <label className="block">
-                    <span className="text-xs font-medium text-stone-500">
-                      {builderText.repeatRange} - {builderText.repeatEnd}
-                    </span>
-                    <select
-                      value={normalizedWorkflowControl.repeatEndStep}
-                      disabled={!normalizedWorkflowControl.repeatEnabled}
-                      onChange={(event) =>
-                        setWorkflowControl((current) => ({
-                          ...current,
-                          repeatEndStep: Number(event.target.value),
-                        }))
-                      }
-                      className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 disabled:bg-stone-100"
-                    >
-                      {workflowSteps
-                        .filter(
-                          (step) =>
-                            step.orderIndex >=
-                            normalizedWorkflowControl.repeatStartStep,
-                        )
-                        .map((step) => (
-                          <option key={`repeat-end-${step.uid}`} value={step.orderIndex}>
-                            {t("step")} {step.orderIndex}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
+                          <label className="block">
+                            <span className="text-xs font-medium text-stone-500">
+                              {builderText.repeatRange} - {builderText.repeatEnd}
+                            </span>
+                            <select
+                              value={repeatBlock.endStep}
+                              onChange={(event) => {
+                                const nextEndStep = Number(event.target.value);
+                                updateRepeatBlock(repeatBlock.id, (current) => ({
+                                  ...current,
+                                  endStep: nextEndStep,
+                                }));
+                              }}
+                              className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
+                            >
+                              {workflowSteps
+                                .filter((step) => step.orderIndex >= repeatBlock.startStep)
+                                .map((step) => (
+                                  <option key={`repeat-end-${repeatBlock.id}-${step.uid}`} value={step.orderIndex}>
+                                    {t("step")} {step.orderIndex}
+                                  </option>
+                                ))}
+                            </select>
+                          </label>
 
-                  <label className="block">
-                    <span className="text-xs font-medium text-stone-500">
-                      {builderText.repeatCount}
-                    </span>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      value={repeatCountText}
-                      disabled={!normalizedWorkflowControl.repeatEnabled}
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        if (nextValue !== "" && !/^\d{0,2}$/.test(nextValue)) {
-                          return;
-                        }
-                        setRepeatCountText(nextValue);
-                        if (!nextValue) {
-                          return;
-                        }
-                        setWorkflowControl((current) => ({
-                          ...current,
-                          repeatCount: clampInteger(
-                            Number(nextValue),
-                            1,
-                            MAX_TOTAL_SEQUENTIAL_EXECUTIONS,
-                          ),
-                        }));
-                      }}
-                      onBlur={() => {
-                        const normalized = clampInteger(
-                          Number(repeatCountText || 1),
-                          1,
-                          MAX_TOTAL_SEQUENTIAL_EXECUTIONS,
-                        );
-                        setRepeatCountText(String(normalized));
-                        setWorkflowControl((current) => ({
-                          ...current,
-                          repeatCount: normalized,
-                        }));
-                      }}
-                      className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600 disabled:bg-stone-100"
-                    />
-                  </label>
+                          <label className="block">
+                            <span className="text-xs font-medium text-stone-500">
+                              {builderText.repeatCount}
+                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={MAX_TOTAL_SEQUENTIAL_STEPS}
+                              value={repeatBlock.repeatCount}
+                              onChange={(event) => {
+                                const nextRepeatCount = clampInteger(
+                                  Number(event.target.value),
+                                  1,
+                                  MAX_TOTAL_SEQUENTIAL_STEPS,
+                                );
+                                updateRepeatBlock(repeatBlock.id, (current) => ({
+                                  ...current,
+                                  repeatCount: nextRepeatCount,
+                                }));
+                              }}
+                              className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="rounded-md border border-dashed border-stone-300 bg-stone-50 px-3 py-3 text-sm text-stone-600">
+                      {builderText.noRepeatBlocks}
+                    </p>
+                  )}
                 </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={addRepeatBlock}
+                    disabled={normalizedWorkflowControl.repeatBlocks.length >= MAX_REPEAT_BLOCKS}
+                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                  >
+                    {builderText.addRepeatBlock}
+                  </button>
+                  <p className="text-xs text-stone-500">
+                    {normalizedWorkflowControl.repeatBlocks.length}/{MAX_REPEAT_BLOCKS}
+                  </p>
+                </div>
+
+                {normalizedWorkflowControl.repeatBlocks.length >= MAX_REPEAT_BLOCKS ? (
+                  <p className="text-xs text-rose-700">{builderText.repeatBlockLimit}</p>
+                ) : null}
 
                 <div className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2">
                   <label className="flex items-center gap-2 text-sm text-stone-700">

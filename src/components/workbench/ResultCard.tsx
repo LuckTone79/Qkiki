@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
+import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import {
   getModelDisplayName,
   getModelOptionLabel,
@@ -95,6 +96,9 @@ export function ResultCard({
   const stepLabel = result.workflowStep
     ? `${t("step")} ${result.workflowStep.orderIndex}`
     : null;
+  const actionLabel = result.workflowStep
+    ? getActionTypeDisplayLabel(result.workflowStep.actionType, language)
+    : null;
 
   const meta = useMemo(() => {
     return [
@@ -138,7 +142,12 @@ export function ResultCard({
             ) : null}
           </div>
           <p className="mt-2 text-xs text-stone-500">
-            {[stepLabel, sourceLabel ?? t("sourceOriginal"), formatDate(result.createdAt, language)]
+            {[
+              stepLabel,
+              actionLabel,
+              sourceLabel ?? t("sourceOriginal"),
+              formatDate(result.createdAt, language),
+            ]
               .filter(Boolean)
               .join(" / ")}
           </p>

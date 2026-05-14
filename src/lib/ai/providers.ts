@@ -32,7 +32,14 @@ type ProviderRuntimeConfig = {
   apiKey: string | null;
   defaultModel: string;
   fallbackProvider: ProviderName | null;
+  timeoutSeconds: number;
 };
+
+const DEFAULT_PROVIDER_TIMEOUT_SECONDS = 90;
+const ANTHROPIC_MAX_TOKENS = 4096;
+const ANTHROPIC_MAX_CONTINUATIONS = 2;
+const ANTHROPIC_CONTINUE_PROMPT =
+  "Continue exactly where you left off. Do not repeat prior text. Return only the continuation.";
 
 async function readJson(response: Response) {
   try {
@@ -214,6 +221,17 @@ function formatProviderRuntimeError(
   return error instanceof Error ? error.message : "Provider request failed.";
 }
 
+function createProviderTimeoutError(
+  provider: ProviderName,
+  timeoutSeconds: number,
+) {
+  const error = new Error(
+    `${provider}: provider request timed out after ${timeoutSeconds} seconds.`,
+  );
+  error.name = "TimeoutError";
+  return error;
+}
+
 function buildChatCompletionInput(input: ProviderCallInput) {
   const content: Array<Record<string, unknown>> = [
     {
@@ -274,6 +292,22 @@ function buildAnthropicContent(input: ProviderCallInput) {
   });
 
   return content;
+}
+
+function buildAnthropicContinuationContent(text: string) {
+  return [{ type: "text", text }];
+}
+
+function extractAnthropicText(body: JsonRecord) {
+  const content = Array.isArray(body.content) ? body.content : [];
+  return content
+    .map((entry) =>
+      entry && typeof entry === "object" && "text" in entry
+        ? String((entry as { text: unknown }).text)
+        : "",
+    )
+    .join("\n")
+    .trim();
 }
 
 function buildGoogleParts(input: ProviderCallInput) {
@@ -402,10 +436,15 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
     config.fallbackProvider !== provider
       ? config.fallbackProvider
       : null;
+  const timeoutSeconds =
+    typeof config?.timeoutSeconds === "number" && config.timeoutSeconds > 0
+      ? config.timeoutSeconds
+      : DEFAULT_PROVIDER_TIMEOUT_SECONDS;
   const runtimeBase: Omit<ProviderRuntimeConfig, "apiKey"> = {
     provider,
     defaultModel,
     fallbackProvider,
+    timeoutSeconds,
   };
 
   if (envValue?.trim()) {
@@ -501,21 +540,31 @@ async function executeProviderCall(
   }
 
   try {
-    const signal = new AbortController().signal;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => {
+      controller.abort(
+        createProviderTimeoutError(input.provider, runtime.timeoutSeconds),
+      );
+    }, runtime.timeoutSeconds * 1000);
+    const signal = controller.signal;
 
-    if (input.provider === "openai") {
-      return await callOpenAi(apiKey, input, startedAt, signal);
+    try {
+      if (input.provider === "openai") {
+        return await callOpenAi(apiKey, input, startedAt, signal);
+      }
+
+      if (input.provider === "anthropic") {
+        return await callAnthropic(apiKey, input, startedAt, signal);
+      }
+
+      if (input.provider === "google") {
+        return await callGoogle(apiKey, input, startedAt, signal);
+      }
+
+      return await callXai(apiKey, input, startedAt, signal);
+    } finally {
+      clearTimeout(timeout);
     }
-
-    if (input.provider === "anthropic") {
-      return await callAnthropic(apiKey, input, startedAt, signal);
-    }
-
-    if (input.provider === "google") {
-      return await callGoogle(apiKey, input, startedAt, signal);
-    }
-
-    return await callXai(apiKey, input, startedAt, signal);
   } catch (error) {
     return {
       provider: input.provider,
@@ -706,45 +755,104 @@ async function callAnthropic(
   startedAt: number,
   signal: AbortSignal,
 ) {
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    signal,
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: normalizeAnthropicModel(input.model),
-      max_tokens: 2048,
-      messages: [{ role: "user", content: buildAnthropicContent(input) }],
-    }),
-  });
-  const body = await readJson(response);
+  const messages: Array<Record<string, unknown>> = [
+    { role: "user", content: buildAnthropicContent(input) },
+  ];
+  const rawResponses: JsonRecord[] = [];
+  const outputParts: string[] = [];
+  let promptTokens = 0;
+  let completionTokens = 0;
 
-  if (!response.ok) {
-    throw new Error(providerError("anthropic", body));
+  for (
+    let continuationIndex = 0;
+    continuationIndex <= ANTHROPIC_MAX_CONTINUATIONS;
+    continuationIndex += 1
+  ) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      signal,
+      headers: {
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: normalizeAnthropicModel(input.model),
+        max_tokens: ANTHROPIC_MAX_TOKENS,
+        messages,
+      }),
+    });
+    const body = await readJson(response);
+
+    if (!response.ok) {
+      throw new Error(providerError("anthropic", body));
+    }
+
+    rawResponses.push(body);
+    const text = extractAnthropicText(body);
+    if (text) {
+      outputParts.push(text);
+    }
+
+    const usageBody = body.usage as JsonRecord | undefined;
+    promptTokens += typeof usageBody?.input_tokens === "number" ? usageBody.input_tokens : 0;
+    completionTokens +=
+      typeof usageBody?.output_tokens === "number" ? usageBody.output_tokens : 0;
+
+    const stopReason = getText(body.stop_reason);
+    if (stopReason === "end_turn" || stopReason === "stop_sequence") {
+      return withCost({
+        provider: "anthropic",
+        model: input.model,
+        outputText: outputParts.join("\n").trim(),
+        rawResponse:
+          rawResponses.length === 1
+            ? rawResponses[0]
+            : {
+                responses: rawResponses,
+                continuationCount: rawResponses.length - 1,
+              },
+        usage: normalizeUsage({
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
+        }),
+        latencyMs: Date.now() - startedAt,
+        status: "completed",
+      });
+    }
+
+    if (stopReason !== "max_tokens") {
+      throw new Error(
+        `anthropic: response ended with stop_reason ${stopReason || "unknown"}.`,
+      );
+    }
+
+    if (continuationIndex >= ANTHROPIC_MAX_CONTINUATIONS) {
+      throw new Error("anthropic: response reached the token limit before completion.");
+    }
+
+    messages.push({
+      role: "assistant",
+      content: Array.isArray(body.content)
+        ? body.content
+        : buildAnthropicContinuationContent(text),
+    });
+    messages.push({
+      role: "user",
+      content: buildAnthropicContinuationContent(ANTHROPIC_CONTINUE_PROMPT),
+    });
   }
-
-  const content = Array.isArray(body.content) ? body.content : [];
-  const text = content
-    .map((entry) =>
-      entry && typeof entry === "object" && "text" in entry
-        ? String((entry as { text: unknown }).text)
-        : "",
-    )
-    .join("\n")
-    .trim();
-  const usageBody = body.usage as JsonRecord | undefined;
 
   return withCost({
     provider: "anthropic",
     model: input.model,
-    outputText: text,
-    rawResponse: body,
+    outputText: outputParts.join("\n").trim(),
+    rawResponse: rawResponses,
     usage: normalizeUsage({
-      promptTokens: usageBody?.input_tokens,
-      completionTokens: usageBody?.output_tokens,
+      promptTokens,
+      completionTokens,
+      totalTokens: promptTokens + completionTokens,
     }),
     latencyMs: Date.now() - startedAt,
     status: "completed",

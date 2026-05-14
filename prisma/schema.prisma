@@ -184,6 +184,7 @@ model WorkbenchSession {
   additionalInstruction   String?
   outputStyle             String?
   outputLanguage          String?
+  workflowControlJson     String?
   mode                    String
   finalResultId           String?
   createdAt               DateTime @default(now())
