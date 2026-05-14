@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildOpenInBrowserPath, isLikelyEmbeddedBrowser } from "@/lib/browser-detection";
 import {
   GOOGLE_OAUTH_STATE_COOKIE,
   createGoogleOAuthState,
@@ -16,6 +17,15 @@ export async function GET(request: Request) {
 
   const requestUrl = new URL(request.url);
   const nextPath = sanitizePostAuthPath(requestUrl.searchParams.get("next"));
+  const embeddedTarget = `/api/auth/google/start?next=${encodeURIComponent(nextPath)}`;
+  const userAgent = request.headers.get("user-agent");
+
+  if (isLikelyEmbeddedBrowser(userAgent)) {
+    return NextResponse.redirect(
+      new URL(buildOpenInBrowserPath(embeddedTarget), request.url),
+    );
+  }
+
   const oauthState = createGoogleOAuthState(nextPath);
 
   const googleUrl = new URL(GOOGLE_AUTH_ENDPOINT);

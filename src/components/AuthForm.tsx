@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  buildOpenInBrowserPath,
+  isLikelyEmbeddedBrowser,
+} from "@/lib/browser-detection";
 
 type AuthFormProps = {
   mode: "sign-in" | "sign-up";
@@ -36,6 +40,12 @@ function getOAuthErrorMessage(errorCode: string | null, language: "en" | "ko") {
     return language === "ko"
       ? "\uacc4\uc815\uc774 \uc815\uc9c0\ub418\uc5b4 \ub85c\uadf8\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4."
       : "Your account is suspended.";
+  }
+
+  if (errorCode === "google_secure_browser_required") {
+    return language === "ko"
+      ? "\uad6c\uae00 \ub85c\uadf8\uc778\uc740 \uce74\uce74\uc624\ud1a1 \uac19\uc740 \uc778\uc571 \ube0c\ub77c\uc6b0\uc800\uc5d0\uc11c \ucc28\ub2e8\ub420 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ud06c\ub86c \ub610\ub294 \uc0ac\ud30c\ub9ac \uac19\uc740 \uae30\ubcf8 \ube0c\ub77c\uc6b0\uc800\ub85c \uc5f4\uc5b4\uc11c \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694."
+      : "Google sign-in is blocked inside some in-app browsers. Open this page in Chrome, Safari, or another system browser and try again.";
   }
 
   return language === "ko"
@@ -79,6 +89,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const googleCta =
     language === "ko" ? "\uad6c\uae00\ub85c \uacc4\uc18d\ud558\uae30" : "Continue with Google";
   const dividerText = language === "ko" ? "\ub610\ub294 \uc774\uba54\uc77c\ub85c" : "or with email";
+  const googleAuthHref = `/api/auth/google/start?next=${encodeURIComponent(nextPath)}`;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,6 +127,21 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   const isSignUp = mode === "sign-up";
+
+  function handleGoogleSignIn(
+    event: MouseEvent<HTMLAnchorElement>,
+  ) {
+    if (typeof navigator === "undefined") {
+      return;
+    }
+
+    if (!isLikelyEmbeddedBrowser(navigator.userAgent)) {
+      return;
+    }
+
+    event.preventDefault();
+    window.location.href = buildOpenInBrowserPath(googleAuthHref);
+  }
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -178,7 +204,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       ) : null}
 
       <a
-        href={`/api/auth/google/start?next=${encodeURIComponent(nextPath)}`}
+        href={googleAuthHref}
+        onClick={handleGoogleSignIn}
         className="block w-full rounded-md border border-stone-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-stone-800 hover:bg-stone-50"
       >
         {googleCta}
