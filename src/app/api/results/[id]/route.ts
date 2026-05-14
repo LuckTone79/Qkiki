@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 
 async function collectBranchIds(rootId: string) {
   const collected = new Set<string>([rootId]);
@@ -36,8 +37,10 @@ export async function DELETE(
     }
 
     const branchIds = await collectBranchIds(result.id);
+    await ensureWorkflowControlJsonColumn();
     const session = await prisma.workbenchSession.findFirst({
       where: { id: result.sessionId, userId: user.id },
+      select: { id: true, finalResultId: true },
     });
 
     if (session?.finalResultId && branchIds.includes(session.finalResultId)) {

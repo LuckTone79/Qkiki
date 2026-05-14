@@ -11,6 +11,7 @@ import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
 import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
 import { encryptTextContent } from "@/lib/secret-crypto";
+import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 import type {
   ActionType,
   ProviderName,
@@ -406,6 +407,7 @@ export async function upsertWorkbenchSession(
 ) {
   const projectId = await resolveProjectId(userId, input.projectId);
   const encryptedOriginalInput = encryptTextContent(input.originalInput);
+  const supportsWorkflowControl = await ensureWorkflowControlJsonColumn();
   const workflowControlJson = input.workflowControl
     ? JSON.stringify(input.workflowControl)
     : null;
@@ -413,6 +415,11 @@ export async function upsertWorkbenchSession(
   if (input.sessionId) {
     const existing = await prisma.workbenchSession.findFirst({
       where: { id: input.sessionId, userId },
+      select: {
+        id: true,
+        projectId: true,
+        outputLanguage: true,
+      },
     });
 
     if (existing) {
@@ -429,7 +436,7 @@ export async function upsertWorkbenchSession(
           additionalInstruction: input.additionalInstruction || null,
           outputStyle: input.outputStyle || null,
           outputLanguage: input.outputLanguage || existing.outputLanguage || null,
-          workflowControlJson,
+          ...(supportsWorkflowControl ? { workflowControlJson } : {}),
           mode: input.mode,
         },
       });
@@ -448,7 +455,7 @@ export async function upsertWorkbenchSession(
       additionalInstruction: input.additionalInstruction || null,
       outputStyle: input.outputStyle || null,
       outputLanguage: input.outputLanguage || null,
-      workflowControlJson,
+      ...(supportsWorkflowControl ? { workflowControlJson } : {}),
       mode: input.mode,
     },
   });

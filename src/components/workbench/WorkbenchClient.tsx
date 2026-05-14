@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { LimitReachedModal } from "@/components/billing/LimitReachedModal";
@@ -898,6 +899,7 @@ type WorkbenchClientProps = {
 
 export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = {}) {
   const { language, t } = useLanguage();
+  const searchParams = useSearchParams();
   const builderText = workflowBuilderText[language];
   const uiText = workbenchUiText[language];
   const [providers, setProviders] = useState<ProviderOption[]>([]);
@@ -949,6 +951,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
   const activeRunIdRef = useRef<string | null>(null);
+  const routeSyncReadyRef = useRef(false);
 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
@@ -1347,6 +1350,67 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     );
   }
 
+  function restoreDraftOrDefaultState() {
+    setSessionId(null);
+    setProject(null);
+    setSessionTitle("");
+    setFinalResultId(null);
+    setResults([]);
+    setRunMonitor(null);
+    setNotice("");
+    activeRunIdRef.current = null;
+    setRunning(false);
+
+    const draft = loadDraft();
+    if (draft && draft.originalInput.trim()) {
+      setOriginalInput(draft.originalInput);
+      setAdditionalInstruction(draft.additionalInstruction);
+      setOutputStyle(draft.outputStyle);
+      setOutputLanguage(
+        outputLanguages.includes(draft.outputLanguage as OutputLanguage)
+          ? (draft.outputLanguage as OutputLanguage)
+          : defaultOutputLanguageForAppLanguage(language),
+      );
+      setMode(draft.mode);
+      setAttachments(draft.attachments || []);
+      setWorkflowSteps(
+        sortSteps(
+          draft.workflowSteps.map((step) => ({
+            ...step,
+            uid: step.uid || newUid(),
+            actionType: step.actionType as ActionType,
+            targetProvider: step.targetProvider as ProviderName,
+            sourceMode: step.sourceMode as WorkflowStepState["sourceMode"],
+          })),
+        ),
+      );
+      setWorkflowControl(
+        workflowControlFromInput(
+          draft.workflowControl as WorkflowControlInput | undefined,
+          draft.workflowSteps.length || initialSteps(language).length,
+        ),
+      );
+      setDraftBanner({ savedAt: draft.savedAt });
+      return;
+    }
+
+    const nextSteps = initialSteps(language);
+    setOriginalInput("");
+    setAdditionalInstruction("");
+    setOutputStyle("detailed");
+    setOutputLanguage(defaultOutputLanguageForAppLanguage(language));
+    setMode("parallel");
+    setAttachments([]);
+    setWorkflowSteps(nextSteps);
+    setWorkflowControl(
+      normalizeWorkflowControlState(
+        defaultWorkflowControlState(),
+        nextSteps.length,
+      ),
+    );
+    setDraftBanner(null);
+  }
+
   async function resumeActiveRun(session: LoadedSession) {
     if (!session.activeRun?.runId || activeRunIdRef.current) {
       return;
@@ -1483,6 +1547,36 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, []);
 
   useEffect(() => {
+    if (!routeSyncReadyRef.current) {
+      routeSyncReadyRef.current = true;
+      return;
+    }
+
+    const loadId = searchParams.get("session");
+    const presetId = searchParams.get("preset");
+    const projectId = searchParams.get("project");
+
+    if (presetId) {
+      void loadPresets(presetId);
+    }
+
+    if (loadId) {
+      void loadSession(loadId);
+      return;
+    }
+
+    if (projectId) {
+      restoreDraftOrDefaultState();
+      void loadProject(projectId);
+      return;
+    }
+
+    restoreDraftOrDefaultState();
+    // Keep the workbench in sync with sidebar and in-app query navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, searchParams]);
+
+  useEffect(() => {
     window.localStorage.setItem("qkiki-result-layout-v2", resultLayout);
   }, [resultLayout]);
 
@@ -1500,6 +1594,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
   useEffect(() => {
     if (mode === "parallel" && activeMobilePanel === "workflow") {
+      setActiveMobilePanel("input");
+    }
+
+    if (mode === "sequential" && activeMobilePanel === "models") {
       setActiveMobilePanel("input");
     }
 
@@ -2601,7 +2699,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }
 
   const mobilePanels: Array<{ id: MobilePanel; label: string }> = [
-    { id: "models", label: t("mobileModels") },
     { id: "input", label: t("mobileInput") },
     {
       id: "results",
@@ -2610,6 +2707,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         : t("mobileResults"),
     },
   ];
+
+  if (mode === "parallel") {
+    mobilePanels.unshift({ id: "models", label: t("mobileModels") });
+  }
 
   if (mode === "sequential") {
     mobilePanels.splice(2, 0, {
@@ -2751,55 +2852,61 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
-          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
-            <h2 className="text-sm font-semibold text-stone-950">
-              {t("modelSelection")}
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-stone-600">
-              {t("enableProviderShort")}
-            </p>
-            <div className="mt-4 space-y-3">
-              {providers.map((provider) => {
-                const selection = normalizeProviderSelection(
-                  selections[provider.providerName],
-                  provider,
-                );
+      <div
+        className={`grid gap-5 ${
+          mode === "parallel" ? "xl:grid-cols-[320px_minmax(0,1fr)]" : "xl:grid-cols-1"
+        }`}
+      >
+        {mode === "parallel" ? (
+          <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
+            <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
+              <h2 className="text-sm font-semibold text-stone-950">
+                {t("modelSelection")}
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-stone-600">
+                {t("enableProviderShort")}
+              </p>
+              <div className="mt-4 space-y-3">
+                {providers.map((provider) => {
+                  const selection = normalizeProviderSelection(
+                    selections[provider.providerName],
+                    provider,
+                  );
 
-                return (
-                  <ProviderSelectorRow
-                    key={provider.providerName}
-                    provider={provider}
-                    enabled={selection.enabled}
-                    selectedModels={selection.models}
-                    onEnabledChange={(enabled) =>
-                      setSelections({
-                        ...selections,
-                        [provider.providerName]: {
-                          enabled,
-                          models:
-                            enabled && !selection.models.length
-                              ? [provider.defaultModel]
-                              : selection.models,
-                        },
-                      })
-                    }
-                    onSelectedModelsChange={(models) =>
-                      setSelections({
-                        ...selections,
-                        [provider.providerName]: {
-                          enabled: models.length > 0,
-                          models: dedupeModels(models),
-                        },
-                      })
-                    }
-                  />
-                );
-              })}
+                  return (
+                    <ProviderSelectorRow
+                      key={provider.providerName}
+                      provider={provider}
+                      enabled={selection.enabled}
+                      selectedModels={selection.models}
+                      onEnabledChange={(enabled) =>
+                        setSelections({
+                          ...selections,
+                          [provider.providerName]: {
+                            enabled,
+                            models:
+                              enabled && !selection.models.length
+                                ? [provider.defaultModel]
+                                : selection.models,
+                          },
+                        })
+                      }
+                      onSelectedModelsChange={(models) =>
+                        setSelections({
+                          ...selections,
+                          [provider.providerName]: {
+                            enabled: models.length > 0,
+                            models: dedupeModels(models),
+                          },
+                        })
+                      }
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        ) : null}
 
         <section className={`min-w-0 space-y-5 ${middlePanelClass}`}>
           <div

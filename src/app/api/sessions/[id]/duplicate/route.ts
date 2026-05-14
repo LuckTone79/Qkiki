@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 
 export async function POST(
   _request: Request,
@@ -9,9 +10,23 @@ export async function POST(
   try {
     const user = await requireApiUser();
     const { id } = await context.params;
+    const supportsWorkflowControl = await ensureWorkflowControlJsonColumn();
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
-      include: {
+      select: {
+        id: true,
+        projectId: true,
+        title: true,
+        originalInput: true,
+        originalInputCiphertext: true,
+        originalInputIv: true,
+        originalInputTag: true,
+        additionalInstruction: true,
+        outputStyle: true,
+        outputLanguage: true,
+        mode: true,
+        finalResultId: true,
+        ...(supportsWorkflowControl ? { workflowControlJson: true } : {}),
         workflowSteps: { orderBy: { orderIndex: "asc" } },
         results: { orderBy: { createdAt: "asc" } },
         attachments: { orderBy: { createdAt: "asc" } },
@@ -35,6 +50,12 @@ export async function POST(
         outputStyle: session.outputStyle,
         outputLanguage: session.outputLanguage,
         mode: session.mode,
+        ...(supportsWorkflowControl
+          ? {
+              workflowControlJson:
+                (session as { workflowControlJson?: string | null }).workflowControlJson ?? null,
+            }
+          : {}),
       },
     });
 

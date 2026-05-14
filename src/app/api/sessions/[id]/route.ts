@@ -5,6 +5,7 @@ import {
   getLatestActiveExecutionRunForSession,
 } from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 
 export async function GET(
   _request: Request,
@@ -13,9 +14,20 @@ export async function GET(
   try {
     const user = await requireApiUser();
     const { id } = await context.params;
+    const supportsWorkflowControl = await ensureWorkflowControlJsonColumn();
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
-      include: {
+      select: {
+        id: true,
+        projectId: true,
+        title: true,
+        originalInput: true,
+        additionalInstruction: true,
+        outputStyle: true,
+        outputLanguage: true,
+        mode: true,
+        finalResultId: true,
+        ...(supportsWorkflowControl ? { workflowControlJson: true } : {}),
         project: { select: { id: true, name: true, sharedContext: true } },
         workflowSteps: { orderBy: { orderIndex: "asc" } },
         results: {
@@ -52,6 +64,9 @@ export async function GET(
     return NextResponse.json({
       session: {
         ...session,
+        workflowControlJson: supportsWorkflowControl
+          ? (session as { workflowControlJson?: string | null }).workflowControlJson ?? null
+          : null,
         activeRun: activeRun
           ? {
               runId: createSignedRunToken({
@@ -82,12 +97,14 @@ export async function PATCH(
   try {
     const user = await requireApiUser();
     const { id } = await context.params;
+    await ensureWorkflowControlJsonColumn();
     const body = (await request.json()) as {
       title?: string;
       finalResultId?: string | null;
     };
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
+      select: { id: true },
     });
 
     if (!session) {
@@ -134,8 +151,10 @@ export async function DELETE(
   try {
     const user = await requireApiUser();
     const { id } = await context.params;
+    await ensureWorkflowControlJsonColumn();
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
+      select: { id: true },
     });
 
     if (!session) {

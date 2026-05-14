@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 
 export async function POST(
   _request: Request,
@@ -17,6 +18,7 @@ export async function POST(
       return NextResponse.json({ error: "Result not found." }, { status: 404 });
     }
 
+    await ensureWorkflowControlJsonColumn();
     await prisma.workbenchSession.update({
       where: { id: result.sessionId },
       data: { finalResultId: result.id },
