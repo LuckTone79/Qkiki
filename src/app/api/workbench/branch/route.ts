@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   apiErrorResponse,
@@ -7,15 +8,26 @@ import {
 import { executeBranchRun } from "@/lib/ai/workflow";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import {
-  recordUsageSuccess,
+  releaseUsageReservation,
   requireUsageAccess,
+  reserveUsage,
+  settleUsageReservation,
 } from "@/lib/usage-policy";
 import { branchRunSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
 export async function POST(request: Request) {
+  let userId = "";
+  let executionFinished = false;
+  let reservedUsage:
+    | {
+        id: string;
+      }
+    | null = null;
+
   try {
     const user = await requireApiGenerationUser();
+    userId = user.id;
     const parsed = branchRunSchema.safeParse(await request.json());
 
     if (!parsed.success) {
@@ -44,6 +56,16 @@ export async function POST(request: Request) {
       await consumeTrialConversation(user);
     }
 
+    reservedUsage = user.isTrial
+      ? null
+      : await reserveUsage({
+          userId: user.id,
+          requestType: parsed.data.actionType,
+          inputCharCount: parsed.data.instruction.length,
+          reservationKey: `branch:${crypto.randomUUID()}`,
+          context: usageContext ?? undefined,
+        });
+
     const result = await executeBranchRun({
       userId: user.id,
       parentResultId: parsed.data.parentResultId,
@@ -55,10 +77,12 @@ export async function POST(request: Request) {
         model: target.model,
       })),
     });
+    executionFinished = true;
 
     const usage = user.isTrial
       ? undefined
-      : await recordUsageSuccess({
+      : await settleUsageReservation({
+          reservationId: reservedUsage?.id,
           userId: user.id,
           requestType: parsed.data.actionType,
           selectedModels: parsed.data.targets.map(
@@ -77,11 +101,16 @@ export async function POST(request: Request) {
             (sum, item) => sum + (item.estimatedCost ?? 0),
             0,
           ),
-          context: usageContext ?? undefined,
         });
 
     return NextResponse.json({ ...result, usage });
   } catch (error) {
+    if (reservedUsage && userId && !executionFinished) {
+      await releaseUsageReservation({
+        reservationId: reservedUsage.id,
+        userId,
+      }).catch(() => undefined);
+    }
     return apiErrorResponse(error);
   }
 }

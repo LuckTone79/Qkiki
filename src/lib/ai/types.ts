@@ -17,6 +17,10 @@ export type ProviderCallInput = {
   model: string;
   prompt: string;
   attachments?: ProviderAttachmentInput[];
+  concurrencyOwner?: {
+    ownerKind?: string;
+    ownerId?: string;
+  };
 };
 
 export type ProviderAttachmentInput = {

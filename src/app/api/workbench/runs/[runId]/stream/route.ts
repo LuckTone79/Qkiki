@@ -1,6 +1,6 @@
 import { getRun } from "workflow/api";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
-import { readSignedRunToken } from "@/lib/execution-runs";
+import { getExecutionRunForUser, readSignedRunToken } from "@/lib/execution-runs";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -25,7 +25,26 @@ export async function GET(request: Request, { params }: RouteContext) {
       return Response.json({ error: "Run not found." }, { status: 404 });
     }
 
-    const run = getRun(token.workflowRunId);
+    const executionRun =
+      "executionRunId" in token
+        ? await getExecutionRunForUser({
+            executionRunId: token.executionRunId,
+            userId: user.id,
+          })
+        : null;
+
+    if ("executionRunId" in token && !executionRun) {
+      return Response.json({ error: "Run not found." }, { status: 404 });
+    }
+
+    const workflowRunId =
+      "executionRunId" in token ? executionRun?.workflowRunId : token.workflowRunId;
+
+    if (!workflowRunId) {
+      return Response.json({ error: "Run is still being queued.", status: "queued" }, { status: 409 });
+    }
+
+    const run = getRun(workflowRunId);
     const readable = run.getReadable(
       startIndex === undefined || Number.isNaN(startIndex)
         ? undefined

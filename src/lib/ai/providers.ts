@@ -1,11 +1,16 @@
 import "server-only";
 
+import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import {
   getProviderCatalog,
   isProviderName,
   normalizeProviderModel,
 } from "@/lib/ai/provider-catalog";
+import {
+  acquireProviderLease,
+  releaseProviderLease,
+} from "@/lib/provider-concurrency";
 import { estimateCost } from "@/lib/ai/pricing";
 import {
   decryptSecretWithMetadata,
@@ -528,11 +533,43 @@ async function executeProviderCall(
 }
 
 export async function callProvider(
-  _userId: string,
+  userId: string,
   input: ProviderCallInput,
 ): Promise<ProviderCallResult> {
+  const baseOwnerKind = input.concurrencyOwner?.ownerKind ?? "provider_call";
+  const baseOwnerId =
+    input.concurrencyOwner?.ownerId ??
+    `user:${userId}:${input.provider}:${crypto.randomUUID()}`;
+
+  const executeAttemptWithLease = async (
+    provider: ProviderName,
+    runtimeConfig: ProviderRuntimeConfig,
+    runtimeInput: ProviderCallInput,
+    ownerSuffix: string,
+  ) => {
+    const lease = await acquireProviderLease({
+      provider,
+      model: runtimeInput.model,
+      owner: {
+        ownerKind: baseOwnerKind,
+        ownerId: `${baseOwnerId}:${ownerSuffix}`,
+      },
+    });
+
+    try {
+      return await executeProviderCall(runtimeConfig, runtimeInput);
+    } finally {
+      await releaseProviderLease(lease.id);
+    }
+  };
+
   const runtime = await getProviderRuntimeConfig(input.provider);
-  const primaryResult = await executeProviderCall(runtime, input);
+  const primaryResult = await executeAttemptWithLease(
+    input.provider,
+    runtime,
+    input,
+    "primary",
+  );
 
   if (
     primaryResult.status === "completed" ||
@@ -549,11 +586,16 @@ export async function callProvider(
   });
 
   const fallbackRuntime = await getProviderRuntimeConfig(runtime.fallbackProvider);
-  const fallbackResult = await executeProviderCall(fallbackRuntime, {
-    ...input,
-    provider: runtime.fallbackProvider,
-    model: fallbackRuntime.defaultModel,
-  });
+  const fallbackResult = await executeAttemptWithLease(
+    runtime.fallbackProvider,
+    fallbackRuntime,
+    {
+      ...input,
+      provider: runtime.fallbackProvider,
+      model: fallbackRuntime.defaultModel,
+    },
+    `fallback:${runtime.fallbackProvider}`,
+  );
 
   if (fallbackResult.status === "completed") {
     console.warn("[provider] fallback request succeeded", {

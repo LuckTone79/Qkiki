@@ -118,11 +118,13 @@ model User {
   adminSystemSettings     AdminSystemSetting[]    @relation("SystemSettingUpdatedBy")
   projects                Project[]
   sessions                WorkbenchSession[]
+  executionRuns           ExecutionRun[]
   aiRequests              AiRequest[]
   presets                 Preset[]
   attachments             SessionAttachment[]
   trialAccess             TrialAccess?
   usageLimits             UsageLimit[]
+  usageReservations       UsageReservation[]
   usageLogs               UsageLog[]
   creditWallet            CreditWallet?
 }
@@ -191,6 +193,7 @@ model WorkbenchSession {
   project                Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
   workflowSteps          WorkflowStep[]
   results                Result[]
+  executionRuns          ExecutionRun[]
   aiRequests             AiRequest[]
   adminContentAccessLogs AdminContentAccessLog[]
   attachments            SessionAttachment[]
@@ -198,6 +201,35 @@ model WorkbenchSession {
   @@index([userId])
   @@index([projectId])
   @@index([updatedAt])
+}
+
+model ExecutionRun {
+  id                   String   @id @default(cuid())
+  userId               String
+  sessionId            String?
+  workflowRunId        String?  @unique
+  mode                 String
+  requestType          String
+  status               String
+  inputCharCount       Int      @default(0)
+  totalStepsPlanned    Int      @default(0)
+  totalStepsDone       Int      @default(0)
+  finalResultId        String?
+  errorMessage         String?
+  streamError          String?
+  executionSummaryJson String?
+  usageReservationId   String?
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session WorkbenchSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([sessionId])
+  @@index([createdAt])
 }
 
 model WorkflowStep {
@@ -466,10 +498,34 @@ model UsageLimit {
   updatedAt          DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reservations UsageReservation[]
 
   @@unique([userId, usageDate])
   @@index([userId, usageDate])
   @@index([resetAt])
+}
+
+model UsageReservation {
+  id                   String   @id @default(cuid())
+  reservationKey       String   @unique
+  userId               String
+  usageLimitId         String
+  requestType          String
+  reservedRequestCount Int      @default(1)
+  inputCharCount       Int      @default(0)
+  status               String   @default("reserved")
+  expiresAt            DateTime
+  settledAt            DateTime?
+  releasedAt           DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageLimit UsageLimit @relation(fields: [usageLimitId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@index([usageLimitId, status])
+  @@index([expiresAt])
 }
 
 model UsageLog {
@@ -494,6 +550,23 @@ model UsageLog {
   @@index([requestType, createdAt])
   @@index([planTypeSnapshot, createdAt])
   @@index([isBoostSnapshot, createdAt])
+}
+
+model ProviderLease {
+  id           String   @id @default(cuid())
+  providerName String
+  leaseKey     String   @unique
+  ownerKind    String
+  ownerId      String
+  model        String?
+  expiresAt    DateTime
+  releasedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([providerName, releasedAt, expiresAt])
+  @@index([ownerKind, ownerId])
+  @@index([expiresAt])
 }
 
 model CreditWallet {

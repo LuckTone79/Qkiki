@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { start } from "workflow/api";
 import {
@@ -10,17 +11,25 @@ import {
   requireUsageAccess,
 } from "@/lib/usage-policy";
 import {
+  assignWorkflowRunToExecutionRun,
   calculatePlannedExecutionTotal,
+  createQueuedExecutionRun,
   createSignedRunToken,
-  serializeUsageCheckContext,
+  failExecutionRun,
 } from "@/lib/execution-runs";
 import { runWorkbenchSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
+import { releaseUsageReservation, reserveUsage } from "@/lib/usage-policy";
 
 export async function POST(request: Request) {
+  let userId = "";
+  let reservationId: string | null = null;
+  let executionRunId: string | null = null;
+
   try {
     const user = await requireApiGenerationUser();
+    userId = user.id;
     const parsed = runWorkbenchSchema.safeParse(await request.json());
     const inputCharCount =
       (parsed.success ? parsed.data.originalInput.length : 0) +
@@ -76,19 +85,65 @@ export async function POST(request: Request) {
       await consumeTrialConversation(user);
     }
 
-    const workflowRun = await start(workbenchRunWorkflow, [
-      {
-        userId: user.id,
-        inputCharCount,
-        requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
-        session: parsed.data,
-        usageContext: usageContext
-          ? serializeUsageCheckContext(usageContext)
-          : null,
-      },
-    ]);
-    const signedRunId = createSignedRunToken({
+    const plannedTotal = calculatePlannedExecutionTotal(parsed.data);
+    const reservation = user.isTrial
+      ? null
+      : await reserveUsage({
+          userId: user.id,
+          requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+          inputCharCount,
+          reservationKey: `run:${crypto.randomUUID()}`,
+          context: usageContext ?? undefined,
+        });
+    reservationId = reservation?.id ?? null;
+    const executionRun = await createQueuedExecutionRun({
+      userId: user.id,
+      sessionId: parsed.data.sessionId ?? null,
+      mode: parsed.data.mode,
+      requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+      inputCharCount,
+      totalStepsPlanned: plannedTotal,
+      usageReservationId: reservation?.id ?? null,
+    });
+    executionRunId = executionRun.id;
+
+    let workflowRun;
+
+    try {
+      workflowRun = await start(workbenchRunWorkflow, [
+        {
+          executionRunId: executionRun.id,
+          usageReservationId: reservation?.id ?? null,
+          userId: user.id,
+          inputCharCount,
+          requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+          session: parsed.data,
+        },
+      ]);
+    } catch (error) {
+      if (reservation) {
+        await releaseUsageReservation({
+          reservationId: reservation.id,
+          userId: user.id,
+        }).catch(() => undefined);
+      }
+      await failExecutionRun({
+        executionRunId: executionRun.id,
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "The durable AI run could not be started.",
+      }).catch(() => undefined);
+      throw error;
+    }
+
+    await assignWorkflowRunToExecutionRun({
+      executionRunId: executionRun.id,
       workflowRunId: workflowRun.runId,
+    });
+
+    const signedRunId = createSignedRunToken({
+      executionRunId: executionRun.id,
       userId: user.id,
       mode: parsed.data.mode,
       createdAt: new Date().toISOString(),
@@ -98,11 +153,17 @@ export async function POST(request: Request) {
       ok: true,
       runId: signedRunId,
       status: "queued",
-      plannedTotal: calculatePlannedExecutionTotal(parsed.data),
+      plannedTotal,
       streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
       statusUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}`,
     });
   } catch (error) {
+    if (reservationId && userId && !executionRunId) {
+      await releaseUsageReservation({
+        reservationId,
+        userId,
+      }).catch(() => undefined);
+    }
     return apiErrorResponse(error);
   }
 }

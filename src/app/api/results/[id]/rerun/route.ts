@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   apiErrorResponse,
@@ -10,16 +11,27 @@ import { hydrateRuntimeAttachments } from "@/lib/attachments";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import { prisma } from "@/lib/prisma";
 import {
-  recordUsageSuccess,
+  releaseUsageReservation,
   requireUsageAccess,
+  reserveUsage,
+  settleUsageReservation,
 } from "@/lib/usage-policy";
 
 export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  let userId = "";
+  let executionFinished = false;
+  let reservedUsage:
+    | {
+        id: string;
+      }
+    | null = null;
+
   try {
     const user = await requireApiGenerationUser();
+    userId = user.id;
     const usageContext = user.isTrial
       ? null
       : await requireUsageAccess({
@@ -59,6 +71,16 @@ export async function POST(
       await consumeTrialConversation(user);
     }
 
+    reservedUsage = user.isTrial
+      ? null
+      : await reserveUsage({
+          userId: user.id,
+          requestType: "rerun",
+          inputCharCount: 0,
+          reservationKey: `rerun:${crypto.randomUUID()}`,
+          context: usageContext ?? undefined,
+        });
+
     const rerun = await executeAndPersistResult({
       userId: user.id,
       sessionId: result.sessionId,
@@ -73,10 +95,12 @@ export async function POST(
         result.attachmentLinks.map((link) => link.attachment),
       ),
     });
+    executionFinished = true;
 
     const usage = user.isTrial
       ? undefined
-      : await recordUsageSuccess({
+      : await settleUsageReservation({
+          reservationId: reservedUsage?.id,
           userId: user.id,
           requestType: "rerun",
           selectedModels: [`${rerun.provider}/${rerun.model}`],
@@ -84,11 +108,16 @@ export async function POST(
           inputTokenCount: rerun.tokenUsagePrompt ?? 0,
           outputTokenCount: rerun.tokenUsageCompletion ?? 0,
           estimatedCostUsd: rerun.estimatedCost ?? 0,
-          context: usageContext ?? undefined,
         });
 
     return NextResponse.json({ result: rerun, usage });
   } catch (error) {
+    if (reservedUsage && userId && !executionFinished) {
+      await releaseUsageReservation({
+        reservationId: reservedUsage.id,
+        userId,
+      }).catch(() => undefined);
+    }
     return apiErrorResponse(error);
   }
 }

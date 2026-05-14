@@ -6,7 +6,16 @@ import {
   pickFinalResultId,
 } from "@/lib/ai/workflow";
 import {
+  completeExecutionRun,
+  failExecutionRun,
+  markExecutionRunRunning,
+  updateExecutionRunProgress,
+  updateExecutionRunSession,
+} from "@/lib/execution-runs";
+import {
   recordUsageSuccess,
+  releaseUsageReservation,
+  settleUsageReservation,
   type UsageStatusSummary,
 } from "@/lib/usage-policy";
 import type { RunWorkbenchInput } from "@/lib/validation";
@@ -69,6 +78,8 @@ type WorkbenchRunStreamEvent =
     };
 
 export type WorkbenchRunWorkflowPayload = {
+  executionRunId?: string;
+  usageReservationId?: string | null;
   userId: string;
   inputCharCount: number;
   requestType: "compare" | "sequential";
@@ -105,8 +116,13 @@ async function executeWorkbenchRunStep(
   };
 
   let latestSession: WorkbenchStreamSession | null = null;
+  let resultsCompleted = 0;
 
   try {
+    if (payload.executionRunId) {
+      await markExecutionRunRunning(payload.executionRunId);
+    }
+
     const callbacks = {
       onSession: async (session: {
         id: string;
@@ -114,6 +130,13 @@ async function executeWorkbenchRunStep(
         finalResultId?: string | null;
       }) => {
         latestSession = toSessionSnapshot(session);
+        if (payload.executionRunId) {
+          await updateExecutionRunSession({
+            executionRunId: payload.executionRunId,
+            sessionId: session.id,
+            finalResultId: session.finalResultId ?? null,
+          });
+        }
         await emit({
           type: "session",
           session: latestSession,
@@ -140,6 +163,13 @@ async function executeWorkbenchRunStep(
           ReturnType<typeof executeParallelRunIncremental>
         >["results"][number];
       }) => {
+        resultsCompleted += 1;
+        if (payload.executionRunId) {
+          await updateExecutionRunProgress({
+            executionRunId: payload.executionRunId,
+            totalStepsDone: resultsCompleted,
+          });
+        }
         await emit({
           type: "result",
           index: event.index,
@@ -212,34 +242,49 @@ async function executeWorkbenchRunStep(
 
     latestSession = toSessionSnapshot(result.session);
 
-    const usage = payload.usageContext
-      ? await recordUsageSuccess({
+    const selectedModels =
+      payload.session.mode === "parallel"
+        ? (payload.session.targets ?? []).map(
+            (target) => `${target.provider}/${target.model}`,
+          )
+        : (payload.session.steps ?? []).map(
+            (step) => `${step.targetProvider}/${step.targetModel}`,
+          );
+    const inputTokenCount = (result.results || []).reduce(
+      (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+      0,
+    );
+    const outputTokenCount = (result.results || []).reduce(
+      (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+      0,
+    );
+    const estimatedCostUsd = (result.results || []).reduce(
+      (sum, item) => sum + (item.estimatedCost ?? 0),
+      0,
+    );
+    const usage = payload.usageReservationId
+      ? await settleUsageReservation({
+          reservationId: payload.usageReservationId,
           userId: payload.userId,
           requestType: payload.requestType,
-          selectedModels:
-            payload.session.mode === "parallel"
-              ? (payload.session.targets ?? []).map(
-                  (target) => `${target.provider}/${target.model}`,
-                )
-              : (payload.session.steps ?? []).map(
-                  (step) => `${step.targetProvider}/${step.targetModel}`,
-                ),
+          selectedModels,
           inputCharCount: payload.inputCharCount,
-          inputTokenCount: (result.results || []).reduce(
-            (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
-            0,
-          ),
-          outputTokenCount: (result.results || []).reduce(
-            (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
-            0,
-          ),
-          estimatedCostUsd: (result.results || []).reduce(
-            (sum, item) => sum + (item.estimatedCost ?? 0),
-            0,
-          ),
-          context: deserializeUsageCheckContext(payload.usageContext),
+          inputTokenCount,
+          outputTokenCount,
+          estimatedCostUsd,
         })
-      : undefined;
+      : payload.usageContext
+        ? await recordUsageSuccess({
+            userId: payload.userId,
+            requestType: payload.requestType,
+            selectedModels,
+            inputCharCount: payload.inputCharCount,
+            inputTokenCount,
+            outputTokenCount,
+            estimatedCostUsd,
+            context: deserializeUsageCheckContext(payload.usageContext),
+          })
+        : undefined;
 
     if (usage) {
       await emit({ type: "usage", usage });
@@ -253,6 +298,18 @@ async function executeWorkbenchRunStep(
     const streamError = hasFailedResults
       ? "One or more model runs ended with an error."
       : "";
+
+    if (payload.executionRunId) {
+      await completeExecutionRun({
+        executionRunId: payload.executionRunId,
+        status: streamError ? "partial" : "completed",
+        sessionId: result.session.id,
+        finalResultId,
+        streamError: streamError || null,
+        executionSummary: executionSummary ?? null,
+      });
+    }
+
     const doneEvent: WorkbenchRunWorkflowResult = {
       type: "done",
       session: {
@@ -272,6 +329,20 @@ async function executeWorkbenchRunStep(
       error instanceof Error
         ? error.message
         : "The durable AI run failed.";
+
+    if (payload.usageReservationId && resultsCompleted === 0) {
+      await releaseUsageReservation({
+        reservationId: payload.usageReservationId,
+        userId: payload.userId,
+      }).catch(() => undefined);
+    }
+
+    if (payload.executionRunId) {
+      await failExecutionRun({
+        executionRunId: payload.executionRunId,
+        errorMessage: message,
+      }).catch(() => undefined);
+    }
 
     await emit({
       type: "error",

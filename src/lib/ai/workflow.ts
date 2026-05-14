@@ -34,6 +34,7 @@ type SessionInput = {
 type ExecutePersistInput = {
   userId: string;
   sessionId: string;
+  executionRunId?: string | null;
   workflowStepId?: string | null;
   parentResultId?: string | null;
   branchKey?: string | null;
@@ -388,6 +389,10 @@ export async function generateParallelComparisonSummary(input: {
         outputText: result.outputText ?? "",
       })),
     }),
+    concurrencyOwner: {
+      ownerKind: "parallel_comparison",
+      ownerId: `compare:${input.sessionId}:${Date.now()}`,
+    },
   });
 
   await prisma.aiRequest.create({
@@ -506,6 +511,10 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
     model: input.model,
     prompt: input.prompt,
     attachments: toProviderAttachments(input.attachments),
+    concurrencyOwner: {
+      ownerKind: "result",
+      ownerId: initial.id,
+    },
   });
   const encryptedOutput =
     providerResult.outputText && providerResult.outputText.trim()

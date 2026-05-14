@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/access-policy";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const RESERVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const FREE_POLICY = {
   dailyLimit: 10,
@@ -90,6 +91,7 @@ export type UsageCheckContext = {
     id: string;
     dailyRequestLimit: number;
     dailyRequestUsed: number;
+    pendingReservedRequests: number;
   };
 };
 
@@ -97,7 +99,7 @@ export class UsageLimitReachedError extends Error {
   summary: UsageStatusSummary;
 
   constructor(summary: UsageStatusSummary) {
-    super("오늘의 사용량을 모두 사용했어요.");
+    super("Today’s usage limit has been reached.");
     this.summary = summary;
   }
 }
@@ -107,13 +109,13 @@ export class UsageInputLimitError extends Error {
 
   constructor(summary: UsageStatusSummary) {
     const prefix = summary.isBoostActive
-      ? "Boost 기간에는"
+      ? "Boost access allows"
       : summary.planType === PlanType.FREE
-        ? "Free 사용자는"
-        : `${summary.planLabel.toUpperCase()} 플랜에서는`;
+        ? "Free access allows"
+        : `${summary.planLabel.toUpperCase()} plan allows`;
 
     super(
-      `현재 플랜에서 입력 가능한 길이를 초과했어요. ${prefix} ${summary.inputCharLimit.toLocaleString()}자까지 입력할 수 있어요.`,
+      `This request exceeds the current input limit. ${prefix} up to ${summary.inputCharLimit.toLocaleString()} characters.`,
     );
     this.summary = summary;
   }
@@ -142,6 +144,32 @@ function daysRemainingInclusive(endsAt: Date | null, now = new Date()) {
     1,
     Math.ceil((endsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
   );
+}
+
+async function withSerializableRetries<T>(
+  callback: () => Promise<T>,
+  retries = 3,
+): Promise<T> {
+  let attempt = 0;
+  let lastError: unknown;
+
+  while (attempt < retries) {
+    try {
+      return await callback();
+    } catch (error) {
+      const prismaCode =
+        error instanceof Prisma.PrismaClientKnownRequestError
+          ? error.code
+          : null;
+      if (prismaCode !== "P2034") {
+        throw error;
+      }
+      lastError = error;
+      attempt += 1;
+    }
+  }
+
+  throw lastError ?? new Error("The transaction could not be completed.");
 }
 
 async function getUserUsageProfile(userId: string) {
@@ -210,17 +238,21 @@ function resolvePolicy(input: {
   if (input.profile.planType === PlanType.PRO || input.hasLegacySubscription) {
     const couponLimitActive = Boolean(
       input.couponLimitIsLifetime ||
-        (input.couponLimitEndsAt && input.couponLimitEndsAt.getTime() > now.getTime()),
+        (input.couponLimitEndsAt &&
+          input.couponLimitEndsAt.getTime() > now.getTime()),
     );
-    const isUnlimitedDaily = couponLimitActive && input.couponDailyLimit == null;
+    const isUnlimitedDaily =
+      couponLimitActive && input.couponDailyLimit == null;
     const resolvedDailyLimit = couponLimitActive
       ? (input.couponDailyLimit ?? UNLIMITED_DAILY_LIMIT)
       : PRO_POLICY.dailyLimit;
     return {
       planType: PlanType.PRO,
-      billingType: input.hasLegacySubscription && input.profile.billingType === BillingType.NONE
-        ? BillingType.MONTHLY
-        : input.profile.billingType,
+      billingType:
+        input.hasLegacySubscription &&
+        input.profile.billingType === BillingType.NONE
+          ? BillingType.MONTHLY
+          : input.profile.billingType,
       planLabel: "pro",
       isBoostActive: false,
       boostEndsAt: null,
@@ -273,7 +305,10 @@ function resolvePolicy(input: {
   };
 }
 
-async function getOrCreateUsageRecord(userId: string, policy: ResolvedUsagePolicy) {
+async function getOrCreateUsageRecord(
+  userId: string,
+  policy: ResolvedUsagePolicy,
+) {
   const { usageDate } = getKstDateInfo();
   return prisma.usageLimit.upsert({
     where: {
@@ -295,7 +330,24 @@ async function getOrCreateUsageRecord(userId: string, policy: ResolvedUsagePolic
   });
 }
 
-function toSummary(policy: ResolvedUsagePolicy, dailyUsed: number): UsageStatusSummary {
+async function countPendingReservedRequests(input: { usageLimitId: string }) {
+  return prisma.usageReservation.aggregate({
+    where: {
+      usageLimitId: input.usageLimitId,
+      status: "reserved",
+    },
+    _sum: {
+      reservedRequestCount: true,
+    },
+  });
+}
+
+function toSummary(
+  policy: ResolvedUsagePolicy,
+  dailyUsedCommitted: number,
+  pendingReserved = 0,
+): UsageStatusSummary {
+  const dailyUsed = dailyUsedCommitted + pendingReserved;
   const remaining = Math.max(0, policy.dailyLimit - dailyUsed);
 
   return {
@@ -303,7 +355,8 @@ function toSummary(policy: ResolvedUsagePolicy, dailyUsed: number): UsageStatusS
     resetAt: policy.resetAt.toISOString(),
     dailyUsed,
     remaining,
-    warningThresholdReached: policy.dailyLimit > 0 ? dailyUsed / policy.dailyLimit >= 0.8 : false,
+    warningThresholdReached:
+      policy.dailyLimit > 0 ? dailyUsed / policy.dailyLimit >= 0.8 : false,
     isLimitReached: dailyUsed >= policy.dailyLimit,
   };
 }
@@ -321,7 +374,12 @@ export async function getUsageStatus(userId: string) {
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
   });
   const usage = await getOrCreateUsageRecord(userId, policy);
-  return toSummary(policy, usage.dailyRequestUsed);
+  const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
+  return toSummary(
+    policy,
+    usage.dailyRequestUsed,
+    pending._sum.reservedRequestCount ?? 0,
+  );
 }
 
 export async function requireUsageAccess(input: {
@@ -340,7 +398,13 @@ export async function requireUsageAccess(input: {
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
   });
   const usage = await getOrCreateUsageRecord(input.userId, policy);
-  const summary = toSummary(policy, usage.dailyRequestUsed);
+  const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
+  const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
+  const summary = toSummary(
+    policy,
+    usage.dailyRequestUsed,
+    pendingReservedRequests,
+  );
 
   if (summary.isLimitReached) {
     throw new UsageLimitReachedError(summary);
@@ -356,8 +420,229 @@ export async function requireUsageAccess(input: {
       id: usage.id,
       dailyRequestLimit: usage.dailyRequestLimit,
       dailyRequestUsed: usage.dailyRequestUsed,
+      pendingReservedRequests,
     },
   } satisfies UsageCheckContext;
+}
+
+export async function reserveUsage(input: {
+  userId: string;
+  requestType: string;
+  inputCharCount: number;
+  reservationKey: string;
+  context?: UsageCheckContext;
+}) {
+  const context =
+    input.context ??
+    (await requireUsageAccess({
+      userId: input.userId,
+      inputCharCount: input.inputCharCount,
+    }));
+
+  const summary = toSummary(
+    context.policy,
+    context.usage.dailyRequestUsed,
+    context.usage.pendingReservedRequests,
+  );
+
+  if (summary.isLimitReached) {
+    throw new UsageLimitReachedError(summary);
+  }
+
+  return withSerializableRetries(() =>
+    prisma.$transaction(
+      async (tx) => {
+        const existingReservation = await tx.usageReservation.findUnique({
+          where: { reservationKey: input.reservationKey },
+        });
+
+        if (existingReservation) {
+          return existingReservation;
+        }
+
+        const usage = await tx.usageLimit.update({
+          where: { id: context.usage.id },
+          data: {
+            dailyRequestLimit: context.policy.dailyLimit,
+            resetAt: context.policy.resetAt,
+          },
+        });
+
+        const pending = await tx.usageReservation.aggregate({
+          where: {
+            usageLimitId: usage.id,
+            status: "reserved",
+          },
+          _sum: {
+            reservedRequestCount: true,
+          },
+        });
+        const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
+        const effectiveSummary = toSummary(
+          context.policy,
+          usage.dailyRequestUsed,
+          pendingReservedRequests,
+        );
+
+        if (effectiveSummary.isLimitReached) {
+          throw new UsageLimitReachedError(effectiveSummary);
+        }
+
+        return tx.usageReservation.create({
+          data: {
+            reservationKey: input.reservationKey,
+            userId: input.userId,
+            usageLimitId: usage.id,
+            requestType: input.requestType,
+            inputCharCount: input.inputCharCount,
+            reservedRequestCount: 1,
+            status: "reserved",
+            expiresAt: new Date(Date.now() + RESERVATION_TTL_MS),
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
+  );
+}
+
+export async function settleUsageReservation(input: {
+  reservationId?: string;
+  reservationKey?: string;
+  userId: string;
+  requestType: string;
+  selectedModels: string[];
+  inputCharCount: number;
+  inputTokenCount: number;
+  outputTokenCount: number;
+  estimatedCostUsd: number;
+  creditsUsed?: number;
+}) {
+  const reservationWhere = input.reservationId
+    ? { id: input.reservationId }
+    : input.reservationKey
+      ? { reservationKey: input.reservationKey }
+      : null;
+
+  if (!reservationWhere) {
+    throw new Error("A usage reservation reference is required.");
+  }
+
+  const { user, userSubscription } = await getUserUsageProfile(input.userId);
+  const policy = resolvePolicy({
+    profile: user,
+    hasLegacySubscription: hasActiveSubscription({
+      isLifetime: userSubscription?.isLifetime ?? false,
+      planEndsAt: userSubscription?.planEndsAt ?? null,
+    }),
+    couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
+    couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
+    couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
+  });
+
+  await withSerializableRetries(() =>
+    prisma.$transaction(
+      async (tx) => {
+        const reservation = await tx.usageReservation.findUnique({
+          where: reservationWhere,
+          include: {
+            usageLimit: true,
+          },
+        });
+
+        if (!reservation || reservation.userId !== input.userId) {
+          throw new Error("Usage reservation was not found.");
+        }
+
+        if (reservation.status === "settled") {
+          return reservation;
+        }
+
+        if (reservation.status === "released") {
+          return reservation;
+        }
+
+        await tx.usageLimit.update({
+          where: { id: reservation.usageLimitId },
+          data: {
+            dailyRequestUsed: {
+              increment: reservation.reservedRequestCount,
+            },
+          },
+        });
+
+        await tx.usageLog.create({
+          data: {
+            userId: input.userId,
+            requestType: input.requestType,
+            selectedModels: input.selectedModels,
+            planTypeSnapshot: policy.planType,
+            billingTypeSnapshot: policy.billingType,
+            isBoostSnapshot: policy.isBoostActive,
+            inputCharCount: input.inputCharCount,
+            inputTokenCount: input.inputTokenCount,
+            outputTokenCount: input.outputTokenCount,
+            requestCountCharged: reservation.reservedRequestCount,
+            estimatedCostUsd: decimal(input.estimatedCostUsd),
+            creditsUsed: input.creditsUsed ?? 0,
+          },
+        });
+
+        await tx.usageReservation.update({
+          where: { id: reservation.id },
+          data: {
+            status: "settled",
+            settledAt: new Date(),
+          },
+        });
+
+        return reservation;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
+  );
+
+  return getUsageStatus(input.userId);
+}
+
+export async function releaseUsageReservation(input: {
+  reservationId?: string;
+  reservationKey?: string;
+  userId: string;
+}) {
+  const reservationWhere = input.reservationId
+    ? { id: input.reservationId }
+    : input.reservationKey
+      ? { reservationKey: input.reservationKey }
+      : null;
+
+  if (!reservationWhere) {
+    throw new Error("A usage reservation reference is required.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const reservation = await tx.usageReservation.findUnique({
+      where: reservationWhere,
+    });
+
+    if (!reservation || reservation.userId !== input.userId) {
+      return;
+    }
+
+    if (reservation.status !== "reserved") {
+      return;
+    }
+
+    await tx.usageReservation.update({
+      where: { id: reservation.id },
+      data: {
+        status: "released",
+        releasedAt: new Date(),
+      },
+    });
+  });
+
+  return getUsageStatus(input.userId);
 }
 
 export async function recordUsageSuccess(input: {
@@ -408,7 +693,7 @@ export async function recordUsageSuccess(input: {
     return usage;
   });
 
-  return toSummary(context.policy, updatedUsage.dailyRequestUsed);
+  return toSummary(context.policy, updatedUsage.dailyRequestUsed, 0);
 }
 
 export async function grantWelcomeBoostToUser(userId: string) {
