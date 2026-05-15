@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   claimSessionAttachments,
@@ -46,6 +47,7 @@ type ExecutePersistInput = {
   requestType: ActionType | "rerun";
   prompt: string;
   attachments?: RuntimeAttachment[];
+  onStarted?: (result: PersistedWorkbenchResult) => void | Promise<void>;
 };
 
 const MAX_PROJECT_CONTEXT_CHARS = 6000;
@@ -64,12 +66,27 @@ type IncrementalProgressEvent = {
   detail?: string;
 };
 
+type PersistedWorkbenchResult = Prisma.ResultGetPayload<{
+  include: {
+    workflowStep: {
+      select: {
+        orderIndex: true;
+        actionType: true;
+      };
+    };
+  };
+}>;
+
 type IncrementalRunCallbacks = {
   onSession?: (session: Awaited<ReturnType<typeof upsertWorkbenchSession>>) => void | Promise<void>;
   onStepStart?: (event: IncrementalProgressEvent) => void | Promise<void>;
+  onResultStart?: (event: {
+    index: number;
+    result: PersistedWorkbenchResult;
+  }) => void | Promise<void>;
   onResult?: (event: {
     index: number;
-    result: Awaited<ReturnType<typeof executeAndPersistResult>>;
+    result: PersistedWorkbenchResult;
   }) => void | Promise<void>;
   shouldStop?: () => boolean | Promise<boolean>;
 };
@@ -464,6 +481,11 @@ export async function upsertWorkbenchSession(
 
 export async function executeAndPersistResult(input: ExecutePersistInput) {
   const initial = await prisma.result.create({
+    include: {
+      workflowStep: {
+        select: { orderIndex: true, actionType: true },
+      },
+    },
     data: {
       sessionId: input.sessionId,
       workflowStepId: input.workflowStepId || null,
@@ -485,6 +507,8 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
       })),
     });
   }
+
+  await input.onStarted?.(initial);
 
   const providerResult = await callProvider(input.userId, {
     provider: input.provider,
@@ -686,6 +710,12 @@ export async function executeParallelRunIncremental(input: {
         model: target.model,
         requestType: "generate",
         attachments: runtimeAttachments,
+        onStarted: async (startedResult) => {
+          await input.callbacks?.onResultStart?.({
+            index,
+            result: startedResult,
+          });
+        },
         prompt: composePrompt({
           actionType: "generate",
           originalInput: input.session.originalInput,
@@ -1000,6 +1030,12 @@ export async function executeSequentialRunIncremental(input: {
       model: step.targetModel,
       requestType: step.actionType,
       attachments: runtimeAttachments,
+      onStarted: async (startedResult) => {
+        await input.callbacks?.onResultStart?.({
+          index: expandedStep.executionOrder - 1,
+          result: startedResult,
+        });
+      },
       prompt: composePrompt({
         actionType: step.actionType,
         originalInput: input.session.originalInput,

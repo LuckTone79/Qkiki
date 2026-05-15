@@ -18,6 +18,7 @@ import {
   failExecutionRun,
 } from "@/lib/execution-runs";
 import { runWorkbenchSchema } from "@/lib/validation";
+import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import type { ProviderName } from "@/lib/ai/types";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
 import { releaseUsageReservation, reserveUsage } from "@/lib/usage-policy";
@@ -41,6 +42,8 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    await closeStaleWorkbenchRuns({ userId: user.id });
 
     const usageContext = user.isTrial
       ? null

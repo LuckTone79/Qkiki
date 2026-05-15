@@ -306,7 +306,10 @@ export async function completeExecutionRun(input: CompleteExecutionRunInput) {
       select: { id: true, status: true },
     });
 
-    if (current?.status === "canceled") {
+    if (
+      current?.status === "canceled" ||
+      current?.status === "failed"
+    ) {
       return current;
     }
   }
@@ -337,6 +340,10 @@ export async function failExecutionRun(input: {
   });
 
   if (current?.status === "canceled") {
+    return current;
+  }
+
+  if (current?.status === "failed") {
     return current;
   }
 

@@ -194,6 +194,18 @@ async function executeWorkbenchRunStep(
           result: event.result,
         });
       },
+      onResultStart: async (event: {
+        index: number;
+        result: Awaited<
+          ReturnType<typeof executeParallelRunIncremental>
+        >["results"][number];
+      }) => {
+        await emit({
+          type: "result",
+          index: event.index,
+          result: event.result,
+        });
+      },
       shouldStop: async () =>
         payload.executionRunId
           ? isExecutionRunCanceled(payload.executionRunId)

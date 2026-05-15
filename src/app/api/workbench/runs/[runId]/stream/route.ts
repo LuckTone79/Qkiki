@@ -1,6 +1,7 @@
 import { getRun } from "workflow/api";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
 import { getExecutionRunForUser, readSignedRunToken } from "@/lib/execution-runs";
+import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -25,7 +26,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       return Response.json({ error: "Run not found." }, { status: 404 });
     }
 
-    const executionRun =
+    let executionRun =
       "executionRunId" in token
         ? await getExecutionRunForUser({
             executionRunId: token.executionRunId,
@@ -35,6 +36,41 @@ export async function GET(request: Request, { params }: RouteContext) {
 
     if ("executionRunId" in token && !executionRun) {
       return Response.json({ error: "Run not found." }, { status: 404 });
+    }
+
+    if ("executionRunId" in token) {
+      await closeStaleWorkbenchRuns({
+        executionRunId: token.executionRunId,
+        userId: user.id,
+      });
+      executionRun = await getExecutionRunForUser({
+        executionRunId: token.executionRunId,
+        userId: user.id,
+      });
+
+      if (
+        executionRun &&
+        ["failed", "canceled"].includes(executionRun.status)
+      ) {
+        const encoder = new TextEncoder();
+        return new Response(
+          encoder.encode(
+            `${JSON.stringify({
+              type: "error",
+              error:
+                executionRun.streamError ||
+                executionRun.errorMessage ||
+                "The AI run stopped before returning a result.",
+            })}\n`,
+          ),
+          {
+            headers: {
+              "Content-Type": "application/x-ndjson; charset=utf-8",
+              "Cache-Control": "no-cache, no-transform",
+            },
+          },
+        );
+      }
     }
 
     const workflowRunId =

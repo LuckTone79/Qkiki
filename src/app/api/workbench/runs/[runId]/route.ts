@@ -8,6 +8,7 @@ import {
   readSignedRunToken,
 } from "@/lib/execution-runs";
 import { releaseUsageReservation } from "@/lib/usage-policy";
+import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -29,6 +30,11 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     if ("executionRunId" in token) {
+      await closeStaleWorkbenchRuns({
+        executionRunId: token.executionRunId,
+        userId: user.id,
+      });
+
       const executionRun = await getExecutionRunForUser({
         executionRunId: token.executionRunId,
         userId: user.id,

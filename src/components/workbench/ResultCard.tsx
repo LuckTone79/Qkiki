@@ -93,6 +93,7 @@ export function ResultCard({
   const [composer, setComposer] = useState<"follow_up" | "review" | null>(null);
   const [copied, setCopied] = useState(false);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
+  const isRunning = result.status === "running";
   const stepLabel = result.workflowStep
     ? `${t("step")} ${result.workflowStep.orderIndex}`
     : null;
@@ -156,11 +157,16 @@ export function ResultCard({
       </div>
 
       <div className="mt-4 whitespace-pre-wrap rounded-md border border-stone-200 bg-[#fbfcf8] p-3 text-sm leading-6 text-stone-800">
-        {result.status === "failed"
+        {isRunning
+          ? language === "ko"
+            ? "모델이 응답을 생성하고 있습니다. 결과가 도착하면 이 카드가 자동으로 업데이트됩니다."
+            : "The model is generating a response. This card will update when the result arrives."
+          : result.status === "failed"
           ? result.errorMessage || t("providerFailed")
           : result.outputText || t("noOutputReturned")}
       </div>
 
+      {isRunning ? null : (
       <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <button
           type="button"
@@ -205,8 +211,9 @@ export function ResultCard({
           {t("deleteBranch")}
         </button>
       </div>
+      )}
 
-      {composer ? (
+      {composer && !isRunning ? (
         <BranchComposer
           mode={composer}
           providers={readyProviders.length ? readyProviders : providers}

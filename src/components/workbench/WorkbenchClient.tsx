@@ -25,6 +25,7 @@ import {
 } from "@/components/workbench/ResultCard";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import {
+  expandWorkflowSteps,
   MAX_REPEAT_BLOCKS,
   MAX_TOTAL_SEQUENTIAL_STEPS,
 } from "@/lib/ai/workflow-control";
@@ -706,6 +707,20 @@ function workflowControlFromInput(
   );
 }
 
+function expandWorkflowStepsForMonitor(
+  steps: WorkflowStepState[],
+  control: WorkflowControlState,
+) {
+  try {
+    return expandWorkflowSteps(
+      steps,
+      workflowControlToInput(control),
+    ) as WorkflowStepState[];
+  } catch {
+    return steps;
+  }
+}
+
 function mergeResults(current: WorkbenchResult[], incoming: WorkbenchResult[]) {
   const map = new Map(current.map((result) => [result.id, result]));
   incoming.forEach((result) => map.set(result.id, result));
@@ -1024,6 +1039,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   function createRunMonitor(
     modeToRun: "parallel" | "sequential",
     monitorSteps?: WorkflowStepState[],
+    monitorControl?: WorkflowControlState,
   ) {
     const startedAt = Date.now();
     const stepsForMonitor = monitorSteps ?? workflowSteps;
@@ -1074,16 +1090,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       };
     }
 
+    const expandedStepsForMonitor = expandWorkflowStepsForMonitor(
+      stepsForMonitor,
+      monitorControl ?? normalizedWorkflowControl,
+    );
+
     return {
       mode: "sequential" as const,
       startedAt,
-      entries: stepsForMonitor.map((step, index) => ({
-        key: `step-${step.uid}`,
+      entries: expandedStepsForMonitor.map((step, index) => ({
+        key: `step-${step.uid}-${index + 1}`,
         title: `${providerLabel(step.targetProvider)} / ${getModelDisplayName(
           step.targetProvider,
           step.targetModel,
         )}`,
-        subtitle: `${uiText.sequentialStep} ${step.orderIndex} - ${getActionTypeDisplayLabel(
+        subtitle: `${uiText.sequentialStep} ${index + 1} - ${getActionTypeDisplayLabel(
           step.actionType,
           language,
         )}`,
@@ -1429,6 +1450,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     const modeToRun =
       session.activeRun.mode === "sequential" ? "sequential" : "parallel";
+    const sessionWorkflowSteps = toSessionWorkflowSteps(session);
+    const sessionWorkflowControl = workflowControlFromInput(
+      parseWorkflowControlJson(session.workflowControlJson),
+      sessionWorkflowSteps.length,
+    );
 
     setError("");
     setNotice(
@@ -1437,7 +1463,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         : "Resuming the active run.",
     );
     setProgressNow(Date.now());
-    setRunMonitor(createRunMonitor(modeToRun, toSessionWorkflowSteps(session)));
+    setRunMonitor(
+      createRunMonitor(modeToRun, sessionWorkflowSteps, sessionWorkflowControl),
+    );
     focusProgressPanel();
     setRunning(true);
     setCurrentRunId(session.activeRun.runId);
@@ -2167,9 +2195,33 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       if (event.type === "result") {
-        receivedResults += 1;
-        streamedResults.push(event.result);
         setResults((current) => mergeResults(current, [event.result]));
+        if (event.result.status === "running") {
+          updateProgressEntry({
+            index: event.index,
+            status: "active",
+            detail: uiText.running,
+            workLines: buildWorkLines({
+              language,
+              primary: uiText.running,
+              secondary: compactPreview(
+                event.result.promptSnapshot,
+                event.result.provider,
+              ),
+            }),
+          });
+          return;
+        }
+
+        receivedResults += 1;
+        const existingIndex = streamedResults.findIndex(
+          (result) => result.id === event.result.id,
+        );
+        if (existingIndex >= 0) {
+          streamedResults[existingIndex] = event.result;
+        } else {
+          streamedResults.push(event.result);
+        }
         updateProgressEntry({
           index: event.index,
           status: event.result.status === "failed" ? "failed" : "completed",
