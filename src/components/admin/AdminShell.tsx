@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentAdmin } from "@/lib/admin-auth";
@@ -54,10 +56,46 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const { language } = useLanguage();
+  const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const t = adminText[language];
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  function isActiveHref(href: string) {
+    if (href === "/admin") {
+      return pathname === href;
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
+  function navClassName(href: string, mobile = false) {
+    const active = isActiveHref(href);
+    const pending = pendingHref === href;
+    const base = mobile
+      ? "min-w-20 flex-1 rounded-md px-2 py-2 text-center text-xs font-semibold transition-colors"
+      : "rounded-md px-3 py-2 text-sm font-medium transition-colors";
+
+    if (pending) {
+      return `${base} bg-teal-50 text-teal-800 ring-1 ring-teal-200`;
+    }
+
+    if (active) {
+      return `${base} bg-slate-900 text-white`;
+    }
+
+    return `${base} text-slate-700 hover:bg-slate-100 hover:text-slate-950`;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      {pendingHref ? (
+        <div className="fixed inset-x-0 top-0 z-50 h-1 overflow-hidden bg-teal-100">
+          <div className="h-full w-1/3 animate-pulse bg-teal-600" />
+        </div>
+      ) : null}
       <div className="mx-auto flex min-h-screen max-w-[1700px] flex-col lg:flex-row">
         <aside className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur lg:static lg:w-72 lg:border-b-0 lg:border-r lg:bg-white lg:px-5">
           <div className="flex items-center justify-between gap-4 lg:block">
@@ -75,7 +113,13 @@ export function AdminShell({
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                aria-current={isActiveHref(item.href) ? "page" : undefined}
+                onClick={() => {
+                  if (!isActiveHref(item.href)) {
+                    setPendingHref(item.href);
+                  }
+                }}
+                className={navClassName(item.href)}
               >
                 {t[item.key]}
               </Link>
@@ -113,7 +157,13 @@ export function AdminShell({
             <Link
               key={item.href}
               href={item.href}
-              className="min-w-20 flex-1 rounded-md px-2 py-2 text-center text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+              aria-current={isActiveHref(item.href) ? "page" : undefined}
+              onClick={() => {
+                if (!isActiveHref(item.href)) {
+                  setPendingHref(item.href);
+                }
+              }}
+              className={navClassName(item.href, true)}
             >
               {t[item.key]}
             </Link>

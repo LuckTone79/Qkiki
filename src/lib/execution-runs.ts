@@ -56,7 +56,7 @@ type CreateExecutionRunInput = {
 
 type CompleteExecutionRunInput = {
   executionRunId: string;
-  status: "completed" | "partial";
+  status: "completed" | "partial" | "canceled";
   sessionId?: string | null;
   finalResultId?: string | null;
   streamError?: string | null;
@@ -250,8 +250,11 @@ export async function assignWorkflowRunToExecutionRun(input: {
 }
 
 export async function markExecutionRunRunning(executionRunId: string) {
-  return prisma.executionRun.update({
-    where: { id: executionRunId },
+  return prisma.executionRun.updateMany({
+    where: {
+      id: executionRunId,
+      status: { in: [...ACTIVE_RUN_STATUSES] },
+    },
     data: {
       status: "running",
       startedAt: new Date(),
@@ -282,8 +285,11 @@ export async function updateExecutionRunProgress(input: {
   totalStepsDone: number;
   sessionId?: string | null;
 }) {
-  return prisma.executionRun.update({
-    where: { id: input.executionRunId },
+  return prisma.executionRun.updateMany({
+    where: {
+      id: input.executionRunId,
+      status: { in: [...ACTIVE_RUN_STATUSES] },
+    },
     data: {
       totalStepsDone: input.totalStepsDone,
       status: "running",
@@ -294,6 +300,17 @@ export async function updateExecutionRunProgress(input: {
 }
 
 export async function completeExecutionRun(input: CompleteExecutionRunInput) {
+  if (input.status !== "canceled") {
+    const current = await prisma.executionRun.findUnique({
+      where: { id: input.executionRunId },
+      select: { id: true, status: true },
+    });
+
+    if (current?.status === "canceled") {
+      return current;
+    }
+  }
+
   return prisma.executionRun.update({
     where: { id: input.executionRunId },
     data: {
@@ -314,6 +331,15 @@ export async function failExecutionRun(input: {
   executionRunId: string;
   errorMessage: string;
 }) {
+  const current = await prisma.executionRun.findUnique({
+    where: { id: input.executionRunId },
+    select: { id: true, status: true },
+  });
+
+  if (current?.status === "canceled") {
+    return current;
+  }
+
   return prisma.executionRun.update({
     where: { id: input.executionRunId },
     data: {
@@ -324,6 +350,42 @@ export async function failExecutionRun(input: {
       updatedAt: new Date(),
     },
   });
+}
+
+export async function cancelExecutionRunForUser(input: {
+  executionRunId: string;
+  userId: string;
+  reason?: string;
+}) {
+  const current = await getExecutionRunForUser(input);
+
+  if (!current) {
+    return null;
+  }
+
+  if (!ACTIVE_RUN_STATUSES.includes(current.status as (typeof ACTIVE_RUN_STATUSES)[number])) {
+    return current;
+  }
+
+  return prisma.executionRun.update({
+    where: { id: current.id },
+    data: {
+      status: "canceled",
+      errorMessage: input.reason ?? null,
+      streamError: input.reason ?? "The run was stopped by the user.",
+      finishedAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export async function isExecutionRunCanceled(executionRunId: string) {
+  const executionRun = await prisma.executionRun.findUnique({
+    where: { id: executionRunId },
+    select: { status: true },
+  });
+
+  return executionRun?.status === "canceled";
 }
 
 export async function getExecutionRunForUser(input: {

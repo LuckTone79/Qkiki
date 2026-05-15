@@ -8,6 +8,7 @@ import {
 import {
   completeExecutionRun,
   failExecutionRun,
+  isExecutionRunCanceled,
   markExecutionRunRunning,
   updateExecutionRunProgress,
   updateExecutionRunSession,
@@ -93,6 +94,16 @@ type WorkbenchRunWorkflowResult = Extract<
   { type: "done" }
 >;
 
+function getSelectedModels(session: RunWorkbenchInput) {
+  return session.mode === "parallel"
+    ? (session.targets ?? []).map(
+        (target) => `${target.provider}/${target.model}`,
+      )
+    : (session.steps ?? []).map(
+        (step) => `${step.targetProvider}/${step.targetModel}`,
+      );
+}
+
 function toSessionSnapshot(input: {
   id: string;
   title: string;
@@ -118,6 +129,9 @@ async function executeWorkbenchRunStep(
 
   let latestSession: WorkbenchStreamSession | null = null;
   let resultsCompleted = 0;
+  const completedResults: Awaited<
+    ReturnType<typeof executeParallelRunIncremental>
+  >["results"] = [];
 
   try {
     if (payload.executionRunId) {
@@ -167,6 +181,7 @@ async function executeWorkbenchRunStep(
         >["results"][number];
       }) => {
         resultsCompleted += 1;
+        completedResults.push(event.result);
         if (payload.executionRunId) {
           await updateExecutionRunProgress({
             executionRunId: payload.executionRunId,
@@ -179,6 +194,10 @@ async function executeWorkbenchRunStep(
           result: event.result,
         });
       },
+      shouldStop: async () =>
+        payload.executionRunId
+          ? isExecutionRunCanceled(payload.executionRunId)
+          : false,
     };
 
     let result: Awaited<ReturnType<typeof executeParallelRunIncremental>>;
@@ -252,14 +271,7 @@ async function executeWorkbenchRunStep(
 
     latestSession = toSessionSnapshot(result.session);
 
-    const selectedModels =
-      payload.session.mode === "parallel"
-        ? (payload.session.targets ?? []).map(
-            (target) => `${target.provider}/${target.model}`,
-          )
-        : (payload.session.steps ?? []).map(
-            (step) => `${step.targetProvider}/${step.targetModel}`,
-          );
+    const selectedModels = getSelectedModels(payload.session);
     const inputTokenCount = (result.results || []).reduce(
       (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
       0,
@@ -300,19 +312,22 @@ async function executeWorkbenchRunStep(
       await emit({ type: "usage", usage });
     }
 
+    const wasCanceled = executionSummary?.stopReason === "canceled";
     const hasFailedResults = result.results.some(
       (item) => item.status === "failed",
     );
     const finalResultId =
       result.session.finalResultId ?? pickFinalResultId(result.results);
-    const streamError = hasFailedResults
+    const streamError = wasCanceled
+      ? "The run was stopped by the user."
+      : hasFailedResults
       ? "One or more model runs ended with an error."
       : "";
 
     if (payload.executionRunId) {
       await completeExecutionRun({
         executionRunId: payload.executionRunId,
-        status: streamError ? "partial" : "completed",
+        status: wasCanceled ? "canceled" : streamError ? "partial" : "completed",
         sessionId: result.session.id,
         finalResultId,
         streamError: streamError || null,
@@ -340,11 +355,33 @@ async function executeWorkbenchRunStep(
         ? error.message
         : "The durable AI run failed.";
 
-    if (payload.usageReservationId && resultsCompleted === 0) {
-      await releaseUsageReservation({
-        reservationId: payload.usageReservationId,
-        userId: payload.userId,
-      }).catch(() => undefined);
+    if (payload.usageReservationId) {
+      if (resultsCompleted === 0) {
+        await releaseUsageReservation({
+          reservationId: payload.usageReservationId,
+          userId: payload.userId,
+        }).catch(() => undefined);
+      } else {
+        await settleUsageReservation({
+          reservationId: payload.usageReservationId,
+          userId: payload.userId,
+          requestType: payload.requestType,
+          selectedModels: getSelectedModels(payload.session),
+          inputCharCount: payload.inputCharCount,
+          inputTokenCount: completedResults.reduce(
+            (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+            0,
+          ),
+          outputTokenCount: completedResults.reduce(
+            (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+            0,
+          ),
+          estimatedCostUsd: completedResults.reduce(
+            (sum, item) => sum + (item.estimatedCost ?? 0),
+            0,
+          ),
+        }).catch(() => undefined);
+      }
     }
 
     if (payload.executionRunId) {

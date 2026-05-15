@@ -137,7 +137,8 @@ type RunProgressStatus =
   | "active"
   | "completed"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "canceled";
 
 type RunProgressEntry = {
   key: string;
@@ -355,6 +356,7 @@ const workbenchUiText = {
     completed: "Output received and saved.",
     failed: "The run ended with an error.",
     skipped: "Skipped because the sequence stopped early.",
+    canceled: "Stopped by user request.",
     parallelRun: "Parallel run",
     sequentialStep: "Step",
     noProgress: "Run a task to see per-model progress updates here.",
@@ -389,6 +391,7 @@ const workbenchUiText = {
     completed: "출력을 받아 저장했습니다.",
     failed: "실행이 오류와 함께 종료되었습니다.",
     skipped: "순차 실행이 조기 종료되어 건너뛰었습니다.",
+    canceled: "사용자 요청으로 중지됐습니다.",
     parallelRun: "병렬 실행",
     sequentialStep: "단계",
     noProgress: "작업을 실행하면 여기에서 모델별 진행 상태를 확인할 수 있습니다.",
@@ -930,6 +933,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     defaultPresetDescription(language),
   );
   const [running, setRunning] = useState(false);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [cancelingRun, setCancelingRun] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [draftBanner, setDraftBanner] = useState<{ savedAt: number } | null>(null);
@@ -951,11 +956,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
   const activeRunIdRef = useRef<string | null>(null);
+  const cancelRequestedRef = useRef(false);
   const routeSyncReadyRef = useRef(false);
 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
   }, [parallelComparison]);
+
+  function setCurrentRunId(runId: string | null) {
+    activeRunIdRef.current = runId;
+    setActiveRunId(runId && runId !== "pending" ? runId : null);
+  }
 
   function providerLabel(providerName: ProviderName) {
     return (
@@ -1358,7 +1369,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setResults([]);
     setRunMonitor(null);
     setNotice("");
-    activeRunIdRef.current = null;
+    setCurrentRunId(null);
     setRunning(false);
 
     const draft = loadDraft();
@@ -1429,10 +1440,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setRunMonitor(createRunMonitor(modeToRun, toSessionWorkflowSteps(session)));
     focusProgressPanel();
     setRunning(true);
-    activeRunIdRef.current = session.activeRun.runId;
+    setCurrentRunId(session.activeRun.runId);
 
     try {
       const streamed = await readRunStream(session.activeRun.runId);
+      if (cancelRequestedRef.current) {
+        return;
+      }
       if (streamed) {
         applyCompletedRun(streamed, modeToRun);
       }
@@ -1441,7 +1455,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         resumeError instanceof Error ? resumeError.message : t("runFailed"),
       );
     } finally {
-      activeRunIdRef.current = null;
+      cancelRequestedRef.current = false;
+      setCurrentRunId(null);
+      setCancelingRun(false);
       setRunning(false);
     }
   }
@@ -2381,6 +2397,64 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setNotice(completionNotice);
   }
 
+  async function stopActiveRun() {
+    const runId = activeRunIdRef.current;
+    if (!runId || runId === "pending" || cancelingRun) {
+      return;
+    }
+
+    cancelRequestedRef.current = true;
+    setCancelingRun(true);
+    setNotice(uiText.canceled);
+    setError("");
+
+    setRunMonitor((current) =>
+      current
+        ? {
+            ...current,
+            entries: current.entries.map((entry) =>
+              entry.status === "active" || entry.status === "queued"
+                ? {
+                    ...entry,
+                    status: "canceled" as const,
+                    detail: uiText.canceled,
+                  }
+                : entry,
+            ),
+          }
+        : current,
+    );
+
+    try {
+      const response = await fetch(
+        `/api/workbench/runs/${encodeURIComponent(runId)}`,
+        {
+          method: "DELETE",
+          headers: { Accept: "application/json" },
+        },
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        cancelRequestedRef.current = false;
+        setError(data.error || t("runFailed"));
+        setCancelingRun(false);
+        return;
+      }
+    } catch (stopError) {
+      cancelRequestedRef.current = false;
+      setError(stopError instanceof Error ? stopError.message : t("runFailed"));
+      setCancelingRun(false);
+      return;
+    }
+
+    setCurrentRunId(null);
+    setRunning(false);
+    setCancelingRun(false);
+  }
+
   async function runWorkbench() {
     if (running || activeRunIdRef.current) {
       return;
@@ -2420,7 +2494,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     if (mode === "parallel") {
       setParallelComparison({ signature: "", status: "idle" });
     }
-    activeRunIdRef.current = "pending";
+    setCurrentRunId("pending");
     setRunning(true);
     const body = {
       sessionId,
@@ -2504,8 +2578,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         return;
       }
 
-      activeRunIdRef.current = kickoff.runId;
+      setCurrentRunId(kickoff.runId);
       const streamed = await readRunStream(kickoff.runId);
+      if (cancelRequestedRef.current) {
+        return;
+      }
       data = streamed || {};
 
       if (!response.ok || !data.session) {
@@ -2527,9 +2604,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
       applyCompletedRun(data, mode);
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : t("runFailed"));
+      if (cancelRequestedRef.current) {
+        setNotice(uiText.canceled);
+      } else {
+        setError(runError instanceof Error ? runError.message : t("runFailed"));
+      }
     } finally {
-      activeRunIdRef.current = null;
+      cancelRequestedRef.current = false;
+      setCurrentRunId(null);
+      setCancelingRun(false);
       setRunning(false);
     }
   }
@@ -3051,6 +3134,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               >
                 {running ? t("running") : t("run")}
               </button>
+              {running && activeRunId ? (
+                <button
+                  type="button"
+                  onClick={stopActiveRun}
+                  disabled={cancelingRun}
+                  className="w-full rounded-md border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60 sm:w-auto"
+                >
+                  {cancelingRun
+                    ? language === "ko"
+                      ? "중지 중..."
+                      : "Stopping..."
+                    : language === "ko"
+                      ? "전체 작업 중지"
+                      : "Stop all"}
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -3356,6 +3455,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               >
                 {running ? t("running") : t("run")}
               </button>
+              {running && activeRunId ? (
+                <button
+                  type="button"
+                  onClick={stopActiveRun}
+                  disabled={cancelingRun}
+                  className="rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                >
+                  {cancelingRun
+                    ? language === "ko"
+                      ? "중지 중..."
+                      : "Stopping..."
+                    : language === "ko"
+                      ? "전체 작업 중지"
+                      : "Stop all"}
+                </button>
+              ) : null}
             </div>
             </div>
           ) : null}
@@ -3378,9 +3493,27 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </p>
               </div>
               {runMonitor ? (
-                <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
-                  {formatElapsedTime(runMonitor.startedAt, progressNow, language)}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {running && activeRunId ? (
+                    <button
+                      type="button"
+                      onClick={stopActiveRun}
+                      disabled={cancelingRun}
+                      className="rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
+                    >
+                      {cancelingRun
+                        ? language === "ko"
+                          ? "중지 중..."
+                          : "Stopping..."
+                        : language === "ko"
+                          ? "전체 작업 중지"
+                          : "Stop all"}
+                    </button>
+                  ) : null}
+                  <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
+                    {formatElapsedTime(runMonitor.startedAt, progressNow, language)}
+                  </span>
+                </div>
               ) : null}
             </div>
 
@@ -3406,6 +3539,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                             ? "bg-teal-100 text-teal-800"
                             : entry.status === "failed"
                               ? "bg-rose-100 text-rose-700"
+                              : entry.status === "canceled"
+                                ? "bg-rose-50 text-rose-700"
                               : entry.status === "skipped"
                                 ? "bg-stone-200 text-stone-600"
                                 : entry.status === "active"
@@ -3427,6 +3562,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                           ? t("statusCompleted")
                           : entry.status === "failed"
                             ? t("statusFailed")
+                            : entry.status === "canceled"
+                              ? language === "ko"
+                                ? "중지됨"
+                                : "Stopped"
                             : entry.status === "active"
                               ? t("statusRunning")
                               : entry.status === "skipped"

@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import { getRun } from "workflow/api";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
 import {
+  cancelExecutionRunForUser,
   getExecutionRunForUser,
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
+import { releaseUsageReservation } from "@/lib/usage-policy";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -110,6 +112,61 @@ export async function GET(_request: Request, { params }: RouteContext) {
       streamError: null,
       executionSummary: null,
       finalResultId: null,
+    });
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}
+
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  try {
+    const user = await requireApiGenerationUser();
+    const { runId } = await params;
+    let token;
+    try {
+      token = readSignedRunToken(decodeURIComponent(runId));
+    } catch {
+      return NextResponse.json({ error: "Run not found." }, { status: 404 });
+    }
+
+    if (token.userId !== user.id || !("executionRunId" in token)) {
+      return NextResponse.json({ error: "Run not found." }, { status: 404 });
+    }
+
+    const executionRun = await getExecutionRunForUser({
+      executionRunId: token.executionRunId,
+      userId: user.id,
+    });
+
+    if (!executionRun) {
+      return NextResponse.json({ error: "Run not found." }, { status: 404 });
+    }
+
+    const canceledRun = await cancelExecutionRunForUser({
+      executionRunId: executionRun.id,
+      userId: user.id,
+      reason: "The run was stopped by the user.",
+    });
+
+    if (
+      executionRun.usageReservationId &&
+      executionRun.totalStepsDone === 0
+    ) {
+      await releaseUsageReservation({
+        reservationId: executionRun.usageReservationId,
+        userId: user.id,
+      }).catch(() => undefined);
+    }
+
+    if (executionRun.workflowRunId) {
+      await getRun(executionRun.workflowRunId).cancel().catch(() => undefined);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      runId,
+      executionRunId: executionRun.id,
+      status: canceledRun?.status ?? executionRun.status,
     });
   } catch (error) {
     return apiErrorResponse(error);

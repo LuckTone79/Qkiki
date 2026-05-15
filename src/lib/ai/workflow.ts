@@ -71,6 +71,7 @@ type IncrementalRunCallbacks = {
     index: number;
     result: Awaited<ReturnType<typeof executeAndPersistResult>>;
   }) => void | Promise<void>;
+  shouldStop?: () => boolean | Promise<boolean>;
 };
 
 export function pickFinalResultId(results: Array<{ id: string; status: string }>) {
@@ -941,6 +942,12 @@ export async function executeSequentialRunIncremental(input: {
   let stopReason: string | null = null;
 
   for (const expandedStep of expandedSteps) {
+    if (await input.callbacks?.shouldStop?.()) {
+      stoppedEarly = true;
+      stopReason = "canceled";
+      break;
+    }
+
     const step = expandedStep.templateStep;
     const qualityThreshold =
       stopCondition?.enabled &&
@@ -1028,6 +1035,18 @@ export async function executeSequentialRunIncremental(input: {
       index: expandedStep.executionOrder - 1,
       result,
     });
+
+    if (result.status === "failed") {
+      stoppedEarly = true;
+      stopReason = `step_${expandedStep.executionOrder}_failed`;
+      break;
+    }
+
+    if (await input.callbacks?.shouldStop?.()) {
+      stoppedEarly = true;
+      stopReason = "canceled";
+      break;
+    }
 
     if (stoppedEarly) {
       break;
