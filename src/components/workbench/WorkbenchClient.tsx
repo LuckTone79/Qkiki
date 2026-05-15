@@ -339,7 +339,7 @@ const workbenchUiText = {
   en: {
     progressTitle: "AI progress",
     progressDescription:
-      "Live status text for each run. This shows work stages, not private chain-of-thought.",
+      "Live status and actual visible input/output snippets for each run.",
     resultOverview: "Result overview",
     resultLayout: "Result layout",
     resultLayoutSingle: "1 column",
@@ -374,7 +374,7 @@ const workbenchUiText = {
   ko: {
     progressTitle: "AI 진행 상태",
     progressDescription:
-      "각 실행의 현재 단계를 텍스트로 보여줍니다. 내부 사고 전체가 아니라 작업 단계 상태입니다.",
+      "각 실행의 현재 상태와 실제 입력/출력 미리보기를 보여줍니다.",
     resultOverview: "결과 개요",
     resultLayout: "결과 배치",
     resultLayoutSingle: "1열",
@@ -737,27 +737,18 @@ function pickDisplayFinalResultId(
   const explicitFinal = results.find(
     (result) => result.id === finalResultId && result.status === "completed",
   );
-  return explicitFinal?.id ?? [...results].reverse().find((result) => result.status === "completed")?.id ?? null;
+  return explicitFinal?.id ?? null;
 }
 
 function sortResultsForDisplay(
   results: WorkbenchResult[],
   mode: "parallel" | "sequential",
-  finalResultId: string | null,
 ) {
   if (mode !== "parallel") {
-    const sorted = [...results].sort(
+    return [...results].sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
-    const effectiveFinalResultId = pickDisplayFinalResultId(sorted, finalResultId);
-    if (!effectiveFinalResultId) {
-      return sorted;
-    }
-    return [
-      ...sorted.filter((result) => result.id === effectiveFinalResultId),
-      ...sorted.filter((result) => result.id !== effectiveFinalResultId),
-    ];
   }
 
   const childrenByParent = new Map<string, WorkbenchResult[]>();
@@ -858,57 +849,32 @@ function buildWorkLines(input: {
 }) {
   if (input.language === "ko") {
     return [
-      `\uacc4\uc0b0 \ucd08\uc810: ${input.primary}`,
-      `\ucc38\uc870 \ub0b4\uc6a9: ${input.secondary}`,
+      `현재 작업: ${input.primary}`,
+      `실제 입력/출력: ${input.secondary}`,
     ] as [string, string];
   }
 
   return [
-    `Working focus: ${input.primary}`,
-    `Reference: ${input.secondary}`,
+    `Current work: ${input.primary}`,
+    `Actual input/output: ${input.secondary}`,
   ] as [string, string];
 }
 
 function activeWorkLines(
   entry: RunProgressEntry,
-  elapsedMs: number,
+  _elapsedMs: number,
   language: AppLanguage,
 ) {
   if (entry.status !== "active") {
     return entry.workLines ?? null;
   }
 
-  const stages =
+  return entry.workLines ?? [
+    language === "ko" ? "모델 응답 대기 중" : "Waiting for the model response",
     language === "ko"
-      ? [
-          "\uc785\ub825\uacfc \uc9c0\uc2dc\uc0ac\ud56d\uc744 \uad6c\uc870\ud654\ud558\ub294 \uc911",
-          "\ud544\uc694\ud55c \ub9e5\ub77d\uacfc \uc81c\uc57d\uc744 \ub300\uc870\ud558\ub294 \uc911",
-          "\ub2f5\ubcc0 \ucd08\uc548\uc744 \uc0dd\uc131\ud558\ub294 \uc911",
-          "\uacb0\uacfc\ub97c \uc810\uac80\ud558\uace0 \uc800\uc7a5 \uc900\ube44 \uc911",
-        ]
-      : [
-          "Structuring the request and instructions",
-          "Checking context and constraints",
-          "Drafting the response content",
-          "Reviewing and preparing to save",
-        ];
-  const thinking =
-    language === "ko"
-      ? [
-          entry.workLines?.[1] ?? "\uc6d0\ubcf8 \uc785\ub825\uc744 \ud655\uc778\ud558\ub294 \uc911",
-          "\ub2f5\ubcc0\uc758 \uc6b0\uc120\uc21c\uc704\uc640 \ud575\uc2ec \ub17c\uc810\uc744 \uc815\ub9ac\ud558\ub294 \uc911",
-          "\uc774\uc804 \ub2e8\uacc4 \ucd9c\ub825\uacfc \ud604\uc7ac \uc9c0\uc2dc\ub97c \ub300\uc870\ud558\ub294 \uc911",
-          "\uc0ac\uc6a9\uc790\uac00 \ubc14\ub85c \uc77d\uc744 \uc218 \uc788\ub294 \ud615\ud0dc\ub85c \uc815\ub9ac\ud558\ub294 \uc911",
-        ]
-      : [
-          entry.workLines?.[1] ?? "Reading the original input",
-          "Ranking key points and constraints",
-          "Comparing prior output with the current instruction",
-          "Shaping the answer into a readable result",
-        ];
-  const stage = stages[Math.floor(elapsedMs / 2500) % stages.length];
-  const thought = thinking[Math.floor(elapsedMs / 1800) % thinking.length];
-  return [stage, thought] as [string, string];
+      ? "아직 모델 출력이 도착하지 않았습니다."
+      : "No model output has arrived yet.",
+  ];
 }
 
 type WorkbenchClientProps = {
@@ -1929,13 +1895,48 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, [results]);
 
   const displayResults = useMemo(
-    () => sortResultsForDisplay(results, mode, finalResultId),
-    [finalResultId, mode, results],
+    () => sortResultsForDisplay(results, mode),
+    [mode, results],
   );
 
   const effectiveFinalResultId = useMemo(
-    () => (mode === "sequential" ? pickDisplayFinalResultId(results, finalResultId) : finalResultId),
-    [finalResultId, mode, results],
+    () => {
+      const explicitFinalId = pickDisplayFinalResultId(results, finalResultId);
+      if (mode !== "sequential" || !explicitFinalId) {
+        return explicitFinalId;
+      }
+
+      const finalResult = results.find((result) => result.id === explicitFinalId);
+      const hasUnfinishedOrFailedResult = results.some((result) =>
+        ["running", "failed"].includes(result.status),
+      );
+      const monitorFinishedCleanly = runMonitor
+        ? runMonitor.entries.every((entry) => entry.status === "completed")
+        : true;
+
+      if (
+        !finalResult ||
+        hasUnfinishedOrFailedResult ||
+        !monitorFinishedCleanly
+      ) {
+        return null;
+      }
+
+      return explicitFinalId;
+    },
+    [finalResultId, mode, results, runMonitor],
+  );
+
+  const latestCompletedResultId = useMemo(
+    () =>
+      [...results]
+        .reverse()
+        .find(
+          (result) =>
+            result.status === "completed" &&
+            result.id !== effectiveFinalResultId,
+        )?.id ?? null,
+    [effectiveFinalResultId, results],
   );
 
   const parallelComparisonCandidates = useMemo(() => {
@@ -3643,7 +3644,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         </div>
                         <div className="min-w-0">
                           <span className="font-semibold text-stone-500">
-                            {language === "ko" ? "\uc2e4\uc2dc\uac04 \uc5f0\uc0b0" : "Live computation"}
+                            {language === "ko" ? "실시간 입력/출력" : "Live input/output"}
                           </span>
                           <p className="whitespace-normal break-words">{entry.workLines[1]}</p>
                         </div>
@@ -3845,6 +3846,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     result={result}
                     depth={resultDepths.get(result.id) ?? 0}
                     isFinal={effectiveFinalResultId === result.id}
+                    isLatestCompleted={latestCompletedResultId === result.id}
                     providers={providers}
                     sourceLabel={
                       parent

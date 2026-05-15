@@ -6,12 +6,12 @@ import {
   settleUsageReservation,
 } from "@/lib/usage-policy";
 
-const DEFAULT_STALE_RUN_SECONDS = 180;
+const DEFAULT_STALE_RUN_SECONDS = 1800;
 
 function getStaleRunSeconds() {
   const raw = process.env.WORKBENCH_STALE_RUN_SECONDS?.trim();
   const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed >= 60) {
+  if (Number.isFinite(parsed) && parsed >= 300) {
     return parsed;
   }
 

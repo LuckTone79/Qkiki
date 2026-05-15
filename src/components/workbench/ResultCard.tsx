@@ -39,6 +39,7 @@ type ResultCardProps = {
   result: WorkbenchResult;
   depth: number;
   isFinal: boolean;
+  isLatestCompleted: boolean;
   providers: ProviderOption[];
   sourceLabel?: string;
   onBranch: (input: {
@@ -82,6 +83,7 @@ export function ResultCard({
   result,
   depth,
   isFinal,
+  isLatestCompleted,
   providers,
   sourceLabel,
   onBranch,
@@ -139,6 +141,13 @@ export function ResultCard({
             {isFinal ? (
               <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
                 {language === "ko" ? "\ucd5c\uc885\uacb0\uacfc" : "Final result"}
+              </span>
+            ) : null}
+            {!isFinal && isLatestCompleted ? (
+              <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+                {language === "ko"
+                  ? "\uc9c4\ud589 step\uc911 \ucd5c\uc2e0\uacb0\uacfc"
+                  : "Latest result in progress"}
               </span>
             ) : null}
           </div>

@@ -622,6 +622,7 @@ export async function callProvider(
 
   if (
     primaryResult.status === "completed" ||
+    input.allowFallback === false ||
     !runtime.fallbackProvider
   ) {
     return primaryResult;

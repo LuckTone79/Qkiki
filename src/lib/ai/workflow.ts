@@ -515,6 +515,7 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
     model: input.model,
     prompt: input.prompt,
     attachments: toProviderAttachments(input.attachments),
+    allowFallback: false,
     concurrencyOwner: {
       ownerKind: "result",
       ownerId: initial.id,
