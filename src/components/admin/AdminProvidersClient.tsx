@@ -19,6 +19,8 @@ const text = {
     fallbackProvider: "Fallback provider",
     none: "None",
     dailyUserLimit: "Daily user limit",
+    timeoutSeconds: "Provider timeout (seconds)",
+    timeoutHelp: "Slow reasoning models may need a longer timeout before they return the full response.",
     rotateApiKey: "Rotate API key",
     leaveBlank: "Leave blank to keep current key",
     clearStoredKey: "Clear stored key",
@@ -43,6 +45,8 @@ const text = {
     fallbackProvider: "대체 공급자",
     none: "없음",
     dailyUserLimit: "일일 사용자 제한",
+    timeoutSeconds: "공급자 타임아웃(초)",
+    timeoutHelp: "느린 추론 모델은 전체 응답을 마칠 때까지 더 긴 제한 시간이 필요할 수 있습니다.",
     rotateApiKey: "API 키 교체",
     leaveBlank: "현재 키 유지 시 빈칸으로 두세요",
     clearStoredKey: "저장된 키 삭제",
@@ -65,6 +69,7 @@ type AdminProviderOption = {
   isEnabled: boolean;
   fallbackProvider: string | null;
   perUserDailyLimit: number;
+  timeoutSeconds: number;
   healthStatus: string;
   lastHealthCheckedAt: string | null;
   hasEnvKey: boolean;
@@ -80,6 +85,7 @@ type Drafts = Record<
     defaultModel: string;
     fallbackProvider: string;
     perUserDailyLimit: number;
+    timeoutSeconds: number;
     apiKey: string;
     clearStoredKey: boolean;
   }
@@ -115,6 +121,7 @@ export function AdminProvidersClient() {
         defaultModel: provider.defaultModel,
         fallbackProvider: provider.fallbackProvider ?? "",
         perUserDailyLimit: provider.perUserDailyLimit,
+        timeoutSeconds: provider.timeoutSeconds,
         apiKey: "",
         clearStoredKey: false,
       };
@@ -136,6 +143,7 @@ export function AdminProvidersClient() {
         defaultModel: draft.defaultModel,
         fallbackProvider: draft.fallbackProvider || null,
         perUserDailyLimit: draft.perUserDailyLimit,
+        timeoutSeconds: draft.timeoutSeconds,
         apiKey: draft.apiKey,
         clearStoredKey: draft.clearStoredKey,
       }),
@@ -308,6 +316,23 @@ export function AdminProvidersClient() {
                     }
                     className="mt-1 min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-700"
                   />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">{t.timeoutSeconds}</span>
+                  <input
+                    type="number"
+                    min={30}
+                    max={900}
+                    value={draft.timeoutSeconds}
+                    onChange={(event) =>
+                      updateDraft(provider.providerName, {
+                        timeoutSeconds: Number(event.target.value),
+                      })
+                    }
+                    className="mt-1 min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-700"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">{t.timeoutHelp}</p>
                 </label>
 
                 <label className="block">

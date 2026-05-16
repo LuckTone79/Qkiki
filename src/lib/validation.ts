@@ -153,6 +153,7 @@ export const adminProviderConfigSchema = z.object({
   defaultModel: z.string().min(1).max(100),
   fallbackProvider: z.enum(providerNames).nullable().optional(),
   perUserDailyLimit: z.number().int().min(1).max(100000).optional(),
+  timeoutSeconds: z.number().int().min(30).max(900).optional(),
   apiKey: z.string().max(4000).optional(),
   clearStoredKey: z.boolean().optional(),
 });

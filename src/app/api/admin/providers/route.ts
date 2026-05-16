@@ -42,6 +42,8 @@ export async function GET() {
         isEnabled: effectiveEnabled,
         fallbackProvider: config?.fallbackProvider ?? null,
         perUserDailyLimit: config?.perUserDailyLimit ?? 100,
+        timeoutSeconds:
+          config?.timeoutSeconds ?? getDefaultTimeoutSeconds(provider.name),
         healthStatus: config?.healthStatus ?? "unknown",
         lastHealthCheckedAt: config?.lastHealthCheckedAt ?? null,
         hasEnvKey,
@@ -95,6 +97,10 @@ export async function PUT(request: Request) {
     const existing = await prisma.adminProviderConfig.findUnique({
       where: { providerName: parsed.data.providerName },
     });
+    const timeoutSeconds =
+      parsed.data.timeoutSeconds ??
+      existing?.timeoutSeconds ??
+      getDefaultTimeoutSeconds(parsed.data.providerName);
 
     const updated = await prisma.adminProviderConfig.upsert({
       where: { providerName: parsed.data.providerName },
@@ -104,9 +110,7 @@ export async function PUT(request: Request) {
         defaultModel: normalizedDefaultModel,
         fallbackProvider,
         perUserDailyLimit,
-        timeoutSeconds:
-          existing?.timeoutSeconds ??
-          getDefaultTimeoutSeconds(parsed.data.providerName),
+        timeoutSeconds,
         apiKeyCiphertext: encrypted?.ciphertext ?? null,
         apiKeyIv: encrypted?.iv ?? null,
         apiKeyTag: encrypted?.tag ?? null,
@@ -118,6 +122,7 @@ export async function PUT(request: Request) {
         defaultModel: normalizedDefaultModel,
         fallbackProvider,
         perUserDailyLimit,
+        timeoutSeconds,
         ...(parsed.data.clearStoredKey
           ? {
               apiKeyCiphertext: null,
@@ -171,7 +176,8 @@ export async function PUT(request: Request) {
     if (
       existing?.isEnabled !== parsed.data.isEnabled ||
       existing?.fallbackProvider !== fallbackProvider ||
-      existing?.perUserDailyLimit !== perUserDailyLimit
+      existing?.perUserDailyLimit !== perUserDailyLimit ||
+      existing?.timeoutSeconds !== timeoutSeconds
     ) {
       await logAdminAudit({
         adminUserId: admin.id,
@@ -184,6 +190,10 @@ export async function PUT(request: Request) {
           perUserDailyLimit: {
             from: existing?.perUserDailyLimit ?? null,
             to: perUserDailyLimit,
+          },
+          timeoutSeconds: {
+            from: existing?.timeoutSeconds ?? null,
+            to: timeoutSeconds,
           },
         },
         ipAddress: meta.ipAddress,
@@ -198,6 +208,7 @@ export async function PUT(request: Request) {
         isEnabled: updated.isEnabled,
         fallbackProvider: updated.fallbackProvider,
         perUserDailyLimit: updated.perUserDailyLimit,
+        timeoutSeconds: updated.timeoutSeconds,
         healthStatus: updated.healthStatus,
         lastHealthCheckedAt: updated.lastHealthCheckedAt,
         apiKeyMasked: updated.apiKeyMasked,

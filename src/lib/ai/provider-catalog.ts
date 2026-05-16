@@ -37,7 +37,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
     defaultModel: "claude-sonnet-4-6",
-    defaultTimeoutSeconds: 60,
+    defaultTimeoutSeconds: 120,
     models: [
       "claude-sonnet-4-6",
       "claude-haiku-4-5",
@@ -105,15 +105,43 @@ export function getDefaultTimeoutSeconds(provider: ProviderName) {
   return getProviderCatalog(provider).defaultTimeoutSeconds;
 }
 
+export function getMinimumTimeoutSecondsForModel(
+  provider: ProviderName,
+  model?: string | null,
+) {
+  const normalizedModel = model?.trim() ?? "";
+
+  if (provider === "anthropic") {
+    if (normalizedModel === "claude-opus-4-7") {
+      return 180;
+    }
+
+    if (normalizedModel === "claude-sonnet-4-6") {
+      return 120;
+    }
+
+    if (normalizedModel === "claude-haiku-4-5") {
+      return 90;
+    }
+  }
+
+  return getDefaultTimeoutSeconds(provider);
+}
+
 export function resolveProviderTimeoutSeconds(
   provider: ProviderName,
   configuredTimeoutSeconds?: number | null,
+  model?: string | null,
 ) {
   const defaultTimeoutSeconds = getDefaultTimeoutSeconds(provider);
+  const modelMinimumTimeoutSeconds = getMinimumTimeoutSecondsForModel(
+    provider,
+    model,
+  );
 
   if (!configuredTimeoutSeconds || configuredTimeoutSeconds <= 0) {
-    return defaultTimeoutSeconds;
+    return Math.max(defaultTimeoutSeconds, modelMinimumTimeoutSeconds);
   }
 
-  return configuredTimeoutSeconds;
+  return Math.max(configuredTimeoutSeconds, modelMinimumTimeoutSeconds);
 }

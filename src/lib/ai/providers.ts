@@ -6,6 +6,7 @@ import {
   getProviderCatalog,
   isProviderName,
   normalizeProviderModel,
+  resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
 import {
   acquireProviderLease,
@@ -40,6 +41,7 @@ const ANTHROPIC_MAX_TOKENS = 4096;
 const ANTHROPIC_MAX_CONTINUATIONS = 2;
 const ANTHROPIC_CONTINUE_PROMPT =
   "Continue exactly where you left off. Do not repeat prior text. Return only the continuation.";
+const DEFAULT_PROVIDER_RETRY_ATTEMPTS = 1;
 
 async function readJson(response: Response) {
   try {
@@ -215,7 +217,9 @@ function formatProviderRuntimeError(
   error: unknown,
 ) {
   if (isTimeoutLikeError(error)) {
-    return `${provider}: provider request timed out before a response was completed.`;
+    return error instanceof Error
+      ? error.message
+      : `${provider}: provider request timed out before a response was completed.`;
   }
 
   return error instanceof Error ? error.message : "Provider request failed.";
@@ -230,6 +234,31 @@ function createProviderTimeoutError(
   );
   error.name = "TimeoutError";
   return error;
+}
+
+function waitForRetryDelay(delayMs: number) {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+function shouldRetryProviderCall(
+  provider: ProviderName,
+  model: string,
+  result: ProviderCallResult,
+  attemptNumber: number,
+) {
+  if (result.status !== "failed" || !result.errorMessage) {
+    return false;
+  }
+
+  if (!/timed? out/i.test(result.errorMessage)) {
+    return false;
+  }
+
+  if (provider === "anthropic" && model === "claude-opus-4-7") {
+    return attemptNumber < 2;
+  }
+
+  return attemptNumber < DEFAULT_PROVIDER_RETRY_ATTEMPTS;
 }
 
 function buildChatCompletionInput(input: ProviderCallInput) {
@@ -526,6 +555,11 @@ async function executeProviderCall(
 ): Promise<ProviderCallResult> {
   const apiKey = runtime.apiKey;
   const startedAt = Date.now();
+  const effectiveTimeoutSeconds = resolveProviderTimeoutSeconds(
+    input.provider,
+    runtime.timeoutSeconds,
+    input.model,
+  );
 
   if (!apiKey) {
     return {
@@ -543,9 +577,9 @@ async function executeProviderCall(
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort(
-        createProviderTimeoutError(input.provider, runtime.timeoutSeconds),
+        createProviderTimeoutError(input.provider, effectiveTimeoutSeconds),
       );
-    }, runtime.timeoutSeconds * 1000);
+    }, effectiveTimeoutSeconds * 1000);
     const signal = controller.signal;
 
     try {
@@ -613,12 +647,39 @@ export async function callProvider(
   };
 
   const runtime = await getProviderRuntimeConfig(input.provider);
-  const primaryResult = await executeAttemptWithLease(
-    input.provider,
-    runtime,
-    input,
-    "primary",
-  );
+  let primaryResult: ProviderCallResult | null = null;
+
+  for (let attemptNumber = 1; ; attemptNumber += 1) {
+    primaryResult = await executeAttemptWithLease(
+      input.provider,
+      runtime,
+      input,
+      attemptNumber === 1 ? "primary" : `retry:${attemptNumber}`,
+    );
+
+    if (
+      !shouldRetryProviderCall(
+        input.provider,
+        input.model,
+        primaryResult,
+        attemptNumber,
+      )
+    ) {
+      break;
+    }
+
+    console.warn("[provider] retrying timed out request", {
+      provider: input.provider,
+      model: input.model,
+      attemptNumber,
+      errorMessage: primaryResult.errorMessage ?? null,
+    });
+    await waitForRetryDelay(750);
+  }
+
+  if (!primaryResult) {
+    throw new Error("Provider request did not produce a result.");
+  }
 
   if (
     primaryResult.status === "completed" ||
