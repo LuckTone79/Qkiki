@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import {
   releaseUsageReservation,
   settleUsageReservation,
@@ -26,6 +27,7 @@ export async function closeStaleWorkbenchRuns(input: {
   userId?: string;
   executionRunId?: string;
 }) {
+  await ensureWorkbenchRunSchema();
   const staleSeconds = getStaleRunSeconds();
   const cutoff = new Date(Date.now() - staleSeconds * 1000);
   const message = staleRunMessage(staleSeconds);

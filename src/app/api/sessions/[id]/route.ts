@@ -5,6 +5,7 @@ import {
   getLatestActiveExecutionRunForSession,
 } from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
+import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
 import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 
 export async function GET(
@@ -15,6 +16,7 @@ export async function GET(
     const user = await requireApiUser();
     const { id } = await context.params;
     const supportsWorkflowControl = await ensureWorkflowControlJsonColumn();
+    await ensureResultExecutionRunIdColumn();
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
       select: {

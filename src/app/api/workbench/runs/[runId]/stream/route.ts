@@ -6,6 +6,7 @@ import {
   readSignedRunToken,
 } from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
 type RouteContext = {
@@ -31,6 +32,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       return Response.json({ error: "Run not found." }, { status: 404 });
     }
 
+    await ensureWorkbenchRunSchema();
     let executionRun =
       "executionRunId" in token
         ? await getExecutionRunForUser({

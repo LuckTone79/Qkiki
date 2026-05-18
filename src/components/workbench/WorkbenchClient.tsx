@@ -1583,8 +1583,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         applyCompletedRun(streamed, modeToRun);
       }
     } catch (resumeError) {
-      setError(
-        resumeError instanceof Error ? resumeError.message : t("runFailed"),
+      console.warn("Failed to resume active run", resumeError);
+      setNotice(
+        language === "ko"
+          ? "세션 내용은 불러왔지만 이전 실행 복구에는 실패했습니다."
+          : "The session loaded, but the previous active run could not be resumed.",
       );
     } finally {
       cancelRequestedRef.current = false;

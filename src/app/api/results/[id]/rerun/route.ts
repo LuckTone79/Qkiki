@@ -10,6 +10,7 @@ import { isProviderName } from "@/lib/ai/provider-catalog";
 import { hydrateRuntimeAttachments } from "@/lib/attachments";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import { prisma } from "@/lib/prisma";
+import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
 import {
   releaseUsageReservation,
   requireUsageAccess,
@@ -39,6 +40,7 @@ export async function POST(
           inputCharCount: 0,
         });
     const { id } = await context.params;
+    await ensureResultExecutionRunIdColumn();
     const result = await prisma.result.findFirst({
       where: { id, session: { userId: user.id } },
       include: {

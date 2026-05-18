@@ -12,6 +12,7 @@ import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
 import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
 import { encryptTextContent } from "@/lib/secret-crypto";
+import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
 import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 import type {
   ActionType,
@@ -214,6 +215,7 @@ export async function buildProjectPromptContext(input: {
     return null;
   }
 
+  await ensureResultExecutionRunIdColumn();
   const recentResults = await prisma.result.findMany({
     where: {
       status: "completed",
@@ -315,6 +317,7 @@ export function stripQualityScoreLine(text: string | null | undefined) {
 }
 
 export async function updateResultOutputText(resultId: string, outputText: string) {
+  await ensureResultExecutionRunIdColumn();
   const encryptedOutput =
     outputText && outputText.trim()
       ? encryptTextContent(outputText)
@@ -396,6 +399,7 @@ export async function generateParallelComparisonSummary(input: {
     throw new Error("Session was not found for comparison.");
   }
 
+  await ensureResultExecutionRunIdColumn();
   const results = await prisma.result.findMany({
     where: {
       sessionId: session.id,
@@ -538,6 +542,7 @@ export async function upsertWorkbenchSession(
 }
 
 export async function executeAndPersistResult(input: ExecutePersistInput) {
+  await ensureResultExecutionRunIdColumn();
   const initial = await prisma.result.create({
     include: {
       workflowStep: {
@@ -853,6 +858,7 @@ export async function resolveSourceText(input: {
   sourceResultId?: string | null;
   previousResultText?: string | null;
 }) {
+  await ensureResultExecutionRunIdColumn();
   if (input.sourceMode === "previous") {
     return truncatePromptContext(
       input.previousResultText || "",
@@ -1269,6 +1275,7 @@ export async function executeBranchRun(input: {
   outputLanguage?: string | null;
   targets: TargetModelInput[];
 }) {
+  await ensureResultExecutionRunIdColumn();
   const parent = await prisma.result.findFirst({
     where: { id: input.parentResultId, session: { userId: input.userId } },
     include: { session: true },

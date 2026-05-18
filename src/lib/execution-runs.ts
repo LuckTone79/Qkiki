@@ -4,6 +4,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { calculateExpandedStepCount } from "@/lib/ai/workflow-control";
 import { prisma } from "@/lib/prisma";
+import { ensureExecutionRunStepControlJsonColumn } from "@/lib/workbench-run-schema";
 import type { WorkflowStepInput } from "@/lib/ai/types";
 import type { UsageCheckContext } from "@/lib/usage-policy";
 import type { RunWorkbenchInput } from "@/lib/validation";
@@ -223,6 +224,7 @@ function getMaxActiveRunsPerUser() {
 }
 
 export async function createQueuedExecutionRun(input: CreateExecutionRunInput) {
+  await ensureExecutionRunStepControlJsonColumn();
   return withSerializableRetries(() =>
     prisma.$transaction(
       async (tx) => {
@@ -278,6 +280,7 @@ export async function assignWorkflowRunToExecutionRun(input: {
   executionRunId: string;
   workflowRunId: string;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   return prisma.executionRun.update({
     where: { id: input.executionRunId },
     data: {
@@ -288,6 +291,7 @@ export async function assignWorkflowRunToExecutionRun(input: {
 }
 
 export async function markExecutionRunRunning(executionRunId: string) {
+  await ensureExecutionRunStepControlJsonColumn();
   return prisma.executionRun.updateMany({
     where: {
       id: executionRunId,
@@ -306,6 +310,7 @@ export async function updateExecutionRunSession(input: {
   sessionId: string;
   finalResultId?: string | null;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   return prisma.executionRun.update({
     where: { id: input.executionRunId },
     data: {
@@ -323,6 +328,7 @@ export async function updateExecutionRunProgress(input: {
   totalStepsDone: number;
   sessionId?: string | null;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   return prisma.executionRun.updateMany({
     where: {
       id: input.executionRunId,
@@ -338,6 +344,7 @@ export async function updateExecutionRunProgress(input: {
 }
 
 export async function completeExecutionRun(input: CompleteExecutionRunInput) {
+  await ensureExecutionRunStepControlJsonColumn();
   if (input.status !== "canceled") {
     const current = await prisma.executionRun.findUnique({
       where: { id: input.executionRunId },
@@ -372,6 +379,7 @@ export async function failExecutionRun(input: {
   executionRunId: string;
   errorMessage: string;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   const current = await prisma.executionRun.findUnique({
     where: { id: input.executionRunId },
     select: { id: true, status: true },
@@ -402,6 +410,7 @@ export async function cancelExecutionRunForUser(input: {
   userId: string;
   reason?: string;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   const current = await getExecutionRunForUser(input);
 
   if (!current) {
@@ -425,6 +434,7 @@ export async function cancelExecutionRunForUser(input: {
 }
 
 export async function isExecutionRunCanceled(executionRunId: string) {
+  await ensureExecutionRunStepControlJsonColumn();
   const executionRun = await prisma.executionRun.findUnique({
     where: { id: executionRunId },
     select: { status: true },
@@ -438,6 +448,7 @@ export async function requestExecutionRunStepStop(input: {
   userId: string;
   stepIndex: number;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   const stepIndex = normalizeStepIndex(input.stepIndex);
 
   return withSerializableRetries(() =>
@@ -490,6 +501,7 @@ export async function isExecutionRunStepStopRequested(input: {
   executionRunId: string;
   stepIndex: number;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   const stepIndex = normalizeStepIndex(input.stepIndex);
   const executionRun = await prisma.executionRun.findUnique({
     where: { id: input.executionRunId },
@@ -505,6 +517,7 @@ export async function getExecutionRunForUser(input: {
   executionRunId: string;
   userId: string;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   return prisma.executionRun.findFirst({
     where: {
       id: input.executionRunId,
@@ -517,6 +530,7 @@ export async function getLatestActiveExecutionRunForSession(input: {
   sessionId: string;
   userId: string;
 }) {
+  await ensureExecutionRunStepControlJsonColumn();
   return prisma.executionRun.findFirst({
     where: {
       sessionId: input.sessionId,

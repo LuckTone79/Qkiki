@@ -7,6 +7,7 @@ import {
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
+import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
@@ -29,6 +30,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
     }
 
+    await ensureWorkbenchRunSchema();
     if ("executionRunId" in token) {
       await closeStaleWorkbenchRuns({
         executionRunId: token.executionRunId,
@@ -139,6 +141,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
     }
 
+    await ensureWorkbenchRunSchema();
     const executionRun = await getExecutionRunForUser({
       executionRunId: token.executionRunId,
       userId: user.id,
