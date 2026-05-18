@@ -47,11 +47,16 @@ type ExecutePersistInput = {
   requestType: ActionType | "rerun";
   prompt: string;
   attachments?: RuntimeAttachment[];
+  abortSignal?: AbortSignal;
+  canceledErrorMessage?: string;
   onStarted?: (result: PersistedWorkbenchResult) => void | Promise<void>;
 };
 
 const MAX_PROJECT_CONTEXT_CHARS = 6000;
 const MAX_SOURCE_TEXT_CHARS = 12000;
+const STEP_STOP_POLL_MS = 750;
+const STEP_STOP_MESSAGE = "Step stopped by user request.";
+const RUN_STOP_MESSAGE = "Run stopped by user request.";
 
 type ExpandedWorkflowStep = {
   executionOrder: number;
@@ -80,6 +85,7 @@ type PersistedWorkbenchResult = Prisma.ResultGetPayload<{
 type IncrementalRunCallbacks = {
   onSession?: (session: Awaited<ReturnType<typeof upsertWorkbenchSession>>) => void | Promise<void>;
   onStepStart?: (event: IncrementalProgressEvent) => void | Promise<void>;
+  onStepSkipped?: (event: IncrementalProgressEvent) => void | Promise<void>;
   onResultStart?: (event: {
     index: number;
     result: PersistedWorkbenchResult;
@@ -89,7 +95,59 @@ type IncrementalRunCallbacks = {
     result: PersistedWorkbenchResult;
   }) => void | Promise<void>;
   shouldStop?: () => boolean | Promise<boolean>;
+  shouldStopStep?: (index: number) => boolean | Promise<boolean>;
 };
+
+function createAbortError(message: string) {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
+function createPolledAbortController(input: {
+  shouldAbort?: () => boolean | Promise<boolean>;
+  message: string;
+}) {
+  const controller = new AbortController();
+  let disposed = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const cleanup = () => {
+    disposed = true;
+    if (timer) {
+      clearTimeout(timer);
+    }
+  };
+
+  const poll = async () => {
+    if (disposed || controller.signal.aborted || !input.shouldAbort) {
+      return;
+    }
+
+    try {
+      if (await input.shouldAbort()) {
+        controller.abort(createAbortError(input.message));
+        return;
+      }
+    } catch {
+      if (!disposed && !controller.signal.aborted) {
+        timer = setTimeout(() => void poll(), STEP_STOP_POLL_MS);
+      }
+      return;
+    }
+
+    if (!disposed && !controller.signal.aborted) {
+      timer = setTimeout(() => void poll(), STEP_STOP_POLL_MS);
+    }
+  };
+
+  void poll();
+
+  return {
+    signal: controller.signal,
+    cleanup,
+  };
+}
 
 export function pickFinalResultId(results: Array<{ id: string; status: string }>) {
   return [...results].reverse().find((result) => result.status === "completed")?.id ?? null;
@@ -488,6 +546,7 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
     },
     data: {
       sessionId: input.sessionId,
+      executionRunId: input.executionRunId ?? null,
       workflowStepId: input.workflowStepId || null,
       parentResultId: input.parentResultId || null,
       branchKey: input.branchKey || null,
@@ -516,18 +575,26 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
     prompt: input.prompt,
     attachments: toProviderAttachments(input.attachments),
     allowFallback: false,
+    abortSignal: input.abortSignal,
     concurrencyOwner: {
       ownerKind: "result",
       ownerId: initial.id,
     },
   });
+  const wasCanceled = input.abortSignal?.aborted ?? false;
+  const persistedStatus = wasCanceled ? "canceled" : providerResult.status;
+  const persistedErrorMessage = wasCanceled
+    ? input.canceledErrorMessage || STEP_STOP_MESSAGE
+    : providerResult.errorMessage || null;
   const encryptedOutput =
     providerResult.outputText && providerResult.outputText.trim()
       ? encryptTextContent(providerResult.outputText)
       : null;
 
   const errorCode =
-    providerResult.status === "failed"
+    persistedStatus === "canceled"
+      ? "RUN_STEP_CANCELED"
+      : providerResult.status === "failed"
       ? providerResult.errorMessage?.includes("not configured")
         ? "MISSING_API_KEY"
         : "PROVIDER_REQUEST_FAILED"
@@ -551,8 +618,8 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
         rawResponse: providerResult.rawResponse
           ? JSON.stringify(providerResult.rawResponse)
           : null,
-        status: providerResult.status,
-        errorMessage: providerResult.errorMessage || null,
+        status: persistedStatus,
+        errorMessage: persistedErrorMessage,
         tokenUsagePrompt: providerResult.usage?.promptTokens ?? null,
         tokenUsageCompletion: providerResult.usage?.completionTokens ?? null,
         estimatedCost: providerResult.estimatedCost ?? null,
@@ -568,13 +635,13 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
         provider: providerResult.provider,
         model: providerResult.model,
         requestType: input.requestType,
-        status: providerResult.status,
+        status: persistedStatus,
         inputTokens: providerResult.usage?.promptTokens ?? null,
         outputTokens: providerResult.usage?.completionTokens ?? null,
         estimatedCostUsd: providerResult.estimatedCost ?? null,
         latencyMs: providerResult.latencyMs,
         errorCode,
-        errorMessage: providerResult.errorMessage || null,
+        errorMessage: persistedErrorMessage,
       },
     }),
   ]);
@@ -653,16 +720,25 @@ export async function executeParallelRun(input: {
 
 export async function executeParallelRunIncremental(input: {
   userId: string;
+  executionRunId?: string | null;
   session: SessionInput;
   targets: TargetModelInput[];
   callbacks?: IncrementalRunCallbacks;
 }) {
+  if (await input.callbacks?.shouldStop?.()) {
+    throw createAbortError(RUN_STOP_MESSAGE);
+  }
+
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
     workflowControl: input.session.workflowControl,
     mode: "parallel",
   });
   await input.callbacks?.onSession?.(session);
+
+  if (await input.callbacks?.shouldStop?.()) {
+    throw createAbortError(RUN_STOP_MESSAGE);
+  }
 
   const projectContext = await buildProjectPromptContext({
     userId: input.userId,
@@ -693,8 +769,12 @@ export async function executeParallelRunIncremental(input: {
     ),
   );
 
-  const results = await Promise.all(
+  const settledResults = await Promise.allSettled(
     input.targets.map(async (target, index) => {
+      if (await input.callbacks?.shouldStop?.()) {
+        throw createAbortError(RUN_STOP_MESSAGE);
+      }
+
       await input.callbacks?.onStepStart?.({
         index,
         title: `${target.provider} / ${target.model}`,
@@ -702,35 +782,61 @@ export async function executeParallelRunIncremental(input: {
         detail: "Preparing the prompt and context.",
       });
 
-      const result = await executeAndPersistResult({
-        userId: input.userId,
-        sessionId: session.id,
-        workflowStepId: stepRecords[index].id,
-        branchKey,
-        provider: target.provider,
-        model: target.model,
-        requestType: "generate",
-        attachments: runtimeAttachments,
-        onStarted: async (startedResult) => {
-          await input.callbacks?.onResultStart?.({
-            index,
-            result: startedResult,
-          });
-        },
-        prompt: composePrompt({
-          actionType: "generate",
-          originalInput: input.session.originalInput,
-          additionalInstruction: input.session.additionalInstruction,
-          projectContext,
-          outputStyle: input.session.outputStyle,
-          outputLanguage: input.session.outputLanguage,
-        }),
+      const abortController = createPolledAbortController({
+        message: RUN_STOP_MESSAGE,
+        shouldAbort: async () => Boolean(await input.callbacks?.shouldStop?.()),
       });
+      let result: Awaited<ReturnType<typeof executeAndPersistResult>>;
+      try {
+        result = await executeAndPersistResult({
+          userId: input.userId,
+          sessionId: session.id,
+          executionRunId: input.executionRunId ?? null,
+          workflowStepId: stepRecords[index].id,
+          branchKey,
+          provider: target.provider,
+          model: target.model,
+          requestType: "generate",
+          attachments: runtimeAttachments,
+          abortSignal: abortController.signal,
+          canceledErrorMessage: RUN_STOP_MESSAGE,
+          onStarted: async (startedResult) => {
+            await input.callbacks?.onResultStart?.({
+              index,
+              result: startedResult,
+            });
+          },
+          prompt: composePrompt({
+            actionType: "generate",
+            originalInput: input.session.originalInput,
+            additionalInstruction: input.session.additionalInstruction,
+            projectContext,
+            outputStyle: input.session.outputStyle,
+            outputLanguage: input.session.outputLanguage,
+          }),
+        });
+      } finally {
+        abortController.cleanup();
+      }
 
       await input.callbacks?.onResult?.({ index, result });
       return result;
     }),
   );
+  const results = settledResults
+    .filter(
+      (item): item is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof executeAndPersistResult>>
+      > => item.status === "fulfilled",
+    )
+    .map((item) => item.value);
+  const rejectedResult = settledResults.find(
+    (item): item is PromiseRejectedResult => item.status === "rejected",
+  );
+
+  if (rejectedResult) {
+    throw rejectedResult.reason;
+  }
 
   await prisma.workbenchSession.update({
     where: { id: session.id },
@@ -934,6 +1040,7 @@ export async function executeSequentialRun(input: {
 
 export async function executeSequentialRunIncremental(input: {
   userId: string;
+  executionRunId?: string | null;
   session: SessionInput;
   steps: WorkflowStepInput[];
   workflowControl?: WorkflowControlInput;
@@ -973,10 +1080,23 @@ export async function executeSequentialRunIncremental(input: {
   let stopReason: string | null = null;
 
   for (const expandedStep of expandedSteps) {
+    const stepIndex = expandedStep.executionOrder - 1;
     if (await input.callbacks?.shouldStop?.()) {
       stoppedEarly = true;
       stopReason = "canceled";
       break;
+    }
+
+    if (await input.callbacks?.shouldStopStep?.(stepIndex)) {
+      const skippedStep = expandedStep.templateStep;
+      await input.callbacks?.onStepSkipped?.({
+        index: stepIndex,
+        title: `${skippedStep.targetProvider} / ${skippedStep.targetModel}`,
+        subtitle: `Step ${expandedStep.executionOrder}`,
+        actionType: skippedStep.actionType,
+        detail: STEP_STOP_MESSAGE,
+      });
+      continue;
     }
 
     const step = expandedStep.templateStep;
@@ -1013,41 +1133,60 @@ export async function executeSequentialRunIncremental(input: {
     });
 
     await input.callbacks?.onStepStart?.({
-      index: expandedStep.executionOrder - 1,
+      index: stepIndex,
       title: `${step.targetProvider} / ${step.targetModel}`,
       subtitle: `Step ${expandedStep.executionOrder}`,
       actionType: step.actionType,
       detail: "Preparing the prompt and context.",
     });
 
-    const result = await executeAndPersistResult({
-      userId: input.userId,
-      sessionId: session.id,
-      workflowStepId: stepRecord.id,
-      parentResultId:
-        step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
-      branchKey: `chain-${session.id}`,
-      provider: step.targetProvider,
-      model: step.targetModel,
-      requestType: step.actionType,
-      attachments: runtimeAttachments,
-      onStarted: async (startedResult) => {
-        await input.callbacks?.onResultStart?.({
-          index: expandedStep.executionOrder - 1,
-          result: startedResult,
-        });
-      },
-      prompt: composePrompt({
-        actionType: step.actionType,
-        originalInput: input.session.originalInput,
-        additionalInstruction: input.session.additionalInstruction,
-        projectContext,
-        outputStyle: input.session.outputStyle,
-        outputLanguage: input.session.outputLanguage,
-        sourceText,
-        instructionTemplate: mergedInstruction || null,
-      }),
+    const abortController = createPolledAbortController({
+      message: STEP_STOP_MESSAGE,
+      shouldAbort: async () =>
+        Boolean(
+          (await input.callbacks?.shouldStop?.()) ||
+            (await input.callbacks?.shouldStopStep?.(stepIndex)),
+        ),
     });
+
+    const lastUsableResultText: string | null = previousResultText;
+    const lastUsableResultId: string | null = previousResultId;
+    let result: Awaited<ReturnType<typeof executeAndPersistResult>>;
+    try {
+      result = await executeAndPersistResult({
+        userId: input.userId,
+        sessionId: session.id,
+        executionRunId: input.executionRunId ?? null,
+        workflowStepId: stepRecord.id,
+        parentResultId:
+          step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
+        branchKey: `chain-${session.id}`,
+        provider: step.targetProvider,
+        model: step.targetModel,
+        requestType: step.actionType,
+        attachments: runtimeAttachments,
+        abortSignal: abortController.signal,
+        canceledErrorMessage: STEP_STOP_MESSAGE,
+        onStarted: async (startedResult) => {
+          await input.callbacks?.onResultStart?.({
+            index: stepIndex,
+            result: startedResult,
+          });
+        },
+        prompt: composePrompt({
+          actionType: step.actionType,
+          originalInput: input.session.originalInput,
+          additionalInstruction: input.session.additionalInstruction,
+          projectContext,
+          outputStyle: input.session.outputStyle,
+          outputLanguage: input.session.outputLanguage,
+          sourceText,
+          instructionTemplate: mergedInstruction || null,
+        }),
+      });
+    } finally {
+      abortController.cleanup();
+    }
 
     let effectiveOutput = result.outputText || "";
     if (monitorQuality !== null) {
@@ -1069,9 +1208,21 @@ export async function executeSequentialRunIncremental(input: {
     previousResultId = result.id;
     results.push(result);
     await input.callbacks?.onResult?.({
-      index: expandedStep.executionOrder - 1,
+      index: stepIndex,
       result,
     });
+
+    if (result.status === "canceled") {
+      if (await input.callbacks?.shouldStop?.()) {
+        stoppedEarly = true;
+        stopReason = "canceled";
+        break;
+      }
+
+      previousResultText = lastUsableResultText;
+      previousResultId = lastUsableResultId;
+      continue;
+    }
 
     if (result.status === "failed") {
       stoppedEarly = true;

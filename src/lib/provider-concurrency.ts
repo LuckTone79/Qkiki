@@ -20,8 +20,27 @@ type ProviderLeaseOwner = {
   ownerId: string;
 };
 
-async function delay(ms: number) {
-  await new Promise((resolve) => setTimeout(resolve, ms));
+async function delay(ms: number, signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw signal.reason ?? new Error("The operation was aborted.");
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      cleanup();
+      reject(signal?.reason ?? new Error("The operation was aborted."));
+    };
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 async function withSerializableRetries<T>(
@@ -114,13 +133,18 @@ export async function acquireProviderLease(input: {
   provider: ProviderName;
   model: string;
   owner: ProviderLeaseOwner;
+  abortSignal?: AbortSignal;
 }) {
   while (true) {
+    if (input.abortSignal?.aborted) {
+      throw input.abortSignal.reason ?? new Error("The operation was aborted.");
+    }
+
     const lease = await tryAcquireProviderLease(input);
     if (lease) {
       return lease;
     }
-    await delay(PROVIDER_WAIT_MS);
+    await delay(PROVIDER_WAIT_MS, input.abortSignal);
   }
 }
 

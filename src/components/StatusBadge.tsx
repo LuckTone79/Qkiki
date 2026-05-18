@@ -12,12 +12,14 @@ const styles: Record<string, string> = {
   running: "border-cyan-200 bg-cyan-50 text-cyan-800",
   missing_key: "border-amber-200 bg-amber-50 text-amber-900",
   failed: "border-rose-200 bg-rose-50 text-rose-800",
+  canceled: "border-amber-200 bg-amber-50 text-amber-900",
+  skipped: "border-stone-200 bg-stone-50 text-stone-600",
   disabled: "border-stone-200 bg-stone-50 text-stone-600",
   saved: "border-teal-200 bg-teal-50 text-teal-800",
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const label =
     status === "ready"
       ? t("statusReady")
@@ -29,6 +31,14 @@ export function StatusBadge({ status }: StatusBadgeProps) {
             ? t("statusMissingKey")
             : status === "failed"
               ? t("statusFailed")
+              : status === "canceled"
+                ? language === "ko"
+                  ? "\uc911\uc9c0\ub428"
+                  : "canceled"
+              : status === "skipped"
+                ? language === "ko"
+                  ? "\uac74\ub108\ub700"
+                  : "skipped"
               : status === "disabled"
                 ? t("statusDisabled")
                 : status === "saved"

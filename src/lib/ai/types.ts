@@ -18,6 +18,7 @@ export type ProviderCallInput = {
   prompt: string;
   attachments?: ProviderAttachmentInput[];
   allowFallback?: boolean;
+  abortSignal?: AbortSignal;
   concurrencyOwner?: {
     ownerKind?: string;
     ownerId?: string;

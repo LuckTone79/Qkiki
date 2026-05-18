@@ -10,6 +10,7 @@ import type { RunWorkbenchInput } from "@/lib/validation";
 
 const ACTIVE_RUN_STATUSES = ["queued", "running"] as const;
 const DEFAULT_MAX_ACTIVE_RUNS_PER_USER = 3;
+export const MAX_STEP_STOP_INDEX = 49;
 
 export type SerializedUsageCheckContext = {
   policy: Omit<UsageCheckContext["policy"], "resetAt"> & {
@@ -74,6 +75,43 @@ type ExecutionRunSummary = {
   stoppedEarly: boolean;
   stopReason?: string | null;
 } | null;
+
+type ExecutionRunStepControl = {
+  skippedStepIndexes: number[];
+};
+
+function emptyStepControl(): ExecutionRunStepControl {
+  return { skippedStepIndexes: [] };
+}
+
+function parseExecutionRunStepControl(
+  stepControlJson: string | null | undefined,
+): ExecutionRunStepControl {
+  if (!stepControlJson) {
+    return emptyStepControl();
+  }
+
+  try {
+    const parsed = JSON.parse(stepControlJson) as Partial<ExecutionRunStepControl>;
+    return {
+      skippedStepIndexes: Array.isArray(parsed.skippedStepIndexes)
+        ? parsed.skippedStepIndexes
+            .filter((value) => Number.isInteger(value))
+            .map((value) => Math.max(0, Math.min(MAX_STEP_STOP_INDEX, value)))
+        : [],
+    };
+  } catch {
+    return emptyStepControl();
+  }
+}
+
+function normalizeStepIndex(stepIndex: number) {
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex > MAX_STEP_STOP_INDEX) {
+    throw new Error("Step index is out of bounds.");
+  }
+
+  return stepIndex;
+}
 
 function getSerializableRetries() {
   return 3;
@@ -393,6 +431,74 @@ export async function isExecutionRunCanceled(executionRunId: string) {
   });
 
   return executionRun?.status === "canceled";
+}
+
+export async function requestExecutionRunStepStop(input: {
+  executionRunId: string;
+  userId: string;
+  stepIndex: number;
+}) {
+  const stepIndex = normalizeStepIndex(input.stepIndex);
+
+  return withSerializableRetries(() =>
+    prisma.$transaction(
+      async (tx) => {
+        const executionRun = await tx.executionRun.findFirst({
+          where: {
+            id: input.executionRunId,
+            userId: input.userId,
+          },
+          select: {
+            id: true,
+            status: true,
+            stepControlJson: true,
+          },
+        });
+
+        if (!executionRun) {
+          return null;
+        }
+
+        if (!ACTIVE_RUN_STATUSES.includes(executionRun.status as (typeof ACTIVE_RUN_STATUSES)[number])) {
+          return executionRun;
+        }
+
+        const control = parseExecutionRunStepControl(executionRun.stepControlJson);
+        const skippedStepIndexes = Array.from(
+          new Set([...control.skippedStepIndexes, stepIndex]),
+        ).sort((left, right) => left - right);
+
+        return tx.executionRun.update({
+          where: { id: executionRun.id },
+          data: {
+            stepControlJson: JSON.stringify({ skippedStepIndexes }),
+            updatedAt: new Date(),
+          },
+          select: {
+            id: true,
+            status: true,
+            stepControlJson: true,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
+  );
+}
+
+export async function isExecutionRunStepStopRequested(input: {
+  executionRunId: string;
+  stepIndex: number;
+}) {
+  const stepIndex = normalizeStepIndex(input.stepIndex);
+  const executionRun = await prisma.executionRun.findUnique({
+    where: { id: input.executionRunId },
+    select: { stepControlJson: true },
+  });
+
+  return parseExecutionRunStepControl(
+    executionRun?.stepControlJson,
+  ).skippedStepIndexes.includes(stepIndex);
 }
 
 export async function getExecutionRunForUser(input: {

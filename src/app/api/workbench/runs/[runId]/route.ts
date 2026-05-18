@@ -153,18 +153,21 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       userId: user.id,
       reason: "The run was stopped by the user.",
     });
+    const cancelBeforeWorkflowStarted =
+      canceledRun?.status === "canceled" && canceledRun.startedAt === null;
 
     if (
-      executionRun.usageReservationId &&
-      executionRun.totalStepsDone === 0
+      canceledRun?.usageReservationId &&
+      cancelBeforeWorkflowStarted &&
+      canceledRun.totalStepsDone === 0
     ) {
       await releaseUsageReservation({
-        reservationId: executionRun.usageReservationId,
+        reservationId: canceledRun.usageReservationId,
         userId: user.id,
       }).catch(() => undefined);
     }
 
-    if (executionRun.workflowRunId) {
+    if (executionRun.workflowRunId && cancelBeforeWorkflowStarted) {
       await getRun(executionRun.workflowRunId).cancel().catch(() => undefined);
     }
 

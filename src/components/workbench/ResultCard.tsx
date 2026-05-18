@@ -39,7 +39,7 @@ type ResultCardProps = {
   result: WorkbenchResult;
   depth: number;
   isFinal: boolean;
-  isLatestCompleted: boolean;
+  isLatestProgress: boolean;
   providers: ProviderOption[];
   sourceLabel?: string;
   onBranch: (input: {
@@ -83,7 +83,7 @@ export function ResultCard({
   result,
   depth,
   isFinal,
-  isLatestCompleted,
+  isLatestProgress,
   providers,
   sourceLabel,
   onBranch,
@@ -113,6 +113,10 @@ export function ResultCard({
           ? language === "ko"
             ? "생성 실패"
             : "Generation failed"
+          : result.status === "canceled"
+            ? language === "ko"
+              ? "\uc911\uc9c0\ub428"
+              : "Canceled"
           : language === "ko"
             ? "생성 중"
             : "Generating",
@@ -143,7 +147,7 @@ export function ResultCard({
                 {language === "ko" ? "\ucd5c\uc885\uacb0\uacfc" : "Final result"}
               </span>
             ) : null}
-            {!isFinal && isLatestCompleted ? (
+            {!isFinal && isLatestProgress ? (
               <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
                 {language === "ko"
                   ? "\uc9c4\ud589 step\uc911 \ucd5c\uc2e0\uacb0\uacfc"
@@ -170,7 +174,7 @@ export function ResultCard({
           ? language === "ko"
             ? "모델이 응답을 생성하고 있습니다. 결과가 도착하면 이 카드가 자동으로 업데이트됩니다."
             : "The model is generating a response. This card will update when the result arrives."
-          : result.status === "failed"
+          : result.status === "failed" || result.status === "canceled"
           ? result.errorMessage || t("providerFailed")
           : result.outputText || t("noOutputReturned")}
       </div>

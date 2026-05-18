@@ -29,14 +29,17 @@ export async function closeStaleWorkbenchRuns(input: {
   const staleSeconds = getStaleRunSeconds();
   const cutoff = new Date(Date.now() - staleSeconds * 1000);
   const message = staleRunMessage(staleSeconds);
-
-  const staleRuns = await prisma.executionRun.findMany({
+  const baseFilters = {
+    updatedAt: { lt: cutoff },
+    ...(input.userId ? { userId: input.userId } : {}),
+    ...(input.executionRunId ? { id: input.executionRunId } : {}),
+  };
+  const staleActiveRuns = await prisma.executionRun.findMany({
     where: {
+      ...baseFilters,
       status: { in: ["queued", "running"] },
-      updatedAt: { lt: cutoff },
-      ...(input.userId ? { userId: input.userId } : {}),
-      ...(input.executionRunId ? { id: input.executionRunId } : {}),
     },
+    orderBy: { updatedAt: "asc" },
     take: 20,
     select: {
       id: true,
@@ -45,14 +48,93 @@ export async function closeStaleWorkbenchRuns(input: {
       requestType: true,
       inputCharCount: true,
       usageReservationId: true,
+      status: true,
+      startedAt: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
+  const staleCanceledWithReservation = await prisma.executionRun.findMany({
+    where: {
+      ...baseFilters,
+      status: "canceled",
+      usageReservationId: { not: null },
+    },
+    orderBy: { updatedAt: "asc" },
+    take: 20,
+    select: {
+      id: true,
+      userId: true,
+      sessionId: true,
+      requestType: true,
+      inputCharCount: true,
+      usageReservationId: true,
+      status: true,
+      startedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+  const staleCanceledRunningResultRows = await prisma.result.findMany({
+    where: {
+      status: "running",
+      createdAt: { lt: cutoff },
+      executionRunId: input.executionRunId ?? undefined,
+      ...(input.userId
+        ? { session: { userId: input.userId } }
+        : {}),
+    },
+    select: {
+      executionRunId: true,
+    },
+    distinct: ["executionRunId"],
+    take: 20,
+  });
+  const staleCanceledRunningRunIds = staleCanceledRunningResultRows
+    .map((row) => row.executionRunId)
+    .filter((value): value is string => Boolean(value));
+  const staleCanceledWithRunningResults = staleCanceledRunningRunIds.length
+    ? await prisma.executionRun.findMany({
+        where: {
+          ...baseFilters,
+          id: { in: staleCanceledRunningRunIds },
+          status: "canceled",
+        },
+        orderBy: { updatedAt: "asc" },
+        take: 20,
+        select: {
+          id: true,
+          userId: true,
+          sessionId: true,
+          requestType: true,
+          inputCharCount: true,
+          usageReservationId: true,
+          status: true,
+          startedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+    : [];
+  const staleRuns = Array.from(
+    new Map(
+      [
+        ...staleActiveRuns,
+        ...staleCanceledWithReservation,
+        ...staleCanceledWithRunningResults,
+      ].map((run) => [run.id, run]),
+    ).values(),
+  )
+    .sort((left, right) => left.updatedAt.getTime() - right.updatedAt.getTime())
+    .slice(0, 20);
 
   for (const run of staleRuns) {
     const finishedAt = new Date();
-    const sessionResults = run.sessionId
+    const sessionResults = run.startedAt
       ? await prisma.result.findMany({
-          where: { sessionId: run.sessionId },
+          where: {
+            executionRunId: run.id,
+          },
           select: {
             provider: true,
             model: true,
@@ -64,15 +146,15 @@ export async function closeStaleWorkbenchRuns(input: {
         })
       : [];
 
-    if (run.sessionId) {
+    if (run.sessionId && run.startedAt) {
       await prisma.result.updateMany({
         where: {
-          sessionId: run.sessionId,
+          executionRunId: run.id,
           status: "running",
         },
         data: {
-          status: "failed",
-          errorMessage: message,
+          status: run.status === "canceled" ? "canceled" : "failed",
+          errorMessage: run.status === "canceled" ? "The run was stopped by the user." : message,
           updatedAt: finishedAt,
         },
       });
@@ -130,6 +212,19 @@ export async function closeStaleWorkbenchRuns(input: {
         updatedAt: finishedAt,
       },
     });
+
+    if (run.status === "canceled") {
+      await prisma.executionRun.updateMany({
+        where: {
+          id: run.id,
+          status: "canceled",
+        },
+        data: {
+          usageReservationId: null,
+          updatedAt: finishedAt,
+        },
+      });
+    }
   }
 
   return {

@@ -219,6 +219,7 @@ model ExecutionRun {
   errorMessage         String?
   streamError          String?
   executionSummaryJson String?
+  stepControlJson      String?
   usageReservationId   String?
   startedAt            DateTime?
   finishedAt           DateTime?
@@ -227,6 +228,7 @@ model ExecutionRun {
 
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   session WorkbenchSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  results Result[]
 
   @@index([userId, status])
   @@index([sessionId])
@@ -256,6 +258,7 @@ model WorkflowStep {
 model Result {
   id                   String   @id @default(cuid())
   sessionId            String
+  executionRunId       String?
   workflowStepId       String?
   parentResultId       String?
   branchKey            String?
@@ -278,6 +281,7 @@ model Result {
   updatedAt            DateTime @updatedAt
 
   session         WorkbenchSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  executionRun    ExecutionRun?      @relation(fields: [executionRunId], references: [id], onDelete: SetNull)
   workflowStep    WorkflowStep?      @relation(fields: [workflowStepId], references: [id], onDelete: SetNull)
   parent          Result?            @relation("ResultBranches", fields: [parentResultId], references: [id], onDelete: SetNull)
   children        Result[]           @relation("ResultBranches")
@@ -285,6 +289,7 @@ model Result {
   attachmentLinks ResultAttachment[]
 
   @@index([sessionId])
+  @@index([executionRunId])
   @@index([workflowStepId])
   @@index([parentResultId])
 }

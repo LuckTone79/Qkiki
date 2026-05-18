@@ -1,6 +1,11 @@
 import { getRun } from "workflow/api";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
-import { getExecutionRunForUser, readSignedRunToken } from "@/lib/execution-runs";
+import {
+  getExecutionRunForUser,
+  parseExecutionRunSummary,
+  readSignedRunToken,
+} from "@/lib/execution-runs";
+import { prisma } from "@/lib/prisma";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
 type RouteContext = {
@@ -48,10 +53,60 @@ export async function GET(request: Request, { params }: RouteContext) {
         userId: user.id,
       });
 
-      if (
-        executionRun &&
-        ["failed", "canceled"].includes(executionRun.status)
-      ) {
+      if (executionRun?.status === "canceled") {
+        const [session, results] = await Promise.all([
+          executionRun.sessionId
+            ? prisma.workbenchSession.findFirst({
+                where: { id: executionRun.sessionId, userId: user.id },
+                select: { id: true, title: true },
+              })
+            : null,
+          executionRun.startedAt
+            ? prisma.result.findMany({
+                where: {
+                  executionRunId: executionRun.id,
+                },
+                orderBy: { createdAt: "asc" },
+                include: {
+                  workflowStep: {
+                    select: { orderIndex: true, actionType: true },
+                  },
+                },
+              })
+            : [],
+        ]);
+        const encoder = new TextEncoder();
+        return new Response(
+          encoder.encode(
+            `${JSON.stringify({
+              type: "done",
+              session: session
+                ? {
+                    id: session.id,
+                    title: session.title,
+                    finalResultId: executionRun.finalResultId,
+                  }
+                : undefined,
+              results,
+              executionSummary:
+                parseExecutionRunSummary(executionRun.executionSummaryJson) ?? {
+                  plannedTotal: executionRun.totalStepsPlanned,
+                  executedTotal: executionRun.totalStepsDone,
+                  stoppedEarly: true,
+                  stopReason: "canceled",
+                },
+            })}\n`,
+          ),
+          {
+            headers: {
+              "Content-Type": "application/x-ndjson; charset=utf-8",
+              "Cache-Control": "no-cache, no-transform",
+            },
+          },
+        );
+      }
+
+      if (executionRun?.status === "failed") {
         const encoder = new TextEncoder();
         return new Response(
           encoder.encode(

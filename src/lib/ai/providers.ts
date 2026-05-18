@@ -236,6 +236,27 @@ function createProviderTimeoutError(
   return error;
 }
 
+function linkAbortSignal(
+  source: AbortSignal | undefined,
+  target: AbortController,
+) {
+  if (!source) {
+    return () => undefined;
+  }
+
+  const abortTarget = () => {
+    target.abort(source.reason ?? new Error("Provider request was stopped."));
+  };
+
+  if (source.aborted) {
+    abortTarget();
+    return () => undefined;
+  }
+
+  source.addEventListener("abort", abortTarget, { once: true });
+  return () => source.removeEventListener("abort", abortTarget);
+}
+
 function waitForRetryDelay(delayMs: number) {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
@@ -580,6 +601,7 @@ async function executeProviderCall(
         createProviderTimeoutError(input.provider, effectiveTimeoutSeconds),
       );
     }, effectiveTimeoutSeconds * 1000);
+    const unlinkAbortSignal = linkAbortSignal(input.abortSignal, controller);
     const signal = controller.signal;
 
     try {
@@ -597,6 +619,7 @@ async function executeProviderCall(
 
       return await callXai(apiKey, input, startedAt, signal);
     } finally {
+      unlinkAbortSignal();
       clearTimeout(timeout);
     }
   } catch (error) {
@@ -630,14 +653,30 @@ export async function callProvider(
     runtimeInput: ProviderCallInput,
     ownerSuffix: string,
   ) => {
-    const lease = await acquireProviderLease({
-      provider,
-      model: runtimeInput.model,
-      owner: {
-        ownerKind: baseOwnerKind,
-        ownerId: `${baseOwnerId}:${ownerSuffix}`,
-      },
-    });
+    const startedAt = Date.now();
+    let lease: Awaited<ReturnType<typeof acquireProviderLease>>;
+
+    try {
+      lease = await acquireProviderLease({
+        provider,
+        model: runtimeInput.model,
+        abortSignal: runtimeInput.abortSignal,
+        owner: {
+          ownerKind: baseOwnerKind,
+          ownerId: `${baseOwnerId}:${ownerSuffix}`,
+        },
+      });
+    } catch (error) {
+      return {
+        provider,
+        model: runtimeInput.model,
+        outputText: "",
+        rawResponse: null,
+        latencyMs: Date.now() - startedAt,
+        status: "failed" as const,
+        errorMessage: formatProviderRuntimeError(provider, error),
+      };
+    }
 
     try {
       return await executeProviderCall(runtimeConfig, runtimeInput);

@@ -358,6 +358,10 @@ const workbenchUiText = {
     failed: "The run ended with an error.",
     skipped: "Skipped because the sequence stopped early.",
     canceled: "Stopped by user request.",
+    stopStep: "Stop step",
+    stoppingStep: "Stopping...",
+    stepStopRequested: "This step stop was requested.",
+    stepStopped: "Step stopped by user request.",
     parallelRun: "Parallel run",
     sequentialStep: "Step",
     noProgress: "Run a task to see per-model progress updates here.",
@@ -393,6 +397,10 @@ const workbenchUiText = {
     failed: "실행이 오류와 함께 종료되었습니다.",
     skipped: "순차 실행이 조기 종료되어 건너뛰었습니다.",
     canceled: "사용자 요청으로 중지됐습니다.",
+    stopStep: "\ub2e8\uacc4 \uc911\uc9c0",
+    stoppingStep: "\uc911\uc9c0 \uc911...",
+    stepStopRequested: "\uc774 \ub2e8\uacc4 \uc911\uc9c0\ub97c \uc694\uccad\ud588\uc2b5\ub2c8\ub2e4.",
+    stepStopped: "\ub2e8\uacc4\uac00 \uc911\uc9c0\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",
     parallelRun: "병렬 실행",
     sequentialStep: "단계",
     noProgress: "작업을 실행하면 여기에서 모델별 진행 상태를 확인할 수 있습니다.",
@@ -772,7 +780,12 @@ function sortResultsForDisplay(
     );
 
   const rootCompletionRank = (result: WorkbenchResult) => {
-    if (result.status === "completed" || result.status === "failed") {
+    if (
+      result.status === "completed" ||
+      result.status === "failed" ||
+      result.status === "canceled" ||
+      result.status === "skipped"
+    ) {
       return 0;
     }
 
@@ -790,12 +803,12 @@ function sortResultsForDisplay(
     }
 
     const updatedDiff =
-      new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     if (updatedDiff !== 0) {
       return updatedDiff;
     }
 
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   const ordered: WorkbenchResult[] = [];
@@ -813,6 +826,93 @@ function sortResultsForDisplay(
   }
 
   return ordered;
+}
+
+function prioritizePinnedResults(
+  results: WorkbenchResult[],
+  pinnedIds: Array<string | null | undefined>,
+) {
+  const orderedPinnedIds = Array.from(
+    new Set(pinnedIds.filter((id): id is string => Boolean(id))),
+  );
+  const pinned = orderedPinnedIds
+    .map((id) => results.find((result) => result.id === id))
+    .filter((result): result is WorkbenchResult => Boolean(result));
+  const pinnedSet = new Set(pinned.map((result) => result.id));
+
+  return [
+    ...pinned,
+    ...results.filter((result) => !pinnedSet.has(result.id)),
+  ];
+}
+
+function prioritizePinnedRootBranches(
+  results: WorkbenchResult[],
+  pinnedIds: Array<string | null | undefined>,
+) {
+  const byId = new Map(results.map((result) => [result.id, result]));
+  const childrenByParent = new Map<string, WorkbenchResult[]>();
+
+  results.forEach((result) => {
+    if (!result.parentResultId) {
+      return;
+    }
+
+    const children = childrenByParent.get(result.parentResultId) ?? [];
+    children.push(result);
+    childrenByParent.set(result.parentResultId, children);
+  });
+
+  const pinnedSet = new Set<string>();
+  const pinnedBranches: WorkbenchResult[] = [];
+
+  const rootOf = (result: WorkbenchResult) => {
+    let current = result;
+    while (current.parentResultId && byId.has(current.parentResultId)) {
+      current = byId.get(current.parentResultId) ?? current;
+    }
+    return current;
+  };
+
+  const appendSubtree = (result: WorkbenchResult | undefined) => {
+    if (!result) {
+      return;
+    }
+
+    if (!pinnedSet.has(result.id)) {
+      pinnedBranches.push(result);
+      pinnedSet.add(result.id);
+    }
+
+    (childrenByParent.get(result.id) ?? []).forEach(appendSubtree);
+  };
+
+  Array.from(new Set(pinnedIds.filter((id): id is string => Boolean(id))))
+    .map((id) => byId.get(id))
+    .filter((result): result is WorkbenchResult => Boolean(result))
+    .map(rootOf)
+    .forEach(appendSubtree);
+
+  return [
+    ...pinnedBranches,
+    ...results.filter((result) => !pinnedSet.has(result.id)),
+  ];
+}
+
+function resultProgressStatus(result: WorkbenchResult): RunProgressStatus {
+  if (result.status === "failed") {
+    return "failed";
+  }
+
+  if (result.status === "canceled") {
+    return "canceled";
+  }
+
+  if (result.status === "skipped") {
+    return "skipped";
+  }
+
+  return "completed";
 }
 
 function formatElapsedTime(startedAt: number, now: number, language: AppLanguage) {
@@ -916,6 +1016,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [running, setRunning] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [cancelingRun, setCancelingRun] = useState(false);
+  const [stoppingStepIndexes, setStoppingStepIndexes] = useState<Set<number>>(
+    () => new Set<number>(),
+  );
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [draftBanner, setDraftBanner] = useState<{ savedAt: number } | null>(null);
@@ -937,6 +1040,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
   const activeRunIdRef = useRef<string | null>(null);
+  const streamAbortControllerRef = useRef<AbortController | null>(null);
   const cancelRequestedRef = useRef(false);
   const routeSyncReadyRef = useRef(false);
 
@@ -972,7 +1076,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     detail?: string | null;
     title?: string;
     subtitle?: string;
-    workLines?: [string, string];
+    workLines?: [string, string] | null;
   }) {
     setRunMonitor((current) => {
       if (!current) {
@@ -995,9 +1099,26 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           input.detail === undefined
             ? existing?.detail ?? uiText.running
             : input.detail,
-        workLines: input.workLines || existing?.workLines,
+        workLines:
+          input.workLines === undefined ? existing?.workLines : input.workLines ?? undefined,
       };
 
+      return { ...current, entries };
+    });
+  }
+
+  function restoreProgressEntry(index: number, entry: RunProgressEntry | undefined) {
+    if (!entry) {
+      return;
+    }
+
+    setRunMonitor((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const entries = [...current.entries];
+      entries[index] = entry;
       return { ...current, entries };
     });
   }
@@ -1103,14 +1224,30 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }) {
     setRunMonitor((current) => {
       const base = current ?? createRunMonitor(input.mode);
+      const resultsByEntryIndex = new Map<number, WorkbenchResult>();
+      input.results.forEach((result, fallbackIndex) => {
+        const entryIndex =
+          typeof result.workflowStep?.orderIndex === "number"
+            ? result.workflowStep.orderIndex - 1
+            : fallbackIndex;
+        resultsByEntryIndex.set(entryIndex, result);
+      });
       const entries = base.entries.map((entry, index) => {
-        const result = input.results[index];
+        const result = resultsByEntryIndex.get(index);
 
         if (result) {
+          const progressStatus = resultProgressStatus(result);
           return {
             ...entry,
-            status: result.status === "failed" ? ("failed" as const) : ("completed" as const),
-            detail: result.status === "failed" ? result.errorMessage || uiText.failed : uiText.completed,
+            status: progressStatus,
+            detail:
+              progressStatus === "failed"
+                ? result.errorMessage || uiText.failed
+                : progressStatus === "canceled"
+                  ? result.errorMessage || uiText.stepStopped
+                  : progressStatus === "skipped"
+                    ? uiText.skipped
+                    : uiText.completed,
           };
         }
 
@@ -1358,6 +1495,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setNotice("");
     setCurrentRunId(null);
     setRunning(false);
+    setStoppingStepIndexes(new Set<number>());
 
     const draft = loadDraft();
     if (draft && draft.originalInput.trim()) {
@@ -1450,6 +1588,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       );
     } finally {
       cancelRequestedRef.current = false;
+      streamAbortControllerRef.current = null;
       setCurrentRunId(null);
       setCancelingRun(false);
       setRunning(false);
@@ -1894,49 +2033,32 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     return depthMap;
   }, [results]);
 
-  const displayResults = useMemo(
-    () => sortResultsForDisplay(results, mode),
-    [mode, results],
-  );
-
   const effectiveFinalResultId = useMemo(
-    () => {
-      const explicitFinalId = pickDisplayFinalResultId(results, finalResultId);
-      if (mode !== "sequential" || !explicitFinalId) {
-        return explicitFinalId;
-      }
-
-      const finalResult = results.find((result) => result.id === explicitFinalId);
-      const hasUnfinishedOrFailedResult = results.some((result) =>
-        ["running", "failed"].includes(result.status),
-      );
-      const monitorFinishedCleanly = runMonitor
-        ? runMonitor.entries.every((entry) => entry.status === "completed")
-        : true;
-
-      if (
-        !finalResult ||
-        hasUnfinishedOrFailedResult ||
-        !monitorFinishedCleanly
-      ) {
-        return null;
-      }
-
-      return explicitFinalId;
-    },
-    [finalResultId, mode, results, runMonitor],
+    () => pickDisplayFinalResultId(results, finalResultId),
+    [finalResultId, results],
   );
 
-  const latestCompletedResultId = useMemo(
+  const latestProgressResultId = useMemo(
     () =>
       [...results]
         .reverse()
         .find(
           (result) =>
-            result.status === "completed" &&
+            (result.status === "running" || result.status === "completed") &&
             result.id !== effectiveFinalResultId,
         )?.id ?? null,
     [effectiveFinalResultId, results],
+  );
+
+  const displayResults = useMemo(
+    () => {
+      const sortedResults = sortResultsForDisplay(results, mode);
+      const pinnedIds = [effectiveFinalResultId, latestProgressResultId];
+      return mode === "parallel"
+        ? prioritizePinnedRootBranches(sortedResults, pinnedIds)
+        : prioritizePinnedResults(sortedResults, pinnedIds);
+    },
+    [effectiveFinalResultId, latestProgressResultId, mode, results],
   );
 
   const parallelComparisonCandidates = useMemo(() => {
@@ -2001,11 +2123,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       const detail =
-        elapsed < 2500
+        elapsed < 2500 && (!entry.detail || entry.detail === uiText.preparing)
           ? uiText.preparing
-          : elapsed < 12000
-            ? uiText.running
-            : uiText.wrapping;
+          : entry.detail || uiText.running;
 
       return {
         ...entry,
@@ -2013,7 +2133,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         workLines: workLines ?? entry.workLines,
       };
     });
-  }, [language, progressNow, runMonitor, uiText.preparing, uiText.running, uiText.wrapping]);
+  }, [language, progressNow, runMonitor, uiText.preparing, uiText.running]);
 
   function updateStep(updated: WorkflowStepState) {
     setWorkflowSteps((steps) =>
@@ -2154,6 +2274,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }
 
   async function readRunStream(runId: string) {
+    const streamAbortController = new AbortController();
+    streamAbortControllerRef.current = streamAbortController;
     let cursor = 0;
     let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null =
       null;
@@ -2165,6 +2287,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const streamedResults: WorkbenchResult[] = [];
 
     const handleEvent = (event: WorkbenchRunStreamEvent) => {
+      if (cancelRequestedRef.current || streamAbortController.signal.aborted) {
+        return;
+      }
+
       if (event.type === "session") {
         latestSession = event.session;
         setSessionId(event.session.id);
@@ -2223,19 +2349,28 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         } else {
           streamedResults.push(event.result);
         }
+        const progressStatus = resultProgressStatus(event.result);
         updateProgressEntry({
           index: event.index,
-          status: event.result.status === "failed" ? "failed" : "completed",
+          status: progressStatus,
           detail:
-            event.result.status === "failed"
+            progressStatus === "failed"
               ? event.result.errorMessage || uiText.failed
-              : uiText.completed,
+              : progressStatus === "canceled"
+                ? event.result.errorMessage || uiText.stepStopped
+                : progressStatus === "skipped"
+                  ? uiText.skipped
+                  : uiText.completed,
           workLines: buildWorkLines({
             language,
             primary:
-              event.result.status === "failed"
+              progressStatus === "failed"
                 ? uiText.failed
-                : uiText.completed,
+                : progressStatus === "canceled"
+                  ? uiText.stepStopped
+                  : progressStatus === "skipped"
+                    ? uiText.skipped
+                    : uiText.completed,
             secondary: compactPreview(
               event.result.outputText || event.result.errorMessage,
               event.result.provider,
@@ -2296,6 +2431,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           ? `/api/workbench/runs/${runId}/stream?startIndex=${cursor}`
           : `/api/workbench/runs/${runId}/stream`;
       const response = await fetch(streamUrl, {
+        signal: streamAbortController.signal,
         headers: {
           Accept: "application/x-ndjson",
         },
@@ -2364,6 +2500,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       const status = await fetchRunStatus(runId);
+      if (status?.status === "canceled" || status?.status === "cancelled") {
+        return {
+          type: "done",
+          session: latestSession ?? undefined,
+          results: streamedResults,
+          executionSummary: {
+            plannedTotal: runMonitor?.entries.length ?? streamedResults.length,
+            executedTotal: streamedResults.length,
+            stoppedEarly: true,
+            stopReason: "canceled",
+          },
+        } as Extract<WorkbenchRunStreamEvent, { type: "done" }>;
+      }
       if (
         status?.status &&
         !["completed", "partial", "failed", "canceled", "cancelled"].includes(
@@ -2374,7 +2523,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         continue;
       }
 
-      if (!streamError) {
+      if (
+        !streamError &&
+        status?.status !== "canceled" &&
+        status?.status !== "cancelled"
+      ) {
         streamError = status?.streamError || status?.errorMessage || "";
       }
       break;
@@ -2413,6 +2566,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     modeToRun: "parallel" | "sequential",
   ) {
     if (!data.session) {
+      if (data.executionSummary?.stopReason === "canceled") {
+        finalizeRunMonitor({
+          mode: modeToRun,
+          results: data.results || [],
+          executionSummary: data.executionSummary,
+          streamError: data.streamError,
+        });
+        setNotice(uiText.canceled);
+        setStoppingStepIndexes(new Set<number>());
+        return;
+      }
       setError(t("runFailed"));
       return;
     }
@@ -2426,6 +2590,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
+    setStoppingStepIndexes(new Set<number>());
     clearDraft();
     setDraftBanner(null);
     finalizeRunMonitor({
@@ -2440,6 +2605,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         : t("runCompleted");
     if (data.streamError) {
       setError(data.streamError);
+    }
+    if (data.executionSummary?.stopReason === "canceled") {
+      setNotice(uiText.canceled);
+      return;
     }
     if (modeToRun === "sequential" && data.executionSummary?.stoppedEarly) {
       setNotice(
@@ -2456,11 +2625,40 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
-    cancelRequestedRef.current = true;
     setCancelingRun(true);
-    setNotice(uiText.canceled);
+    setNotice(
+      language === "ko"
+        ? "\uc804\uccb4 \uc911\uc9c0\ub97c \uc694\uccad\ud558\ub294 \uc911\uc785\ub2c8\ub2e4."
+        : "Requesting stop...",
+    );
     setError("");
 
+    try {
+      const response = await fetch(
+        `/api/workbench/runs/${encodeURIComponent(runId)}`,
+        {
+          method: "DELETE",
+          headers: { Accept: "application/json" },
+        },
+      );
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        setError(data.error || t("runFailed"));
+        setNotice("");
+        setCancelingRun(false);
+        return;
+      }
+    } catch (stopError) {
+      setError(stopError instanceof Error ? stopError.message : t("runFailed"));
+      setNotice("");
+      setCancelingRun(false);
+      return;
+    }
+
+    setNotice(uiText.canceled);
     setRunMonitor((current) =>
       current
         ? {
@@ -2477,10 +2675,32 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           }
         : current,
     );
+    setStoppingStepIndexes(new Set<number>());
+  }
+
+  async function stopRunStep(index: number) {
+    const runId = activeRunIdRef.current;
+    if (!runId || runId === "pending" || cancelingRun || stoppingStepIndexes.has(index)) {
+      return;
+    }
+
+    const previousEntry = runMonitor?.entries[index];
+    setStoppingStepIndexes((current) => new Set([...current, index]));
+    setError("");
+    updateProgressEntry({
+      index,
+      status: runMonitor?.entries[index]?.status === "queued" ? "skipped" : "canceled",
+      detail: uiText.stepStopRequested,
+      workLines: buildWorkLines({
+        language,
+        primary: uiText.stepStopRequested,
+        secondary: uiText.stepStopRequested,
+      }),
+    });
 
     try {
       const response = await fetch(
-        `/api/workbench/runs/${encodeURIComponent(runId)}`,
+        `/api/workbench/runs/${encodeURIComponent(runId)}/steps/${index}`,
         {
           method: "DELETE",
           headers: { Accept: "application/json" },
@@ -2491,21 +2711,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       };
 
       if (!response.ok) {
-        cancelRequestedRef.current = false;
+        restoreProgressEntry(index, previousEntry);
         setError(data.error || t("runFailed"));
-        setCancelingRun(false);
-        return;
       }
-    } catch (stopError) {
-      cancelRequestedRef.current = false;
-      setError(stopError instanceof Error ? stopError.message : t("runFailed"));
-      setCancelingRun(false);
-      return;
+    } catch (stepStopError) {
+      restoreProgressEntry(index, previousEntry);
+      setError(
+        stepStopError instanceof Error ? stepStopError.message : t("runFailed"),
+      );
+    } finally {
+      setStoppingStepIndexes((current) => {
+        const next = new Set(current);
+        next.delete(index);
+        return next;
+      });
     }
-
-    setCurrentRunId(null);
-    setRunning(false);
-    setCancelingRun(false);
   }
 
   async function runWorkbench() {
@@ -2542,6 +2762,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
 
     setProgressNow(Date.now());
+    setStoppingStepIndexes(new Set<number>());
     setRunMonitor(createRunMonitor(mode));
     focusProgressPanel();
     if (mode === "parallel") {
@@ -2638,7 +2859,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
       data = streamed || {};
 
-      if (!response.ok || !data.session) {
+      if (
+        !response.ok ||
+        (!data.session && data.executionSummary?.stopReason !== "canceled")
+      ) {
         setRunMonitor((current) =>
           current
             ? {
@@ -2664,8 +2888,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
     } finally {
       cancelRequestedRef.current = false;
+      streamAbortControllerRef.current = null;
       setCurrentRunId(null);
       setCancelingRun(false);
+      setStoppingStepIndexes(new Set<number>());
       setRunning(false);
     }
   }
@@ -3572,7 +3798,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
             {progressEntries.length ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {progressEntries.map((entry) => (
+                {progressEntries.map((entry, index) => (
                   <article
                     key={entry.key}
                     className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-3"
@@ -3629,6 +3855,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                                   ? "대기"
                                   : "Queued"}
                       </span>
+                      {mode === "sequential" &&
+                      running &&
+                      activeRunId &&
+                      (entry.status === "active" || entry.status === "queued") ? (
+                        <button
+                          type="button"
+                          onClick={() => stopRunStep(index)}
+                          disabled={stoppingStepIndexes.has(index)}
+                          className="rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-60"
+                        >
+                          {stoppingStepIndexes.has(index)
+                            ? uiText.stoppingStep
+                            : uiText.stopStep}
+                        </button>
+                      ) : null}
                     </div>
                     <p className="mt-3 text-sm leading-6 text-stone-700">
                       {entry.detail ||
@@ -3846,7 +4087,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     result={result}
                     depth={resultDepths.get(result.id) ?? 0}
                     isFinal={effectiveFinalResultId === result.id}
-                    isLatestCompleted={latestCompletedResultId === result.id}
+                    isLatestProgress={latestProgressResultId === result.id}
                     providers={providers}
                     sourceLabel={
                       parent

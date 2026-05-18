@@ -9,6 +9,7 @@ import {
   completeExecutionRun,
   failExecutionRun,
   isExecutionRunCanceled,
+  isExecutionRunStepStopRequested,
   markExecutionRunRunning,
   updateExecutionRunProgress,
   updateExecutionRunSession,
@@ -42,7 +43,7 @@ type WorkbenchRunStreamEvent =
       title?: string;
       subtitle?: string;
       actionType?: ActionType;
-      status?: "queued" | "active" | "completed" | "failed" | "skipped";
+      status?: "queued" | "active" | "completed" | "failed" | "skipped" | "canceled";
       detail?: string;
     }
   | {
@@ -128,6 +129,7 @@ async function executeWorkbenchRunStep(
   };
 
   let latestSession: WorkbenchStreamSession | null = null;
+  let resultsStarted = 0;
   let resultsCompleted = 0;
   const completedResults: Awaited<
     ReturnType<typeof executeParallelRunIncremental>
@@ -200,17 +202,46 @@ async function executeWorkbenchRunStep(
           ReturnType<typeof executeParallelRunIncremental>
         >["results"][number];
       }) => {
+        resultsStarted += 1;
         await emit({
           type: "result",
           index: event.index,
           result: event.result,
         });
       },
+      onStepSkipped: async (event: {
+        index: number;
+        title: string;
+        subtitle: string;
+        actionType?: ActionType;
+        detail?: string;
+      }) => {
+        await emit({
+          type: "progress",
+          index: event.index,
+          title: event.title,
+          subtitle: event.subtitle,
+          actionType: event.actionType,
+          status: "skipped",
+          detail: event.detail,
+        });
+      },
       shouldStop: async () =>
         payload.executionRunId
           ? isExecutionRunCanceled(payload.executionRunId)
           : false,
+      shouldStopStep: async (index: number) =>
+        payload.executionRunId
+          ? isExecutionRunStepStopRequested({
+              executionRunId: payload.executionRunId,
+              stepIndex: index,
+            })
+          : false,
     };
+
+    if (await callbacks.shouldStop()) {
+      throw new Error("The run was stopped by the user.");
+    }
 
     let result: Awaited<ReturnType<typeof executeParallelRunIncremental>>;
     let executionSummary:
@@ -225,6 +256,7 @@ async function executeWorkbenchRunStep(
     if (payload.session.mode === "parallel") {
       result = await executeParallelRunIncremental({
         userId: payload.userId,
+        executionRunId: payload.executionRunId,
         session: payload.session,
         targets: (payload.session.targets ?? []).map((target) => ({
           provider: target.provider as ProviderName,
@@ -235,6 +267,7 @@ async function executeWorkbenchRunStep(
     } else {
       const sequentialResult = await executeSequentialRunIncremental({
         userId: payload.userId,
+        executionRunId: payload.executionRunId,
         session: payload.session,
         steps: (payload.session.steps ?? []).map((step) => ({
           ...step,
@@ -324,15 +357,31 @@ async function executeWorkbenchRunStep(
       await emit({ type: "usage", usage });
     }
 
-    const wasCanceled = executionSummary?.stopReason === "canceled";
+    const externallyCanceled = payload.executionRunId
+      ? await isExecutionRunCanceled(payload.executionRunId)
+      : false;
+    const wasCanceled =
+      executionSummary?.stopReason === "canceled" ||
+      externallyCanceled;
+    const resolvedExecutionSummary =
+      executionSummary ??
+      (wasCanceled
+        ? {
+            plannedTotal:
+              payload.session.mode === "parallel"
+                ? payload.session.targets?.length ?? result.results.length
+                : result.results.length,
+            executedTotal: result.results.length,
+            stoppedEarly: true,
+            stopReason: "canceled",
+          }
+        : undefined);
     const hasFailedResults = result.results.some(
       (item) => item.status === "failed",
     );
     const finalResultId =
       result.session.finalResultId ?? pickFinalResultId(result.results);
-    const streamError = wasCanceled
-      ? "The run was stopped by the user."
-      : hasFailedResults
+    const streamError = hasFailedResults && !wasCanceled
       ? "One or more model runs ended with an error."
       : "";
 
@@ -343,7 +392,7 @@ async function executeWorkbenchRunStep(
         sessionId: result.session.id,
         finalResultId,
         streamError: streamError || null,
-        executionSummary: executionSummary ?? null,
+        executionSummary: resolvedExecutionSummary ?? null,
       });
     }
 
@@ -355,7 +404,7 @@ async function executeWorkbenchRunStep(
       },
       results: result.results,
       streamError: streamError || undefined,
-      executionSummary,
+      executionSummary: resolvedExecutionSummary,
       usage,
     };
 
@@ -368,7 +417,7 @@ async function executeWorkbenchRunStep(
         : "The durable AI run failed.";
 
     if (payload.usageReservationId) {
-      if (resultsCompleted === 0) {
+      if (resultsStarted === 0 && resultsCompleted === 0) {
         await releaseUsageReservation({
           reservationId: payload.usageReservationId,
           userId: payload.userId,
