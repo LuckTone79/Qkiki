@@ -2606,9 +2606,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       data.streamError || data.results?.some((result) => result.status === "failed")
         ? t("runCompletedPartial")
         : t("runCompleted");
-    if (data.streamError) {
-      setError(data.streamError);
-    }
     if (data.executionSummary?.stopReason === "canceled") {
       setNotice(uiText.canceled);
       return;
@@ -2619,7 +2616,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       );
       return;
     }
-    setNotice(completionNotice);
+    setNotice(
+      data.streamError && completionNotice === t("runCompletedPartial")
+        ? language === "ko"
+          ? `${completionNotice} 실패 카드를 확인하세요.`
+          : `${completionNotice} Check the failed result cards.`
+        : completionNotice,
+    );
   }
 
   async function stopActiveRun() {

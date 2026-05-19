@@ -48,6 +48,7 @@ type ExecutePersistInput = {
   requestType: ActionType | "rerun";
   prompt: string;
   attachments?: RuntimeAttachment[];
+  allowFallback?: boolean;
   abortSignal?: AbortSignal;
   canceledErrorMessage?: string;
   onStarted?: (result: PersistedWorkbenchResult) => void | Promise<void>;
@@ -58,6 +59,8 @@ const MAX_SOURCE_TEXT_CHARS = 12000;
 const STEP_STOP_POLL_MS = 750;
 const STEP_STOP_MESSAGE = "Step stopped by user request.";
 const RUN_STOP_MESSAGE = "Run stopped by user request.";
+const MAX_INITIAL_SEQUENTIAL_RECOVERY_FAILURES = 2;
+const MAX_SEQUENTIAL_CONSECUTIVE_FAILURES = 3;
 
 type ExpandedWorkflowStep = {
   executionOrder: number;
@@ -314,6 +317,29 @@ export function stripQualityScoreLine(text: string | null | undefined) {
     .filter((line) => !/QUALITY_SCORE\s*[:=]\s*\d{1,3}/i.test(line))
     .join("\n")
     .trim();
+}
+
+function buildFailedStepRecoverySource(input: {
+  originalInput: string;
+  stepNumber: number;
+  provider: ProviderName;
+  model: string;
+  errorMessage?: string | null;
+}) {
+  return truncatePromptContext(
+    [
+      "The previous sequential step failed before producing usable output.",
+      `Failed step: ${input.stepNumber} (${input.provider}/${input.model})`,
+      `Failure: ${input.errorMessage || "Unknown provider failure."}`,
+      "",
+      "Continue the workflow from the original task instead. Produce the best possible output for the next step, and briefly account for the missing previous output if needed.",
+      "",
+      "[Original task]",
+      input.originalInput,
+    ].join("\n"),
+    MAX_SOURCE_TEXT_CHARS,
+    "Recovery source",
+  );
 }
 
 export async function updateResultOutputText(resultId: string, outputText: string) {
@@ -579,7 +605,7 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
     model: input.model,
     prompt: input.prompt,
     attachments: toProviderAttachments(input.attachments),
-    allowFallback: false,
+    allowFallback: input.allowFallback ?? false,
     abortSignal: input.abortSignal,
     concurrencyOwner: {
       ownerKind: "result",
@@ -854,6 +880,7 @@ export async function executeParallelRunIncremental(input: {
 export async function resolveSourceText(input: {
   userId: string;
   sessionId: string;
+  originalInput?: string | null;
   sourceMode: SourceMode;
   sourceResultId?: string | null;
   previousResultText?: string | null;
@@ -887,13 +914,33 @@ export async function resolveSourceText(input: {
       where: { sessionId: input.sessionId, session: { userId: input.userId } },
       orderBy: { createdAt: "asc" },
     });
+    const completedResults = results.filter(
+      (result) => result.status === "completed" && result.outputText?.trim(),
+    );
+
+    if (!completedResults.length && input.originalInput?.trim()) {
+      return truncatePromptContext(
+        [
+          "No completed prior results are available yet.",
+          "Continue from the original task instead of treating provider failure messages as source material.",
+          "",
+          "[Original task]",
+          input.originalInput,
+        ].join("\n"),
+        MAX_SOURCE_TEXT_CHARS,
+        "Combined source results",
+      );
+    }
 
     return truncatePromptContext(
-      results
+      (completedResults.length ? completedResults : results)
         .map((result, index) =>
         [
           `Result ${index + 1} (${result.provider}/${result.model})`,
-          result.outputText || result.errorMessage || "",
+          result.outputText ||
+            (result.status === "failed"
+              ? `This result failed and produced no usable output: ${result.errorMessage || "unknown error"}`
+              : result.errorMessage || ""),
         ].join("\n"),
         )
         .join("\n\n"),
@@ -939,6 +986,8 @@ export async function executeSequentialRun(input: {
   let previousResultText: string | null = null;
   let previousResultId: string | null = null;
   const results = [];
+  let completedResultCount = 0;
+  let consecutiveRecoveryFailures = 0;
   let stoppedEarly = false;
   let stopReason: string | null = null;
 
@@ -971,6 +1020,7 @@ export async function executeSequentialRun(input: {
     const sourceText = await resolveSourceText({
       userId: input.userId,
       sessionId: session.id,
+      originalInput: input.session.originalInput,
       sourceMode: step.sourceMode,
       sourceResultId: step.sourceResultId,
       previousResultText,
@@ -1015,9 +1065,42 @@ export async function executeSequentialRun(input: {
       }
     }
 
+    results.push(result);
+
+    if (result.status === "failed") {
+      consecutiveRecoveryFailures += 1;
+
+      if (
+        (completedResultCount === 0 &&
+          consecutiveRecoveryFailures >= MAX_INITIAL_SEQUENTIAL_RECOVERY_FAILURES) ||
+        consecutiveRecoveryFailures >= MAX_SEQUENTIAL_CONSECUTIVE_FAILURES
+      ) {
+        stoppedEarly = true;
+        stopReason =
+          completedResultCount === 0
+            ? `step_${expandedStep.executionOrder}_failed_no_recovery`
+            : `step_${expandedStep.executionOrder}_failed_limit`;
+        break;
+      }
+
+      previousResultText =
+        previousResultText ||
+        buildFailedStepRecoverySource({
+          originalInput: input.session.originalInput,
+          stepNumber: expandedStep.executionOrder,
+          provider: step.targetProvider,
+          model: step.targetModel,
+          errorMessage: result.errorMessage,
+        });
+      continue;
+    }
+
     previousResultText = effectiveOutput || result.errorMessage || "";
     previousResultId = result.id;
-    results.push(result);
+    if (result.status === "completed") {
+      completedResultCount += 1;
+      consecutiveRecoveryFailures = 0;
+    }
 
     if (stoppedEarly) {
       break;
@@ -1082,6 +1165,8 @@ export async function executeSequentialRunIncremental(input: {
   let previousResultText: string | null = null;
   let previousResultId: string | null = null;
   const results = [];
+  let completedResultCount = 0;
+  let consecutiveRecoveryFailures = 0;
   let stoppedEarly = false;
   let stopReason: string | null = null;
 
@@ -1133,6 +1218,7 @@ export async function executeSequentialRunIncremental(input: {
     const sourceText = await resolveSourceText({
       userId: input.userId,
       sessionId: session.id,
+      originalInput: input.session.originalInput,
       sourceMode: step.sourceMode,
       sourceResultId: step.sourceResultId,
       previousResultText,
@@ -1210,8 +1296,6 @@ export async function executeSequentialRunIncremental(input: {
       }
     }
 
-    previousResultText = effectiveOutput || result.errorMessage || "";
-    previousResultId = result.id;
     results.push(result);
     await input.callbacks?.onResult?.({
       index: stepIndex,
@@ -1231,9 +1315,39 @@ export async function executeSequentialRunIncremental(input: {
     }
 
     if (result.status === "failed") {
-      stoppedEarly = true;
-      stopReason = `step_${expandedStep.executionOrder}_failed`;
-      break;
+      consecutiveRecoveryFailures += 1;
+
+      if (
+        (completedResultCount === 0 &&
+          consecutiveRecoveryFailures >= MAX_INITIAL_SEQUENTIAL_RECOVERY_FAILURES) ||
+        consecutiveRecoveryFailures >= MAX_SEQUENTIAL_CONSECUTIVE_FAILURES
+      ) {
+        stoppedEarly = true;
+        stopReason =
+          completedResultCount === 0
+            ? `step_${expandedStep.executionOrder}_failed_no_recovery`
+            : `step_${expandedStep.executionOrder}_failed_limit`;
+        break;
+      }
+
+      previousResultText =
+        lastUsableResultText ||
+        buildFailedStepRecoverySource({
+          originalInput: input.session.originalInput,
+          stepNumber: expandedStep.executionOrder,
+          provider: step.targetProvider,
+          model: step.targetModel,
+          errorMessage: result.errorMessage,
+        });
+      previousResultId = lastUsableResultId;
+      continue;
+    }
+
+    previousResultText = effectiveOutput || result.errorMessage || "";
+    previousResultId = result.id;
+    if (result.status === "completed") {
+      completedResultCount += 1;
+      consecutiveRecoveryFailures = 0;
     }
 
     if (await input.callbacks?.shouldStop?.()) {

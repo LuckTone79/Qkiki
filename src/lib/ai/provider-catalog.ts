@@ -111,6 +111,20 @@ export function getMinimumTimeoutSecondsForModel(
 ) {
   const normalizedModel = model?.trim() ?? "";
 
+  if (provider === "openai") {
+    if (normalizedModel === "gpt-5.5") {
+      return 180;
+    }
+
+    if (normalizedModel === "gpt-5.4") {
+      return 150;
+    }
+
+    if (normalizedModel === "gpt-5.4-mini") {
+      return 90;
+    }
+  }
+
   if (provider === "anthropic") {
     if (normalizedModel === "claude-opus-4-7") {
       return 180;

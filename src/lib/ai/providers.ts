@@ -41,7 +41,7 @@ const ANTHROPIC_MAX_TOKENS = 4096;
 const ANTHROPIC_MAX_CONTINUATIONS = 2;
 const ANTHROPIC_CONTINUE_PROMPT =
   "Continue exactly where you left off. Do not repeat prior text. Return only the continuation.";
-const DEFAULT_PROVIDER_RETRY_ATTEMPTS = 1;
+const DEFAULT_PROVIDER_MAX_ATTEMPTS = 3;
 
 async function readJson(response: Response) {
   try {
@@ -275,11 +275,7 @@ function shouldRetryProviderCall(
     return false;
   }
 
-  if (provider === "anthropic" && model === "claude-opus-4-7") {
-    return attemptNumber < 2;
-  }
-
-  return attemptNumber < DEFAULT_PROVIDER_RETRY_ATTEMPTS;
+  return attemptNumber < DEFAULT_PROVIDER_MAX_ATTEMPTS;
 }
 
 function buildChatCompletionInput(input: ProviderCallInput) {
