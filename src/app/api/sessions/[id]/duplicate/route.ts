@@ -6,6 +6,10 @@ import {
   ensureWorkflowControlJsonColumn,
   ensureWorkflowTemplateStepsJsonColumn,
 } from "@/lib/workbench-session-schema";
+import {
+  buildWorkbenchResultSelect,
+  ensureWorkbenchResultReadSchema,
+} from "@/lib/workbench-result-read";
 
 export async function POST(
   _request: Request,
@@ -20,6 +24,8 @@ export async function POST(
         ensureWorkflowTemplateStepsJsonColumn(),
       ]);
     await ensureResultExecutionRunIdColumn();
+    const { supportsRunExecutionOrder } =
+      await ensureWorkbenchResultReadSchema();
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
       select: {
@@ -40,7 +46,19 @@ export async function POST(
           ? { workflowTemplateStepsJson: true }
           : {}),
         workflowSteps: { orderBy: { orderIndex: "asc" } },
-        results: { orderBy: { createdAt: "asc" } },
+        results: {
+          orderBy: { createdAt: "asc" },
+          select: buildWorkbenchResultSelect({
+            includePromptSnapshot: true,
+            includeOutputText: true,
+            includeEncryptedOutput: true,
+            includeRawResponse: true,
+            includeBranching: true,
+            includeUsage: true,
+            includeExecutionFields: supportsRunExecutionOrder,
+            includeTimestamps: true,
+          }),
+        },
         attachments: { orderBy: { createdAt: "asc" } },
       },
     });

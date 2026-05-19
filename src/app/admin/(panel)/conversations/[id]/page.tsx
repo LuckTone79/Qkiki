@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireAdminViewer } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkbenchResultReadSchema } from "@/lib/workbench-result-read";
 import {
   AdminConversationDetailClient,
   type ConversationDetailData,
@@ -15,6 +16,7 @@ export default async function AdminConversationDetailPage({
 }) {
   const admin = await requireAdminViewer();
   const { id } = await params;
+  await ensureWorkbenchResultReadSchema();
 
   const conversation = await prisma.workbenchSession.findUnique({
     where: { id },

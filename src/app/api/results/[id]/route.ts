@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
+import { ensureWorkbenchResultReadSchema } from "@/lib/workbench-result-read";
 import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
 
 async function collectBranchIds(rootId: string) {
@@ -30,6 +31,7 @@ export async function DELETE(
     const user = await requireApiUser();
     const { id } = await context.params;
     await ensureResultExecutionRunIdColumn();
+    await ensureWorkbenchResultReadSchema();
     const result = await prisma.result.findFirst({
       where: { id, session: { userId: user.id } },
     });

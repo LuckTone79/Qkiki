@@ -5,6 +5,7 @@ import {
   requireApiAdminViewer,
 } from "@/lib/admin-api-auth";
 import { prisma } from "@/lib/prisma";
+import { ensureWorkbenchResultReadSchema } from "@/lib/workbench-result-read";
 
 export async function GET(
   request: Request,
@@ -14,6 +15,7 @@ export async function GET(
     const admin = await requireApiAdminViewer();
     const { id } = await context.params;
     const meta = getRequestMeta(request);
+    await ensureWorkbenchResultReadSchema();
 
     const session = await prisma.workbenchSession.findUnique({
       where: { id },

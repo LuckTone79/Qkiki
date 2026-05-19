@@ -9,6 +9,7 @@ import {
 } from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
+import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
@@ -31,7 +32,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
     }
 
-    await ensureWorkbenchRunSchema();
+    const { supportsRunExecutionOrder } = await ensureWorkbenchRunSchema();
     if ("executionRunId" in token) {
       await closeStaleWorkbenchRuns({
         executionRunId: token.executionRunId,
@@ -51,11 +52,17 @@ export async function GET(_request: Request, { params }: RouteContext) {
         const results = await prisma.result.findMany({
           where: { executionRunId: executionRun.id },
           orderBy: { createdAt: "asc" },
-          include: {
-            workflowStep: {
-              select: { orderIndex: true, actionType: true },
-            },
-          },
+          select: buildWorkbenchResultSelect({
+            includePromptSnapshot: true,
+            includeOutputText: true,
+            includeEncryptedOutput: true,
+            includeRawResponse: true,
+            includeBranching: true,
+            includeUsage: true,
+            includeExecutionFields: supportsRunExecutionOrder,
+            includeTimestamps: true,
+            includeWorkflowStep: true,
+          }),
         });
         return NextResponse.json({
           runId,
@@ -89,11 +96,17 @@ export async function GET(_request: Request, { params }: RouteContext) {
       const results = await prisma.result.findMany({
         where: { executionRunId: executionRun.id },
         orderBy: { createdAt: "asc" },
-        include: {
-          workflowStep: {
-            select: { orderIndex: true, actionType: true },
-          },
-        },
+        select: buildWorkbenchResultSelect({
+          includePromptSnapshot: true,
+          includeOutputText: true,
+          includeEncryptedOutput: true,
+          includeRawResponse: true,
+          includeBranching: true,
+          includeUsage: true,
+          includeExecutionFields: supportsRunExecutionOrder,
+          includeTimestamps: true,
+          includeWorkflowStep: true,
+        }),
       });
 
       return NextResponse.json({

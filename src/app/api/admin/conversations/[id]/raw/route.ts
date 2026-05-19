@@ -7,6 +7,7 @@ import {
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { decryptTextContent } from "@/lib/secret-crypto";
+import { ensureWorkbenchResultReadSchema } from "@/lib/workbench-result-read";
 
 export async function POST(
   request: Request,
@@ -16,6 +17,7 @@ export async function POST(
     const admin = await requireApiAdminViewer();
     const { id } = await context.params;
     const meta = getRequestMeta(request);
+    await ensureWorkbenchResultReadSchema();
     const body = (await request.json().catch(() => ({}))) as {
       accessReasonCode?: string;
     };
