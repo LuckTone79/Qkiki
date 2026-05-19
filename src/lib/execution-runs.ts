@@ -323,6 +323,15 @@ export async function updateExecutionRunSession(input: {
   });
 }
 
+export async function getExecutionRunSessionId(executionRunId: string) {
+  const executionRun = await prisma.executionRun.findUnique({
+    where: { id: executionRunId },
+    select: { sessionId: true },
+  });
+
+  return executionRun?.sessionId ?? null;
+}
+
 export async function updateExecutionRunProgress(input: {
   executionRunId: string;
   totalStepsDone: number;
@@ -345,18 +354,27 @@ export async function updateExecutionRunProgress(input: {
 
 export async function completeExecutionRun(input: CompleteExecutionRunInput) {
   await ensureExecutionRunStepControlJsonColumn();
-  if (input.status !== "canceled") {
-    const current = await prisma.executionRun.findUnique({
-      where: { id: input.executionRunId },
-      select: { id: true, status: true },
-    });
+  const current = await prisma.executionRun.findUnique({
+    where: { id: input.executionRunId },
+    select: { id: true, status: true },
+  });
 
-    if (
-      current?.status === "canceled" ||
-      current?.status === "failed"
-    ) {
-      return current;
-    }
+  if (
+    current?.status === "canceled" ||
+    current?.status === "failed"
+  ) {
+    return current;
+  }
+
+  const runningResultCount = await prisma.result.count({
+    where: {
+      executionRunId: input.executionRunId,
+      status: "running",
+    },
+  });
+
+  if (runningResultCount > 0) {
+    return current;
   }
 
   return prisma.executionRun.update({

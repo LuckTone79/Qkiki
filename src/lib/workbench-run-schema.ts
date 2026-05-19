@@ -11,6 +11,7 @@ type ColumnSpec = {
 };
 
 const ensureColumnPromiseCache = new Map<string, Promise<boolean>>();
+const ensureIndexPromiseCache = new Map<string, Promise<boolean>>();
 
 async function detectColumn(input: {
   tableName: string;
@@ -23,6 +24,23 @@ async function detectColumn(input: {
       WHERE table_schema = current_schema()
         AND table_name = ${input.tableName}
         AND column_name = ${input.columnName}
+    ) AS "exists"
+  `;
+
+  return rows[0]?.exists === true;
+}
+
+async function detectIndex(input: {
+  tableName: string;
+  indexName: string;
+}) {
+  const rows = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM pg_indexes
+      WHERE schemaname = current_schema()
+        AND tablename = ${input.tableName}
+        AND indexname = ${input.indexName}
     ) AS "exists"
   `;
 
@@ -57,6 +75,48 @@ function ensureColumn(spec: ColumnSpec) {
     throw error;
   });
   ensureColumnPromiseCache.set(spec.cacheKey, promise);
+  return promise;
+}
+
+async function ensureIndexInternal(input: {
+  cacheKey: string;
+  tableName: string;
+  indexName: string;
+  ensureStatements: string[];
+  warnLabel: string;
+}) {
+  if (await detectIndex(input)) {
+    return true;
+  }
+
+  try {
+    for (const statement of input.ensureStatements) {
+      await prisma.$executeRawUnsafe(statement);
+    }
+  } catch (error) {
+    console.warn(input.warnLabel, error);
+  }
+
+  return detectIndex(input);
+}
+
+function ensureIndex(input: {
+  cacheKey: string;
+  tableName: string;
+  indexName: string;
+  ensureStatements: string[];
+  warnLabel: string;
+}) {
+  const cached = ensureIndexPromiseCache.get(input.cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const promise = ensureIndexInternal(input).catch((error) => {
+    ensureIndexPromiseCache.delete(input.cacheKey);
+    throw error;
+  });
+  ensureIndexPromiseCache.set(input.cacheKey, promise);
   return promise;
 }
 
@@ -96,14 +156,79 @@ export function ensureResultExecutionRunIdColumn() {
   });
 }
 
+export async function ensureResultExecutionOrderColumn() {
+  const hasColumn = await ensureColumn({
+    cacheKey: "Result.executionOrder",
+    tableName: "Result",
+    columnName: "executionOrder",
+    ensureStatements: [
+      `
+        ALTER TABLE "Result"
+        ADD COLUMN IF NOT EXISTS "executionOrder" INTEGER
+      `,
+    ],
+    warnLabel:
+      "[workbench-run-schema] could not auto-add Result.executionOrder column",
+  });
+
+  if (!hasColumn) {
+    return false;
+  }
+
+  return ensureIndex({
+    cacheKey: "Result.executionRunId.executionOrder.unique",
+    tableName: "Result",
+    indexName: "Result_executionRunId_executionOrder_key",
+    ensureStatements: [
+      `
+        WITH ranked AS (
+          SELECT
+            id,
+            ROW_NUMBER() OVER (
+              PARTITION BY "executionRunId", "executionOrder"
+              ORDER BY
+                CASE "status"
+                  WHEN 'completed' THEN 0
+                  WHEN 'running' THEN 1
+                  WHEN 'failed' THEN 2
+                  WHEN 'canceled' THEN 3
+                  ELSE 4
+                END,
+                "updatedAt" DESC,
+                "createdAt" ASC
+            ) AS rn
+          FROM "Result"
+          WHERE "executionRunId" IS NOT NULL
+            AND "executionOrder" IS NOT NULL
+        )
+        UPDATE "Result"
+        SET "executionOrder" = NULL
+        WHERE id IN (
+          SELECT id
+          FROM ranked
+          WHERE rn > 1
+        )
+      `,
+      `
+        CREATE UNIQUE INDEX IF NOT EXISTS "Result_executionRunId_executionOrder_key"
+        ON "Result"("executionRunId", "executionOrder")
+      `,
+    ],
+    warnLabel:
+      "[workbench-run-schema] could not auto-add Result.executionOrder column",
+  });
+}
+
 export async function ensureWorkbenchRunSchema() {
   const [supportsStepControl, supportsRunScopedResults] = await Promise.all([
     ensureExecutionRunStepControlJsonColumn(),
     ensureResultExecutionRunIdColumn(),
   ]);
+  const supportsRunExecutionOrder = await ensureResultExecutionOrderColumn();
 
   return {
     supportsStepControl,
     supportsRunScopedResults,
+    supportsRunExecutionOrder,
   };
 }

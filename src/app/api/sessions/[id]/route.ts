@@ -6,7 +6,23 @@ import {
 } from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
 import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
-import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
+import {
+  ensureWorkflowControlJsonColumn,
+  ensureWorkflowTemplateStepsJsonColumn,
+} from "@/lib/workbench-session-schema";
+
+function parseWorkflowTemplateStepsJson(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(
   _request: Request,
@@ -15,7 +31,11 @@ export async function GET(
   try {
     const user = await requireApiUser();
     const { id } = await context.params;
-    const supportsWorkflowControl = await ensureWorkflowControlJsonColumn();
+    const [supportsWorkflowControl, supportsWorkflowTemplateSteps] =
+      await Promise.all([
+        ensureWorkflowControlJsonColumn(),
+        ensureWorkflowTemplateStepsJsonColumn(),
+      ]);
     await ensureResultExecutionRunIdColumn();
     const session = await prisma.workbenchSession.findFirst({
       where: { id, userId: user.id },
@@ -30,6 +50,9 @@ export async function GET(
         mode: true,
         finalResultId: true,
         ...(supportsWorkflowControl ? { workflowControlJson: true } : {}),
+        ...(supportsWorkflowTemplateSteps
+          ? { workflowTemplateStepsJson: true }
+          : {}),
         project: { select: { id: true, name: true, sharedContext: true } },
         workflowSteps: { orderBy: { orderIndex: "asc" } },
         results: {
@@ -66,6 +89,11 @@ export async function GET(
     return NextResponse.json({
       session: {
         ...session,
+        workflowSteps:
+          parseWorkflowTemplateStepsJson(
+            (session as { workflowTemplateStepsJson?: string | null })
+              .workflowTemplateStepsJson,
+          ) ?? session.workflowSteps,
         workflowControlJson: supportsWorkflowControl
           ? (session as { workflowControlJson?: string | null }).workflowControlJson ?? null
           : null,

@@ -21,6 +21,7 @@ import { runWorkbenchSchema } from "@/lib/validation";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import type { ProviderName } from "@/lib/ai/types";
+import { upsertWorkbenchSession } from "@/lib/ai/workflow";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
 import { releaseUsageReservation, reserveUsage } from "@/lib/usage-policy";
 
@@ -91,6 +92,22 @@ export async function POST(request: Request) {
     }
 
     const plannedTotal = calculatePlannedExecutionTotal(parsed.data);
+    const preparedSession = await upsertWorkbenchSession(user.id, {
+      ...parsed.data,
+      workflowControl: parsed.data.workflowControl,
+      workflowTemplateSteps:
+        parsed.data.mode === "sequential"
+          ? parsed.data.steps?.map((step) => ({
+              ...step,
+              targetProvider: step.targetProvider as ProviderName,
+            }))
+          : undefined,
+      mode: parsed.data.mode,
+    });
+    const runSession = {
+      ...parsed.data,
+      sessionId: preparedSession.id,
+    };
     const reservation = user.isTrial
       ? null
       : await reserveUsage({
@@ -103,7 +120,7 @@ export async function POST(request: Request) {
     reservationId = reservation?.id ?? null;
     const executionRun = await createQueuedExecutionRun({
       userId: user.id,
-      sessionId: parsed.data.sessionId ?? null,
+      sessionId: preparedSession.id,
       mode: parsed.data.mode,
       requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
       inputCharCount,
@@ -122,7 +139,7 @@ export async function POST(request: Request) {
           userId: user.id,
           inputCharCount,
           requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
-          session: parsed.data,
+          session: runSession,
         },
       ]);
     } catch (error) {

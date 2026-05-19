@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   claimSessionAttachments,
@@ -12,8 +12,14 @@ import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
 import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
 import { encryptTextContent } from "@/lib/secret-crypto";
-import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
-import { ensureWorkflowControlJsonColumn } from "@/lib/workbench-session-schema";
+import {
+  ensureResultExecutionOrderColumn,
+  ensureResultExecutionRunIdColumn,
+} from "@/lib/workbench-run-schema";
+import {
+  ensureWorkflowControlJsonColumn,
+  ensureWorkflowTemplateStepsJsonColumn,
+} from "@/lib/workbench-session-schema";
 import type {
   ActionType,
   ProviderName,
@@ -32,6 +38,7 @@ type SessionInput = {
   outputStyle?: string | null;
   outputLanguage?: string | null;
   workflowControl?: WorkflowControlInput;
+  workflowTemplateSteps?: WorkflowStepInput[];
   mode: string;
   attachmentIds?: string[];
 };
@@ -40,6 +47,7 @@ type ExecutePersistInput = {
   userId: string;
   sessionId: string;
   executionRunId?: string | null;
+  executionOrder?: number | null;
   workflowStepId?: string | null;
   parentResultId?: string | null;
   branchKey?: string | null;
@@ -57,8 +65,10 @@ type ExecutePersistInput = {
 const MAX_PROJECT_CONTEXT_CHARS = 6000;
 const MAX_SOURCE_TEXT_CHARS = 12000;
 const STEP_STOP_POLL_MS = 750;
+const EXISTING_STEP_POLL_MS = 1000;
 const STEP_STOP_MESSAGE = "Step stopped by user request.";
 const RUN_STOP_MESSAGE = "Run stopped by user request.";
+const EXISTING_STEP_STILL_RUNNING_REASON = "existing_step_still_running";
 const MAX_INITIAL_SEQUENTIAL_RECOVERY_FAILURES = 2;
 const MAX_SEQUENTIAL_CONSECUTIVE_FAILURES = 3;
 
@@ -85,6 +95,28 @@ type PersistedWorkbenchResult = Prisma.ResultGetPayload<{
     };
   };
 }>;
+
+function serializeWorkflowTemplateSteps(steps: WorkflowStepInput[] | undefined) {
+  if (!steps?.length) {
+    return null;
+  }
+
+  return JSON.stringify(
+    steps.map((step, index) => ({
+      orderIndex: index + 1,
+      actionType: step.actionType,
+      targetProvider: step.targetProvider,
+      targetModel: step.targetModel,
+      sourceMode: step.sourceMode,
+      sourceResultId: step.sourceResultId ?? null,
+      instructionTemplate: step.instructionTemplate ?? null,
+    })),
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 type IncrementalRunCallbacks = {
   onSession?: (session: Awaited<ReturnType<typeof upsertWorkbenchSession>>) => void | Promise<void>;
@@ -360,6 +392,68 @@ export async function updateResultOutputText(resultId: string, outputText: strin
   });
 }
 
+async function findExecutionStepResult(input: {
+  executionRunId?: string | null;
+  sessionId: string;
+  executionOrder: number;
+}) {
+  if (!input.executionRunId) {
+    return null;
+  }
+
+  await ensureResultExecutionRunIdColumn();
+  await ensureResultExecutionOrderColumn();
+  return prisma.result.findFirst({
+    where: {
+      executionRunId: input.executionRunId,
+      sessionId: input.sessionId,
+      executionOrder: input.executionOrder,
+    },
+    orderBy: [
+      { updatedAt: "desc" },
+      { createdAt: "desc" },
+    ],
+    include: {
+      workflowStep: {
+        select: { orderIndex: true, actionType: true },
+      },
+    },
+  });
+}
+
+async function waitForExecutionStepResult(input: {
+  executionRunId?: string | null;
+  sessionId: string;
+  executionOrder: number;
+  shouldStop?: () => boolean | Promise<boolean>;
+  shouldStopStep?: (index: number) => boolean | Promise<boolean>;
+}) {
+  const existing = await findExecutionStepResult(input);
+  if (!existing) {
+    return null;
+  }
+
+  const stepIndex = input.executionOrder - 1;
+  if (existing.status !== "running") {
+    return existing;
+  }
+
+  while (true) {
+    if (
+      (await input.shouldStop?.()) ||
+      (await input.shouldStopStep?.(stepIndex))
+    ) {
+      return existing;
+    }
+
+    await sleep(EXISTING_STEP_POLL_MS);
+    const refreshed = await findExecutionStepResult(input);
+    if (!refreshed || refreshed.status !== "running") {
+      return refreshed ?? existing;
+    }
+  }
+}
+
 function toProviderAttachments(attachments: RuntimeAttachment[] | undefined) {
   return (attachments || []).map((attachment) => ({
     id: attachment.id,
@@ -513,9 +607,18 @@ export async function upsertWorkbenchSession(
 ) {
   const projectId = await resolveProjectId(userId, input.projectId);
   const encryptedOriginalInput = encryptTextContent(input.originalInput);
-  const supportsWorkflowControl = await ensureWorkflowControlJsonColumn();
+  const [supportsWorkflowControl, supportsWorkflowTemplateSteps] =
+    await Promise.all([
+      ensureWorkflowControlJsonColumn(),
+      ensureWorkflowTemplateStepsJsonColumn(),
+    ]);
   const workflowControlJson = input.workflowControl
     ? JSON.stringify(input.workflowControl)
+    : null;
+  const shouldWriteWorkflowTemplateSteps =
+    input.workflowTemplateSteps !== undefined;
+  const workflowTemplateStepsJson = shouldWriteWorkflowTemplateSteps
+    ? serializeWorkflowTemplateSteps(input.workflowTemplateSteps)
     : null;
 
   if (input.sessionId) {
@@ -543,6 +646,10 @@ export async function upsertWorkbenchSession(
           outputStyle: input.outputStyle || null,
           outputLanguage: input.outputLanguage || existing.outputLanguage || null,
           ...(supportsWorkflowControl ? { workflowControlJson } : {}),
+          ...(supportsWorkflowTemplateSteps
+            && shouldWriteWorkflowTemplateSteps
+            ? { workflowTemplateStepsJson }
+            : {}),
           mode: input.mode,
         },
       });
@@ -562,6 +669,9 @@ export async function upsertWorkbenchSession(
       outputStyle: input.outputStyle || null,
       outputLanguage: input.outputLanguage || null,
       ...(supportsWorkflowControl ? { workflowControlJson } : {}),
+      ...(supportsWorkflowTemplateSteps && shouldWriteWorkflowTemplateSteps
+        ? { workflowTemplateStepsJson }
+        : {}),
       mode: input.mode,
     },
   });
@@ -569,25 +679,63 @@ export async function upsertWorkbenchSession(
 
 export async function executeAndPersistResult(input: ExecutePersistInput) {
   await ensureResultExecutionRunIdColumn();
-  const initial = await prisma.result.create({
-    include: {
-      workflowStep: {
-        select: { orderIndex: true, actionType: true },
+  const supportsExecutionOrder = await ensureResultExecutionOrderColumn();
+  if (
+    input.executionRunId &&
+    input.executionOrder &&
+    !supportsExecutionOrder
+  ) {
+    throw new Error(
+      "Sequential run idempotency index is not available. Retry after database migration completes.",
+    );
+  }
+  let initial: PersistedWorkbenchResult;
+  try {
+    initial = await prisma.result.create({
+      include: {
+        workflowStep: {
+          select: { orderIndex: true, actionType: true },
+        },
       },
-    },
-    data: {
-      sessionId: input.sessionId,
-      executionRunId: input.executionRunId ?? null,
-      workflowStepId: input.workflowStepId || null,
-      parentResultId: input.parentResultId || null,
-      branchKey: input.branchKey || null,
-      provider: input.provider,
-      model: input.model,
-      promptSnapshot: input.prompt,
-      outputText: null,
-      status: "running",
-    },
-  });
+      data: {
+        sessionId: input.sessionId,
+        executionRunId: input.executionRunId ?? null,
+        executionOrder: input.executionOrder ?? null,
+        workflowStepId: input.workflowStepId || null,
+        parentResultId: input.parentResultId || null,
+        branchKey: input.branchKey || null,
+        provider: input.provider,
+        model: input.model,
+        promptSnapshot: input.prompt,
+        outputText: null,
+        status: "running",
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002" &&
+      input.executionRunId &&
+      input.executionOrder
+    ) {
+      if (input.workflowStepId) {
+        await prisma.workflowStep
+          .delete({ where: { id: input.workflowStepId } })
+          .catch(() => undefined);
+      }
+
+      const existing = await waitForExecutionStepResult({
+        executionRunId: input.executionRunId,
+        sessionId: input.sessionId,
+        executionOrder: input.executionOrder,
+      });
+      if (existing) {
+        return existing;
+      }
+    }
+
+    throw error;
+  }
 
   if (input.attachments?.length) {
     await prisma.resultAttachment.createMany({
@@ -723,6 +871,7 @@ export async function executeParallelRun(input: {
       executeAndPersistResult({
         userId: input.userId,
         sessionId: session.id,
+        executionOrder: index + 1,
         workflowStepId: stepRecords[index].id,
         branchKey: `parallel-${Date.now()}`,
         provider: target.provider,
@@ -823,6 +972,7 @@ export async function executeParallelRunIncremental(input: {
           userId: input.userId,
           sessionId: session.id,
           executionRunId: input.executionRunId ?? null,
+          executionOrder: index + 1,
           workflowStepId: stepRecords[index].id,
           branchKey,
           provider: target.provider,
@@ -954,13 +1104,16 @@ export async function resolveSourceText(input: {
 
 export async function executeSequentialRun(input: {
   userId: string;
+  executionRunId?: string | null;
   session: SessionInput;
   steps: WorkflowStepInput[];
   workflowControl?: WorkflowControlInput;
+  callbacks?: IncrementalRunCallbacks;
 }) {
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
     workflowControl: input.workflowControl,
+    workflowTemplateSteps: input.steps,
     mode: "sequential",
   });
   const projectContext = await buildProjectPromptContext({
@@ -992,6 +1145,7 @@ export async function executeSequentialRun(input: {
   let stopReason: string | null = null;
 
   for (const expandedStep of expandedSteps) {
+    const stepIndex = expandedStep.executionOrder - 1;
     const step = expandedStep.templateStep;
     const qualityThreshold =
       stopCondition?.enabled &&
@@ -1003,6 +1157,119 @@ export async function executeSequentialRun(input: {
     ]
       .filter(Boolean)
       .join("\n\n");
+
+    const existingResult = await waitForExecutionStepResult({
+      executionRunId: input.executionRunId,
+      sessionId: session.id,
+      executionOrder: expandedStep.executionOrder,
+      shouldStop: input.callbacks?.shouldStop,
+      shouldStopStep: input.callbacks?.shouldStopStep,
+    });
+
+    if (existingResult) {
+      if (existingResult.status === "running") {
+        if (await input.callbacks?.shouldStop?.()) {
+          stoppedEarly = true;
+          stopReason = "canceled";
+          break;
+        }
+
+        if (await input.callbacks?.shouldStopStep?.(stepIndex)) {
+          await input.callbacks?.onStepSkipped?.({
+            index: stepIndex,
+            title: `${step.targetProvider} / ${step.targetModel}`,
+            subtitle: `Step ${expandedStep.executionOrder}`,
+            actionType: step.actionType,
+            detail: STEP_STOP_MESSAGE,
+          });
+          continue;
+        }
+
+        await input.callbacks?.onResultStart?.({
+          index: stepIndex,
+          result: existingResult,
+        });
+        stoppedEarly = true;
+        stopReason = EXISTING_STEP_STILL_RUNNING_REASON;
+        break;
+      }
+
+      let effectiveOutput = existingResult.outputText || "";
+      if (monitorQuality !== null) {
+        const score = extractQualityScore(existingResult.outputText);
+        const strippedOutput = stripQualityScoreLine(existingResult.outputText);
+        if (
+          existingResult.outputText &&
+          strippedOutput !== existingResult.outputText
+        ) {
+          await updateResultOutputText(existingResult.id, strippedOutput);
+          existingResult.outputText = strippedOutput || null;
+          effectiveOutput = strippedOutput;
+        }
+
+        if (score !== null && score >= monitorQuality) {
+          stoppedEarly = true;
+          stopReason = `quality_score_${score}_gte_${monitorQuality}`;
+        }
+      }
+
+      results.push(existingResult);
+      await input.callbacks?.onResult?.({
+        index: stepIndex,
+        result: existingResult,
+      });
+
+      if (existingResult.status === "canceled") {
+        if (await input.callbacks?.shouldStop?.()) {
+          stoppedEarly = true;
+          stopReason = "canceled";
+          break;
+        }
+
+        continue;
+      }
+
+      if (existingResult.status === "failed") {
+        consecutiveRecoveryFailures += 1;
+
+        if (
+          (completedResultCount === 0 &&
+            consecutiveRecoveryFailures >= MAX_INITIAL_SEQUENTIAL_RECOVERY_FAILURES) ||
+          consecutiveRecoveryFailures >= MAX_SEQUENTIAL_CONSECUTIVE_FAILURES
+        ) {
+          stoppedEarly = true;
+          stopReason =
+            completedResultCount === 0
+              ? `step_${expandedStep.executionOrder}_failed_no_recovery`
+              : `step_${expandedStep.executionOrder}_failed_limit`;
+          break;
+        }
+
+        previousResultText =
+          previousResultText ||
+          buildFailedStepRecoverySource({
+            originalInput: input.session.originalInput,
+            stepNumber: expandedStep.executionOrder,
+            provider: step.targetProvider,
+            model: step.targetModel,
+            errorMessage: existingResult.errorMessage,
+          });
+        continue;
+      }
+
+      previousResultText = effectiveOutput || existingResult.errorMessage || "";
+      previousResultId = existingResult.id;
+      if (existingResult.status === "completed") {
+        completedResultCount += 1;
+        consecutiveRecoveryFailures = 0;
+      }
+
+      if (stoppedEarly) {
+        break;
+      }
+
+      continue;
+    }
 
     const stepRecord = await prisma.workflowStep.create({
       data: {
@@ -1029,6 +1296,8 @@ export async function executeSequentialRun(input: {
     const result = await executeAndPersistResult({
       userId: input.userId,
       sessionId: session.id,
+      executionRunId: input.executionRunId ?? null,
+      executionOrder: expandedStep.executionOrder,
       workflowStepId: stepRecord.id,
       parentResultId:
         step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
@@ -1066,6 +1335,12 @@ export async function executeSequentialRun(input: {
     }
 
     results.push(result);
+
+    if (result.status === "running") {
+      stoppedEarly = true;
+      stopReason = EXISTING_STEP_STILL_RUNNING_REASON;
+      break;
+    }
 
     if (result.status === "failed") {
       consecutiveRecoveryFailures += 1;
@@ -1138,6 +1413,7 @@ export async function executeSequentialRunIncremental(input: {
   const session = await upsertWorkbenchSession(input.userId, {
     ...input.session,
     workflowControl: input.workflowControl,
+    workflowTemplateSteps: input.steps,
     mode: "sequential",
   });
   await input.callbacks?.onSession?.(session);
@@ -1202,6 +1478,119 @@ export async function executeSequentialRunIncremental(input: {
       .filter(Boolean)
       .join("\n\n");
 
+    const existingResult = await waitForExecutionStepResult({
+      executionRunId: input.executionRunId,
+      sessionId: session.id,
+      executionOrder: expandedStep.executionOrder,
+      shouldStop: input.callbacks?.shouldStop,
+      shouldStopStep: input.callbacks?.shouldStopStep,
+    });
+
+    if (existingResult) {
+      if (existingResult.status === "running") {
+        if (await input.callbacks?.shouldStop?.()) {
+          stoppedEarly = true;
+          stopReason = "canceled";
+          break;
+        }
+
+        if (await input.callbacks?.shouldStopStep?.(stepIndex)) {
+          await input.callbacks?.onStepSkipped?.({
+            index: stepIndex,
+            title: `${step.targetProvider} / ${step.targetModel}`,
+            subtitle: `Step ${expandedStep.executionOrder}`,
+            actionType: step.actionType,
+            detail: STEP_STOP_MESSAGE,
+          });
+          continue;
+        }
+
+        await input.callbacks?.onResultStart?.({
+          index: stepIndex,
+          result: existingResult,
+        });
+        stoppedEarly = true;
+        stopReason = EXISTING_STEP_STILL_RUNNING_REASON;
+        break;
+      }
+
+      let effectiveOutput = existingResult.outputText || "";
+      if (monitorQuality !== null) {
+        const score = extractQualityScore(existingResult.outputText);
+        const strippedOutput = stripQualityScoreLine(existingResult.outputText);
+        if (
+          existingResult.outputText &&
+          strippedOutput !== existingResult.outputText
+        ) {
+          await updateResultOutputText(existingResult.id, strippedOutput);
+          existingResult.outputText = strippedOutput || null;
+          effectiveOutput = strippedOutput;
+        }
+
+        if (score !== null && score >= monitorQuality) {
+          stoppedEarly = true;
+          stopReason = `quality_score_${score}_gte_${monitorQuality}`;
+        }
+      }
+
+      results.push(existingResult);
+      await input.callbacks?.onResult?.({
+        index: stepIndex,
+        result: existingResult,
+      });
+
+      if (existingResult.status === "canceled") {
+        if (await input.callbacks?.shouldStop?.()) {
+          stoppedEarly = true;
+          stopReason = "canceled";
+          break;
+        }
+
+        continue;
+      }
+
+      if (existingResult.status === "failed") {
+        consecutiveRecoveryFailures += 1;
+
+        if (
+          (completedResultCount === 0 &&
+            consecutiveRecoveryFailures >= MAX_INITIAL_SEQUENTIAL_RECOVERY_FAILURES) ||
+          consecutiveRecoveryFailures >= MAX_SEQUENTIAL_CONSECUTIVE_FAILURES
+        ) {
+          stoppedEarly = true;
+          stopReason =
+            completedResultCount === 0
+              ? `step_${expandedStep.executionOrder}_failed_no_recovery`
+              : `step_${expandedStep.executionOrder}_failed_limit`;
+          break;
+        }
+
+        previousResultText =
+          previousResultText ||
+          buildFailedStepRecoverySource({
+            originalInput: input.session.originalInput,
+            stepNumber: expandedStep.executionOrder,
+            provider: step.targetProvider,
+            model: step.targetModel,
+            errorMessage: existingResult.errorMessage,
+          });
+        continue;
+      }
+
+      previousResultText = effectiveOutput || existingResult.errorMessage || "";
+      previousResultId = existingResult.id;
+      if (existingResult.status === "completed") {
+        completedResultCount += 1;
+        consecutiveRecoveryFailures = 0;
+      }
+
+      if (stoppedEarly) {
+        break;
+      }
+
+      continue;
+    }
+
     const stepRecord = await prisma.workflowStep.create({
       data: {
         sessionId: session.id,
@@ -1249,6 +1638,7 @@ export async function executeSequentialRunIncremental(input: {
         userId: input.userId,
         sessionId: session.id,
         executionRunId: input.executionRunId ?? null,
+        executionOrder: expandedStep.executionOrder,
         workflowStepId: stepRecord.id,
         parentResultId:
           step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
@@ -1301,6 +1691,12 @@ export async function executeSequentialRunIncremental(input: {
       index: stepIndex,
       result,
     });
+
+    if (result.status === "running") {
+      stoppedEarly = true;
+      stopReason = EXISTING_STEP_STILL_RUNNING_REASON;
+      break;
+    }
 
     if (result.status === "canceled") {
       if (await input.callbacks?.shouldStop?.()) {

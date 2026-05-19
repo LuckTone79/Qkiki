@@ -13,6 +13,8 @@ import {
 
 export type WorkbenchResult = {
   id: string;
+  executionRunId?: string | null;
+  executionOrder?: number | null;
   workflowStepId: string | null;
   parentResultId: string | null;
   branchKey: string | null;

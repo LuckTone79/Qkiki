@@ -731,11 +731,62 @@ function expandWorkflowStepsForMonitor(
 
 function mergeResults(current: WorkbenchResult[], incoming: WorkbenchResult[]) {
   const map = new Map(current.map((result) => [result.id, result]));
-  incoming.forEach((result) => map.set(result.id, result));
+  incoming.forEach((result) => {
+    const existing = map.get(result.id);
+    map.set(result.id, pickPreferredResult(existing, result));
+  });
   return Array.from(map.values()).sort(
     (a, b) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
+}
+
+function isTerminalResultStatus(status: string) {
+  return (
+    status === "completed" ||
+    status === "failed" ||
+    status === "canceled" ||
+    status === "skipped"
+  );
+}
+
+function resultStatusRank(status: string) {
+  if (isTerminalResultStatus(status)) {
+    return 2;
+  }
+
+  if (status === "running") {
+    return 1;
+  }
+
+  return 0;
+}
+
+function resultUpdatedAtMs(result: WorkbenchResult) {
+  return new Date(result.updatedAt || result.createdAt).getTime();
+}
+
+function pickPreferredResult(
+  existing: WorkbenchResult | undefined,
+  incoming: WorkbenchResult,
+) {
+  if (!existing) {
+    return incoming;
+  }
+
+  const existingRank = resultStatusRank(existing.status);
+  const incomingRank = resultStatusRank(incoming.status);
+  if (incomingRank < existingRank) {
+    return existing;
+  }
+
+  if (incomingRank > existingRank) {
+    return incoming;
+  }
+
+  return resultUpdatedAtMs(incoming) >= resultUpdatedAtMs(existing)
+    ? incoming
+    : existing;
 }
 
 function pickDisplayFinalResultId(
@@ -900,6 +951,10 @@ function prioritizePinnedRootBranches(
 }
 
 function resultProgressStatus(result: WorkbenchResult): RunProgressStatus {
+  if (result.status === "running") {
+    return "active";
+  }
+
   if (result.status === "failed") {
     return "failed";
   }
@@ -913,6 +968,18 @@ function resultProgressStatus(result: WorkbenchResult): RunProgressStatus {
   }
 
   return "completed";
+}
+
+function progressStatusRank(status: RunProgressStatus) {
+  if (status === "completed" || status === "failed" || status === "skipped" || status === "canceled") {
+    return 2;
+  }
+
+  if (status === "active") {
+    return 1;
+  }
+
+  return 0;
 }
 
 function formatElapsedTime(startedAt: number, now: number, language: AppLanguage) {
@@ -1083,8 +1150,24 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         return current;
       }
 
-      const entries = [...current.entries];
+      let entries = [...current.entries];
       const existing = entries[input.index];
+      const incomingStatus = input.status || existing?.status || "active";
+      if (
+        existing &&
+        progressStatusRank(incomingStatus) < progressStatusRank(existing.status)
+      ) {
+        return current;
+      }
+
+      if (current.mode === "sequential" && incomingStatus === "active") {
+        entries = entries.map((entry, index) =>
+          index !== input.index && entry.status === "active"
+            ? { ...entry, status: "queued", detail: uiText.queued }
+            : entry,
+        );
+      }
+
       entries[input.index] = {
         key: existing?.key ?? `stream-${input.index}`,
         title: input.title || existing?.title || `${uiText.sequentialStep} ${input.index + 1}`,
@@ -1094,7 +1177,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           `${current.mode === "parallel" ? uiText.parallelRun : uiText.sequentialStep} ${
             input.index + 1
           }`,
-        status: input.status || existing?.status || "active",
+        status: incomingStatus,
         detail:
           input.detail === undefined
             ? existing?.detail ?? uiText.running
@@ -1575,7 +1658,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setCurrentRunId(session.activeRun.runId);
 
     try {
-      const streamed = await readRunStream(session.activeRun.runId);
+      const streamed = await readRunStream(
+        session.activeRun.runId,
+        session.results,
+      );
       if (cancelRequestedRef.current) {
         return;
       }
@@ -1613,7 +1699,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         .then((r) => r.json())
         .then((data: { session?: LoadedSession }) => {
           if (data.session) {
-            applySessionToState(data.session);
+            if (!activeRunIdRef.current) {
+              applySessionToState(data.session);
+            }
             writeSessionCache(id, data.session);
             void resumeActiveRun(data.session);
           }
@@ -2272,11 +2360,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           status?: string;
           errorMessage?: string | null;
           streamError?: string | null;
+          results?: WorkbenchResult[];
+          finalResultId?: string | null;
+          executionSummary?: {
+            plannedTotal: number;
+            executedTotal: number;
+            stoppedEarly: boolean;
+            stopReason?: string | null;
+          };
         }
       | null;
   }
 
-  async function readRunStream(runId: string) {
+  async function readRunStream(
+    runId: string,
+    seedResults: WorkbenchResult[] = [],
+  ) {
     const streamAbortController = new AbortController();
     streamAbortControllerRef.current = streamAbortController;
     let cursor = 0;
@@ -2287,6 +2386,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     let latestSession:
       | { id: string; title: string; finalResultId?: string | null }
       | null = null;
+    const knownResultsById = new Map(
+      seedResults.map((result) => [result.id, result]),
+    );
     const streamedResults: WorkbenchResult[] = [];
 
     const handleEvent = (event: WorkbenchRunStreamEvent) => {
@@ -2325,7 +2427,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       if (event.type === "result") {
-        setResults((current) => mergeResults(current, [event.result]));
+        const existingStreamedResult = knownResultsById.get(event.result.id);
+        const preferredResult = pickPreferredResult(
+          existingStreamedResult,
+          event.result,
+        );
+        const staleResultEvent = preferredResult !== event.result;
+        if (staleResultEvent) {
+          return;
+        }
+
+        knownResultsById.set(preferredResult.id, preferredResult);
+        setResults((current) => mergeResults(current, [preferredResult]));
+
         if (event.result.status === "running") {
           updateProgressEntry({
             index: event.index,
@@ -2345,22 +2459,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
         receivedResults += 1;
         const existingIndex = streamedResults.findIndex(
-          (result) => result.id === event.result.id,
+          (result) => result.id === preferredResult.id,
         );
         if (existingIndex >= 0) {
-          streamedResults[existingIndex] = event.result;
+          streamedResults[existingIndex] = preferredResult;
         } else {
-          streamedResults.push(event.result);
+          streamedResults.push(preferredResult);
         }
-        const progressStatus = resultProgressStatus(event.result);
+        const progressStatus = resultProgressStatus(preferredResult);
         updateProgressEntry({
           index: event.index,
           status: progressStatus,
           detail:
             progressStatus === "failed"
-              ? event.result.errorMessage || uiText.failed
+              ? preferredResult.errorMessage || uiText.failed
               : progressStatus === "canceled"
-                ? event.result.errorMessage || uiText.stepStopped
+                ? preferredResult.errorMessage || uiText.stepStopped
                 : progressStatus === "skipped"
                   ? uiText.skipped
                   : uiText.completed,
@@ -2375,8 +2489,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     ? uiText.skipped
                     : uiText.completed,
             secondary: compactPreview(
-              event.result.outputText || event.result.errorMessage,
-              event.result.provider,
+              preferredResult.outputText || preferredResult.errorMessage,
+              preferredResult.provider,
             ),
           }),
         });
@@ -2507,13 +2621,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         return {
           type: "done",
           session: latestSession ?? undefined,
-          results: streamedResults,
-          executionSummary: {
-            plannedTotal: runMonitor?.entries.length ?? streamedResults.length,
-            executedTotal: streamedResults.length,
-            stoppedEarly: true,
-            stopReason: "canceled",
-          },
+          results: status.results?.length ? status.results : streamedResults,
+          executionSummary:
+            status.executionSummary ?? {
+              plannedTotal: runMonitor?.entries.length ?? streamedResults.length,
+              executedTotal: streamedResults.length,
+              stoppedEarly: true,
+              stopReason: "canceled",
+            },
         } as Extract<WorkbenchRunStreamEvent, { type: "done" }>;
       }
       if (
@@ -2534,6 +2649,32 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         streamError = status?.streamError || status?.errorMessage || "";
       }
       break;
+    }
+
+    const terminalStatus = await fetchRunStatus(runId);
+    if (
+      !donePayload &&
+      terminalStatus?.results?.length &&
+      ["completed", "partial", "failed", "canceled", "cancelled"].includes(
+        terminalStatus.status || "",
+      )
+    ) {
+      const resolvedSession = latestSession
+        ? {
+            id: (latestSession as { id: string }).id,
+            title: (latestSession as { title: string }).title,
+            finalResultId:
+              terminalStatus.finalResultId ??
+              (latestSession as { finalResultId?: string | null }).finalResultId,
+          }
+        : undefined;
+      return {
+        type: "done",
+        session: resolvedSession,
+        results: terminalStatus.results,
+        streamError: terminalStatus.streamError || terminalStatus.errorMessage || undefined,
+        executionSummary: terminalStatus.executionSummary,
+      } as Extract<WorkbenchRunStreamEvent, { type: "done" }>;
     }
 
     if (streamError && !donePayload && receivedResults === 0) {

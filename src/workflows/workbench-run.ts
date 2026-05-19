@@ -8,6 +8,7 @@ import {
 import {
   completeExecutionRun,
   failExecutionRun,
+  getExecutionRunSessionId,
   isExecutionRunCanceled,
   isExecutionRunStepStopRequested,
   markExecutionRunRunning,
@@ -94,6 +95,9 @@ type WorkbenchRunWorkflowResult = Extract<
   WorkbenchRunStreamEvent,
   { type: "done" }
 >;
+
+const EXISTING_STEP_STILL_RUNNING_MESSAGE =
+  "The sequential run is already being completed by another worker.";
 
 function getSelectedModels(session: RunWorkbenchInput) {
   return session.mode === "parallel"
@@ -203,6 +207,12 @@ async function executeWorkbenchRunStep(
         >["results"][number];
       }) => {
         resultsStarted += 1;
+        if (payload.executionRunId) {
+          await updateExecutionRunProgress({
+            executionRunId: payload.executionRunId,
+            totalStepsDone: resultsCompleted,
+          });
+        }
         await emit({
           type: "result",
           index: event.index,
@@ -243,6 +253,14 @@ async function executeWorkbenchRunStep(
       throw new Error("The run was stopped by the user.");
     }
 
+    const recoveredSessionId =
+      !payload.session.sessionId && payload.executionRunId
+        ? await getExecutionRunSessionId(payload.executionRunId)
+        : null;
+    const sessionInput: RunWorkbenchInput = recoveredSessionId
+      ? { ...payload.session, sessionId: recoveredSessionId }
+      : payload.session;
+
     let result: Awaited<ReturnType<typeof executeParallelRunIncremental>>;
     let executionSummary:
       | {
@@ -253,12 +271,12 @@ async function executeWorkbenchRunStep(
         }
       | undefined;
 
-    if (payload.session.mode === "parallel") {
+    if (sessionInput.mode === "parallel") {
       result = await executeParallelRunIncremental({
         userId: payload.userId,
         executionRunId: payload.executionRunId,
-        session: payload.session,
-        targets: (payload.session.targets ?? []).map((target) => ({
+        session: sessionInput,
+        targets: (sessionInput.targets ?? []).map((target) => ({
           provider: target.provider as ProviderName,
           model: target.model,
         })),
@@ -268,40 +286,39 @@ async function executeWorkbenchRunStep(
       const sequentialResult = await executeSequentialRunIncremental({
         userId: payload.userId,
         executionRunId: payload.executionRunId,
-        session: payload.session,
-        steps: (payload.session.steps ?? []).map((step) => ({
+        session: sessionInput,
+        steps: (sessionInput.steps ?? []).map((step) => ({
           ...step,
           targetProvider: step.targetProvider as ProviderName,
         })),
-        workflowControl: payload.session.workflowControl
+        workflowControl: sessionInput.workflowControl
           ? {
-              repeat: payload.session.workflowControl.repeat
+              repeat: sessionInput.workflowControl.repeat
                 ? {
-                    enabled: payload.session.workflowControl.repeat.enabled,
+                    enabled: sessionInput.workflowControl.repeat.enabled,
                     startStepOrder:
-                      payload.session.workflowControl.repeat.startStepOrder,
+                      sessionInput.workflowControl.repeat.startStepOrder,
                     endStepOrder:
-                      payload.session.workflowControl.repeat.endStepOrder,
+                      sessionInput.workflowControl.repeat.endStepOrder,
                     repeatCount:
-                      payload.session.workflowControl.repeat.repeatCount,
+                      sessionInput.workflowControl.repeat.repeatCount,
                   }
                 : undefined,
-              repeatBlocks: payload.session.workflowControl.repeatBlocks
-                ? payload.session.workflowControl.repeatBlocks.map((block) => ({
+              repeatBlocks: sessionInput.workflowControl.repeatBlocks
+                ? sessionInput.workflowControl.repeatBlocks.map((block) => ({
                     startStepOrder: block.startStepOrder,
                     endStepOrder: block.endStepOrder,
                     repeatCount: block.repeatCount,
                   }))
                 : undefined,
-              stopCondition: payload.session.workflowControl.stopCondition
+              stopCondition: sessionInput.workflowControl.stopCondition
                 ? {
                     enabled:
-                      payload.session.workflowControl.stopCondition.enabled,
+                      sessionInput.workflowControl.stopCondition.enabled,
                     checkStepOrder:
-                      payload.session.workflowControl.stopCondition
-                        .checkStepOrder,
+                      sessionInput.workflowControl.stopCondition.checkStepOrder,
                     qualityThreshold:
-                      payload.session.workflowControl.stopCondition
+                      sessionInput.workflowControl.stopCondition
                         .qualityThreshold,
                   }
                 : undefined,
@@ -316,7 +333,7 @@ async function executeWorkbenchRunStep(
 
     latestSession = toSessionSnapshot(result.session);
 
-    const selectedModels = getSelectedModels(payload.session);
+    const selectedModels = getSelectedModels(sessionInput);
     const inputTokenCount = (result.results || []).reduce(
       (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
       0,
@@ -360,6 +377,8 @@ async function executeWorkbenchRunStep(
     const externallyCanceled = payload.executionRunId
       ? await isExecutionRunCanceled(payload.executionRunId)
       : false;
+    const existingStepStillRunning =
+      executionSummary?.stopReason === "existing_step_still_running";
     const wasCanceled =
       executionSummary?.stopReason === "canceled" ||
       externallyCanceled;
@@ -368,8 +387,8 @@ async function executeWorkbenchRunStep(
       (wasCanceled
         ? {
             plannedTotal:
-              payload.session.mode === "parallel"
-                ? payload.session.targets?.length ?? result.results.length
+              sessionInput.mode === "parallel"
+                ? sessionInput.targets?.length ?? result.results.length
                 : result.results.length,
             executedTotal: result.results.length,
             stoppedEarly: true,
@@ -385,7 +404,7 @@ async function executeWorkbenchRunStep(
       ? "One or more model runs ended with an error."
       : "";
 
-    if (payload.executionRunId) {
+    if (payload.executionRunId && !existingStepStillRunning) {
       await completeExecutionRun({
         executionRunId: payload.executionRunId,
         status: wasCanceled ? "canceled" : streamError ? "partial" : "completed",
@@ -394,6 +413,10 @@ async function executeWorkbenchRunStep(
         streamError: streamError || null,
         executionSummary: resolvedExecutionSummary ?? null,
       });
+    }
+
+    if (existingStepStillRunning) {
+      throw new Error(EXISTING_STEP_STILL_RUNNING_MESSAGE);
     }
 
     const doneEvent: WorkbenchRunWorkflowResult = {
@@ -415,6 +438,18 @@ async function executeWorkbenchRunStep(
       error instanceof Error
         ? error.message
         : "The durable AI run failed.";
+    const existingStepStillRunning =
+      message === EXISTING_STEP_STILL_RUNNING_MESSAGE;
+
+    if (existingStepStillRunning) {
+      if (payload.executionRunId) {
+        await updateExecutionRunProgress({
+          executionRunId: payload.executionRunId,
+          totalStepsDone: resultsCompleted,
+        }).catch(() => undefined);
+      }
+      throw error;
+    }
 
     if (payload.usageReservationId) {
       if (resultsStarted === 0 && resultsCompleted === 0) {

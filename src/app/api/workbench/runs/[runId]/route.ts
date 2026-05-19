@@ -7,6 +7,7 @@ import {
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
+import { prisma } from "@/lib/prisma";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
@@ -47,6 +48,15 @@ export async function GET(_request: Request, { params }: RouteContext) {
       }
 
       if (!executionRun.workflowRunId) {
+        const results = await prisma.result.findMany({
+          where: { executionRunId: executionRun.id },
+          orderBy: { createdAt: "asc" },
+          include: {
+            workflowStep: {
+              select: { orderIndex: true, actionType: true },
+            },
+          },
+        });
         return NextResponse.json({
           runId,
           executionRunId: executionRun.id,
@@ -59,6 +69,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
           streamError: executionRun.streamError,
           executionSummary: parseExecutionRunSummary(executionRun.executionSummaryJson),
           finalResultId: executionRun.finalResultId,
+          results,
         });
       }
 
@@ -74,6 +85,16 @@ export async function GET(_request: Request, { params }: RouteContext) {
         ["completed", "partial", "failed", "canceled"].includes(executionRun.status)
           ? executionRun.status
           : workflowStatus;
+
+      const results = await prisma.result.findMany({
+        where: { executionRunId: executionRun.id },
+        orderBy: { createdAt: "asc" },
+        include: {
+          workflowStep: {
+            select: { orderIndex: true, actionType: true },
+          },
+        },
+      });
 
       return NextResponse.json({
         runId,
@@ -96,6 +117,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
         streamError: executionRun.streamError,
         executionSummary: parseExecutionRunSummary(executionRun.executionSummaryJson),
         finalResultId: executionRun.finalResultId,
+        results,
       });
     }
 
