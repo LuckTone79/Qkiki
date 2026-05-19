@@ -131,6 +131,27 @@ async function executeWorkbenchRunStep(
   const emit = async (event: WorkbenchRunStreamEvent) => {
     await writer.write(event);
   };
+  const emitSafely = async (event: WorkbenchRunStreamEvent) => {
+    try {
+      await emit(event);
+    } catch (error) {
+      console.warn("[workbench-run] stream emit failed", error);
+    }
+  };
+  const updateRunProgressSafely = async (totalStepsDone: number) => {
+    if (!payload.executionRunId) {
+      return;
+    }
+
+    try {
+      await updateExecutionRunProgress({
+        executionRunId: payload.executionRunId,
+        totalStepsDone,
+      });
+    } catch (error) {
+      console.warn("[workbench-run] progress update failed", error);
+    }
+  };
 
   let latestSession: WorkbenchStreamSession | null = null;
   let resultsStarted = 0;
@@ -158,7 +179,7 @@ async function executeWorkbenchRunStep(
             finalResultId: session.finalResultId ?? null,
           });
         }
-        await emit({
+        await emitSafely({
           type: "session",
           session: latestSession,
         });
@@ -170,7 +191,7 @@ async function executeWorkbenchRunStep(
         actionType?: ActionType;
         detail?: string;
       }) => {
-        await emit({
+        await emitSafely({
           type: "progress",
           index: event.index,
           title: event.title,
@@ -188,13 +209,8 @@ async function executeWorkbenchRunStep(
       }) => {
         resultsCompleted += 1;
         completedResults.push(event.result);
-        if (payload.executionRunId) {
-          await updateExecutionRunProgress({
-            executionRunId: payload.executionRunId,
-            totalStepsDone: resultsCompleted,
-          });
-        }
-        await emit({
+        await updateRunProgressSafely(resultsCompleted);
+        await emitSafely({
           type: "result",
           index: event.index,
           result: event.result,
@@ -207,13 +223,8 @@ async function executeWorkbenchRunStep(
         >["results"][number];
       }) => {
         resultsStarted += 1;
-        if (payload.executionRunId) {
-          await updateExecutionRunProgress({
-            executionRunId: payload.executionRunId,
-            totalStepsDone: resultsCompleted,
-          });
-        }
-        await emit({
+        await updateRunProgressSafely(resultsCompleted);
+        await emitSafely({
           type: "result",
           index: event.index,
           result: event.result,
@@ -226,7 +237,7 @@ async function executeWorkbenchRunStep(
         actionType?: ActionType;
         detail?: string;
       }) => {
-        await emit({
+        await emitSafely({
           type: "progress",
           index: event.index,
           title: event.title,
@@ -371,7 +382,7 @@ async function executeWorkbenchRunStep(
         : undefined;
 
     if (usage) {
-      await emit({ type: "usage", usage });
+      await emitSafely({ type: "usage", usage });
     }
 
     const externallyCanceled = payload.executionRunId
@@ -431,7 +442,7 @@ async function executeWorkbenchRunStep(
       usage,
     };
 
-    await emit(doneEvent);
+    await emitSafely(doneEvent);
     return doneEvent;
   } catch (error) {
     const message =
@@ -487,7 +498,7 @@ async function executeWorkbenchRunStep(
       }).catch(() => undefined);
     }
 
-    await emit({
+    await emitSafely({
       type: "error",
       error: message,
     });

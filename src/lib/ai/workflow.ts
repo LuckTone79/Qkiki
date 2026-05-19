@@ -49,6 +49,7 @@ type ExecutePersistInput = {
   executionRunId?: string | null;
   executionOrder?: number | null;
   workflowStepId?: string | null;
+  workflowStepData?: WorkflowStepPersistInput | null;
   parentResultId?: string | null;
   branchKey?: string | null;
   provider: ProviderName;
@@ -95,6 +96,34 @@ type PersistedWorkbenchResult = Prisma.ResultGetPayload<{
     };
   };
 }>;
+
+type WorkflowStepPersistInput = {
+  sessionId: string;
+  orderIndex: number;
+  actionType: ActionType;
+  targetProvider: ProviderName;
+  targetModel: string;
+  sourceMode: SourceMode;
+  sourceResultId?: string | null;
+  instructionTemplate?: string | null;
+};
+
+function buildWorkflowStepPersistInput(input: {
+  sessionId: string;
+  executionOrder: number;
+  step: WorkflowStepInput;
+}) {
+  return {
+    sessionId: input.sessionId,
+    orderIndex: input.executionOrder,
+    actionType: input.step.actionType,
+    targetProvider: input.step.targetProvider,
+    targetModel: input.step.targetModel,
+    sourceMode: input.step.sourceMode,
+    sourceResultId: input.step.sourceResultId || null,
+    instructionTemplate: input.step.instructionTemplate || null,
+  } satisfies WorkflowStepPersistInput;
+}
 
 function serializeWorkflowTemplateSteps(steps: WorkflowStepInput[] | undefined) {
   if (!steps?.length) {
@@ -691,25 +720,49 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
   }
   let initial: PersistedWorkbenchResult;
   try {
+    const resultCreateData: Prisma.ResultCreateArgs["data"] = {
+      session: { connect: { id: input.sessionId } },
+      executionOrder: input.executionOrder ?? null,
+      ...(input.executionRunId
+        ? { executionRun: { connect: { id: input.executionRunId } } }
+        : {}),
+      ...(input.workflowStepId
+        ? { workflowStep: { connect: { id: input.workflowStepId } } }
+        : input.workflowStepData
+          ? {
+              workflowStep: {
+                create: {
+                  session: { connect: { id: input.workflowStepData.sessionId } },
+                  orderIndex: input.workflowStepData.orderIndex,
+                  actionType: input.workflowStepData.actionType,
+                  targetProvider: input.workflowStepData.targetProvider,
+                  targetModel: input.workflowStepData.targetModel,
+                  sourceMode: input.workflowStepData.sourceMode,
+                  sourceResultId: input.workflowStepData.sourceResultId ?? null,
+                  instructionTemplate:
+                    input.workflowStepData.instructionTemplate ?? null,
+                },
+              },
+            }
+          : {}),
+      ...(input.parentResultId
+        ? { parent: { connect: { id: input.parentResultId } } }
+        : {}),
+      branchKey: input.branchKey || null,
+      provider: input.provider,
+      model: input.model,
+      promptSnapshot: input.prompt,
+      outputText: null,
+      status: "running",
+    };
+
     initial = await prisma.result.create({
       include: {
         workflowStep: {
           select: { orderIndex: true, actionType: true },
         },
       },
-      data: {
-        sessionId: input.sessionId,
-        executionRunId: input.executionRunId ?? null,
-        executionOrder: input.executionOrder ?? null,
-        workflowStepId: input.workflowStepId || null,
-        parentResultId: input.parentResultId || null,
-        branchKey: input.branchKey || null,
-        provider: input.provider,
-        model: input.model,
-        promptSnapshot: input.prompt,
-        outputText: null,
-        status: "running",
-      },
+      data: resultCreateData,
     });
   } catch (error) {
     if (
@@ -850,10 +903,13 @@ export async function executeParallelRun(input: {
   });
   const runtimeAttachments = await hydrateRuntimeAttachments(attachmentRecords);
 
-  const stepRecords = await Promise.all(
+  const results = await Promise.all(
     input.targets.map((target, index) =>
-      prisma.workflowStep.create({
-        data: {
+      executeAndPersistResult({
+        userId: input.userId,
+        sessionId: session.id,
+        executionOrder: index + 1,
+        workflowStepData: {
           sessionId: session.id,
           orderIndex: index + 1,
           actionType: "generate",
@@ -862,17 +918,6 @@ export async function executeParallelRun(input: {
           sourceMode: "original",
           instructionTemplate: "Initial parallel comparison run",
         },
-      }),
-    ),
-  );
-
-  const results = await Promise.all(
-    input.targets.map((target, index) =>
-      executeAndPersistResult({
-        userId: input.userId,
-        sessionId: session.id,
-        executionOrder: index + 1,
-        workflowStepId: stepRecords[index].id,
         branchKey: `parallel-${Date.now()}`,
         provider: target.provider,
         model: target.model,
@@ -933,22 +978,6 @@ export async function executeParallelRunIncremental(input: {
   const runtimeAttachments = await hydrateRuntimeAttachments(attachmentRecords);
   const branchKey = `parallel-${Date.now()}`;
 
-  const stepRecords = await Promise.all(
-    input.targets.map((target, index) =>
-      prisma.workflowStep.create({
-        data: {
-          sessionId: session.id,
-          orderIndex: index + 1,
-          actionType: "generate",
-          targetProvider: target.provider,
-          targetModel: target.model,
-          sourceMode: "original",
-          instructionTemplate: "Initial parallel comparison run",
-        },
-      }),
-    ),
-  );
-
   const settledResults = await Promise.allSettled(
     input.targets.map(async (target, index) => {
       if (await input.callbacks?.shouldStop?.()) {
@@ -973,7 +1002,15 @@ export async function executeParallelRunIncremental(input: {
           sessionId: session.id,
           executionRunId: input.executionRunId ?? null,
           executionOrder: index + 1,
-          workflowStepId: stepRecords[index].id,
+          workflowStepData: {
+            sessionId: session.id,
+            orderIndex: index + 1,
+            actionType: "generate",
+            targetProvider: target.provider,
+            targetModel: target.model,
+            sourceMode: "original",
+            instructionTemplate: "Initial parallel comparison run",
+          },
           branchKey,
           provider: target.provider,
           model: target.model,
@@ -1149,7 +1186,7 @@ export async function executeSequentialRun(input: {
     const step = expandedStep.templateStep;
     const qualityThreshold =
       stopCondition?.enabled &&
-      stopCondition.checkStepOrder === step.orderIndex;
+      stopCondition.checkStepOrder === expandedStep.executionOrder;
     const monitorQuality = qualityThreshold ? stopCondition.qualityThreshold : null;
     const mergedInstruction = [
       step.instructionTemplate?.trim() || "",
@@ -1271,19 +1308,6 @@ export async function executeSequentialRun(input: {
       continue;
     }
 
-    const stepRecord = await prisma.workflowStep.create({
-      data: {
-        sessionId: session.id,
-        orderIndex: expandedStep.executionOrder,
-        actionType: step.actionType,
-        targetProvider: step.targetProvider,
-        targetModel: step.targetModel,
-        sourceMode: step.sourceMode,
-        sourceResultId: step.sourceResultId || null,
-        instructionTemplate: step.instructionTemplate || null,
-      },
-    });
-
     const sourceText = await resolveSourceText({
       userId: input.userId,
       sessionId: session.id,
@@ -1298,7 +1322,11 @@ export async function executeSequentialRun(input: {
       sessionId: session.id,
       executionRunId: input.executionRunId ?? null,
       executionOrder: expandedStep.executionOrder,
-      workflowStepId: stepRecord.id,
+      workflowStepData: buildWorkflowStepPersistInput({
+        sessionId: session.id,
+        executionOrder: expandedStep.executionOrder,
+        step,
+      }),
       parentResultId:
         step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
       branchKey: `chain-${session.id}`,
@@ -1469,7 +1497,7 @@ export async function executeSequentialRunIncremental(input: {
     const step = expandedStep.templateStep;
     const qualityThreshold =
       stopCondition?.enabled &&
-      stopCondition.checkStepOrder === step.orderIndex;
+      stopCondition.checkStepOrder === expandedStep.executionOrder;
     const monitorQuality = qualityThreshold ? stopCondition.qualityThreshold : null;
     const mergedInstruction = [
       step.instructionTemplate?.trim() || "",
@@ -1591,19 +1619,6 @@ export async function executeSequentialRunIncremental(input: {
       continue;
     }
 
-    const stepRecord = await prisma.workflowStep.create({
-      data: {
-        sessionId: session.id,
-        orderIndex: expandedStep.executionOrder,
-        actionType: step.actionType,
-        targetProvider: step.targetProvider,
-        targetModel: step.targetModel,
-        sourceMode: step.sourceMode,
-        sourceResultId: step.sourceResultId || null,
-        instructionTemplate: step.instructionTemplate || null,
-      },
-    });
-
     const sourceText = await resolveSourceText({
       userId: input.userId,
       sessionId: session.id,
@@ -1639,7 +1654,11 @@ export async function executeSequentialRunIncremental(input: {
         sessionId: session.id,
         executionRunId: input.executionRunId ?? null,
         executionOrder: expandedStep.executionOrder,
-        workflowStepId: stepRecord.id,
+        workflowStepData: buildWorkflowStepPersistInput({
+          sessionId: session.id,
+          executionOrder: expandedStep.executionOrder,
+          step,
+        }),
         parentResultId:
           step.sourceMode === "previous" ? previousResultId : step.sourceResultId,
         branchKey: `chain-${session.id}`,
