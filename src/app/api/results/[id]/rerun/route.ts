@@ -5,9 +5,11 @@ import {
   consumeTrialConversation,
   requireApiGenerationUser,
 } from "@/lib/api-auth";
+import { createSignedRunToken } from "@/lib/execution-runs";
 import { executeAndPersistResult } from "@/lib/ai/workflow";
 import { isProviderName } from "@/lib/ai/provider-catalog";
 import { hydrateRuntimeAttachments } from "@/lib/attachments";
+import { enqueueExecutionRunStep, enqueueWorkbenchWatchdog } from "@/lib/qstash";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import { prisma } from "@/lib/prisma";
 import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
@@ -44,6 +46,12 @@ export async function POST(
     const result = await prisma.result.findFirst({
       where: { id, session: { userId: user.id } },
       include: {
+        executionRun: true,
+        executionRunStep: {
+          select: {
+            orderIndex: true,
+          },
+        },
         attachmentLinks: {
           include: { attachment: true },
         },
@@ -71,6 +79,121 @@ export async function POST(
 
     if (user.isTrial) {
       await consumeTrialConversation(user);
+    }
+
+    if (
+      result.executionRun?.runnerVersion === "v2" &&
+      result.executionRunStep?.orderIndex &&
+      result.executionRun.sessionId
+    ) {
+      const branchFromOrderIndex = result.executionRunStep.orderIndex;
+      const parentRun = await prisma.executionRun.findFirst({
+        where: {
+          id: result.executionRun.id,
+          userId: user.id,
+        },
+        include: {
+          session: true,
+          steps: {
+            where: {
+              orderIndex: { gte: branchFromOrderIndex },
+            },
+            orderBy: {
+              orderIndex: "asc",
+            },
+          },
+        },
+      });
+
+      if (!parentRun || !parentRun.session || !parentRun.steps.length) {
+        return NextResponse.json(
+          { error: "The sequential rerun could not be prepared." },
+          { status: 400 },
+        );
+      }
+
+      reservedUsage = user.isTrial
+        ? null
+        : await reserveUsage({
+            userId: user.id,
+            requestType: "sequential",
+            inputCharCount: parentRun.inputCharCount,
+            reservationKey: `rerun-branch:${crypto.randomUUID()}`,
+            context: usageContext ?? undefined,
+          });
+
+      const branchRun = await prisma.executionRun.create({
+        data: {
+          userId: user.id,
+          sessionId: parentRun.sessionId,
+          runnerVersion: "v2",
+          parentExecutionRunId: parentRun.id,
+          branchFromOrderIndex,
+          branchReason: "result_rerun",
+          mode: "sequential",
+          requestType: "sequential",
+          status: "queued",
+          inputCharCount: parentRun.inputCharCount,
+          totalStepsPlanned: parentRun.steps.length,
+          usageReservationId: reservedUsage?.id ?? null,
+        },
+      });
+
+      await prisma.executionRunStep.createMany({
+        data: parentRun.steps.map((step) => ({
+          executionRunId: branchRun.id,
+          sessionId: step.sessionId,
+          orderIndex: step.orderIndex,
+          stepKey: `qkiki:run:${branchRun.id}:step:${step.orderIndex}`,
+          templateStepIndex: step.templateStepIndex,
+          templateStepId: step.templateStepId,
+          actionType: step.actionType,
+          targetProvider: step.targetProvider,
+          targetModel: step.targetModel,
+          sourceMode: step.sourceMode,
+          sourceResultId: step.sourceResultId,
+          instructionTemplate: step.instructionTemplate,
+          repeatBlockIndex: step.repeatBlockIndex,
+          repeatIteration: step.repeatIteration,
+          repeatRangeStart: step.repeatRangeStart,
+          repeatRangeEnd: step.repeatRangeEnd,
+          status: "queued",
+          queuedAt: new Date(),
+        })),
+      });
+
+      const firstStep = await prisma.executionRunStep.findFirst({
+        where: {
+          executionRunId: branchRun.id,
+        },
+        orderBy: {
+          orderIndex: "asc",
+        },
+        select: { id: true },
+      });
+
+      if (!firstStep) {
+        throw new Error("The sequential rerun could not be prepared.");
+      }
+
+      await enqueueExecutionRunStep(firstStep.id);
+      await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+
+      const signedRunId = createSignedRunToken({
+        executionRunId: branchRun.id,
+        userId: user.id,
+        mode: "sequential",
+        createdAt: new Date().toISOString(),
+      });
+
+      return NextResponse.json({
+        ok: true,
+        runId: signedRunId,
+        executionRunId: branchRun.id,
+        status: "queued",
+        statusUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}`,
+        streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
+      });
     }
 
     reservedUsage = user.isTrial

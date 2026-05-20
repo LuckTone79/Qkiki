@@ -55,6 +55,19 @@ type StepStatus =
   | "skipped"
   | "canceled";
 
+type StepAbortReason =
+  | "user_canceled"
+  | "run_canceled"
+  | "ownership_lost"
+  | "step_not_running"
+  | "unknown";
+
+type StepAbortMonitor = {
+  signal: AbortSignal;
+  stop: () => void;
+  getReason: () => StepAbortReason | null;
+};
+
 function buildStepKey(executionRunId: string, orderIndex: number) {
   return `qkiki:run:${executionRunId}:step:${orderIndex}`;
 }
@@ -311,6 +324,32 @@ async function findParentFallbackCompletedStep(input: {
   });
 }
 
+async function findParentCompletedSteps(input: {
+  parentExecutionRunId?: string | null;
+  beforeOrderIndex?: number | null;
+}) {
+  if (!input.parentExecutionRunId) {
+    return [];
+  }
+
+  return prisma.executionRunStep.findMany({
+    where: {
+      executionRunId: input.parentExecutionRunId,
+      status: "completed",
+      ...(input.beforeOrderIndex ? { orderIndex: { lt: input.beforeOrderIndex } } : {}),
+      result: {
+        outputText: { not: null },
+      },
+    },
+    include: {
+      result: true,
+    },
+    orderBy: {
+      orderIndex: "asc",
+    },
+  });
+}
+
 async function resolveStepSource(step: ExecutionStepRecord) {
   const session = step.executionRun.session;
   const parentBeforeOrderIndex = step.executionRun.branchFromOrderIndex ?? null;
@@ -357,11 +396,19 @@ async function resolveStepSource(step: ExecutionStepRecord) {
       },
     });
 
-    const sourceTexts = limitAllResultsTexts(
-      completed
+    const parentCompleted = await findParentCompletedSteps({
+      parentExecutionRunId: step.executionRun.parentExecutionRunId,
+      beforeOrderIndex: parentBeforeOrderIndex,
+    });
+
+    const sourceTexts = limitAllResultsTexts([
+      ...parentCompleted
         .map((item) => item.result?.outputText?.trim() ?? "")
         .filter(Boolean),
-    );
+      ...completed
+        .map((item) => item.result?.outputText?.trim() ?? "")
+        .filter(Boolean),
+    ]);
 
     if (sourceTexts.length) {
       return sourceTexts
@@ -491,7 +538,105 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
   };
 }
 
+function startStepAbortMonitor(input: {
+  stepId: string;
+  executionRunId: string;
+  workerId: string;
+}) {
+  const controller = new AbortController();
+  let reason: StepAbortReason | null = null;
+  let intervalHandle: ReturnType<typeof setInterval> | null = null;
+  let stopped = false;
+  let polling = false;
+
+  const abortWithReason = (nextReason: StepAbortReason, message: string) => {
+    if (controller.signal.aborted) {
+      return;
+    }
+
+    reason = nextReason;
+    const error = new Error(message);
+    error.name =
+      nextReason === "user_canceled" || nextReason === "run_canceled"
+        ? "UserCanceledError"
+        : "StepAbortError";
+    controller.abort(error);
+  };
+
+  const poll = async () => {
+    if (stopped || polling) {
+      return;
+    }
+
+    polling = true;
+    try {
+      const state = await prisma.executionRunStep.findUnique({
+        where: { id: input.stepId },
+        select: {
+          status: true,
+          lockedBy: true,
+          executionRun: {
+            select: {
+              status: true,
+            },
+          },
+        },
+      });
+
+      if (!state) {
+        abortWithReason("unknown", "The execution step no longer exists.");
+        return;
+      }
+
+      if (state.executionRun.status === "canceling" || state.executionRun.status === "canceled") {
+        abortWithReason("run_canceled", "The execution run was canceled.");
+        return;
+      }
+
+      if (state.status !== "running") {
+        abortWithReason("step_not_running", "The execution step is no longer running.");
+        return;
+      }
+
+      if (state.lockedBy !== input.workerId) {
+        abortWithReason("ownership_lost", "The execution step lock is no longer owned by this worker.");
+        return;
+      }
+
+      await updateHeartbeat(input.stepId, input.workerId);
+    } catch (error) {
+      console.warn("[workbench-v2] step abort monitor failed", {
+        stepId: input.stepId,
+        executionRunId: input.executionRunId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      polling = false;
+    }
+  };
+
+  void poll();
+  intervalHandle = setInterval(() => {
+    void poll();
+  }, 1_500);
+
+  return {
+    signal: controller.signal,
+    stop() {
+      stopped = true;
+      if (intervalHandle) {
+        clearInterval(intervalHandle);
+        intervalHandle = null;
+      }
+    },
+    getReason() {
+      return reason;
+    },
+  } satisfies StepAbortMonitor;
+}
+
 async function createResultForStep(input: {
+  db?: Prisma.TransactionClient | typeof prisma;
   step: ExecutionStepRecord;
   status: "completed" | "failed" | "canceled" | "skipped";
   outputText?: string | null;
@@ -506,7 +651,8 @@ async function createResultForStep(input: {
   latencyMs?: number | null;
   rawResponse?: unknown;
 }) {
-  return prisma.result.create({
+  const db = input.db ?? prisma;
+  return db.result.create({
     data: {
       sessionId: input.step.sessionId,
       executionRunId: input.step.executionRunId,
@@ -698,40 +844,65 @@ async function transitionStepToCompleted(input: {
   providerResult: Awaited<ReturnType<typeof callProvider>>;
   promptSnapshot: string;
 }) {
-  const result = await createResultForStep({
-    step: input.step,
-    status: "completed",
-    outputText: input.providerResult.outputText,
-    promptSnapshot: input.promptSnapshot,
-    provider: input.providerResult.provider,
-    model: input.providerResult.model,
-    tokenUsagePrompt: input.providerResult.usage?.promptTokens ?? null,
-    tokenUsageCompletion: input.providerResult.usage?.completionTokens ?? null,
-    estimatedCost: input.providerResult.estimatedCost ?? null,
-    costIsEstimated: input.providerResult.costIsEstimated ?? false,
-    latencyMs: input.providerResult.latencyMs,
-    rawResponse: input.providerResult.rawResponse,
+  const transitioned = await prisma.$transaction(async (tx) => {
+    const currentNow = now();
+    const updated = await tx.executionRunStep.updateMany({
+      where: {
+        id: input.step.id,
+        lockedBy: input.workerId,
+        status: "running",
+      },
+      data: {
+        status: "completed",
+        completedAt: currentNow,
+        heartbeatAt: currentNow,
+        lockExpiresAt: null,
+        lockedBy: null,
+        errorCode: null,
+        errorMessage: null,
+        errorRetryable: false,
+        updatedAt: currentNow,
+      },
+    });
+
+    if (!updated.count) {
+      return false;
+    }
+
+    const result = await createResultForStep({
+      db: tx,
+      step: input.step,
+      status: "completed",
+      outputText: input.providerResult.outputText,
+      promptSnapshot: input.promptSnapshot,
+      provider: input.providerResult.provider,
+      model: input.providerResult.model,
+      tokenUsagePrompt: input.providerResult.usage?.promptTokens ?? null,
+      tokenUsageCompletion: input.providerResult.usage?.completionTokens ?? null,
+      estimatedCost: input.providerResult.estimatedCost ?? null,
+      costIsEstimated: input.providerResult.costIsEstimated ?? false,
+      latencyMs: input.providerResult.latencyMs,
+      rawResponse: input.providerResult.rawResponse,
+    });
+
+    await tx.executionRunStep.updateMany({
+      where: {
+        id: input.step.id,
+        status: "completed",
+        resultId: null,
+      },
+      data: {
+        resultId: result.id,
+        updatedAt: now(),
+      },
+    });
+
+    return true;
   });
 
-  await prisma.executionRunStep.updateMany({
-    where: {
-      id: input.step.id,
-      lockedBy: input.workerId,
-      status: "running",
-    },
-    data: {
-      status: "completed",
-      resultId: result.id,
-      completedAt: now(),
-      heartbeatAt: now(),
-      lockExpiresAt: null,
-      lockedBy: null,
-      errorCode: null,
-      errorMessage: null,
-      errorRetryable: false,
-      updatedAt: now(),
-    },
-  });
+  if (!transitioned) {
+    return false;
+  }
 
   logStatusChange({
     executionRunId: input.step.executionRunId,
@@ -744,6 +915,8 @@ async function transitionStepToCompleted(input: {
     attemptCount: input.step.attemptCount + 1,
     durationMs: input.providerResult.latencyMs,
   });
+
+  return true;
 }
 
 async function transitionStepToRetrying(input: {
@@ -755,7 +928,7 @@ async function transitionStepToRetrying(input: {
 }) {
   const retryAt = new Date(Date.now() + input.retryDelayMs);
 
-  await prisma.executionRunStep.updateMany({
+  const updated = await prisma.executionRunStep.updateMany({
     where: {
       id: input.step.id,
       lockedBy: input.workerId,
@@ -774,6 +947,10 @@ async function transitionStepToRetrying(input: {
     },
   });
 
+  if (!updated.count) {
+    return false;
+  }
+
   logStatusChange({
     executionRunId: input.step.executionRunId,
     stepId: input.step.id,
@@ -784,6 +961,8 @@ async function transitionStepToRetrying(input: {
     model: input.step.targetModel,
     attemptCount: input.step.attemptCount + 1,
   });
+
+  return true;
 }
 
 async function transitionStepToTerminal(input: {
@@ -794,42 +973,67 @@ async function transitionStepToTerminal(input: {
   errorMessage: string;
   promptSnapshot: string;
 }) {
-  const result = await createResultForStep({
-    step: input.step,
-    status: input.status,
-    outputText: null,
-    errorMessage: input.errorMessage,
-    promptSnapshot: input.promptSnapshot,
-    provider: input.step.targetProvider,
-    model: input.step.targetModel,
-  });
+  const transitioned = await prisma.$transaction(async (tx) => {
+    const currentNow = now();
+    const dateField =
+      input.status === "canceled"
+        ? { canceledAt: currentNow }
+        : input.status === "skipped"
+          ? {}
+          : { failedAt: currentNow };
 
-  const dateField =
-    input.status === "canceled"
-      ? { canceledAt: now() }
-      : input.status === "skipped"
-        ? {}
-        : { failedAt: now() };
+    const updated = await tx.executionRunStep.updateMany({
+      where: {
+        id: input.step.id,
+        lockedBy: input.workerId,
+        status: "running",
+      },
+      data: {
+        status: input.status,
+        heartbeatAt: currentNow,
+        lockExpiresAt: null,
+        lockedBy: null,
+        errorCode: input.errorCode,
+        errorMessage: input.errorMessage,
+        errorRetryable: false,
+        updatedAt: currentNow,
+        ...dateField,
+      },
+    });
 
-  await prisma.executionRunStep.updateMany({
-    where: {
-      id: input.step.id,
-      lockedBy: input.workerId,
-      status: "running",
-    },
-    data: {
+    if (!updated.count) {
+      return false;
+    }
+
+    const result = await createResultForStep({
+      db: tx,
+      step: input.step,
       status: input.status,
-      resultId: result.id,
-      heartbeatAt: now(),
-      lockExpiresAt: null,
-      lockedBy: null,
-      errorCode: input.errorCode,
+      outputText: null,
       errorMessage: input.errorMessage,
-      errorRetryable: false,
-      updatedAt: now(),
-      ...dateField,
-    },
+      promptSnapshot: input.promptSnapshot,
+      provider: input.step.targetProvider,
+      model: input.step.targetModel,
+    });
+
+    await tx.executionRunStep.updateMany({
+      where: {
+        id: input.step.id,
+        status: input.status,
+        resultId: null,
+      },
+      data: {
+        resultId: result.id,
+        updatedAt: now(),
+      },
+    });
+
+    return true;
   });
+
+  if (!transitioned) {
+    return false;
+  }
 
   logStatusChange({
     executionRunId: input.step.executionRunId,
@@ -841,6 +1045,8 @@ async function transitionStepToTerminal(input: {
     model: input.step.targetModel,
     attemptCount: input.step.attemptCount + 1,
   });
+
+  return true;
 }
 
 export async function executeSingleRunStep(input: {
@@ -903,32 +1109,66 @@ export async function executeSingleRunStep(input: {
       heartbeatAt: now(),
     },
   });
-
-  await updateHeartbeat(step.id, input.workerId);
-
-  const providerResult = await callProvider(executionRun.userId, {
-    provider: step.targetProvider as ProviderName,
-    model: step.targetModel,
-    prompt: step.promptSnapshot ?? promptData.promptSnapshot,
-    attachments: promptData.attachmentsForProvider,
-    allowFallback: false,
-    concurrencyOwner: {
-      ownerKind: "execution_run_step",
-      ownerId: step.attemptKey || buildAttemptKey(step.executionRunId, step.orderIndex, step.attemptCount + 1),
-    },
+  const abortMonitor = startStepAbortMonitor({
+    stepId: step.id,
+    executionRunId: step.executionRunId,
+    workerId: input.workerId,
   });
 
+  let providerResult;
+  try {
+    providerResult = await callProvider(executionRun.userId, {
+      provider: step.targetProvider as ProviderName,
+      model: step.targetModel,
+      prompt: step.promptSnapshot ?? promptData.promptSnapshot,
+      attachments: promptData.attachmentsForProvider,
+      allowFallback: false,
+      disableInternalRetries: true,
+      abortSignal: abortMonitor.signal,
+      concurrencyOwner: {
+        ownerKind: "execution_run_step",
+        ownerId: step.attemptKey || buildAttemptKey(step.executionRunId, step.orderIndex, step.attemptCount + 1),
+      },
+    });
+  } finally {
+    abortMonitor.stop();
+  }
+
+  const abortReason = abortMonitor.getReason();
+
+  if (abortReason === "ownership_lost" || abortReason === "step_not_running") {
+    return {
+      claimed: true as const,
+      shouldContinue: false as const,
+      executionRunId: step.executionRunId,
+    };
+  }
+
   if (providerResult.status === "completed" && providerResult.outputText.trim()) {
-    await transitionStepToCompleted({
+    const transitioned = await transitionStepToCompleted({
       step,
       workerId: input.workerId,
       providerResult,
       promptSnapshot: step.promptSnapshot ?? promptData.promptSnapshot,
     });
+    if (!transitioned) {
+      return {
+        claimed: true as const,
+        shouldContinue: false as const,
+        executionRunId: step.executionRunId,
+      };
+    }
   } else {
-    const normalizedError = normalizeAiError(
-      new Error(providerResult.errorMessage || "Provider request failed."),
-    );
+    const normalizedError =
+      abortReason === "user_canceled" || abortReason === "run_canceled"
+        ? {
+            code: AI_ERROR_CODES.USER_CANCELED,
+            message: AI_ERROR_POLICY.USER_CANCELED.userMessage,
+            retryable: false,
+          }
+        : normalizeAiError(
+            new Error(providerResult.errorMessage || "Provider request failed."),
+          );
     const maxAttempts =
       normalizedError.code in AI_ERROR_POLICY
         ? (AI_ERROR_POLICY[normalizedError.code as keyof typeof AI_ERROR_POLICY] as { maxAttempts?: number }).maxAttempts ?? step.maxAttempts
@@ -944,13 +1184,20 @@ export async function executeSingleRunStep(input: {
         normalizedError.code,
         step.attemptCount + 1,
       );
-      await transitionStepToRetrying({
+      const transitioned = await transitionStepToRetrying({
         step,
         workerId: input.workerId,
         errorCode: normalizedError.code,
         errorMessage: normalizedError.message,
         retryDelayMs,
       });
+      if (!transitioned) {
+        return {
+          claimed: true as const,
+          shouldContinue: false as const,
+          executionRunId: step.executionRunId,
+        };
+      }
       await enqueueExecutionRunStep(step.id, Math.max(1, Math.ceil(retryDelayMs / 1000)));
       return {
         claimed: true as const,
@@ -959,7 +1206,7 @@ export async function executeSingleRunStep(input: {
       };
     }
 
-    await transitionStepToTerminal({
+    const transitioned = await transitionStepToTerminal({
       step,
       workerId: input.workerId,
       status:
@@ -968,6 +1215,13 @@ export async function executeSingleRunStep(input: {
       errorMessage: normalizedError.message,
       promptSnapshot: step.promptSnapshot ?? promptData.promptSnapshot,
     });
+    if (!transitioned) {
+      return {
+        claimed: true as const,
+        shouldContinue: false as const,
+        executionRunId: step.executionRunId,
+      };
+    }
   }
 
   const nextStep = await getNextStep(step);
@@ -1176,6 +1430,21 @@ export async function cancelExecutionRunV2(input: {
     },
   });
 
+  if (runningSteps.length) {
+    await prisma.executionRunStep.updateMany({
+      where: {
+        executionRunId: input.executionRunId,
+        status: "running",
+      },
+      data: {
+        errorCode: AI_ERROR_CODES.USER_CANCELED,
+        errorMessage: input.reason ?? AI_ERROR_POLICY.USER_CANCELED.userMessage,
+        errorRetryable: false,
+        updatedAt: now(),
+      },
+    });
+  }
+
   if (!runningSteps.length) {
     await finalizeExecutionRunV2(input.executionRunId);
   }
@@ -1276,6 +1545,7 @@ export async function runExecutionRunStepWatchdog() {
         where: {
           id: step.id,
           status: "running",
+          lockedBy: step.lockedBy,
         },
         data: {
           status: "failed",
@@ -1285,6 +1555,7 @@ export async function runExecutionRunStepWatchdog() {
           errorRetryable: false,
           lockedBy: null,
           lockExpiresAt: null,
+          heartbeatAt: now(),
         },
       });
 
@@ -1293,20 +1564,40 @@ export async function runExecutionRunStepWatchdog() {
       }
 
       const promptSnapshot = step.promptSnapshot || "";
-      const result = await createResultForStep({
-        step: step as ExecutionStepRecord,
-        status: "failed",
-        errorMessage: AI_ERROR_POLICY.STEP_STALE_TIMEOUT.userMessage,
-        promptSnapshot,
-        provider: step.targetProvider,
-        model: step.targetModel,
-      }).catch(() => undefined);
-      if (result?.id) {
-        await prisma.executionRunStep.update({
-          where: { id: step.id },
-          data: { resultId: result.id },
+      await prisma.$transaction(async (tx) => {
+        const result = await tx.result.create({
+          data: {
+            sessionId: step.sessionId,
+            executionRunId: step.executionRunId,
+            executionOrder: step.orderIndex,
+            workflowStepId: step.templateStepId,
+            provider: step.targetProvider,
+            model: step.targetModel,
+            promptSnapshot,
+            outputText: null,
+            rawResponse: null,
+            status: "failed",
+            errorMessage: AI_ERROR_POLICY.STEP_STALE_TIMEOUT.userMessage,
+            executionRunStep: {
+              connect: {
+                id: step.id,
+              },
+            },
+          },
         });
-      }
+
+        await tx.executionRunStep.updateMany({
+          where: {
+            id: step.id,
+            status: "failed",
+            resultId: null,
+          },
+          data: {
+            resultId: result.id,
+            updatedAt: now(),
+          },
+        });
+      }).catch(() => undefined);
 
       const nextStep = await getNextStep(step as ExecutionStepRecord);
       if (nextStep) {

@@ -266,7 +266,12 @@ function shouldRetryProviderCall(
   model: string,
   result: ProviderCallResult,
   attemptNumber: number,
+  disabled: boolean | undefined,
 ) {
+  if (disabled) {
+    return false;
+  }
+
   if (result.status !== "failed" || !result.errorMessage) {
     return false;
   }
@@ -698,6 +703,7 @@ export async function callProvider(
         input.model,
         primaryResult,
         attemptNumber,
+        input.disableInternalRetries,
       )
     ) {
       break;

@@ -146,6 +146,7 @@ type RunProgressEntry = {
   title: string;
   subtitle: string;
   status: RunProgressStatus;
+  canStop?: boolean;
   detail?: string | null;
   workLines?: [string, string];
 };
@@ -162,6 +163,21 @@ type WorkbenchRunStreamEvent =
   | {
       type: "session";
       session: { id: string; title: string; finalResultId?: string | null };
+    }
+  | {
+      type: "run_plan";
+      executionRun: {
+        id: string;
+        status: string;
+        runnerVersion: string;
+        totalStepsPlanned: number;
+        totalStepsDone: number;
+        totalStepsFailed: number;
+        totalStepsRunning: number;
+        totalStepsCanceled: number;
+        finalResultId?: string | null;
+      };
+      runSteps: RunStepSnapshot[];
     }
   | {
       type: "progress";
@@ -201,6 +217,61 @@ type WorkbenchRunStreamEvent =
       redirectUrl?: string;
       usage?: UsageStatusType;
     };
+
+type RunStepSnapshot = {
+  id: string;
+  orderIndex: number;
+  templateStepIndex: number;
+  actionType: ActionType;
+  targetProvider: string;
+  targetModel: string;
+  sourceMode: string;
+  repeatIteration?: number | null;
+  repeatBlockIndex?: number | null;
+  status: string;
+  attemptCount: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  failedAt?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  sourceTextSnapshotPreview?: string | null;
+  promptSnapshotPreview?: string | null;
+  result?: {
+    id: string;
+    outputText: string | null;
+    status: string;
+    provider: string;
+    model: string;
+    latencyMs: number | null;
+  } | null;
+};
+
+type RunStatusSnapshot = {
+  status?: string;
+  errorMessage?: string | null;
+  streamError?: string | null;
+  results?: WorkbenchResult[];
+  finalResultId?: string | null;
+  executionSummary?: {
+    plannedTotal: number;
+    executedTotal: number;
+    stoppedEarly: boolean;
+    stopReason?: string | null;
+  };
+  executionRun?: {
+    id: string;
+    status: string;
+    runnerVersion: string;
+    totalStepsPlanned: number;
+    totalStepsDone: number;
+    totalStepsFailed: number;
+    totalStepsRunning: number;
+    totalStepsCanceled: number;
+    finalResultId?: string | null;
+  };
+  runSteps?: RunStepSnapshot[];
+};
 
 type ParallelComparisonSummary = {
   summary: string;
@@ -982,6 +1053,86 @@ function progressStatusRank(status: RunProgressStatus) {
   return 0;
 }
 
+function mapRunStepStatusToProgressStatus(status: string): RunProgressStatus {
+  if (status === "running" || status === "retrying") {
+    return "active";
+  }
+
+  if (status === "completed") {
+    return "completed";
+  }
+
+  if (status === "failed") {
+    return "failed";
+  }
+
+  if (status === "canceled") {
+    return "canceled";
+  }
+
+  if (status === "skipped") {
+    return "skipped";
+  }
+
+  return "queued";
+}
+
+function buildRunMonitorFromRunSteps(input: {
+  runSteps: RunStepSnapshot[];
+  language: AppLanguage;
+  uiText: {
+    queued: string;
+    running: string;
+    preparing: string;
+    completed: string;
+  };
+  startedAt?: number;
+}) {
+  return {
+    mode: "sequential" as const,
+    startedAt: input.startedAt ?? Date.now(),
+    entries: input.runSteps.map((step) => {
+      const progressStatus = mapRunStepStatusToProgressStatus(step.status);
+      const repeatLabel =
+        step.repeatIteration && step.repeatIteration > 0
+          ? input.language === "ko"
+            ? `${step.repeatIteration}회차`
+            : `Iteration ${step.repeatIteration}`
+          : null;
+      const subtitleParts = [
+        input.language === "ko"
+          ? `실행 ${step.orderIndex}단계`
+          : `Step ${step.orderIndex}`,
+        input.language === "ko"
+          ? `템플릿 ${step.templateStepIndex}단계`
+          : `Template ${step.templateStepIndex}`,
+        getActionTypeDisplayLabel(step.actionType, input.language),
+        repeatLabel,
+      ].filter(Boolean);
+
+      return {
+        key: step.id,
+        title: `${step.targetProvider} / ${getModelDisplayName(
+          step.targetProvider as ProviderName,
+          step.targetModel,
+        )}`,
+        subtitle: subtitleParts.join(" - "),
+        status: progressStatus,
+        canStop: step.status === "queued",
+        detail:
+          step.errorMessage ||
+          step.promptSnapshotPreview ||
+          step.sourceTextSnapshotPreview ||
+          (progressStatus === "completed"
+            ? input.uiText.completed
+            : progressStatus === "queued"
+              ? input.uiText.queued
+              : input.uiText.running),
+      } satisfies RunProgressEntry;
+    }),
+  };
+}
+
 function formatElapsedTime(startedAt: number, now: number, language: AppLanguage) {
   const elapsedSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
   if (elapsedSeconds < 60) {
@@ -1182,6 +1333,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           input.detail === undefined
             ? existing?.detail ?? uiText.running
             : input.detail,
+        canStop:
+          incomingStatus === "queued"
+            ? true
+            : incomingStatus === "active"
+              ? false
+              : existing?.canStop ?? false,
         workLines:
           input.workLines === undefined ? existing?.workLines : input.workLines ?? undefined,
       };
@@ -1224,6 +1381,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               )}`,
               subtitle: `${uiText.parallelRun} ${index + 1}`,
               status: "active" as const,
+              canStop: false,
               detail: uiText.preparing,
               workLines: buildWorkLines({
                 language,
@@ -1242,6 +1400,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               )}`,
               subtitle: `${uiText.parallelRun} ${index + 1}`,
               status: "active" as const,
+              canStop: false,
               detail: uiText.preparing,
               workLines: buildWorkLines({
                 language,
@@ -1279,6 +1438,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           language,
         )}`,
         status: index === 0 ? ("active" as const) : ("queued" as const),
+        canStop: index !== 0,
         detail: index === 0 ? uiText.preparing : uiText.queued,
         workLines: buildWorkLines({
           language,
@@ -1654,17 +1814,35 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         : "Resuming the active run.",
     );
     setProgressNow(Date.now());
-    setRunMonitor(
-      createRunMonitor(modeToRun, sessionWorkflowSteps, sessionWorkflowControl),
-    );
     focusProgressPanel();
     setRunning(true);
     setCurrentRunId(session.activeRun.runId);
 
     try {
+      const initialStatus = await fetchRunStatus(session.activeRun.runId);
+      if (initialStatus?.runSteps?.length) {
+        setRunMonitor(
+          buildRunMonitorFromRunSteps({
+            runSteps: initialStatus.runSteps,
+            language,
+            uiText,
+          }),
+        );
+        if (initialStatus.results?.length) {
+          setResults((current) => mergeResults(current, initialStatus.results || []));
+        }
+        if (initialStatus.finalResultId) {
+          setFinalResultId(initialStatus.finalResultId);
+        }
+      } else {
+        setRunMonitor(
+          createRunMonitor(modeToRun, sessionWorkflowSteps, sessionWorkflowControl),
+        );
+      }
+
       const streamed = await readRunStream(
         session.activeRun.runId,
-        session.results,
+        initialStatus?.results?.length ? initialStatus.results : session.results,
       );
       if (cancelRequestedRef.current) {
         return;
@@ -2359,21 +2537,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return null;
     }
 
-    return (await response.json().catch(() => null)) as
-      | {
-          status?: string;
-          errorMessage?: string | null;
-          streamError?: string | null;
-          results?: WorkbenchResult[];
-          finalResultId?: string | null;
-          executionSummary?: {
-            plannedTotal: number;
-            executedTotal: number;
-            stoppedEarly: boolean;
-            stopReason?: string | null;
-          };
-        }
-      | null;
+    return (await response.json().catch(() => null)) as RunStatusSnapshot | null;
   }
 
   async function readRunStream(
@@ -2405,6 +2569,20 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         setSessionId(event.session.id);
         setSessionTitle(event.session.title);
         setFinalResultId(event.session.finalResultId || null);
+        return;
+      }
+
+      if (event.type === "run_plan") {
+        setFinalResultId(event.executionRun.finalResultId || null);
+        setRunMonitor((current) => {
+          const startedAt = current?.startedAt ?? Date.now();
+          return buildRunMonitorFromRunSteps({
+            runSteps: event.runSteps,
+            language,
+            uiText,
+            startedAt,
+          });
+        });
         return;
       }
 
@@ -2621,6 +2799,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       const status = await fetchRunStatus(runId);
+      if (status?.runSteps?.length) {
+        setRunMonitor((current) =>
+          buildRunMonitorFromRunSteps({
+            runSteps: status.runSteps || [],
+            language,
+            uiText,
+            startedAt: current?.startedAt ?? Date.now(),
+          }),
+        );
+      }
       if (status?.status === "canceled" || status?.status === "cancelled") {
         return {
           type: "done",
@@ -2835,7 +3023,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
-    const previousEntry = runMonitor?.entries[index];
+    const currentEntry = runMonitor?.entries[index];
+    if (!currentEntry?.canStop) {
+      return;
+    }
+
+    const previousEntry = currentEntry;
     setStoppingStepIndexes((current) => new Set([...current, index]));
     setError("");
     updateProgressEntry({
@@ -3099,6 +3292,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
     const data = (await response.json().catch(() => ({}))) as {
       result?: WorkbenchResult;
+      runId?: string;
       usage?: UsageStatusType;
     } & UsageErrorPayload;
 
@@ -3111,18 +3305,41 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
-    if (!response.ok || !data.result) {
+    if (!response.ok || (!data.result && !data.runId)) {
       setError(
         data.error || t("rerunFailed"),
       );
       return;
     }
 
-    const rerun = data.result;
     if (data.usage) {
       setUsage(data.usage);
       writeUsageCache(data.usage);
     }
+    if (data.runId) {
+      setProgressNow(Date.now());
+      setRunMonitor(null);
+      focusProgressPanel();
+      setCurrentRunId(data.runId);
+      setRunning(true);
+      try {
+        const streamed = await readRunStream(data.runId, results);
+        if (streamed) {
+          applyCompletedRun(streamed, "sequential");
+        }
+      } finally {
+        cancelRequestedRef.current = false;
+        streamAbortControllerRef.current = null;
+        setCurrentRunId(null);
+        setCancelingRun(false);
+        setStoppingStepIndexes(new Set<number>());
+        setRunning(false);
+      }
+      setNotice(t("rerunAdded"));
+      return;
+    }
+
+    const rerun = data.result!;
     setResults((current) => mergeResults(current, [rerun]));
     setActiveMobilePanel("results");
     setNotice(t("rerunAdded"));
@@ -4009,6 +4226,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       {mode === "sequential" &&
                       running &&
                       activeRunId &&
+                      entry.canStop &&
                       (entry.status === "active" || entry.status === "queued") ? (
                         <button
                           type="button"
