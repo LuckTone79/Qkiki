@@ -121,7 +121,8 @@
 ## 20. 배포 정보
 - 버전: `v1.14.0-20260520`
 - build는 로컬에서 성공했다.
-- production prebuild migrate 강제 스크립트는 추가했지만 실제 production `migrate deploy`는 이 세션에서 실행하지 않았다.
+- GitHub 기준 최신 커밋 `66115ce`에 연결된 Vercel deployment check는 실패 상태였다.
+- production prebuild migrate 강제 스크립트는 추가했지만 실제 production `migrate deploy` 성공 확인은 이 세션에서 끝내지 못했다.
 
 ## 21. 커밋 hash
-- 이 보고서 작성 시점 기준 미기입. 최종 커밋 hash는 실제 커밋 후 `git rev-parse HEAD` 기준으로 확인해야 한다.
+- `66115ce`
