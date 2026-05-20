@@ -20,7 +20,11 @@ import {
 } from "@/lib/execution-runs";
 import { buildExecutionRunStepPlan } from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
-import { canUseQstash, enqueueExecutionRunStep, enqueueWorkbenchWatchdog } from "@/lib/qstash";
+import {
+  enqueueExecutionRunStep,
+  enqueueWorkbenchWatchdog,
+  getSequentialRunnerReadiness,
+} from "@/lib/qstash";
 import { runWorkbenchSchema } from "@/lib/validation";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
@@ -130,10 +134,11 @@ export async function POST(request: Request) {
     reservationId = reservation?.id ?? null;
 
     if (parsed.data.mode === "sequential" && runnerVersion === "v2") {
-      if (!canUseQstash()) {
+      const runnerReadiness = getSequentialRunnerReadiness();
+      if (!runnerReadiness.ok) {
         return NextResponse.json(
-          { error: "QSTASH_TOKEN is required for the V2 sequential runner." },
-          { status: 500 },
+          { error: runnerReadiness.message ?? "The V2 sequential runner is not ready." },
+          { status: 503 },
         );
       }
 
@@ -254,8 +259,25 @@ export async function POST(request: Request) {
         throw new Error("The sequential execution plan could not be created.");
       }
 
-      await enqueueExecutionRunStep(firstStep.id);
-      await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+      try {
+        await enqueueExecutionRunStep(firstStep.id);
+        await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+      } catch (error) {
+        if (reservation?.id) {
+          await releaseUsageReservation({
+            reservationId: reservation.id,
+            userId: user.id,
+          }).catch(() => undefined);
+        }
+        await failExecutionRun({
+          executionRunId: executionRun.executionRun.id,
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "The V2 sequential runner could not queue the first step.",
+        }).catch(() => undefined);
+        throw error;
+      }
 
       const signedRunId = createSignedRunToken({
         executionRunId: executionRun.executionRun.id,

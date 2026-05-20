@@ -2,9 +2,13 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
-import { createSignedRunToken, readSignedRunToken } from "@/lib/execution-runs";
+import { createSignedRunToken, failExecutionRun, readSignedRunToken } from "@/lib/execution-runs";
 import { prisma } from "@/lib/prisma";
-import { enqueueExecutionRunStep, enqueueWorkbenchWatchdog } from "@/lib/qstash";
+import {
+  enqueueExecutionRunStep,
+  enqueueWorkbenchWatchdog,
+  getSequentialRunnerReadiness,
+} from "@/lib/qstash";
 import { releaseUsageReservation, requireUsageAccess, reserveUsage } from "@/lib/usage-policy";
 
 type RouteContext = {
@@ -14,10 +18,18 @@ type RouteContext = {
 export async function POST(_request: Request, { params }: RouteContext) {
   let userId = "";
   let reservationId: string | null = null;
+  let branchRunId: string | null = null;
 
   try {
     const user = await requireApiGenerationUser();
     userId = user.id;
+    const runnerReadiness = getSequentialRunnerReadiness();
+    if (!runnerReadiness.ok) {
+      return NextResponse.json(
+        { error: runnerReadiness.message ?? "The V2 sequential runner is not ready." },
+        { status: 503 },
+      );
+    }
     const { runId, orderIndex: rawOrderIndex } = await params;
     const branchFromOrderIndex = Number.parseInt(rawOrderIndex, 10);
 
@@ -131,6 +143,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+    branchRunId = branchRun.id;
 
     const firstStep = await prisma.executionRunStep.findFirst({
       where: {
@@ -146,8 +159,25 @@ export async function POST(_request: Request, { params }: RouteContext) {
       throw new Error("The branch rerun could not be prepared.");
     }
 
-    await enqueueExecutionRunStep(firstStep.id);
-    await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+    try {
+      await enqueueExecutionRunStep(firstStep.id);
+      await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+    } catch (error) {
+      if (reservationId) {
+        await releaseUsageReservation({
+          reservationId,
+          userId,
+        }).catch(() => undefined);
+      }
+      await failExecutionRun({
+        executionRunId: branchRun.id,
+        errorMessage:
+          error instanceof Error
+            ? error.message
+            : "The V2 branch rerun could not queue the first step.",
+      }).catch(() => undefined);
+      throw error;
+    }
 
     const signedRunId = createSignedRunToken({
       executionRunId: branchRun.id,
@@ -165,7 +195,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
       streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
     });
   } catch (error) {
-    if (reservationId) {
+    if (reservationId && !branchRunId) {
       await releaseUsageReservation({
         reservationId,
         userId,
