@@ -1,15 +1,13 @@
 -- Drop the legacy per-user provider-key table. Spec-KR makes provider keys
 -- administrator-managed only.
-PRAGMA foreign_keys=OFF;
-DROP TABLE IF EXISTS "ProviderConfig";
-PRAGMA foreign_keys=ON;
+DROP TABLE IF EXISTS "ProviderConfig" CASCADE;
 
 -- Extend administrator provider settings for operational controls.
 ALTER TABLE "AdminProviderConfig" ADD COLUMN "fallbackProvider" TEXT;
 ALTER TABLE "AdminProviderConfig" ADD COLUMN "perUserDailyLimit" INTEGER NOT NULL DEFAULT 100;
 ALTER TABLE "AdminProviderConfig" ADD COLUMN "timeoutSeconds" INTEGER NOT NULL DEFAULT 60;
 ALTER TABLE "AdminProviderConfig" ADD COLUMN "healthStatus" TEXT NOT NULL DEFAULT 'unknown';
-ALTER TABLE "AdminProviderConfig" ADD COLUMN "lastHealthCheckedAt" DATETIME;
+ALTER TABLE "AdminProviderConfig" ADD COLUMN "lastHealthCheckedAt" TIMESTAMP(3);
 
 -- Dedicated operational log for every AI provider request.
 CREATE TABLE "ai_requests" (
@@ -27,7 +25,7 @@ CREATE TABLE "ai_requests" (
     "latency_ms" INTEGER,
     "error_code" TEXT,
     "error_message" TEXT,
-    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "ai_requests_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "ai_requests_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "WorkbenchSession" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "ai_requests_message_id_fkey" FOREIGN KEY ("message_id") REFERENCES "Result" ("id") ON DELETE SET NULL ON UPDATE CASCADE

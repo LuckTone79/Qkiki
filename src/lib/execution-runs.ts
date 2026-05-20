@@ -9,7 +9,7 @@ import type { WorkflowStepInput } from "@/lib/ai/types";
 import type { UsageCheckContext } from "@/lib/usage-policy";
 import type { RunWorkbenchInput } from "@/lib/validation";
 
-const ACTIVE_RUN_STATUSES = ["queued", "running"] as const;
+const ACTIVE_RUN_STATUSES = ["queued", "running", "retrying", "canceling"] as const;
 const DEFAULT_MAX_ACTIVE_RUNS_PER_USER = 3;
 export const MAX_STEP_STOP_INDEX = 49;
 
@@ -41,6 +41,8 @@ export type SignedRunPayload =
 export type ExecutionRunStatus =
   | "queued"
   | "running"
+  | "retrying"
+  | "canceling"
   | "completed"
   | "partial"
   | "failed"
@@ -54,6 +56,10 @@ type CreateExecutionRunInput = {
   inputCharCount: number;
   totalStepsPlanned: number;
   usageReservationId?: string | null;
+  runnerVersion?: string;
+  parentExecutionRunId?: string | null;
+  branchFromOrderIndex?: number | null;
+  branchReason?: string | null;
 };
 
 type CompleteExecutionRunInput = {
@@ -262,6 +268,10 @@ export async function createQueuedExecutionRun(input: CreateExecutionRunInput) {
           data: {
             userId: input.userId,
             sessionId: input.sessionId ?? null,
+            runnerVersion: input.runnerVersion ?? "v1",
+            parentExecutionRunId: input.parentExecutionRunId ?? null,
+            branchFromOrderIndex: input.branchFromOrderIndex ?? null,
+            branchReason: input.branchReason ?? null,
             mode: input.mode,
             requestType: input.requestType,
             status: "queued",

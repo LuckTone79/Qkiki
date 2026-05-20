@@ -2,6 +2,11 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 
+// Deprecated runtime schema repair helper.
+// Production schema management must use prisma migrate deploy before serving traffic.
+// Keep this temporarily for legacy expand-only columns while older deployments drain out.
+// Do not add ExecutionRunStep or other new V2 tables to this runtime repair path.
+
 type ColumnSpec = {
   cacheKey: string;
   tableName: string;

@@ -5,7 +5,9 @@ import {
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
+import { getExecutionRunStatusSnapshot } from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
+import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 
@@ -127,6 +129,186 @@ export async function GET(request: Request, { params }: RouteContext) {
             },
           },
         );
+      }
+
+      if (executionRun?.runnerVersion === "v2") {
+        const executionRunId = executionRun.id;
+        const encoder = new TextEncoder();
+        const session = executionRun.sessionId
+          ? await prisma.workbenchSession.findFirst({
+              where: { id: executionRun.sessionId, userId: user.id },
+              select: { id: true, title: true, finalResultId: true },
+            })
+          : null;
+
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            const send = (event: unknown) => {
+              controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+            };
+
+            const wait = (ms: number) =>
+              new Promise((resolve) => setTimeout(resolve, ms));
+
+            void (async () => {
+              const seenStatuses = new Map<string, string>();
+              const seenResults = new Set<string>();
+
+              if (session) {
+                send({
+                  type: "session",
+                  session: {
+                    id: session.id,
+                    title: session.title,
+                    finalResultId: session.finalResultId,
+                  },
+                });
+              }
+
+              while (!request.signal.aborted) {
+                const snapshot = await getExecutionRunStatusSnapshot({
+                  executionRunId,
+                  userId: user.id,
+                });
+
+                if (!snapshot) {
+                  send({ type: "error", error: "Run not found." });
+                  break;
+                }
+
+                send({
+                  type: "run_plan",
+                  executionRun: snapshot.executionRun,
+                  runSteps: snapshot.runSteps,
+                });
+
+                for (const step of snapshot.runSteps) {
+                  const previousStatus = seenStatuses.get(step.id);
+                  if (previousStatus === step.status) {
+                    continue;
+                  }
+
+                  seenStatuses.set(step.id, step.status);
+                  send({
+                    type: `step_${step.status}`,
+                    step,
+                  });
+                  send({
+                    type: "progress",
+                    index: step.orderIndex - 1,
+                    status:
+                      step.status === "running" || step.status === "retrying"
+                        ? "active"
+                        : step.status,
+                    title: `${step.targetProvider} / ${step.targetModel}`,
+                    subtitle: `Step ${step.orderIndex} - ${step.actionType}`,
+                    detail: step.errorMessage || step.promptSnapshotPreview || step.sourceTextSnapshotPreview,
+                  });
+
+                  if (step.result?.id && !seenResults.has(step.result.id)) {
+                    seenResults.add(step.result.id);
+                    const fullResult = await prisma.result.findUnique({
+                      where: { id: step.result.id },
+                      select: buildWorkbenchResultSelect({
+                        includePromptSnapshot: true,
+                        includeOutputText: true,
+                        includeEncryptedOutput: true,
+                        includeRawResponse: true,
+                        includeBranching: true,
+                        includeUsage: true,
+                        includeExecutionFields: true,
+                        includeTimestamps: true,
+                        includeWorkflowStep: true,
+                      }),
+                    });
+                    if (fullResult) {
+                      send({
+                        type: "result",
+                        index: step.orderIndex - 1,
+                        result: fullResult,
+                      });
+                    }
+                  }
+                }
+
+                if (
+                  ["completed", "partial", "failed", "canceled"].includes(
+                    snapshot.executionRun.status,
+                  )
+                ) {
+                  const results = await prisma.result.findMany({
+                    where: { executionRunId },
+                    orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
+                    select: buildWorkbenchResultSelect({
+                      includePromptSnapshot: true,
+                      includeOutputText: true,
+                      includeEncryptedOutput: true,
+                      includeRawResponse: true,
+                      includeBranching: true,
+                      includeUsage: true,
+                      includeExecutionFields: true,
+                      includeTimestamps: true,
+                      includeWorkflowStep: true,
+                    }),
+                  });
+
+                  send({
+                    type: `run_${snapshot.executionRun.status}`,
+                    executionRun: snapshot.executionRun,
+                  });
+                  send({
+                    type: "done",
+                    session: session
+                      ? {
+                          id: session.id,
+                          title: session.title,
+                          finalResultId: snapshot.executionRun.finalResultId,
+                        }
+                      : undefined,
+                    results,
+                    executionSummary: {
+                      plannedTotal: snapshot.executionRun.totalStepsPlanned,
+                      executedTotal:
+                        snapshot.executionRun.totalStepsDone +
+                        snapshot.executionRun.totalStepsFailed +
+                        snapshot.executionRun.totalStepsCanceled,
+                      stoppedEarly:
+                        snapshot.executionRun.status === "partial" ||
+                        snapshot.executionRun.status === "failed" ||
+                        snapshot.executionRun.status === "canceled",
+                      stopReason:
+                        snapshot.executionRun.status === "canceled"
+                          ? "canceled"
+                          : snapshot.executionRun.status === "failed"
+                            ? "failed"
+                            : snapshot.executionRun.status === "partial"
+                              ? "partial"
+                              : null,
+                    },
+                  });
+                  break;
+                }
+
+                await wait(1_000);
+              }
+
+              controller.close();
+            })().catch((error) => {
+              send({
+                type: "error",
+                error: error instanceof Error ? error.message : "Run stream failed.",
+              });
+              controller.close();
+            });
+          },
+        });
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "application/x-ndjson; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+          },
+        });
       }
     }
 

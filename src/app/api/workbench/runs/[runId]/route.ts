@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { getRun } from "workflow/api";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
 import {
-  cancelExecutionRunForUser,
   getExecutionRunForUser,
+  cancelExecutionRunForUser,
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
+import { cancelExecutionRunV2, getExecutionRunStatusSnapshot } from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
@@ -46,6 +47,67 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
       if (!executionRun) {
         return NextResponse.json({ error: "Run not found." }, { status: 404 });
+      }
+
+      if (executionRun.runnerVersion === "v2") {
+        const [snapshot, results] = await Promise.all([
+          getExecutionRunStatusSnapshot({
+            executionRunId: executionRun.id,
+            userId: user.id,
+          }),
+          prisma.result.findMany({
+            where: { executionRunId: executionRun.id },
+            orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
+            select: buildWorkbenchResultSelect({
+              includePromptSnapshot: true,
+              includeOutputText: true,
+              includeEncryptedOutput: true,
+              includeRawResponse: true,
+              includeBranching: true,
+              includeUsage: true,
+              includeExecutionFields: true,
+              includeTimestamps: true,
+              includeWorkflowStep: true,
+            }),
+          }),
+        ]);
+
+        if (!snapshot) {
+          return NextResponse.json({ error: "Run not found." }, { status: 404 });
+        }
+
+        return NextResponse.json({
+          runId,
+          executionRunId: executionRun.id,
+          mode: token.mode,
+          status: snapshot.executionRun.status,
+          createdAt: executionRun.createdAt.toISOString(),
+          startedAt: executionRun.startedAt?.toISOString() ?? null,
+          finishedAt: executionRun.finishedAt?.toISOString() ?? null,
+          errorMessage: executionRun.errorMessage,
+          streamError: executionRun.streamError,
+          executionSummary: {
+            plannedTotal: snapshot.executionRun.totalStepsPlanned,
+            executedTotal:
+              snapshot.executionRun.totalStepsDone +
+              snapshot.executionRun.totalStepsFailed +
+              snapshot.executionRun.totalStepsCanceled,
+            stoppedEarly:
+              ["partial", "failed", "canceled"].includes(snapshot.executionRun.status),
+            stopReason:
+              snapshot.executionRun.status === "canceled"
+                ? "canceled"
+                : snapshot.executionRun.status === "partial"
+                  ? "partial"
+                  : snapshot.executionRun.status === "failed"
+                    ? "failed"
+                    : null,
+          },
+          finalResultId: snapshot.executionRun.finalResultId,
+          executionRun: snapshot.executionRun,
+          runSteps: snapshot.runSteps,
+          results,
+        });
       }
 
       if (!executionRun.workflowRunId) {
@@ -184,6 +246,21 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
     if (!executionRun) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
+    }
+
+    if (executionRun.runnerVersion === "v2") {
+      const canceledRun = await cancelExecutionRunV2({
+        executionRunId: executionRun.id,
+        userId: user.id,
+        reason: "The run was stopped by the user.",
+      });
+
+      return NextResponse.json({
+        ok: true,
+        runId,
+        executionRunId: executionRun.id,
+        status: canceledRun?.status ?? executionRun.status,
+      });
     }
 
     const canceledRun = await cancelExecutionRunForUser({

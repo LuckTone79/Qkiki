@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -196,6 +197,7 @@ model WorkbenchSession {
   workflowSteps          WorkflowStep[]
   results                Result[]
   executionRuns          ExecutionRun[]
+  executionRunSteps      ExecutionRunStep[]
   aiRequests             AiRequest[]
   adminContentAccessLogs AdminContentAccessLog[]
   attachments            SessionAttachment[]
@@ -210,6 +212,10 @@ model ExecutionRun {
   userId               String
   sessionId            String?
   workflowRunId        String?   @unique
+  runnerVersion        String    @default("v1")
+  parentExecutionRunId String?
+  branchFromOrderIndex Int?
+  branchReason         String?
   mode                 String
   requestType          String
   status               String
@@ -227,13 +233,68 @@ model ExecutionRun {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  session WorkbenchSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  results Result[]
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session            WorkbenchSession?  @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  parentExecutionRun ExecutionRun?      @relation("ExecutionRunBranch", fields: [parentExecutionRunId], references: [id], onDelete: SetNull)
+  childExecutionRuns ExecutionRun[]     @relation("ExecutionRunBranch")
+  results            Result[]
+  steps              ExecutionRunStep[]
 
   @@index([userId, status])
   @@index([sessionId])
   @@index([createdAt])
+}
+
+model ExecutionRunStep {
+  id                  String    @id @default(cuid())
+  executionRunId      String
+  sessionId           String
+  orderIndex          Int
+  stepKey             String    @unique
+  attemptKey          String?
+  templateStepIndex   Int
+  templateStepId      String?
+  actionType          String
+  targetProvider      String
+  targetModel         String
+  sourceMode          String
+  sourceResultId      String?
+  instructionTemplate String?
+  repeatBlockIndex    Int?
+  repeatIteration     Int?
+  repeatRangeStart    Int?
+  repeatRangeEnd      Int?
+  status              String    @default("queued")
+  attemptCount        Int       @default(0)
+  maxAttempts         Int       @default(3)
+  queuedAt            DateTime?
+  nextAttemptAt       DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  failedAt            DateTime?
+  canceledAt          DateTime?
+  lockedBy            String?
+  lockExpiresAt       DateTime?
+  heartbeatAt         DateTime?
+  sourceTextSnapshot  String?
+  promptSnapshot      String?
+  promptHash          String?
+  resultId            String?   @unique
+  errorCode           String?
+  errorMessage        String?
+  errorRetryable      Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  executionRun ExecutionRun     @relation(fields: [executionRunId], references: [id], onDelete: Cascade)
+  session      WorkbenchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  result       Result?          @relation("ExecutionRunStepResult", fields: [resultId], references: [id])
+
+  @@unique([executionRunId, orderIndex])
+  @@index([executionRunId, status])
+  @@index([sessionId, executionRunId])
+  @@index([status, nextAttemptAt])
+  @@index([status, lockExpiresAt])
 }
 
 model WorkflowStep {
@@ -282,13 +343,14 @@ model Result {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  session         WorkbenchSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  executionRun    ExecutionRun?      @relation(fields: [executionRunId], references: [id], onDelete: SetNull)
-  workflowStep    WorkflowStep?      @relation(fields: [workflowStepId], references: [id], onDelete: SetNull)
-  parent          Result?            @relation("ResultBranches", fields: [parentResultId], references: [id], onDelete: SetNull)
-  children        Result[]           @relation("ResultBranches")
-  aiRequests      AiRequest[]        @relation("ResultAiRequests")
-  attachmentLinks ResultAttachment[]
+  session          WorkbenchSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  executionRun     ExecutionRun?      @relation(fields: [executionRunId], references: [id], onDelete: SetNull)
+  executionRunStep ExecutionRunStep?  @relation("ExecutionRunStepResult")
+  workflowStep     WorkflowStep?      @relation(fields: [workflowStepId], references: [id], onDelete: SetNull)
+  parent           Result?            @relation("ResultBranches", fields: [parentResultId], references: [id], onDelete: SetNull)
+  children         Result[]           @relation("ResultBranches")
+  aiRequests       AiRequest[]        @relation("ResultAiRequests")
+  attachmentLinks  ResultAttachment[]
 
   @@unique([executionRunId, executionOrder])
   @@index([sessionId])

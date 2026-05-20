@@ -69,6 +69,17 @@ export function buildWorkbenchResultSelect(
           workflowStep: {
             select: { orderIndex: true, actionType: true },
           },
+          executionRunStep: {
+            select: {
+              orderIndex: true,
+              templateStepIndex: true,
+              repeatIteration: true,
+              actionType: true,
+              targetProvider: true,
+              targetModel: true,
+              status: true,
+            },
+          },
         }
       : {}),
   } satisfies Prisma.ResultSelect;

@@ -62,7 +62,7 @@ export async function GET(
         project: { select: { id: true, name: true, sharedContext: true } },
         workflowSteps: { orderBy: { orderIndex: "asc" } },
         results: {
-          orderBy: { createdAt: "asc" },
+          orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
           select: buildWorkbenchResultSelect({
             includePromptSnapshot: true,
             includeOutputText: true,

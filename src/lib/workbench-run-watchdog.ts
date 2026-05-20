@@ -33,6 +33,7 @@ export async function closeStaleWorkbenchRuns(input: {
   const message = staleRunMessage(staleSeconds);
   const baseFilters = {
     updatedAt: { lt: cutoff },
+    runnerVersion: { not: "v2" as const },
     ...(input.userId ? { userId: input.userId } : {}),
     ...(input.executionRunId ? { id: input.executionRunId } : {}),
   };

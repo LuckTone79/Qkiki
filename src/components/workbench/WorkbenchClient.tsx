@@ -1310,8 +1310,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       const resultsByEntryIndex = new Map<number, WorkbenchResult>();
       input.results.forEach((result, fallbackIndex) => {
         const entryIndex =
-          typeof result.workflowStep?.orderIndex === "number"
-            ? result.workflowStep.orderIndex - 1
+          typeof result.executionRunStep?.orderIndex === "number"
+            ? result.executionRunStep.orderIndex - 1
+            : typeof result.executionOrder === "number"
+              ? result.executionOrder - 1
+              : typeof result.workflowStep?.orderIndex === "number"
+                ? result.workflowStep.orderIndex - 1
             : fallbackIndex;
         resultsByEntryIndex.set(entryIndex, result);
       });

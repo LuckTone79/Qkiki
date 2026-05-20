@@ -35,6 +35,15 @@ export type WorkbenchResult = {
     orderIndex: number;
     actionType: ActionType;
   } | null;
+  executionRunStep?: {
+    orderIndex: number;
+    templateStepIndex: number;
+    repeatIteration: number | null;
+    actionType: ActionType;
+    targetProvider: string;
+    targetModel: string;
+    status: string;
+  } | null;
 };
 
 type ResultCardProps = {
@@ -98,12 +107,29 @@ export function ResultCard({
   const [copied, setCopied] = useState(false);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
   const isRunning = result.status === "running";
-  const stepLabel = result.workflowStep
-    ? `${t("step")} ${result.workflowStep.orderIndex}`
+  const stepLabel = result.executionRunStep
+    ? `${t("step")} ${result.executionRunStep.orderIndex}`
+    : result.workflowStep
+      ? `${t("step")} ${result.workflowStep.orderIndex}`
+      : result.executionOrder
+        ? `${t("step")} ${result.executionOrder}`
+        : null;
+  const templateStepLabel = result.executionRunStep
+    ? language === "ko"
+      ? `템플릿 ${result.executionRunStep.templateStepIndex}단계`
+      : `Template step ${result.executionRunStep.templateStepIndex}`
     : null;
-  const actionLabel = result.workflowStep
-    ? getActionTypeDisplayLabel(result.workflowStep.actionType, language)
+  const actionLabel = result.executionRunStep
+    ? getActionTypeDisplayLabel(result.executionRunStep.actionType, language)
+    : result.workflowStep
+      ? getActionTypeDisplayLabel(result.workflowStep.actionType, language)
     : null;
+  const repeatLabel =
+    result.executionRunStep?.repeatIteration && result.executionRunStep.repeatIteration > 0
+      ? language === "ko"
+        ? `${result.executionRunStep.repeatIteration}회차`
+        : `Iteration ${result.executionRunStep.repeatIteration}`
+      : null;
 
   const meta = useMemo(() => {
     return [
@@ -160,6 +186,8 @@ export function ResultCard({
           <p className="mt-2 text-xs text-stone-500">
             {[
               stepLabel,
+              templateStepLabel,
+              repeatLabel,
               actionLabel,
               sourceLabel ?? t("sourceOriginal"),
               formatDate(result.createdAt, language),
