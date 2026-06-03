@@ -12,7 +12,7 @@ type SequentialRunnerReadiness = {
 };
 
 export function getAppBaseUrl() {
-  const baseUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
+  const baseUrl = process.env.APP_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (!baseUrl) {
     throw new Error("APP_BASE_URL or NEXT_PUBLIC_APP_URL is required.");
   }

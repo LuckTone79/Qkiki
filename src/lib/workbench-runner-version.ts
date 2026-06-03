@@ -9,7 +9,7 @@ function stableHashToPercent(input: string) {
 export type WorkbenchRunnerVersion = "v1" | "v2";
 
 export function selectWorkbenchRunnerVersion(userId: string): WorkbenchRunnerVersion {
-  const mode = process.env.WORKBENCH_RUNNER_VERSION || "v1";
+  const mode = process.env.WORKBENCH_RUNNER_VERSION?.trim() || "v1";
   const allowlist = (process.env.RUNNER_V2_USER_ALLOWLIST || "")
     .split(",")
     .map((value) => value.trim())
@@ -27,6 +27,6 @@ export function selectWorkbenchRunnerVersion(userId: string): WorkbenchRunnerVer
     return "v2";
   }
 
-  const percent = Number(process.env.RUNNER_V2_USER_COHORT_PERCENT || 0);
+  const percent = Number(process.env.RUNNER_V2_USER_COHORT_PERCENT?.trim() || 0);
   return stableHashToPercent(userId) < percent ? "v2" : "v1";
 }
