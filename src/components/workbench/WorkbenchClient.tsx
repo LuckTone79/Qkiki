@@ -47,6 +47,7 @@ import {
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
 import { buildWorkbenchMobilePanels } from "@/lib/workbench-sharing";
+import { copyTextToClipboard } from "@/lib/browser-clipboard";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -301,6 +302,11 @@ type ParallelComparisonState =
       status: "failed";
       error: string;
     };
+
+type ShareLinkOutcome = {
+  url: string;
+  copied: boolean;
+};
 
 const outputStyles = ["detailed", "short", "bullet", "table", "executive"];
 const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
@@ -1257,6 +1263,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const [sharingSession, setSharingSession] = useState(false);
   const [sessionShareCopied, setSessionShareCopied] = useState(false);
+  const [sessionShareUrl, setSessionShareUrl] = useState<string | null>(null);
+  const [sessionShareCopyBlocked, setSessionShareCopyBlocked] = useState(false);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
@@ -1273,6 +1281,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     activeRunIdRef.current = runId;
     setActiveRunId(runId && runId !== "pending" ? runId : null);
   }
+
+  useEffect(() => {
+    setSessionShareUrl(null);
+    setSessionShareCopied(false);
+    setSessionShareCopyBlocked(false);
+  }, [sessionId]);
 
   function providerLabel(providerName: ProviderName) {
     return (
@@ -3386,7 +3400,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setNotice(t("branchDeleted"));
   }
 
-  async function createSharedLink(resultId?: string) {
+  async function createSharedLink(resultId?: string): Promise<ShareLinkOutcome | null> {
     if (!sessionId) {
       throw new Error(
         language === "ko"
@@ -3422,26 +3436,34 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     const path = resultId ? data.resultPath || data.sessionPath : data.sessionPath;
     const shareUrl = new URL(path, window.location.origin).toString();
-    await navigator.clipboard.writeText(shareUrl);
-    return shareUrl;
+    const copyResult = await copyTextToClipboard(shareUrl);
+    return { url: shareUrl, copied: copyResult.copied };
   }
 
   async function shareSessionOverview() {
     setError("");
     setSharingSession(true);
     try {
-      const shareUrl = await createSharedLink();
-      if (!shareUrl) {
+      const outcome = await createSharedLink();
+      if (!outcome) {
         return;
       }
 
-      setSessionShareCopied(true);
+      setSessionShareUrl(outcome.url);
+      setSessionShareCopyBlocked(!outcome.copied);
+      setSessionShareCopied(outcome.copied);
       setNotice(
-        language === "ko"
-          ? "전체 공유 링크를 복사했습니다."
-          : "Copied the full shared-view link.",
+        outcome.copied
+          ? language === "ko"
+            ? "전체 공유 링크를 복사했습니다."
+            : "Copied the full shared-view link."
+          : language === "ko"
+            ? "링크는 생성됐지만 브라우저가 자동 복사를 막았습니다. 아래 링크를 직접 열거나 선택해서 복사하세요."
+            : "The link was created, but the browser blocked automatic copying. Open it below or select it manually.",
       );
-      window.setTimeout(() => setSessionShareCopied(false), 1200);
+      if (outcome.copied) {
+        window.setTimeout(() => setSessionShareCopied(false), 1200);
+      }
     } catch (shareError) {
       setError(
         shareError instanceof Error
@@ -3458,14 +3480,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   async function shareResultLink(resultId: string) {
     setError("");
     try {
-      const shareUrl = await createSharedLink(resultId);
-      if (!shareUrl) {
+      const outcome = await createSharedLink(resultId);
+      if (!outcome) {
         throw new Error(
           language === "ko"
             ? "공유 링크를 만들지 못했습니다."
             : "Could not create the share link.",
         );
       }
+      return outcome;
     } catch (shareError) {
       setError(
         shareError instanceof Error
@@ -4248,6 +4271,36 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       : "Share overview link"}
               </button>
             </div>
+            {sessionShareUrl ? (
+              <div className="mt-3 rounded-md border border-sky-200 bg-white p-3">
+                {sessionShareCopyBlocked ? (
+                  <p className="mb-2 text-xs font-medium text-sky-900">
+                    {language === "ko"
+                      ? "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 선택해서 복사하세요."
+                      : "Automatic copying was blocked. The link was still created, so open it or select it below."}
+                  </p>
+                ) : null}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    readOnly
+                    value={sessionShareUrl}
+                    onFocus={(event) => event.currentTarget.select()}
+                    className="min-w-0 flex-1 rounded-md border border-stone-300 bg-stone-50 px-3 py-2 text-xs text-stone-700"
+                    aria-label={
+                      language === "ko" ? "전체 공유 링크" : "Shared overview link"
+                    }
+                  />
+                  <a
+                    href={sessionShareUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-sky-300 px-3 py-2 text-center text-xs font-semibold text-sky-900 hover:bg-sky-50"
+                  >
+                    {language === "ko" ? "링크 열기" : "Open link"}
+                  </a>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

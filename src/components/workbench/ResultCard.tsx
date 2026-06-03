@@ -7,6 +7,7 @@ import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow"
 import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import { buildResultDomId } from "@/lib/workbench-sharing";
+import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import {
   getModelDisplayName,
   getModelOptionLabel,
@@ -65,7 +66,7 @@ type ResultCardProps = {
   onRerun?: (resultId: string) => Promise<void>;
   onMarkFinal?: (resultId: string) => Promise<void>;
   onDelete?: (resultId: string) => Promise<void>;
-  onShare?: (resultId: string) => Promise<void>;
+  onShare?: (resultId: string) => Promise<{ url: string; copied: boolean }>;
 };
 
 const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
@@ -114,6 +115,8 @@ export function ResultCard({
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [sharedUrl, setSharedUrl] = useState<string | null>(null);
+  const [shareCopyBlocked, setShareCopyBlocked] = useState(false);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
   const isRunning = result.status === "running";
   const stepLabel = result.executionRunStep
@@ -162,9 +165,13 @@ export function ResultCard({
   }, [language, result, t]);
 
   async function copy() {
-    await navigator.clipboard.writeText(result.outputText || result.errorMessage || "");
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
+    const copyResult = await copyTextToClipboard(
+      result.outputText || result.errorMessage || "",
+    );
+    if (copyResult.copied) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    }
   }
 
   async function share() {
@@ -174,9 +181,13 @@ export function ResultCard({
 
     setSharing(true);
     try {
-      await onShare(result.id);
-      setShareCopied(true);
-      window.setTimeout(() => setShareCopied(false), 1200);
+      const outcome = await onShare(result.id);
+      setSharedUrl(outcome.url);
+      setShareCopyBlocked(!outcome.copied);
+      setShareCopied(outcome.copied);
+      if (outcome.copied) {
+        window.setTimeout(() => setShareCopied(false), 1200);
+      }
     } finally {
       setSharing(false);
     }
@@ -309,6 +320,35 @@ export function ResultCard({
         </button>
       </div>
       )}
+
+      {!readOnly && sharedUrl ? (
+        <div className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3">
+          {shareCopyBlocked ? (
+            <p className="mb-2 text-xs font-medium text-sky-900">
+              {language === "ko"
+                ? "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 선택해서 복사하세요."
+                : "Automatic copying was blocked. The link was still created, so open it or select it below."}
+            </p>
+          ) : null}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              readOnly
+              value={sharedUrl}
+              onFocus={(event) => event.currentTarget.select()}
+              className="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-2 text-xs text-stone-700"
+              aria-label={language === "ko" ? "결과 공유 링크" : "Shared result link"}
+            />
+            <a
+              href={sharedUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md border border-sky-300 bg-white px-3 py-2 text-center text-xs font-semibold text-sky-900 hover:bg-sky-100"
+            >
+              {language === "ko" ? "링크 열기" : "Open link"}
+            </a>
+          </div>
+        </div>
+      ) : null}
 
       {composer && !isRunning && !readOnly && onBranch ? (
         <BranchComposer
