@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { runExecutionRunStepWatchdog } from "@/lib/execution-run-steps";
 import { verifyInternalWorkerRequest } from "@/lib/internal-worker-auth";
-import { enqueueWorkbenchWatchdog } from "@/lib/qstash";
+import {
+  enqueueWorkbenchWatchdog,
+  getWorkbenchWatchdogIntervalSeconds,
+} from "@/lib/qstash";
 
 export async function POST(request: Request) {
   const verified = await verifyInternalWorkerRequest(request);
@@ -10,6 +13,10 @@ export async function POST(request: Request) {
   }
 
   const result = await runExecutionRunStepWatchdog();
-  await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+  if ("activeRunCount" in result && result.activeRunCount > 0) {
+    await enqueueWorkbenchWatchdog(getWorkbenchWatchdogIntervalSeconds()).catch(
+      () => undefined,
+    );
+  }
   return NextResponse.json({ ok: true, ...result });
 }

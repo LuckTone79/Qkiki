@@ -12,6 +12,7 @@ import { hydrateRuntimeAttachments } from "@/lib/attachments";
 import {
   enqueueExecutionRunStep,
   enqueueWorkbenchWatchdog,
+  getWorkbenchWatchdogIntervalSeconds,
   getSequentialRunnerReadiness,
 } from "@/lib/qstash";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
@@ -192,7 +193,7 @@ export async function POST(
 
       try {
         await enqueueExecutionRunStep(firstStep.id);
-        await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+        await enqueueWorkbenchWatchdog(getWorkbenchWatchdogIntervalSeconds()).catch(() => undefined);
       } catch (error) {
         if (reservedUsage && userId) {
           await releaseUsageReservation({

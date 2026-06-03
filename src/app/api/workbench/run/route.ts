@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import {
   enqueueExecutionRunStep,
   enqueueWorkbenchWatchdog,
+  getWorkbenchWatchdogIntervalSeconds,
   getSequentialRunnerReadiness,
 } from "@/lib/qstash";
 import { runWorkbenchSchema } from "@/lib/validation";
@@ -261,7 +262,7 @@ export async function POST(request: Request) {
 
       try {
         await enqueueExecutionRunStep(firstStep.id);
-        await enqueueWorkbenchWatchdog(60).catch(() => undefined);
+        await enqueueWorkbenchWatchdog(getWorkbenchWatchdogIntervalSeconds()).catch(() => undefined);
       } catch (error) {
         if (reservation?.id) {
           await releaseUsageReservation({

@@ -69,6 +69,40 @@ export function getSequentialRunnerReadiness(): SequentialRunnerReadiness {
   };
 }
 
+export function getWorkbenchWatchdogIntervalSeconds() {
+  const parsed = Number.parseInt(
+    process.env.WORKBENCH_WATCHDOG_INTERVAL_SECONDS || "180",
+    10,
+  );
+  return Number.isFinite(parsed) && parsed >= 60 ? parsed : 180;
+}
+
+export function isQstashDailyRateLimitError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    (error as { status?: unknown }).status === 429 &&
+    error instanceof Error &&
+    /daily rate limit|rate limit/i.test(error.message)
+  );
+}
+
+export function getQstashRateLimitResetAt(error: unknown) {
+  if (!isQstashDailyRateLimitError(error)) {
+    return null;
+  }
+
+  const reset = (error as { reset?: unknown }).reset;
+  const resetSeconds =
+    typeof reset === "string" ? Number.parseInt(reset, 10) : Number(reset);
+  if (!Number.isFinite(resetSeconds) || resetSeconds <= 0) {
+    return null;
+  }
+
+  return new Date(resetSeconds * 1000);
+}
+
 function buildInternalWorkerHeaders(input: {
   path: string;
   body: string;
@@ -106,7 +140,9 @@ export async function enqueueExecutionRunStep(stepId: string, delaySeconds = 0) 
   });
 }
 
-export async function enqueueWorkbenchWatchdog(delaySeconds = 60) {
+export async function enqueueWorkbenchWatchdog(
+  delaySeconds = getWorkbenchWatchdogIntervalSeconds(),
+) {
   const client = getQstashClient();
   const baseUrl = getAppBaseUrl();
   const path = "/api/internal/workbench/watchdog";

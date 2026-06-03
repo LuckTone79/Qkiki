@@ -11,7 +11,11 @@ import { fitPromptBlocksToBudget, limitAllResultsTexts, previewText } from "@/li
 import type { ProviderName, WorkflowControlInput, WorkflowStepInput } from "@/lib/ai/types";
 import { buildProjectPromptContext } from "@/lib/ai/workflow";
 import { prisma } from "@/lib/prisma";
-import { enqueueExecutionRunStep } from "@/lib/qstash";
+import {
+  enqueueExecutionRunStep,
+  getQstashRateLimitResetAt,
+  isQstashDailyRateLimitError,
+} from "@/lib/qstash";
 import { canInlineContinue, estimateStepDurationMs } from "@/lib/workbench-step-estimator";
 import { releaseUsageReservation, settleUsageReservation } from "@/lib/usage-policy";
 
@@ -870,6 +874,45 @@ async function getNextStep(step: ExecutionStepRecord) {
   });
 }
 
+async function markStepQueuePublishFailed(stepId: string, error: unknown) {
+  const retryAt =
+    getQstashRateLimitResetAt(error) ?? new Date(Date.now() + 5 * 60 * 1000);
+  const isDailyRateLimit = isQstashDailyRateLimitError(error);
+  const errorMessage = isDailyRateLimit
+    ? "Execution queue daily limit exceeded. This step will retry after queue capacity resets."
+    : error instanceof Error
+      ? error.message
+      : "The execution queue could not schedule this step.";
+
+  await prisma.executionRunStep.updateMany({
+    where: {
+      id: stepId,
+      status: { in: ["queued", "retrying"] },
+    },
+    data: {
+      status: "retrying",
+      nextAttemptAt: retryAt,
+      errorCode: isDailyRateLimit ? "QUEUE_RATE_LIMIT" : "QUEUE_PUBLISH_FAILED",
+      errorMessage,
+      errorRetryable: true,
+      heartbeatAt: now(),
+      updatedAt: now(),
+    },
+  });
+}
+
+async function enqueueExecutionRunStepOrMarkRetry(
+  stepId: string,
+  delaySeconds = 0,
+) {
+  try {
+    await enqueueExecutionRunStep(stepId, delaySeconds);
+  } catch (error) {
+    await markStepQueuePublishFailed(stepId, error);
+    throw error;
+  }
+}
+
 async function findQueuedHandoffCandidate(input: {
   executionRunId: string;
   minStaleMs?: number;
@@ -967,7 +1010,7 @@ export async function rescueStalledExecutionRunV2(input: {
     return { rescued: 0, stepId: null as string | null };
   }
 
-  await enqueueExecutionRunStep(candidate.id);
+  await enqueueExecutionRunStepOrMarkRetry(candidate.id);
   console.info(
     JSON.stringify({
       event: "execution_run_step_handoff_rescued",
@@ -1389,7 +1432,10 @@ export async function executeSingleRunStep(input: {
           executionRunId: step.executionRunId,
         };
       }
-      await enqueueExecutionRunStep(step.id, Math.max(1, Math.ceil(retryDelayMs / 1000)));
+      await enqueueExecutionRunStepOrMarkRetry(
+        step.id,
+        Math.max(1, Math.ceil(retryDelayMs / 1000)),
+      );
       return {
         claimed: true as const,
         shouldContinue: false as const,
@@ -1483,7 +1529,7 @@ export async function executeStepWithContinuation(input: {
     });
   }
 
-  await enqueueExecutionRunStep(outcome.nextStep.id);
+  await enqueueExecutionRunStepOrMarkRetry(outcome.nextStep.id);
   return outcome;
 }
 
@@ -1805,7 +1851,7 @@ export async function runExecutionRunStepWatchdog() {
 
       const nextStep = await getNextStep(step as ExecutionStepRecord);
       if (nextStep) {
-        await enqueueExecutionRunStep(nextStep.id).catch(() => undefined);
+        await enqueueExecutionRunStepOrMarkRetry(nextStep.id).catch(() => undefined);
       }
       await finalizeExecutionRunV2(step.executionRunId);
     }
@@ -1814,11 +1860,18 @@ export async function runExecutionRunStepWatchdog() {
       take: 25,
       minStaleMs: QUEUED_HANDOFF_STALE_MS,
     });
+    const activeRunCount = await prisma.executionRun.count({
+      where: {
+        runnerVersion: "v2",
+        status: { in: ["queued", "running", "retrying"] },
+      },
+    });
 
     return {
       scanned: staleSteps.length,
       stale: staleSteps.length,
       skipped: false,
+      activeRunCount,
       ...queuedRescue,
     };
   } finally {
