@@ -128,6 +128,7 @@ model User {
   usageReservations       UsageReservation[]
   usageLogs               UsageLog[]
   creditWallet            CreditWallet?
+  sharedLinks             SharedLink[]
 }
 
 model AuthAccount {
@@ -201,6 +202,7 @@ model WorkbenchSession {
   aiRequests             AiRequest[]
   adminContentAccessLogs AdminContentAccessLog[]
   attachments            SessionAttachment[]
+  sharedLink             SharedLink?
 
   @@index([userId])
   @@index([projectId])
@@ -315,6 +317,21 @@ model WorkflowStep {
 
   @@index([sessionId])
   @@index([sourceResultId])
+}
+
+model SharedLink {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  sessionId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session WorkbenchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Result {

@@ -6,6 +6,7 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
+import { buildResultDomId } from "@/lib/workbench-sharing";
 import {
   getModelDisplayName,
   getModelOptionLabel,
@@ -20,7 +21,7 @@ export type WorkbenchResult = {
   branchKey: string | null;
   provider: ProviderName;
   model: string;
-  promptSnapshot: string;
+  promptSnapshot?: string;
   outputText: string | null;
   status: string;
   errorMessage: string | null;
@@ -53,15 +54,18 @@ type ResultCardProps = {
   isLatestProgress: boolean;
   providers: ProviderOption[];
   sourceLabel?: string;
-  onBranch: (input: {
+  highlighted?: boolean;
+  readOnly?: boolean;
+  onBranch?: (input: {
     parentResultId: string;
     actionType: ActionType;
     instruction: string;
     targets: TargetModelInput[];
   }) => Promise<void>;
-  onRerun: (resultId: string) => Promise<void>;
-  onMarkFinal: (resultId: string) => Promise<void>;
-  onDelete: (resultId: string) => Promise<void>;
+  onRerun?: (resultId: string) => Promise<void>;
+  onMarkFinal?: (resultId: string) => Promise<void>;
+  onDelete?: (resultId: string) => Promise<void>;
+  onShare?: (resultId: string) => Promise<void>;
 };
 
 const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
@@ -97,14 +101,19 @@ export function ResultCard({
   isLatestProgress,
   providers,
   sourceLabel,
+  highlighted = false,
+  readOnly = false,
   onBranch,
   onRerun,
   onMarkFinal,
   onDelete,
+  onShare,
 }: ResultCardProps) {
   const { language, t } = useLanguage();
   const [composer, setComposer] = useState<"follow_up" | "review" | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
   const isRunning = result.status === "running";
   const stepLabel = result.executionRunStep
@@ -158,9 +167,29 @@ export function ResultCard({
     window.setTimeout(() => setCopied(false), 1200);
   }
 
+  async function share() {
+    if (!onShare) {
+      return;
+    }
+
+    setSharing(true);
+    try {
+      await onShare(result.id);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 1200);
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <article
-      className="rounded-lg border border-stone-200 bg-white p-3 shadow-sm sm:p-4"
+      id={buildResultDomId(result.id)}
+      className={`rounded-lg border bg-white p-3 shadow-sm transition-colors sm:p-4 ${
+        highlighted
+          ? "border-teal-400 ring-2 ring-teal-200"
+          : "border-stone-200"
+      }`}
       style={{ marginLeft: `${Math.min(depth, 3) * 10}px` }}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -209,10 +238,11 @@ export function ResultCard({
           : result.outputText || t("noOutputReturned")}
       </div>
 
-      {isRunning ? null : (
+      {isRunning || readOnly ? null : (
       <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <button
           type="button"
+          disabled={!onBranch}
           onClick={() => setComposer(composer === "follow_up" ? null : "follow_up")}
           className="min-h-10 rounded-md bg-stone-950 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800"
         >
@@ -220,6 +250,7 @@ export function ResultCard({
         </button>
         <button
           type="button"
+          disabled={!onBranch}
           onClick={() => setComposer(composer === "review" ? null : "review")}
           className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
         >
@@ -227,7 +258,8 @@ export function ResultCard({
         </button>
         <button
           type="button"
-          onClick={() => onRerun(result.id)}
+          disabled={!onRerun}
+          onClick={() => onRerun?.(result.id)}
           className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
         >
           {t("rerun")}
@@ -239,16 +271,38 @@ export function ResultCard({
         >
           {copied ? t("copied") : t("copy")}
         </button>
+        {onShare ? (
+          <button
+            type="button"
+            disabled={sharing}
+            onClick={share}
+            className="min-h-10 rounded-md border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50 disabled:opacity-60"
+          >
+            {sharing
+              ? language === "ko"
+                ? "공유 중..."
+                : "Sharing..."
+              : shareCopied
+                ? language === "ko"
+                  ? "링크 복사됨"
+                  : "Link copied"
+                : language === "ko"
+                  ? "결과 공유"
+                  : "Share result"}
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={() => onMarkFinal(result.id)}
+          disabled={!onMarkFinal}
+          onClick={() => onMarkFinal?.(result.id)}
           className="min-h-10 rounded-md border border-teal-300 px-3 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-50"
         >
           {t("markFinal")}
         </button>
         <button
           type="button"
-          onClick={() => onDelete(result.id)}
+          disabled={!onDelete}
+          onClick={() => onDelete?.(result.id)}
           className="min-h-10 rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
         >
           {t("deleteBranch")}
@@ -256,7 +310,7 @@ export function ResultCard({
       </div>
       )}
 
-      {composer && !isRunning ? (
+      {composer && !isRunning && !readOnly && onBranch ? (
         <BranchComposer
           mode={composer}
           providers={readyProviders.length ? readyProviders : providers}

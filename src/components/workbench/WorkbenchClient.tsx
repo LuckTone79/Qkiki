@@ -46,6 +46,7 @@ import {
 } from "@/lib/local-cache";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
+import { buildWorkbenchMobilePanels } from "@/lib/workbench-sharing";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -1254,6 +1255,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       status: "idle",
     });
   const [progressNow, setProgressNow] = useState(() => Date.now());
+  const [sharingSession, setSharingSession] = useState(false);
+  const [sessionShareCopied, setSessionShareCopied] = useState(false);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
@@ -3383,6 +3386,98 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setNotice(t("branchDeleted"));
   }
 
+  async function createSharedLink(resultId?: string) {
+    if (!sessionId) {
+      throw new Error(
+        language === "ko"
+          ? "공유할 저장 세션이 아직 없습니다."
+          : "There is no saved session to share yet.",
+      );
+    }
+
+    const response = await fetch(`/api/sessions/${sessionId}/share`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(resultId ? { resultId } : {}),
+    });
+    const data = (await response.json().catch(() => ({}))) as {
+      sessionPath?: string;
+      resultPath?: string | null;
+      error?: string;
+      redirectUrl?: string;
+    };
+
+    if (handleAuthRedirect(response, data)) {
+      return null;
+    }
+
+    if (!response.ok || !data.sessionPath) {
+      throw new Error(
+        data.error ||
+          (language === "ko"
+            ? "공유 링크를 만들지 못했습니다."
+            : "Could not create the share link."),
+      );
+    }
+
+    const path = resultId ? data.resultPath || data.sessionPath : data.sessionPath;
+    const shareUrl = new URL(path, window.location.origin).toString();
+    await navigator.clipboard.writeText(shareUrl);
+    return shareUrl;
+  }
+
+  async function shareSessionOverview() {
+    setError("");
+    setSharingSession(true);
+    try {
+      const shareUrl = await createSharedLink();
+      if (!shareUrl) {
+        return;
+      }
+
+      setSessionShareCopied(true);
+      setNotice(
+        language === "ko"
+          ? "전체 공유 링크를 복사했습니다."
+          : "Copied the full shared-view link.",
+      );
+      window.setTimeout(() => setSessionShareCopied(false), 1200);
+    } catch (shareError) {
+      setError(
+        shareError instanceof Error
+          ? shareError.message
+          : language === "ko"
+            ? "공유 링크를 만들지 못했습니다."
+            : "Could not create the share link.",
+      );
+    } finally {
+      setSharingSession(false);
+    }
+  }
+
+  async function shareResultLink(resultId: string) {
+    setError("");
+    try {
+      const shareUrl = await createSharedLink(resultId);
+      if (!shareUrl) {
+        throw new Error(
+          language === "ko"
+            ? "공유 링크를 만들지 못했습니다."
+            : "Could not create the share link.",
+        );
+      }
+    } catch (shareError) {
+      setError(
+        shareError instanceof Error
+          ? shareError.message
+          : language === "ko"
+            ? "공유 링크를 만들지 못했습니다."
+            : "Could not create the share link.",
+      );
+      throw shareError;
+    }
+  }
+
   async function savePreset() {
     const workflowJson = JSON.stringify({
       steps: workflowSteps.map((step) => ({
@@ -3428,26 +3523,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     applyPreset(preset);
   }
 
-  const mobilePanels: Array<{ id: MobilePanel; label: string }> = [
-    { id: "input", label: t("mobileInput") },
-    {
-      id: "results",
-      label: results.length
-        ? `${t("mobileResults")} (${results.length})`
-        : t("mobileResults"),
-    },
-  ];
-
-  if (mode === "parallel") {
-    mobilePanels.unshift({ id: "models", label: t("mobileModels") });
-  }
-
-  if (mode === "sequential") {
-    mobilePanels.splice(2, 0, {
-      id: "workflow",
-      label: t("mobileWorkflow"),
-    });
-  }
+  const mobilePanels = buildWorkbenchMobilePanels({
+    mode,
+    resultsCount: results.length,
+  }).map((panel) => ({
+    id: panel.id as MobilePanel,
+    label:
+      panel.id === "models"
+        ? t("mobileModels")
+        : panel.id === "workflow"
+          ? t("mobileWorkflow")
+          : panel.id === "results"
+            ? results.length
+              ? `${t("mobileResults")} (${results.length})`
+              : t("mobileResults")
+            : t("mobileInput"),
+  }));
 
   const mobilePanelClass = (panel: MobilePanel) =>
     activeMobilePanel === panel ? "block" : "hidden xl:block";
@@ -4125,6 +4216,41 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       </div>
 
       <section className={`space-y-4 ${mobilePanelClass("results")}`}>
+        {sessionId && results.length ? (
+          <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-sky-950">
+                  {language === "ko" ? "전체 결과 공유" : "Share the full result view"}
+                </p>
+                <p className="text-xs leading-5 text-sky-800">
+                  {language === "ko"
+                    ? "로그인 없이 입력, 워크플로우, 결과를 볼 수 있는 공개 링크를 복사합니다."
+                    : "Copy a public link that opens the input, workflow, and results without sign-in."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={shareSessionOverview}
+                disabled={sharingSession}
+                className="rounded-md border border-sky-300 bg-white px-3 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
+              >
+                {sharingSession
+                  ? language === "ko"
+                    ? "공유 중..."
+                    : "Sharing..."
+                  : sessionShareCopied
+                    ? language === "ko"
+                      ? "링크 복사됨"
+                      : "Link copied"
+                    : language === "ko"
+                      ? "전체 공유 링크"
+                      : "Share overview link"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div
             ref={progressSectionRef}
@@ -4470,6 +4596,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     onRerun={rerunResult}
                     onMarkFinal={markFinal}
                     onDelete={deleteBranch}
+                    onShare={sessionId ? shareResultLink : undefined}
                   />
                 </div>
               );

@@ -1,0 +1,29 @@
+import { notFound } from "next/navigation";
+import { SharedSessionView } from "@/components/share/SharedSessionView";
+import { getSharedSessionPayload } from "@/lib/shared-links";
+
+type SharedPageProps = {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function SharedPage(props: SharedPageProps) {
+  const [{ token }, searchParams] = await Promise.all([
+    props.params,
+    props.searchParams,
+  ]);
+  const payload = await getSharedSessionPayload(token);
+
+  if (!payload) {
+    notFound();
+  }
+
+  const focusedResultId =
+    typeof searchParams.result === "string" ? searchParams.result : null;
+
+  return (
+    <main className="min-h-screen bg-[#f7f8f3]">
+      <SharedSessionView payload={payload} focusedResultId={focusedResultId} />
+    </main>
+  );
+}
