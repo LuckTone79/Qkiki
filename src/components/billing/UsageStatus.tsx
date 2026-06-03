@@ -50,7 +50,7 @@ export function UsageStatus({
 
   const primary =
     language === "ko"
-      ? `오늘 남은 사용량: ${usage.remaining} / ${limitLabel}회`
+      ? `오늘 남은 실행량: ${usage.remaining} / ${limitLabel}`
       : `Remaining today: ${usage.remaining} / ${limitLabel}`;
 
   const secondary =
@@ -59,7 +59,7 @@ export function UsageStatus({
         ? `Boost 종료까지 ${usage.boostDaysRemaining}일 남았어요.`
         : usage.planType === "FREE"
           ? "무료 사용자는 하루 10회까지 여러 AI 모델을 비교할 수 있어요."
-          : `오늘 사용량: ${used} / ${limitLabel}회`
+          : `오늘 사용량: ${used} / ${limitLabel}`
       : usage.isBoostActive
         ? `${usage.boostDaysRemaining} day(s) left in Boost.`
         : usage.planType === "FREE"
@@ -70,14 +70,12 @@ export function UsageStatus({
     usage.isLimitReached
       ? language === "ko"
         ? usage.isBoostActive
-          ? "오늘의 Boost 사용량을 모두 사용했어요."
-          : "오늘의 무료 사용량을 모두 사용했어요."
+          ? "오늘 Boost 사용량을 모두 사용했어요."
+          : "오늘 사용량을 모두 사용했어요."
         : "Today's usage has been exhausted."
       : usage.warningThresholdReached
         ? language === "ko"
-          ? usage.isBoostActive
-            ? `오늘 Boost 사용량을 거의 다 썼어요. 남은 사용량: ${usage.remaining}회`
-            : `오늘 무료 사용량을 거의 다 썼어요. 남은 사용량: ${usage.remaining}회`
+          ? `오늘 사용량이 거의 다 찼어요. 남은 실행량: ${usage.remaining}`
           : `You're close to today's limit. Remaining: ${usage.remaining}`
         : null;
 
@@ -95,18 +93,27 @@ export function UsageStatus({
           <p className="mt-2 text-lg font-semibold text-stone-950">{primary}</p>
           <p className="mt-1 text-sm text-stone-600">{secondary}</p>
         </div>
-        <div className="grid min-w-44 grid-cols-2 gap-2 text-sm">
+        <div className="grid min-w-52 grid-cols-3 gap-2 text-sm">
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
-            <p className="text-xs text-stone-500">{language === "ko" ? "오늘 사용" : "Used"}</p>
+            <p className="text-xs text-stone-500">{language === "ko" ? "남음" : "Remaining"}</p>
+            <p className="mt-1 font-semibold text-stone-950">
+              {language === "ko" ? `${usage.remaining}회` : `${usage.remaining} uses`}
+            </p>
+          </div>
+          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
+            <p className="text-xs text-stone-500">{language === "ko" ? "사용" : "Used"}</p>
             <p className="mt-1 font-semibold text-stone-950">
               {language === "ko" ? `${used}회` : `${used} uses`}
             </p>
           </div>
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
-            <p className="text-xs text-stone-500">{language === "ko" ? "입력 제한" : "Input"}</p>
+            <p className="text-xs text-stone-500">{language === "ko" ? "한도" : "Limit"}</p>
             <p className="mt-1 font-semibold text-stone-950">
-              {usage.inputCharLimit.toLocaleString()}
-              {language === "ko" ? "자" : " chars"}
+              {usage.isUnlimitedDaily
+                ? limitLabel
+                : language === "ko"
+                  ? `${usage.dailyLimit}회`
+                  : `${usage.dailyLimit} uses`}
             </p>
           </div>
         </div>
@@ -119,7 +126,7 @@ export function UsageStatus({
       ) : null}
 
       <p className="mt-4 text-xs text-stone-500">
-        {language === "ko" ? "다음 충전 시각" : "Next reset"}:{" "}
+        {language === "ko" ? "다음 초기화" : "Next reset"}:{" "}
         {formatResetAt(usage.resetAt, language)}
       </p>
     </section>

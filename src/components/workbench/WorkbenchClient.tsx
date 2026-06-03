@@ -46,8 +46,16 @@ import {
 } from "@/lib/local-cache";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
-import { buildWorkbenchMobilePanels } from "@/lib/workbench-sharing";
+import { buildResultDomId, buildWorkbenchMobilePanels } from "@/lib/workbench-sharing";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
+import {
+  buildResultDepthMap,
+  partitionResultsForWorkbench,
+  pickDisplayFinalResultId,
+  prioritizePinnedResults,
+  prioritizePinnedRootBranches,
+  sortResultsForDisplay,
+} from "@/lib/workbench-results";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -148,6 +156,7 @@ type RunProgressEntry = {
   title: string;
   subtitle: string;
   status: RunProgressStatus;
+  orderIndex?: number;
   canStop?: boolean;
   detail?: string | null;
   workLines?: [string, string];
@@ -867,167 +876,6 @@ function pickPreferredResult(
     : existing;
 }
 
-function pickDisplayFinalResultId(
-  results: WorkbenchResult[],
-  finalResultId: string | null,
-) {
-  const explicitFinal = results.find(
-    (result) => result.id === finalResultId && result.status === "completed",
-  );
-  return explicitFinal?.id ?? null;
-}
-
-function sortResultsForDisplay(
-  results: WorkbenchResult[],
-  mode: "parallel" | "sequential",
-) {
-  if (mode !== "parallel") {
-    return [...results].sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
-  }
-
-  const childrenByParent = new Map<string, WorkbenchResult[]>();
-  const roots: WorkbenchResult[] = [];
-
-  for (const result of results) {
-    if (!result.parentResultId) {
-      roots.push(result);
-      continue;
-    }
-
-    const siblings = childrenByParent.get(result.parentResultId) ?? [];
-    siblings.push(result);
-    childrenByParent.set(result.parentResultId, siblings);
-  }
-
-  const sortByCreatedAt = (items: WorkbenchResult[]) =>
-    [...items].sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
-
-  const rootCompletionRank = (result: WorkbenchResult) => {
-    if (
-      result.status === "completed" ||
-      result.status === "failed" ||
-      result.status === "canceled" ||
-      result.status === "skipped"
-    ) {
-      return 0;
-    }
-
-    if (result.status === "running") {
-      return 1;
-    }
-
-    return 2;
-  };
-
-  const sortedRoots = [...roots].sort((a, b) => {
-    const rankDiff = rootCompletionRank(a) - rootCompletionRank(b);
-    if (rankDiff !== 0) {
-      return rankDiff;
-    }
-
-    const updatedDiff =
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-    if (updatedDiff !== 0) {
-      return updatedDiff;
-    }
-
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-
-  const ordered: WorkbenchResult[] = [];
-  const appendBranch = (result: WorkbenchResult) => {
-    ordered.push(result);
-
-    const children = sortByCreatedAt(childrenByParent.get(result.id) ?? []);
-    for (const child of children) {
-      appendBranch(child);
-    }
-  };
-
-  for (const root of sortedRoots) {
-    appendBranch(root);
-  }
-
-  return ordered;
-}
-
-function prioritizePinnedResults(
-  results: WorkbenchResult[],
-  pinnedIds: Array<string | null | undefined>,
-) {
-  const orderedPinnedIds = Array.from(
-    new Set(pinnedIds.filter((id): id is string => Boolean(id))),
-  );
-  const pinned = orderedPinnedIds
-    .map((id) => results.find((result) => result.id === id))
-    .filter((result): result is WorkbenchResult => Boolean(result));
-  const pinnedSet = new Set(pinned.map((result) => result.id));
-
-  return [
-    ...pinned,
-    ...results.filter((result) => !pinnedSet.has(result.id)),
-  ];
-}
-
-function prioritizePinnedRootBranches(
-  results: WorkbenchResult[],
-  pinnedIds: Array<string | null | undefined>,
-) {
-  const byId = new Map(results.map((result) => [result.id, result]));
-  const childrenByParent = new Map<string, WorkbenchResult[]>();
-
-  results.forEach((result) => {
-    if (!result.parentResultId) {
-      return;
-    }
-
-    const children = childrenByParent.get(result.parentResultId) ?? [];
-    children.push(result);
-    childrenByParent.set(result.parentResultId, children);
-  });
-
-  const pinnedSet = new Set<string>();
-  const pinnedBranches: WorkbenchResult[] = [];
-
-  const rootOf = (result: WorkbenchResult) => {
-    let current = result;
-    while (current.parentResultId && byId.has(current.parentResultId)) {
-      current = byId.get(current.parentResultId) ?? current;
-    }
-    return current;
-  };
-
-  const appendSubtree = (result: WorkbenchResult | undefined) => {
-    if (!result) {
-      return;
-    }
-
-    if (!pinnedSet.has(result.id)) {
-      pinnedBranches.push(result);
-      pinnedSet.add(result.id);
-    }
-
-    (childrenByParent.get(result.id) ?? []).forEach(appendSubtree);
-  };
-
-  Array.from(new Set(pinnedIds.filter((id): id is string => Boolean(id))))
-    .map((id) => byId.get(id))
-    .filter((result): result is WorkbenchResult => Boolean(result))
-    .map(rootOf)
-    .forEach(appendSubtree);
-
-  return [
-    ...pinnedBranches,
-    ...results.filter((result) => !pinnedSet.has(result.id)),
-  ];
-}
-
 function resultProgressStatus(result: WorkbenchResult): RunProgressStatus {
   if (result.status === "running") {
     return "active";
@@ -1125,6 +973,7 @@ function buildRunMonitorFromRunSteps(input: {
         )}`,
         subtitle: subtitleParts.join(" - "),
         status: progressStatus,
+        orderIndex: step.orderIndex,
         canStop: step.status === "queued",
         detail:
           step.errorMessage ||
@@ -1350,6 +1199,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           input.detail === undefined
             ? existing?.detail ?? uiText.running
             : input.detail,
+        orderIndex: existing?.orderIndex,
         canStop:
           incomingStatus === "queued"
             ? true
@@ -1378,6 +1228,15 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       entries[index] = entry;
       return { ...current, entries };
     });
+  }
+
+  function jumpToResult(resultId: string) {
+    const element = document.getElementById(buildResultDomId(resultId));
+    if (!element) {
+      return;
+    }
+
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function createRunMonitor(
@@ -1455,6 +1314,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           language,
         )}`,
         status: index === 0 ? ("active" as const) : ("queued" as const),
+        orderIndex: index + 1,
         canStop: index !== 0,
         detail: index === 0 ? uiText.preparing : uiText.queued,
         workLines: buildWorkLines({
@@ -2307,21 +2167,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }));
   }
 
-  const resultDepths = useMemo(() => {
-    const byId = new Map(results.map((result) => [result.id, result]));
-    const depthMap = new Map<string, number>();
-    const depthOf = (result: WorkbenchResult): number => {
-      if (depthMap.has(result.id)) {
-        return depthMap.get(result.id) ?? 0;
-      }
-      const parent = result.parentResultId ? byId.get(result.parentResultId) : null;
-      const depth = parent ? depthOf(parent) + 1 : 0;
-      depthMap.set(result.id, depth);
-      return depth;
-    };
-    results.forEach(depthOf);
-    return depthMap;
-  }, [results]);
+  const resultDepths = useMemo(() => buildResultDepthMap(results), [results]);
 
   const effectiveFinalResultId = useMemo(
     () => pickDisplayFinalResultId(results, finalResultId),
@@ -2350,6 +2196,33 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     },
     [effectiveFinalResultId, latestProgressResultId, mode, results],
   );
+
+  const { mainResults: mainDisplayResults, branchResults: branchDisplayResults } =
+    useMemo(() => partitionResultsForWorkbench(displayResults), [displayResults]);
+
+  const progressResultIdsByOrderIndex = useMemo(() => {
+    const map = new Map<number, string>();
+
+    results.forEach((result) => {
+      const orderIndex = result.executionRunStep?.orderIndex;
+      if (!orderIndex) {
+        return;
+      }
+
+      const existingId = map.get(orderIndex);
+      if (!existingId) {
+        map.set(orderIndex, result.id);
+        return;
+      }
+
+      const existing = results.find((item) => item.id === existingId);
+      if (!existing || resultUpdatedAtMs(result) >= resultUpdatedAtMs(existing)) {
+        map.set(orderIndex, result.id);
+      }
+    });
+
+    return map;
+  }, [results]);
 
   const parallelComparisonCandidates = useMemo(() => {
     if (mode !== "parallel") {
@@ -4363,8 +4236,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
 
             {progressEntries.length ? (
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {progressEntries.map((entry, index) => (
+              <div className="mt-4 max-h-[32rem] min-h-[15rem] overflow-y-auto pr-1">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {progressEntries.map((entry, index) => {
+                  const linkedResultId = entry.orderIndex
+                    ? progressResultIdsByOrderIndex.get(entry.orderIndex) ?? null
+                    : null;
+                  return (
                   <article
                     key={entry.key}
                     className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-3"
@@ -4403,9 +4281,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                             <path d="M4 2h8v2c0 1.63-1.03 3.09-2.56 4 1.53.91 2.56 2.37 2.56 4v2H4v-2c0-1.63 1.03-3.09 2.56-4C5.03 7.09 4 5.63 4 4V2Zm2 1v1c0 1.1.83 2.15 2 2.9 1.17-.75 2-1.8 2-2.9V3H6Zm0 10h4v-1c0-1.1-.83-2.15-2-2.9-1.17.75-2 1.8-2 2.9v1Z" />
                           </svg>
                         ) : null}
-                        {entry.status === "completed"
-                          ? t("statusCompleted")
-                          : entry.status === "failed"
+                          {entry.status === "completed"
+                            ? t("statusCompleted")
+                            : entry.status === "failed"
                             ? t("statusFailed")
                             : entry.status === "canceled"
                               ? language === "ko"
@@ -4421,22 +4299,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                                   ? "대기"
                                   : "Queued"}
                       </span>
-                      {mode === "sequential" &&
-                      running &&
-                      activeRunId &&
-                      entry.canStop &&
-                      (entry.status === "active" || entry.status === "queued") ? (
-                        <button
-                          type="button"
-                          onClick={() => stopRunStep(index)}
-                          disabled={stoppingStepIndexes.has(index)}
-                          className="rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-60"
-                        >
-                          {stoppingStepIndexes.has(index)
-                            ? uiText.stoppingStep
-                            : uiText.stopStep}
-                        </button>
-                      ) : null}
                     </div>
                     <p className="mt-3 text-sm leading-6 text-stone-700">
                       {entry.detail ||
@@ -4458,8 +4320,36 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         </div>
                       </div>
                     ) : null}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {linkedResultId ? (
+                        <button
+                          type="button"
+                          onClick={() => jumpToResult(linkedResultId)}
+                          className="rounded-md border border-teal-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-teal-800 hover:bg-teal-50"
+                        >
+                          {language === "ko" ? "이 결과로 이동" : "Jump to result"}
+                        </button>
+                      ) : null}
+                      {mode === "sequential" &&
+                      running &&
+                      activeRunId &&
+                      entry.canStop &&
+                      (entry.status === "active" || entry.status === "queued") ? (
+                        <button
+                          type="button"
+                          onClick={() => stopRunStep(index)}
+                          disabled={stoppingStepIndexes.has(index)}
+                          className="rounded-md border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-60"
+                        >
+                          {stoppingStepIndexes.has(index)
+                            ? uiText.stoppingStep
+                            : uiText.stopStep}
+                        </button>
+                      ) : null}
+                    </div>
                   </article>
-                ))}
+                )})}
+                </div>
               </div>
             ) : (
               <p className="mt-4 rounded-lg border border-dashed border-stone-200 bg-[#fbfcf8] px-4 py-6 text-sm text-stone-500">
@@ -4637,14 +4527,28 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
 
         {results.length ? (
-          <div
-            className={
-              resultLayout === "double"
-                ? "grid gap-3 md:grid-cols-2"
-                : "space-y-3"
-            }
-          >
-            {displayResults.map((result) => {
+          <div className="space-y-6">
+            <div>
+              {branchDisplayResults.length ? (
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-stone-950">
+                    {language === "ko" ? "메인 워크플로우 결과" : "Main workflow results"}
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    {language === "ko"
+                      ? "초기 실행과 순차 체인의 본 결과만 먼저 보여줍니다."
+                      : "Primary outputs from the original run and sequential chain."}
+                  </p>
+                </div>
+              ) : null}
+              <div
+                className={
+                  resultLayout === "double"
+                    ? "grid gap-3 md:grid-cols-2"
+                    : "space-y-2.5"
+                }
+              >
+            {mainDisplayResults.map((result) => {
               const parent = result.parentResultId
                 ? results.find((item) => item.id === result.parentResultId)
                 : null;
@@ -4653,6 +4557,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   <ResultCard
                     result={result}
                     depth={resultDepths.get(result.id) ?? 0}
+                    compact={resultLayout === "single"}
                     isFinal={effectiveFinalResultId === result.id}
                     isLatestProgress={latestProgressResultId === result.id}
                     providers={providers}
@@ -4673,6 +4578,61 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </div>
               );
             })}
+              </div>
+            </div>
+
+            {branchDisplayResults.length ? (
+              <div>
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-stone-950">
+                    {language === "ko" ? "후속 질문과 분기 결과" : "Follow-up and branch results"}
+                  </h3>
+                  <p className="text-xs text-stone-500">
+                    {language === "ko"
+                      ? "메인 결과에서 이어진 후속 질문, 재검토, 재실행 분기를 따로 모아 보여줍니다."
+                      : "Follow-up, review, and rerun outputs are separated from the main workflow results."}
+                  </p>
+                </div>
+                <div
+                  className={
+                    resultLayout === "double"
+                      ? "grid gap-3 md:grid-cols-2"
+                      : "space-y-2.5"
+                  }
+                >
+                  {branchDisplayResults.map((result) => {
+                    const parent = result.parentResultId
+                      ? results.find((item) => item.id === result.parentResultId)
+                      : null;
+                    return (
+                      <div key={result.id} className="min-w-0">
+                        <ResultCard
+                          result={result}
+                          depth={Math.max((resultDepths.get(result.id) ?? 1) - 1, 0)}
+                          compact={resultLayout === "single"}
+                          isFinal={effectiveFinalResultId === result.id}
+                          isLatestProgress={latestProgressResultId === result.id}
+                          providers={providers}
+                          sourceLabel={
+                            parent
+                              ? `${t("source")}: ${parent.provider}/${getModelDisplayName(
+                                  parent.provider,
+                                  parent.model,
+                                )}`
+                              : undefined
+                          }
+                          onBranch={runBranch}
+                          onRerun={rerunResult}
+                          onMarkFinal={markFinal}
+                          onDelete={deleteBranch}
+                          onShare={sessionId ? shareResultLink : undefined}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : (
           <EmptyState

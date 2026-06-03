@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
@@ -53,6 +53,7 @@ export type WorkbenchResult = {
 type ResultCardProps = {
   result: WorkbenchResult;
   depth: number;
+  compact?: boolean;
   isFinal: boolean;
   isLatestProgress: boolean;
   providers: ProviderOption[];
@@ -72,21 +73,23 @@ type ResultCardProps = {
 };
 
 const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
-  { value: "critique", en: "Critique", ko: "\ube44\ud310" },
+  { value: "critique", en: "Critique", ko: "비판" },
   {
     value: "fact_check",
     en: "Fact-check style review",
-    ko: "\ud329\ud2b8\uccb4\ud06c\uc2dd \uac80\ud1a0",
+    ko: "팩트체크식 검토",
   },
-  { value: "improve", en: "Improve", ko: "\uac1c\uc120" },
-  { value: "summarize", en: "Summarize", ko: "\uc694\uc57d" },
-  { value: "simplify", en: "Simplify", ko: "\uc27d\uac8c \uc815\ub9ac" },
+  { value: "improve", en: "Improve", ko: "개선" },
+  { value: "summarize", en: "Summarize", ko: "요약" },
+  { value: "simplify", en: "Simplify", ko: "쉽게 정리" },
   {
     value: "consistency_review",
     en: "Consistency review",
-    ko: "\uc77c\uad00\uc131 \uac80\ud1a0",
+    ko: "일관성 검토",
   },
 ];
+
+const providerOrder: ProviderName[] = ["openai", "anthropic", "google", "xai"];
 
 function formatDate(value: string, language: "en" | "ko") {
   return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
@@ -95,6 +98,21 @@ function formatDate(value: string, language: "en" | "ko") {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatLatencyMs(value: number | null, language: "en" | "ko", fallback: string) {
+  if (!value || value <= 0) {
+    return fallback;
+  }
+
+  const seconds = value / 1000;
+  const formatted = seconds >= 10 ? seconds.toFixed(1) : seconds.toFixed(2);
+  return language === "ko" ? `${formatted}초` : `${formatted} sec`;
+}
+
+function firstVisibleLine(value: string) {
+  const firstLine = value.split(/\r?\n/, 1)[0] ?? "";
+  return firstLine.trim() || value.trim();
 }
 
 function getExecutionSourceLabel(
@@ -111,19 +129,19 @@ function getExecutionSourceLabel(
 
   if (sourceMode === "previous") {
     return language === "ko"
-      ? "\uc18c\uc2a4: \uc774\uc804 \uc644\ub8cc \uacb0\uacfc"
+      ? "소스: 이전 완료 결과"
       : "Source: previous completed result";
   }
 
   if (sourceMode === "selected_result") {
     return language === "ko"
-      ? "\uc18c\uc2a4: \uc120\ud0dd\ud55c \uacb0\uacfc"
+      ? "소스: 선택한 결과"
       : "Source: selected result";
   }
 
   if (sourceMode === "all_results") {
     return language === "ko"
-      ? "\uc18c\uc2a4: \uc774\uc804 \uc644\ub8cc \uacb0\uacfc \uc804\uccb4"
+      ? "소스: 이전 완료 결과 전체"
       : "Source: prior completed results";
   }
 
@@ -133,6 +151,7 @@ function getExecutionSourceLabel(
 export function ResultCard({
   result,
   depth,
+  compact = false,
   isFinal,
   isLatestProgress,
   providers,
@@ -152,6 +171,7 @@ export function ResultCard({
   const [sharing, setSharing] = useState(false);
   const [sharedUrl, setSharedUrl] = useState<string | null>(null);
   const [shareCopyBlocked, setShareCopyBlocked] = useState(false);
+  const [expanded, setExpanded] = useState(!compact);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
   const isRunning = result.status === "running";
   const stepLabel = result.executionRunStep
@@ -170,7 +190,7 @@ export function ResultCard({
     ? getActionTypeDisplayLabel(result.executionRunStep.actionType, language)
     : result.workflowStep
       ? getActionTypeDisplayLabel(result.workflowStep.actionType, language)
-    : null;
+      : null;
   const repeatLabel =
     result.executionRunStep?.repeatIteration && result.executionRunStep.repeatIteration > 0
       ? language === "ko"
@@ -182,7 +202,7 @@ export function ResultCard({
     return [
       result.status === "completed"
         ? language === "ko"
-          ? "비교 결과 생성 완료"
+          ? "결과 생성 완료"
           : "Comparison generated"
         : result.status === "failed"
           ? language === "ko"
@@ -190,14 +210,36 @@ export function ResultCard({
             : "Generation failed"
           : result.status === "canceled"
             ? language === "ko"
-              ? "\uc911\uc9c0\ub428"
+              ? "중지됨"
               : "Canceled"
-          : language === "ko"
-            ? "생성 중"
-            : "Generating",
-      result.latencyMs ? `${result.latencyMs} ms` : t("latencyNotAvailable"),
+            : language === "ko"
+              ? "생성 중"
+              : "Generating",
+      formatLatencyMs(result.latencyMs, language, t("latencyNotAvailable")),
     ].join(" / ");
   }, [language, result, t]);
+
+  const displayBody = useMemo(() => {
+    if (isRunning) {
+      return language === "ko"
+        ? "모델이 응답을 생성하는 중입니다. 결과가 도착하면 이 카드가 자동으로 업데이트됩니다."
+        : "The model is generating a response. This card will update when the result arrives.";
+    }
+
+    if (result.status === "failed" || result.status === "canceled") {
+      return result.errorMessage || t("providerFailed");
+    }
+
+    return result.outputText || t("noOutputReturned");
+  }, [isRunning, language, result.errorMessage, result.outputText, result.status, t]);
+
+  const collapsedPreview = useMemo(() => firstVisibleLine(displayBody), [displayBody]);
+
+  useEffect(() => {
+    if (compact) {
+      setExpanded(false);
+    }
+  }, [compact]);
 
   async function copy() {
     const copyResult = await copyTextToClipboard(
@@ -231,11 +273,9 @@ export function ResultCard({
   return (
     <article
       id={buildResultDomId(result.id)}
-      className={`rounded-lg border bg-white p-3 shadow-sm transition-colors sm:p-4 ${
-        highlighted
-          ? "border-teal-400 ring-2 ring-teal-200"
-          : "border-stone-200"
-      }`}
+      className={`rounded-lg border bg-white shadow-sm transition-colors ${
+        compact ? "p-3" : "p-3 sm:p-4"
+      } ${highlighted ? "border-teal-400 ring-2 ring-teal-200" : "border-stone-200"}`}
       style={{ marginLeft: `${Math.min(depth, 3) * 10}px` }}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -247,14 +287,12 @@ export function ResultCard({
             <StatusBadge status={result.status} />
             {isFinal ? (
               <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
-                {language === "ko" ? "\ucd5c\uc885\uacb0\uacfc" : "Final result"}
+                {language === "ko" ? "최종결과" : "Final result"}
               </span>
             ) : null}
             {!isFinal && isLatestProgress ? (
               <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
-                {language === "ko"
-                  ? "\uc9c4\ud589 step\uc911 \ucd5c\uc2e0\uacb0\uacfc"
-                  : "Latest result in progress"}
+                {language === "ko" ? "진행 step중 최신결과" : "Latest result in progress"}
               </span>
             ) : null}
           </div>
@@ -264,12 +302,7 @@ export function ResultCard({
               templateStepLabel,
               repeatLabel,
               actionLabel,
-              getExecutionSourceLabel(
-                result,
-                sourceLabel,
-                language,
-                t("sourceOriginal"),
-              ),
+              getExecutionSourceLabel(result, sourceLabel, language, t("sourceOriginal")),
               formatDate(result.createdAt, language),
             ]
               .filter(Boolean)
@@ -279,86 +312,101 @@ export function ResultCard({
         <p className="text-xs text-stone-500">{meta}</p>
       </div>
 
-      <div className="mt-4 whitespace-pre-wrap rounded-md border border-stone-200 bg-[#fbfcf8] p-3 text-sm leading-6 text-stone-800">
-        {isRunning
-          ? language === "ko"
-            ? "모델이 응답을 생성하고 있습니다. 결과가 도착하면 이 카드가 자동으로 업데이트됩니다."
-            : "The model is generating a response. This card will update when the result arrives."
-          : result.status === "failed" || result.status === "canceled"
-          ? result.errorMessage || t("providerFailed")
-          : result.outputText || t("noOutputReturned")}
+      <div
+        className={`mt-4 rounded-md border border-stone-200 bg-[#fbfcf8] text-stone-800 ${
+          compact ? "p-2.5 text-[13px] leading-5" : "p-3 text-sm leading-6"
+        }`}
+      >
+        {expanded ? (
+          <p className="whitespace-pre-wrap">{displayBody}</p>
+        ) : (
+          <p className="truncate">{collapsedPreview}</p>
+        )}
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="mt-2 text-xs font-semibold text-teal-800 hover:text-teal-700"
+        >
+          {expanded
+            ? language === "ko"
+              ? "접기"
+              : "Collapse"
+            : language === "ko"
+              ? "펼쳐서 전체 보기"
+              : "Expand to full result"}
+        </button>
       </div>
 
       {isRunning || readOnly ? null : (
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-        <button
-          type="button"
-          disabled={!onBranch}
-          onClick={() => setComposer(composer === "follow_up" ? null : "follow_up")}
-          className="min-h-10 rounded-md bg-stone-950 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800"
-        >
-          {t("followUp")}
-        </button>
-        <button
-          type="button"
-          disabled={!onBranch}
-          onClick={() => setComposer(composer === "review" ? null : "review")}
-          className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
-        >
-          {t("reviewWithModel")}
-        </button>
-        <button
-          type="button"
-          disabled={!onRerun}
-          onClick={() => onRerun?.(result.id)}
-          className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
-        >
-          {t("rerun")}
-        </button>
-        <button
-          type="button"
-          onClick={copy}
-          className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
-        >
-          {copied ? t("copied") : t("copy")}
-        </button>
-        {onShare ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <button
             type="button"
-            disabled={sharing}
-            onClick={share}
-            className="min-h-10 rounded-md border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50 disabled:opacity-60"
+            disabled={!onBranch}
+            onClick={() => setComposer(composer === "follow_up" ? null : "follow_up")}
+            className="min-h-10 rounded-md bg-stone-950 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800"
           >
-            {sharing
-              ? language === "ko"
-                ? "공유 중..."
-                : "Sharing..."
-              : shareCopied
-                ? language === "ko"
-                  ? "링크 복사됨"
-                  : "Link copied"
-                : language === "ko"
-                  ? "결과 공유"
-                  : "Share result"}
+            {t("followUp")}
           </button>
-        ) : null}
-        <button
-          type="button"
-          disabled={!onMarkFinal}
-          onClick={() => onMarkFinal?.(result.id)}
-          className="min-h-10 rounded-md border border-teal-300 px-3 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-50"
-        >
-          {t("markFinal")}
-        </button>
-        <button
-          type="button"
-          disabled={!onDelete}
-          onClick={() => onDelete?.(result.id)}
-          className="min-h-10 rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
-        >
-          {t("deleteBranch")}
-        </button>
-      </div>
+          <button
+            type="button"
+            disabled={!onBranch}
+            onClick={() => setComposer(composer === "review" ? null : "review")}
+            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            {t("reviewWithModel")}
+          </button>
+          <button
+            type="button"
+            disabled={!onRerun}
+            onClick={() => onRerun?.(result.id)}
+            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            {t("rerun")}
+          </button>
+          <button
+            type="button"
+            onClick={copy}
+            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            {copied ? t("copied") : t("copy")}
+          </button>
+          {onShare ? (
+            <button
+              type="button"
+              disabled={sharing}
+              onClick={share}
+              className="min-h-10 rounded-md border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50 disabled:opacity-60"
+            >
+              {sharing
+                ? language === "ko"
+                  ? "공유 중..."
+                  : "Sharing..."
+                : shareCopied
+                  ? language === "ko"
+                    ? "링크 복사됨"
+                    : "Link copied"
+                  : language === "ko"
+                    ? "결과 공유"
+                    : "Share result"}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            disabled={!onMarkFinal}
+            onClick={() => onMarkFinal?.(result.id)}
+            className="min-h-10 rounded-md border border-teal-300 px-3 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-50"
+          >
+            {t("markFinal")}
+          </button>
+          <button
+            type="button"
+            disabled={!onDelete}
+            onClick={() => onDelete?.(result.id)}
+            className="min-h-10 rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+          >
+            {t("deleteBranch")}
+          </button>
+        </div>
       )}
 
       {!readOnly && sharedUrl ? (
@@ -366,7 +414,7 @@ export function ResultCard({
           {shareCopyBlocked ? (
             <p className="mb-2 text-xs font-medium text-sky-900">
               {language === "ko"
-                ? "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 선택해서 복사하세요."
+                ? "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 직접 복사해 주세요."
                 : "Automatic copying was blocked. The link was still created, so open it or select it below."}
             </p>
           ) : null}
@@ -393,6 +441,7 @@ export function ResultCard({
       {composer && !isRunning && !readOnly && onBranch ? (
         <BranchComposer
           mode={composer}
+          parentResult={result}
           providers={readyProviders.length ? readyProviders : providers}
           onSubmit={async (values) => {
             await onBranch({ parentResultId: result.id, ...values });
@@ -406,10 +455,12 @@ export function ResultCard({
 
 function BranchComposer({
   mode,
+  parentResult,
   providers,
   onSubmit,
 }: {
   mode: "follow_up" | "review";
+  parentResult: WorkbenchResult;
   providers: ProviderOption[];
   onSubmit: (input: {
     actionType: ActionType;
@@ -427,10 +478,22 @@ function BranchComposer({
     return first ? { [first.providerName]: [first.defaultModel] } : {};
   });
   const [submitting, setSubmitting] = useState(false);
+  const [expandedProvider, setExpandedProvider] = useState<ProviderName | null>(
+    providers[0]?.providerName ?? null,
+  );
+
+  const orderedProviders = useMemo(
+    () =>
+      [...providers].sort(
+        (left, right) =>
+          providerOrder.indexOf(left.providerName) - providerOrder.indexOf(right.providerName),
+      ),
+    [providers],
+  );
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const targets = providers.flatMap((provider) =>
+    const targets = orderedProviders.flatMap((provider) =>
       (selectedModels[provider.providerName] ?? []).map((model) => ({
         provider: provider.providerName,
         model,
@@ -475,51 +538,102 @@ function BranchComposer({
         </label>
 
         <div>
-          <p className="text-xs font-medium text-stone-500">{t("targetModels")}</p>
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-xs font-medium text-stone-500">{t("targetModels")}</p>
+              <p className="mt-1 text-[11px] text-stone-400">
+                {language === "ko"
+                  ? "공급자를 먼저 고르고 필요한 세부 모델만 펼쳐서 선택합니다."
+                  : "Choose a provider first, then expand only the models you need."}
+              </p>
+            </div>
+            <span className="rounded-full border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-500">
+              {language === "ko"
+                ? `기준 결과: ${parentResult.provider}/${getModelDisplayName(
+                    parentResult.provider,
+                    parentResult.model,
+                  )}`
+                : `From ${parentResult.provider}/${getModelDisplayName(
+                    parentResult.provider,
+                    parentResult.model,
+                  )}`}
+            </span>
+          </div>
           <div className="mt-2 space-y-3">
-            {providers.map((provider) => (
+            {orderedProviders.map((provider) => (
               <div
                 key={provider.providerName}
                 className="rounded-md border border-stone-200 bg-white p-3"
               >
-                <p className="text-xs font-semibold text-stone-700">
-                  {provider.shortName}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {provider.models.map((model) => {
-                    const checked = (selectedModels[provider.providerName] ?? []).includes(
-                      model,
-                    );
-                    return (
-                      <label
-                        key={`${provider.providerName}-${model}`}
-                        className={`min-h-9 rounded-md border px-2 py-2 text-xs ${
-                          checked
-                            ? "border-teal-300 bg-teal-50 text-teal-900"
-                            : "border-stone-300 bg-white text-stone-700"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(event) => {
-                            const current =
-                              selectedModels[provider.providerName] ?? [];
-                            const next = event.target.checked
-                              ? [...current, model]
-                              : current.filter((item) => item !== model);
-                            setSelectedModels({
-                              ...selectedModels,
-                              [provider.providerName]: next,
-                            });
-                          }}
-                          className="mr-1 accent-teal-700"
-                        />
-                        {getModelOptionLabel(provider.providerName, model)}
-                      </label>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedProvider((current) =>
+                      current === provider.providerName ? null : provider.providerName,
+                    )
+                  }
+                  className="flex w-full items-center justify-between gap-3 text-left"
+                >
+                  <div>
+                    <p className="text-xs font-semibold text-stone-700">
+                      {provider.shortName}
+                    </p>
+                    <p className="mt-1 text-[11px] text-stone-500">
+                      {(selectedModels[provider.providerName] ?? []).length > 0
+                        ? language === "ko"
+                          ? `${(selectedModels[provider.providerName] ?? []).length}개 모델 선택`
+                          : `${(selectedModels[provider.providerName] ?? []).length} model(s) selected`
+                        : language === "ko"
+                          ? "선택된 모델 없음"
+                          : "No models selected"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-stone-500">
+                    {expandedProvider === provider.providerName
+                      ? language === "ko"
+                        ? "접기"
+                        : "Hide"
+                      : language === "ko"
+                        ? "모델 보기"
+                        : "Show models"}
+                  </span>
+                </button>
+                {expandedProvider === provider.providerName ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {provider.models.map((model) => {
+                      const checked = (selectedModels[provider.providerName] ?? []).includes(
+                        model,
+                      );
+                      return (
+                        <label
+                          key={`${provider.providerName}-${model}`}
+                          className={`min-h-9 rounded-md border px-2 py-2 text-xs ${
+                            checked
+                              ? "border-teal-300 bg-teal-50 text-teal-900"
+                              : "border-stone-300 bg-white text-stone-700"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(event) => {
+                              const current = selectedModels[provider.providerName] ?? [];
+                              const next = event.target.checked
+                                ? [...current, model]
+                                : current.filter((item) => item !== model);
+                              setSelectedModels({
+                                ...selectedModels,
+                                [provider.providerName]: next,
+                              });
+                            }}
+                            className="mr-1 accent-teal-700"
+                          />
+                          {getModelOptionLabel(provider.providerName, model)}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
