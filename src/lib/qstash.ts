@@ -11,12 +11,33 @@ type SequentialRunnerReadiness = {
   message: string | null;
 };
 
+function normalizeAppBaseUrl(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value
+    .replace(/\\r|\\n/g, "")
+    .replace(/[\r\n]/g, "")
+    .trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const url = new URL(normalized);
+  const pathname = url.pathname.replace(/\/+$/, "");
+  return `${url.protocol}//${url.host}${pathname}`;
+}
+
 export function getAppBaseUrl() {
-  const baseUrl = process.env.APP_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const baseUrl =
+    normalizeAppBaseUrl(process.env.APP_BASE_URL) ||
+    normalizeAppBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
   if (!baseUrl) {
     throw new Error("APP_BASE_URL or NEXT_PUBLIC_APP_URL is required.");
   }
-  return baseUrl.replace(/\/$/, "");
+  return baseUrl;
 }
 
 function getInternalWorkerSecret() {
@@ -51,7 +72,12 @@ export function getSequentialRunnerReadiness(): SequentialRunnerReadiness {
     missing.push("QSTASH_TOKEN");
   }
 
-  if (!(process.env.APP_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim())) {
+  if (
+    !(
+      normalizeAppBaseUrl(process.env.APP_BASE_URL) ||
+      normalizeAppBaseUrl(process.env.NEXT_PUBLIC_APP_URL)
+    )
+  ) {
     missing.push("APP_BASE_URL");
   }
 
