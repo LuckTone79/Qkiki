@@ -56,6 +56,11 @@ import {
   prioritizePinnedRootBranches,
   sortResultsForDisplay,
 } from "@/lib/workbench-results";
+import {
+  buildCollapsedResultExpansionMap,
+  mergeResultExpansionMap,
+  setAllResultsExpanded,
+} from "@/lib/workbench-result-expansion";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -431,6 +436,8 @@ const workbenchUiText = {
     resultLayout: "Result layout",
     resultLayoutSingle: "1 column",
     resultLayoutDouble: "2 columns",
+    collapseAllResults: "Collapse all",
+    expandAllResults: "Expand all",
     totalResults: "Total",
     completedResults: "Completed",
     failedResults: "Failed",
@@ -1082,6 +1089,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
+  const [resultExpansionById, setResultExpansionById] = useState<Record<string, boolean>>(
+    () => buildCollapsedResultExpansionMap([]),
+  );
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState(() => defaultPresetName(language));
   const [presetDescription, setPresetDescription] = useState(() =>
@@ -1237,6 +1247,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
 
     element.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function toggleResultExpanded(resultId: string) {
+    setResultExpansionById((current) => ({
+      ...current,
+      [resultId]: !(current[resultId] ?? false),
+    }));
+  }
+
+  function collapseAllResults() {
+    setResultExpansionById(buildCollapsedResultExpansionMap(results));
+  }
+
+  function expandAllResults() {
+    setResultExpansionById(setAllResultsExpanded(results, true));
   }
 
   function createRunMonitor(
@@ -2199,6 +2224,24 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
   const { mainResults: mainDisplayResults, branchResults: branchDisplayResults } =
     useMemo(() => partitionResultsForWorkbench(displayResults), [displayResults]);
+
+  useEffect(() => {
+    setResultExpansionById({});
+  }, [sessionId]);
+
+  useEffect(() => {
+    setResultExpansionById((current) => mergeResultExpansionMap(current, results));
+  }, [results]);
+
+  const hasExpandedResults = useMemo(
+    () => displayResults.some((result) => resultExpansionById[result.id]),
+    [displayResults, resultExpansionById],
+  );
+
+  const hasCollapsedResults = useMemo(
+    () => displayResults.some((result) => !resultExpansionById[result.id]),
+    [displayResults, resultExpansionById],
+  );
 
   const progressResultIdsByOrderIndex = useMemo(() => {
     const map = new Map<number, string>();
@@ -4493,6 +4536,26 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {t("saved")}
                 </span>
               ) : null}
+              {results.length ? (
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#f7f8f3] p-1">
+                  <button
+                    type="button"
+                    onClick={collapseAllResults}
+                    disabled={!hasExpandedResults}
+                    className="rounded px-3 py-1.5 text-xs font-semibold text-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {language === "ko" ? "전체 접기" : "Collapse all"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={expandAllResults}
+                    disabled={!hasCollapsedResults}
+                    className="rounded px-3 py-1.5 text-xs font-semibold text-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {language === "ko" ? "전체 펼치기" : "Expand all"}
+                  </button>
+                </div>
+              ) : null}
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-stone-500">
                   {uiText.resultLayout}
@@ -4558,6 +4621,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     result={result}
                     depth={resultDepths.get(result.id) ?? 0}
                     compact={resultLayout === "single"}
+                    expanded={resultExpansionById[result.id] ?? false}
                     isFinal={effectiveFinalResultId === result.id}
                     isLatestProgress={latestProgressResultId === result.id}
                     providers={providers}
@@ -4574,6 +4638,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     onMarkFinal={markFinal}
                     onDelete={deleteBranch}
                     onShare={sessionId ? shareResultLink : undefined}
+                    onToggleExpanded={toggleResultExpanded}
                   />
                 </div>
               );
@@ -4610,6 +4675,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                           result={result}
                           depth={Math.max((resultDepths.get(result.id) ?? 1) - 1, 0)}
                           compact={resultLayout === "single"}
+                          expanded={resultExpansionById[result.id] ?? false}
                           isFinal={effectiveFinalResultId === result.id}
                           isLatestProgress={latestProgressResultId === result.id}
                           providers={providers}
@@ -4626,6 +4692,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                           onMarkFinal={markFinal}
                           onDelete={deleteBranch}
                           onShare={sessionId ? shareResultLink : undefined}
+                          onToggleExpanded={toggleResultExpanded}
                         />
                       </div>
                     );

@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ResultCard } from "@/components/workbench/ResultCard";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import { getModelDisplayName } from "@/lib/ai/model-display";
+import {
+  buildCollapsedResultExpansionMap,
+  mergeResultExpansionMap,
+} from "@/lib/workbench-result-expansion";
 import type {
   SharedSessionPayload,
   SharedWorkbenchResult,
@@ -56,6 +60,9 @@ export function SharedSessionView({
   const { language } = useLanguage();
   const { session } = payload;
   const resultById = new Map(session.results.map((result) => [result.id, result]));
+  const [resultExpansionById, setResultExpansionById] = useState<Record<string, boolean>>(
+    () => buildCollapsedResultExpansionMap(session.results),
+  );
 
   useEffect(() => {
     if (!focusedResultId) {
@@ -71,6 +78,12 @@ export function SharedSessionView({
       element.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [focusedResultId]);
+
+  useEffect(() => {
+    setResultExpansionById((current) =>
+      mergeResultExpansionMap(current, session.results),
+    );
+  }, [session.results]);
 
   function depthOf(result: SharedWorkbenchResult): number {
     let depth = 0;
@@ -211,6 +224,7 @@ export function SharedSessionView({
                 isFinal={session.finalResultId === result.id}
                 isLatestProgress={false}
                 providers={emptyProviders}
+                expanded={resultExpansionById[result.id] ?? false}
                 readOnly
                 highlighted={focusedResultId === result.id}
                 sourceLabel={
@@ -219,6 +233,12 @@ export function SharedSessionView({
                         parent.provider
                       }/${getModelDisplayName(parent.provider, parent.model)}`
                     : undefined
+                }
+                onToggleExpanded={(resultId) =>
+                  setResultExpansionById((current) => ({
+                    ...current,
+                    [resultId]: !(current[resultId] ?? false),
+                  }))
                 }
               />
             );

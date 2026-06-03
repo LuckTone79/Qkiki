@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
@@ -54,6 +54,7 @@ type ResultCardProps = {
   result: WorkbenchResult;
   depth: number;
   compact?: boolean;
+  expanded: boolean;
   isFinal: boolean;
   isLatestProgress: boolean;
   providers: ProviderOption[];
@@ -70,6 +71,7 @@ type ResultCardProps = {
   onMarkFinal?: (resultId: string) => Promise<void>;
   onDelete?: (resultId: string) => Promise<void>;
   onShare?: (resultId: string) => Promise<{ url: string; copied: boolean }>;
+  onToggleExpanded: (resultId: string) => void;
 };
 
 const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
@@ -152,6 +154,7 @@ export function ResultCard({
   result,
   depth,
   compact = false,
+  expanded,
   isFinal,
   isLatestProgress,
   providers,
@@ -163,6 +166,7 @@ export function ResultCard({
   onMarkFinal,
   onDelete,
   onShare,
+  onToggleExpanded,
 }: ResultCardProps) {
   const { language, t } = useLanguage();
   const [composer, setComposer] = useState<"follow_up" | "review" | null>(null);
@@ -171,7 +175,6 @@ export function ResultCard({
   const [sharing, setSharing] = useState(false);
   const [sharedUrl, setSharedUrl] = useState<string | null>(null);
   const [shareCopyBlocked, setShareCopyBlocked] = useState(false);
-  const [expanded, setExpanded] = useState(!compact);
   const readyProviders = providers.filter((provider) => provider.status === "ready");
   const isRunning = result.status === "running";
   const stepLabel = result.executionRunStep
@@ -235,12 +238,6 @@ export function ResultCard({
 
   const collapsedPreview = useMemo(() => firstVisibleLine(displayBody), [displayBody]);
 
-  useEffect(() => {
-    if (compact) {
-      setExpanded(false);
-    }
-  }, [compact]);
-
   async function copy() {
     const copyResult = await copyTextToClipboard(
       result.outputText || result.errorMessage || "",
@@ -279,7 +276,7 @@ export function ResultCard({
       style={{ marginLeft: `${Math.min(depth, 3) * 10}px` }}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-[#e9f7ef] px-2 py-1 text-xs font-semibold text-teal-800">
               {result.provider} / {getModelDisplayName(result.provider, result.model)}
@@ -309,7 +306,22 @@ export function ResultCard({
               .join(" / ")}
           </p>
         </div>
-        <p className="text-xs text-stone-500">{meta}</p>
+        <div className="flex items-start gap-2 self-start">
+          <button
+            type="button"
+            onClick={() => onToggleExpanded(result.id)}
+            className="shrink-0 rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+          >
+            {expanded
+              ? language === "ko"
+                ? "접기"
+                : "Collapse"
+              : language === "ko"
+                ? "펼치기"
+                : "Expand"}
+          </button>
+          <p className="pt-1 text-xs text-stone-500">{meta}</p>
+        </div>
       </div>
 
       <div
@@ -322,19 +334,6 @@ export function ResultCard({
         ) : (
           <p className="truncate">{collapsedPreview}</p>
         )}
-        <button
-          type="button"
-          onClick={() => setExpanded((current) => !current)}
-          className="mt-2 text-xs font-semibold text-teal-800 hover:text-teal-700"
-        >
-          {expanded
-            ? language === "ko"
-              ? "접기"
-              : "Collapse"
-            : language === "ko"
-              ? "펼쳐서 전체 보기"
-              : "Expand to full result"}
-        </button>
       </div>
 
       {isRunning || readOnly ? null : (
