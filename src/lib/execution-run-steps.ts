@@ -635,6 +635,24 @@ function startStepAbortMonitor(input: {
   } satisfies StepAbortMonitor;
 }
 
+function getProviderTimeoutOverrideSeconds(step: ExecutionStepRecord) {
+  if (step.errorCode !== AI_ERROR_CODES.PROVIDER_TIMEOUT || step.attemptCount <= 1) {
+    return undefined;
+  }
+
+  const timeoutPolicy = AI_ERROR_POLICY.PROVIDER_TIMEOUT;
+  const baseTimeoutMs = estimateStepDurationMs({
+    targetModel: step.targetModel,
+    sourceMode: step.sourceMode,
+  });
+  const retryTimeoutMs = Math.min(
+    timeoutPolicy.maxTimeoutMs,
+    baseTimeoutMs * timeoutPolicy.timeoutMultiplier ** (step.attemptCount - 1),
+  );
+
+  return Math.ceil(retryTimeoutMs / 1000);
+}
+
 async function createResultForStep(input: {
   db?: Prisma.TransactionClient | typeof prisma;
   step: ExecutionStepRecord;
@@ -1126,6 +1144,7 @@ export async function executeSingleRunStep(input: {
       attachments: promptData.attachmentsForProvider,
       allowFallback: false,
       disableInternalRetries: true,
+      timeoutSecondsOverride: getProviderTimeoutOverrideSeconds(step),
       abortSignal: abortMonitor.signal,
       concurrencyOwner: {
         ownerKind: "execution_run_step",
@@ -1177,7 +1196,7 @@ export async function executeSingleRunStep(input: {
         : step.maxAttempts;
     const canRetry =
       normalizedError.retryable &&
-      step.attemptCount + 1 < maxAttempts &&
+      step.attemptCount < maxAttempts &&
       executionRun.status !== "canceling" &&
       executionRun.status !== "canceled";
 

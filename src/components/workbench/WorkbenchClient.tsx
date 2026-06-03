@@ -2741,6 +2741,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
     };
 
+    const parseStreamEvent = (line: string) => {
+      try {
+        return JSON.parse(line) as WorkbenchRunStreamEvent;
+      } catch (parseError) {
+        const message =
+          parseError instanceof Error ? parseError.message : String(parseError);
+        if (/unexpected\s+(end|eof)|unterminated/i.test(message)) {
+          return null;
+        }
+        throw parseError;
+      }
+    };
+
     while (true) {
       const streamUrl =
         cursor > 0
@@ -2797,8 +2810,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           if (!line.trim()) {
             continue;
           }
-          handleEvent(JSON.parse(line) as WorkbenchRunStreamEvent);
-          cursor += 1;
+          const event = parseStreamEvent(line);
+          if (event) {
+            handleEvent(event);
+            cursor += 1;
+          }
         }
 
         if (done) {
@@ -2807,8 +2823,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
 
       if (buffer.trim()) {
-        handleEvent(JSON.parse(buffer) as WorkbenchRunStreamEvent);
-        cursor += 1;
+        const event = parseStreamEvent(buffer);
+        if (event) {
+          handleEvent(event);
+          cursor += 1;
+        }
       }
 
       if (donePayload) {

@@ -44,6 +44,8 @@ export type WorkbenchResult = {
     actionType: ActionType;
     targetProvider: string;
     targetModel: string;
+    sourceMode: string;
+    sourceResultId: string | null;
     status: string;
   } | null;
 };
@@ -93,6 +95,39 @@ function formatDate(value: string, language: "en" | "ko") {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function getExecutionSourceLabel(
+  result: WorkbenchResult,
+  sourceLabel: string | undefined,
+  language: "en" | "ko",
+  originalSourceLabel: string,
+) {
+  if (sourceLabel) {
+    return sourceLabel;
+  }
+
+  const sourceMode = result.executionRunStep?.sourceMode;
+
+  if (sourceMode === "previous") {
+    return language === "ko"
+      ? "\uc18c\uc2a4: \uc774\uc804 \uc644\ub8cc \uacb0\uacfc"
+      : "Source: previous completed result";
+  }
+
+  if (sourceMode === "selected_result") {
+    return language === "ko"
+      ? "\uc18c\uc2a4: \uc120\ud0dd\ud55c \uacb0\uacfc"
+      : "Source: selected result";
+  }
+
+  if (sourceMode === "all_results") {
+    return language === "ko"
+      ? "\uc18c\uc2a4: \uc774\uc804 \uc644\ub8cc \uacb0\uacfc \uc804\uccb4"
+      : "Source: prior completed results";
+  }
+
+  return originalSourceLabel;
 }
 
 export function ResultCard({
@@ -229,7 +264,12 @@ export function ResultCard({
               templateStepLabel,
               repeatLabel,
               actionLabel,
-              sourceLabel ?? t("sourceOriginal"),
+              getExecutionSourceLabel(
+                result,
+                sourceLabel,
+                language,
+                t("sourceOriginal"),
+              ),
               formatDate(result.createdAt, language),
             ]
               .filter(Boolean)

@@ -582,6 +582,10 @@ async function executeProviderCall(
     runtime.timeoutSeconds,
     input.model,
   );
+  const timeoutSeconds =
+    typeof input.timeoutSecondsOverride === "number" && input.timeoutSecondsOverride > 0
+      ? Math.max(effectiveTimeoutSeconds, input.timeoutSecondsOverride)
+      : effectiveTimeoutSeconds;
 
   if (!apiKey) {
     return {
@@ -599,9 +603,9 @@ async function executeProviderCall(
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort(
-        createProviderTimeoutError(input.provider, effectiveTimeoutSeconds),
+        createProviderTimeoutError(input.provider, timeoutSeconds),
       );
-    }, effectiveTimeoutSeconds * 1000);
+    }, timeoutSeconds * 1000);
     const unlinkAbortSignal = linkAbortSignal(input.abortSignal, controller);
     const signal = controller.signal;
 

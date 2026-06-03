@@ -19,6 +19,7 @@ export type ProviderCallInput = {
   attachments?: ProviderAttachmentInput[];
   allowFallback?: boolean;
   disableInternalRetries?: boolean;
+  timeoutSecondsOverride?: number;
   abortSignal?: AbortSignal;
   concurrencyOwner?: {
     ownerKind?: string;

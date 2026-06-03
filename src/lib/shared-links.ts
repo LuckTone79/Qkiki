@@ -57,6 +57,8 @@ export type SharedWorkbenchResult = {
     actionType: ActionType;
     targetProvider: string;
     targetModel: string;
+    sourceMode: string;
+    sourceResultId: string | null;
     status: string;
   } | null;
 };

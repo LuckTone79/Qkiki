@@ -77,6 +77,8 @@ export function buildWorkbenchResultSelect(
               actionType: true,
               targetProvider: true,
               targetModel: true,
+              sourceMode: true,
+              sourceResultId: true,
               status: true,
             },
           },

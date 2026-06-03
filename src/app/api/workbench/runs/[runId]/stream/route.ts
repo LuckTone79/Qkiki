@@ -15,6 +15,15 @@ type RouteContext = {
   params: Promise<{ runId: string }>;
 };
 
+const parsedV2StreamMaxMs = Number.parseInt(
+  process.env.WORKBENCH_V2_STREAM_MAX_MS || "25000",
+  10,
+);
+const V2_STREAM_MAX_MS =
+  Number.isFinite(parsedV2StreamMaxMs) && parsedV2StreamMaxMs >= 5_000
+    ? parsedV2StreamMaxMs
+    : 25_000;
+
 export async function GET(request: Request, { params }: RouteContext) {
   try {
     const user = await requireApiGenerationUser();
@@ -153,6 +162,7 @@ export async function GET(request: Request, { params }: RouteContext) {
             void (async () => {
               const seenStatuses = new Map<string, string>();
               const seenResults = new Set<string>();
+              const streamStartedAt = Date.now();
 
               if (session) {
                 send({
@@ -286,6 +296,10 @@ export async function GET(request: Request, { params }: RouteContext) {
                               : null,
                     },
                   });
+                  break;
+                }
+
+                if (Date.now() - streamStartedAt >= V2_STREAM_MAX_MS) {
                   break;
                 }
 
