@@ -801,7 +801,9 @@ export async function finalizeExecutionRunV2(executionRunId: string) {
       .find((step) => step.status === "completed" && step.resultId)?.resultId ?? null;
 
   const nextStatus =
-    counts.canceled === executionRun.steps.length
+    executionRun.status === "canceling" || executionRun.status === "canceled"
+      ? "canceled"
+      : counts.canceled === executionRun.steps.length
       ? "canceled"
       : counts.failed || counts.canceled || counts.skipped
         ? counts.completed
