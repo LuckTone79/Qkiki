@@ -5,7 +5,10 @@ import {
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
-import { getExecutionRunStatusSnapshot } from "@/lib/execution-run-steps";
+import {
+  getExecutionRunStatusSnapshot,
+  rescueStalledExecutionRunV2,
+} from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
@@ -163,6 +166,7 @@ export async function GET(request: Request, { params }: RouteContext) {
               const seenStatuses = new Map<string, string>();
               const seenResults = new Set<string>();
               const streamStartedAt = Date.now();
+              let lastRescueCheckAt = 0;
 
               if (session) {
                 send({
@@ -176,6 +180,13 @@ export async function GET(request: Request, { params }: RouteContext) {
               }
 
               while (!request.signal.aborted) {
+                if (Date.now() - lastRescueCheckAt > 10_000) {
+                  lastRescueCheckAt = Date.now();
+                  await rescueStalledExecutionRunV2({
+                    executionRunId,
+                  }).catch(() => undefined);
+                }
+
                 const snapshot = await getExecutionRunStatusSnapshot({
                   executionRunId,
                   userId: user.id,

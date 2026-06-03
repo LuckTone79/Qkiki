@@ -18,6 +18,9 @@ import { releaseUsageReservation, settleUsageReservation } from "@/lib/usage-pol
 const FUNCTION_MAX_MS = Number(process.env.WORKBENCH_FUNCTION_MAX_MS || 50_000);
 const SAFETY_MARGIN_MS = 15_000;
 const STEP_LOCK_TTL_MS = 5 * 60 * 1000;
+const QUEUED_HANDOFF_STALE_MS = Number(
+  process.env.WORKBENCH_QUEUED_HANDOFF_STALE_MS || 60_000,
+);
 
 type PlanStep = {
   orderIndex: number;
@@ -82,6 +85,15 @@ function now() {
 
 function hashPrompt(text: string) {
   return crypto.createHash("sha256").update(text).digest("hex");
+}
+
+function isTerminalStepStatus(status: string) {
+  return (
+    status === "completed" ||
+    status === "failed" ||
+    status === "skipped" ||
+    status === "canceled"
+  );
 }
 
 function promptSourcePriority(sourceMode: string) {
@@ -858,6 +870,164 @@ async function getNextStep(step: ExecutionStepRecord) {
   });
 }
 
+async function findQueuedHandoffCandidate(input: {
+  executionRunId: string;
+  minStaleMs?: number;
+}) {
+  const executionRun = await prisma.executionRun.findUnique({
+    where: { id: input.executionRunId },
+    select: {
+      id: true,
+      status: true,
+      runnerVersion: true,
+      steps: {
+        orderBy: { orderIndex: "asc" },
+        select: {
+          id: true,
+          orderIndex: true,
+          status: true,
+          nextAttemptAt: true,
+          updatedAt: true,
+          heartbeatAt: true,
+        },
+      },
+    },
+  });
+
+  if (
+    !executionRun ||
+    executionRun.runnerVersion !== "v2" ||
+    !["queued", "running", "retrying"].includes(executionRun.status)
+  ) {
+    return null;
+  }
+
+  if (executionRun.steps.some((step) => step.status === "running")) {
+    return null;
+  }
+
+  const firstNonTerminalStep = executionRun.steps.find(
+    (step) => !isTerminalStepStatus(step.status),
+  );
+
+  if (!firstNonTerminalStep) {
+    await finalizeExecutionRunV2(executionRun.id);
+    return null;
+  }
+
+  if (!["queued", "retrying"].includes(firstNonTerminalStep.status)) {
+    return null;
+  }
+
+  const currentNow = now();
+  if (
+    firstNonTerminalStep.status === "retrying" &&
+    firstNonTerminalStep.nextAttemptAt &&
+    firstNonTerminalStep.nextAttemptAt > currentNow
+  ) {
+    return null;
+  }
+
+  const minStaleMs = input.minStaleMs ?? QUEUED_HANDOFF_STALE_MS;
+  const lastTouchedAt =
+    firstNonTerminalStep.heartbeatAt ?? firstNonTerminalStep.updatedAt;
+  if (
+    minStaleMs > 0 &&
+    currentNow.getTime() - lastTouchedAt.getTime() < minStaleMs
+  ) {
+    return null;
+  }
+
+  return firstNonTerminalStep;
+}
+
+export async function rescueStalledExecutionRunV2(input: {
+  executionRunId: string;
+  minStaleMs?: number;
+}) {
+  const candidate = await findQueuedHandoffCandidate(input);
+  if (!candidate) {
+    return { rescued: 0, stepId: null as string | null };
+  }
+
+  const currentNow = now();
+  const updated = await prisma.executionRunStep.updateMany({
+    where: {
+      id: candidate.id,
+      status: candidate.status,
+      OR: [{ heartbeatAt: candidate.heartbeatAt }, { heartbeatAt: null }],
+    },
+    data: {
+      heartbeatAt: currentNow,
+      updatedAt: currentNow,
+    },
+  });
+
+  if (!updated.count) {
+    return { rescued: 0, stepId: null as string | null };
+  }
+
+  await enqueueExecutionRunStep(candidate.id);
+  console.info(
+    JSON.stringify({
+      event: "execution_run_step_handoff_rescued",
+      executionRunId: input.executionRunId,
+      stepId: candidate.id,
+      orderIndex: candidate.orderIndex,
+      status: candidate.status,
+    }),
+  );
+
+  return { rescued: 1, stepId: candidate.id };
+}
+
+export async function rescueStalledQueuedExecutionRunStepsV2(input: {
+  take?: number;
+  minStaleMs?: number;
+} = {}) {
+  const runs = await prisma.executionRun.findMany({
+    where: {
+      runnerVersion: "v2",
+      status: { in: ["queued", "running", "retrying"] },
+      steps: {
+        some: {
+          status: { in: ["queued", "retrying"] },
+        },
+        none: {
+          status: "running",
+        },
+      },
+    },
+    orderBy: { updatedAt: "asc" },
+    take: input.take ?? 25,
+    select: { id: true },
+  });
+
+  let rescued = 0;
+  let failed = 0;
+
+  for (const run of runs) {
+    try {
+      const result = await rescueStalledExecutionRunV2({
+        executionRunId: run.id,
+        minStaleMs: input.minStaleMs,
+      });
+      rescued += result.rescued;
+    } catch (error) {
+      failed += 1;
+      console.error(
+        JSON.stringify({
+          event: "execution_run_step_handoff_rescue_failed",
+          executionRunId: run.id,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+    }
+  }
+
+  return { scannedQueuedRuns: runs.length, queuedRescued: rescued, rescueFailed: failed };
+}
+
 async function transitionStepToCompleted(input: {
   step: ExecutionStepRecord;
   workerId: string;
@@ -1275,6 +1445,19 @@ export async function executeStepWithContinuation(input: {
     workerId,
   });
 
+  if (!outcome.claimed) {
+    const step = await prisma.executionRunStep.findUnique({
+      where: { id: input.stepId },
+      select: { executionRunId: true },
+    });
+    if (step) {
+      await rescueStalledExecutionRunV2({
+        executionRunId: step.executionRunId,
+        minStaleMs: 0,
+      }).catch(() => undefined);
+    }
+  }
+
   if (!outcome.claimed || !outcome.shouldContinue || !outcome.nextStep) {
     return outcome;
   }
@@ -1627,10 +1810,16 @@ export async function runExecutionRunStepWatchdog() {
       await finalizeExecutionRunV2(step.executionRunId);
     }
 
+    const queuedRescue = await rescueStalledQueuedExecutionRunStepsV2({
+      take: 25,
+      minStaleMs: QUEUED_HANDOFF_STALE_MS,
+    });
+
     return {
       scanned: staleSteps.length,
       stale: staleSteps.length,
       skipped: false,
+      ...queuedRescue,
     };
   } finally {
     await prisma.$executeRaw`SELECT pg_advisory_unlock(hashtext('workbench_watchdog'))`;

@@ -7,7 +7,11 @@ import {
   parseExecutionRunSummary,
   readSignedRunToken,
 } from "@/lib/execution-runs";
-import { cancelExecutionRunV2, getExecutionRunStatusSnapshot } from "@/lib/execution-run-steps";
+import {
+  cancelExecutionRunV2,
+  getExecutionRunStatusSnapshot,
+  rescueStalledExecutionRunV2,
+} from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
@@ -50,6 +54,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
       }
 
       if (executionRun.runnerVersion === "v2") {
+        await rescueStalledExecutionRunV2({
+          executionRunId: executionRun.id,
+        }).catch(() => undefined);
+
         const [snapshot, results] = await Promise.all([
           getExecutionRunStatusSnapshot({
             executionRunId: executionRun.id,
