@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { createAuthSession, getInitialRoleForEmail, hashPassword } from "@/lib/auth";
+import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { grantWelcomeBoostToUser } from "@/lib/usage-policy";
 import {
   GOOGLE_OAUTH_PROVIDER,
@@ -39,6 +40,11 @@ function isEmailVerified(value: GoogleUserInfo["email_verified"]) {
 }
 
 export async function GET(request: Request) {
+  const canonicalRedirect = buildCanonicalRedirectUrl(request.url);
+  if (canonicalRedirect) {
+    return NextResponse.redirect(canonicalRedirect, 307);
+  }
+
   const config = getGoogleOAuthConfig(request.url);
   if (!config) {
     return signInErrorRedirect(request.url, "google_not_configured");

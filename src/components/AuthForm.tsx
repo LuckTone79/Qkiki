@@ -115,9 +115,16 @@ export function AuthForm({ mode }: AuthFormProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    const data = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      redirectUrl?: string;
+    };
 
     if (!response.ok) {
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
       setError(data.error || t("authFailed"));
       setLoading(false);
       return;

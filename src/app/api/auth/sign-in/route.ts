@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createAuthSession, verifyPassword } from "@/lib/auth";
 import { getAuthRuntimeDiagnostics } from "@/lib/auth-config";
+import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { signInSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
@@ -10,6 +11,19 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Server auth is misconfigured: DATABASE_URL (PostgreSQL) is required." },
       { status: 500 },
+    );
+  }
+
+  const canonicalRedirect = buildCanonicalRedirectUrl(request.url);
+  if (canonicalRedirect) {
+    canonicalRedirect.pathname = "/sign-in";
+    canonicalRedirect.search = "";
+    return NextResponse.json(
+      {
+        error: "Please continue sign-in on the main Qkiki domain.",
+        redirectUrl: canonicalRedirect.toString(),
+      },
+      { status: 409 },
     );
   }
 

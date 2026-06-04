@@ -8,13 +8,37 @@ import {
   TRIAL_CONVERSATION_LIMIT,
   TRIAL_SESSION_HOURS,
 } from "@/lib/access-policy";
+import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { createAuthSession, getCurrentUser, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const TRIAL_SESSION_DURATION_MS = TRIAL_SESSION_HOURS * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
+  const canonicalRedirect = buildCanonicalRedirectUrl(request.url);
   const currentUser = await getCurrentUser();
+  if (canonicalRedirect) {
+    if (currentUser) {
+      canonicalRedirect.pathname = "/api/auth/handoff";
+      canonicalRedirect.search = "";
+      canonicalRedirect.searchParams.set(
+        "next",
+        currentUser.isTrial ? "/app/workbench?trial=true" : "/app/workbench",
+      );
+      return NextResponse.json({
+        success: true,
+        redirectUrl: canonicalRedirect.toString(),
+      });
+    }
+
+    canonicalRedirect.pathname = "/";
+    canonicalRedirect.search = "";
+    return NextResponse.json({
+      success: true,
+      redirectUrl: canonicalRedirect.toString(),
+    });
+  }
+
   if (currentUser) {
     return NextResponse.json({
       success: true,

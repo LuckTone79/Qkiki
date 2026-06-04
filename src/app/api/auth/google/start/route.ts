@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { buildOpenInBrowserPath, isLikelyEmbeddedBrowser } from "@/lib/browser-detection";
+import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import {
   GOOGLE_OAUTH_STATE_COOKIE,
   createGoogleOAuthState,
@@ -10,6 +11,11 @@ import {
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 
 export async function GET(request: Request) {
+  const canonicalRedirect = buildCanonicalRedirectUrl(request.url);
+  if (canonicalRedirect) {
+    return NextResponse.redirect(canonicalRedirect, 307);
+  }
+
   const config = getGoogleOAuthConfig(request.url);
   if (!config) {
     return NextResponse.redirect(new URL("/sign-in?error=google_not_configured", request.url));
