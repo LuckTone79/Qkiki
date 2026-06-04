@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tesla 워크벤치 컬러 변형 20종</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter","Pretendard","Helvetica Neue",system-ui,sans-serif;background:#f4f4f5;color:#171a20;-webkit-font-smoothing:antialiased}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  header{background:#fff;border-bottom:1px solid #e7e7ea}
+  .head{padding:44px 0}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#6b7078}
+  h1{margin-top:10px;font-size:34px;font-weight:600;letter-spacing:-.02em}
+  .sub{margin-top:12px;max-width:640px;color:#5b5f66;line-height:1.7;font-size:15px}
+  .links{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn{border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600}
+  .btn-dark{background:#171a20;color:#fff} .btn-light{background:#ececee;color:#171a20}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:28px 0 50px}
+  .item{display:block;border:1px solid #e7e7ea;border-radius:16px;overflow:hidden;background:#fff;transition:transform .35s cubic-bezier(.16,1,.3,1),box-shadow .35s}
+  .item:hover{transform:translateY(-4px);box-shadow:0 18px 40px -20px rgba(0,0,0,.25)}
+  .swatch{height:84px;position:relative;display:flex;align-items:flex-end;padding:12px}
+  .swatch .num{font-size:13px;font-weight:800;color:rgba(255,255,255,.9);background:rgba(0,0,0,.18);padding:3px 9px;border-radius:999px;backdrop-filter:blur(4px)}
+  .meta{padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+  .name{font-weight:600;font-size:15px}
+  .en{font-size:12px;color:#8b9098;margin-top:2px}
+  .go{font-size:12px;font-weight:700;color:#171a20}
+  footer{border-top:1px solid #e7e7ea;padding:24px 0;text-align:center;font-size:12px;color:#8b9098}
+</style>
+</head>
+<body>
+<header><div class="wrap head">
+  <p class="eyebrow">Tesla Landing × Colorful Workbench</p>
+  <h1>Tesla 워크벤치 컬러 변형 20종</h1>
+  <p class="sub">Tesla 랜딩페이지의 시네마틱·미니멀 톤(얇은 타이포·넉넉한 여백·정돈된 구조)은 유지하면서, 워크벤치에 20가지 컬러 무드를 입힌 예시입니다. 상단 시네마틱 그라데이션 히어로 + 3패널 작업대 + 결과 카드 구조는 공통입니다.</p>
+  <div class="links">
+    <a class="btn btn-dark" href="../11-tesla/landing.html">↗ Tesla 랜딩페이지 보기</a>
+    <a class="btn btn-light" href="../index.html">전체 디자인 갤러리</a>
+  </div>
+</div></header>
+
+<main class="wrap"><div class="grid" id="grid"></div></main>
+
+<footer>Tesla 워크벤치 변형 20종 · 예시용 목업 · 실제 제품 미적용 · 2026-06-04</footer>
+
+<script>
+  const items = [
+    [1,"일렉트릭 블루","Electric Blue","#2c6fff","#00d4ff","#fff"],
+    [2,"선셋","Sunset","#ff5e3a","#ff2d75","#fff"],
+    [3,"오로라 다크","Aurora Dark","#22d3ee","#a855f7","#001018"],
+    [4,"테슬라 레드","Tesla Red","#e82127","#ff5e57","#fff"],
+    [5,"에메랄드","Emerald","#10b981","#34d399","#04231a"],
+    [6,"인디고 나이트","Indigo Night","#6366f1","#8b5cf6","#fff"],
+    [7,"사이버 라임","Cyber Lime","#c6ff3a","#7dd3fc","#0a0e07"],
+    [8,"코랄 웜","Coral Warm","#ff6b6b","#ffa94d","#3a1f17"],
+    [9,"로열 퍼플","Royal Purple","#7c3aed","#c026d3","#fff"],
+    [10,"오션","Ocean","#0ea5e9","#2563eb","#fff"],
+    [11,"앰버 골드","Amber Gold","#f59e0b","#fbbf24","#1a1206"],
+    [12,"마젠타 팝","Magenta Pop","#ec4899","#8b5cf6","#fff"],
+    [13,"포레스트 다크","Forest Dark","#34d399","#10b981","#04140e"],
+    [14,"아이스 블루","Ice Blue","#38bdf8","#818cf8","#06243f"],
+    [15,"볼트 차콜","Volt Charcoal","#d8ff00","#00e0b8","#0c0d0a"],
+    [16,"로즈 쿼츠","Rose Quartz","#fb7185","#f0abfc","#4a1d2b"],
+    [17,"틸 민트","Teal Mint","#14b8a6","#5eead4","#04231f"],
+    [18,"그라데이션 메시","Gradient Mesh","#818cf8","#f472b6","#0b0a17"],
+    [19,"듀오톤 블루·오렌지","Duotone","#2563eb","#f97316","#fff"],
+    [20,"홀로그래픽","Holographic","#a78bfa","#22d3ee","#1a1530"],
+  ];
+  const grid = document.getElementById("grid");
+  items.forEach(([n,ko,en,a,b])=>{
+    const file = "v"+String(n).padStart(2,"0")+".html";
+    grid.insertAdjacentHTML("beforeend", `
+      <a class="item" href="${file}">
+        <div class="swatch" style="background:linear-gradient(120deg,${a},${b})">
+          <span class="num">${String(n).padStart(2,"0")}</span>
+        </div>
+        <div class="meta">
+          <div><div class="name">${ko}</div><div class="en">${en}</div></div>
+          <span class="go">열기 →</span>
+        </div>
+      </a>`);
+  });
+</script>
+</body>
+</html>
