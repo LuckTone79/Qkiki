@@ -24,6 +24,17 @@ test("shouldRedirectToCanonicalHost redirects vercel production hosts for browse
   assert.equal(shouldRedirect, true);
 });
 
+test("shouldRedirectToCanonicalHost still redirects the qkiki production alias when proxy env is missing", () => {
+  const shouldRedirect = shouldRedirectToCanonicalHost({
+    env: {},
+    hostname: "qkiki.vercel.app",
+    pathname: "/sign-in",
+    method: "GET",
+  });
+
+  assert.equal(shouldRedirect, true);
+});
+
 test("shouldRedirectToCanonicalHost keeps the canonical wideget host in place", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: { VERCEL_ENV: "production" },

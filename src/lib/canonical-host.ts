@@ -51,13 +51,16 @@ export function getCanonicalHostRedirectUrl(
   requestUrl: string,
   env: Record<string, string | undefined> = process.env,
 ) {
-  const canonicalUrl = resolveCanonicalAppUrl(env);
+  const redirectUrl = new URL(requestUrl);
+  const hostname = redirectUrl.hostname.trim().toLowerCase();
+  const canonicalUrl =
+    resolveCanonicalAppUrl(env) ||
+    (hostname === "qkiki.vercel.app" ? new URL(DEFAULT_CANONICAL_APP_URL) : null);
+
   if (!canonicalUrl) {
     return null;
   }
 
-  const redirectUrl = new URL(requestUrl);
-  const hostname = redirectUrl.hostname.trim().toLowerCase();
   const canonicalHostname = canonicalUrl.hostname.trim().toLowerCase();
 
   if (!hostname || hostname === canonicalHostname) {
