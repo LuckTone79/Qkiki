@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Console · 워크벤치(세부페이지)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:"Inter","Pretendard",system-ui,sans-serif; }
+  .mono { font-family:"JetBrains Mono",ui-monospace,"SF Mono",monospace; }
+</style>
+</head>
+<body class="bg-[#0a0c10] text-[#e6e8eb]">
+
+<header class="sticky top-0 z-50 border-b border-white/10 bg-[#0a0c10]/85 backdrop-blur">
+  <div class="flex h-12 items-center justify-between px-4 text-sm">
+    <div class="flex items-center gap-4">
+      <a href="landing.html" class="flex items-center gap-2"><span class="flex h-5 w-5 items-center justify-center rounded bg-[#14e0a5] text-[11px] font-bold text-black">Q</span><span class="font-semibold">Qkiki</span></a>
+      <nav class="mono hidden gap-1 text-xs text-white/50 md:flex">
+        <a class="rounded bg-white/10 px-2.5 py-1 text-white">workbench</a>
+        <a class="rounded px-2.5 py-1 hover:bg-white/5">projects</a>
+        <a class="rounded px-2.5 py-1 hover:bg-white/5">sessions</a>
+        <a class="rounded px-2.5 py-1 hover:bg-white/5">presets</a>
+      </nav>
+    </div>
+    <div class="mono flex items-center gap-3 text-xs">
+      <span class="rounded border border-[#14e0a5]/30 bg-[#14e0a5]/10 px-2 py-0.5 text-[#14e0a5]">trial·14d</span>
+      <div class="h-6 w-6 rounded bg-gradient-to-br from-[#14e0a5] to-[#60a5fa]"></div>
+    </div>
+  </div>
+</header>
+
+<main class="grid h-[calc(100vh-48px)] grid-cols-1 lg:grid-cols-[230px_1fr_270px]">
+
+  <!-- LEFT -->
+  <aside class="border-r border-white/10 p-4 space-y-5 overflow-auto">
+    <div>
+      <p class="mono text-[11px] uppercase tracking-widest text-white/40">models</p>
+      <div class="mono mt-2 space-y-1.5 text-xs">
+        <label class="flex items-center justify-between rounded border border-white/10 bg-white/[0.03] px-2.5 py-2"><span class="text-[#14e0a5]">gpt-5.5</span><input type="checkbox" checked class="accent-[#14e0a5]"></label>
+        <label class="flex items-center justify-between rounded border border-white/10 bg-white/[0.03] px-2.5 py-2"><span class="text-[#a78bfa]">claude-4.7</span><input type="checkbox" checked class="accent-[#a78bfa]"></label>
+        <label class="flex items-center justify-between rounded border border-white/10 bg-white/[0.03] px-2.5 py-2"><span class="text-[#60a5fa]">gemini-3.1</span><input type="checkbox" checked class="accent-[#60a5fa]"></label>
+        <label class="flex items-center justify-between rounded border border-white/10 px-2.5 py-2 text-white/40"><span>grok-4.3</span><input type="checkbox" class="accent-[#fb923c]"></label>
+      </div>
+    </div>
+    <div>
+      <p class="mono text-[11px] uppercase tracking-widest text-white/40">mode</p>
+      <div class="mono mt-2 grid grid-cols-2 gap-1.5 text-xs">
+        <button class="rounded bg-[#14e0a5] px-2 py-2 font-medium text-black">compare</button>
+        <button class="rounded border border-white/10 px-2 py-2 hover:bg-white/5">chain</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER -->
+  <section class="overflow-auto p-5 space-y-4">
+    <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+      <div class="mono flex items-center justify-between text-xs text-white/40"><span>// task input</span><span>autosaved</span></div>
+      <textarea rows="3" class="mt-2 w-full resize-none rounded-md border border-white/10 bg-[#0d1016] p-3 text-[14px] leading-7 outline-none focus:border-[#14e0a5]">신제품 출시 메시지를 설득형·친근형·전문가형 3가지 톤으로 작성해줘.</textarea>
+      <div class="mt-3 flex items-center justify-between">
+        <div class="mono flex gap-1.5 text-xs">
+          <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">attach</button>
+          <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">preset</button>
+        </div>
+        <button class="mono rounded-md bg-[#14e0a5] px-5 py-2 text-sm font-semibold text-black hover:bg-[#0fc792]">run ▶</button>
+      </div>
+    </div>
+
+    <div class="mono flex items-center gap-2 text-xs text-white/40"><span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#14e0a5]"></span> 3 results · 0.8s</div>
+
+    <!-- card 1 -->
+    <article class="rounded-lg border border-white/10 bg-white/[0.03]">
+      <div class="mono flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-xs">
+        <span class="text-[#14e0a5]">▌gpt-5.5 <span class="text-white/40">draft</span></span>
+        <span class="text-white/35">200 OK · 1.2s · 320tok · $0.004</span>
+      </div>
+      <div class="p-4 text-[14px] leading-7 text-white/75">
+        <p><b class="text-white">설득형:</b> 지금 바로, 당신의 하루를 바꿀 단 하나의 선택.</p>
+        <p class="mt-1.5"><b class="text-white">친근형:</b> 오래 준비했어요 — 한번 써보면 알게 될 거예요.</p>
+        <p class="mt-1.5"><b class="text-white">전문가형:</b> 검증된 설계와 데이터로 완성한 차세대 솔루션.</p>
+      </div>
+      <div class="mono flex flex-wrap gap-1.5 border-t border-white/10 px-4 py-2.5 text-[11px]">
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">branch</button>
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">critique</button>
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">improve</button>
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">summarize</button>
+        <button class="ml-auto rounded bg-[#14e0a5] px-2.5 py-1.5 font-semibold text-black">★ final</button>
+      </div>
+    </article>
+
+    <!-- card 2 -->
+    <article class="rounded-lg border border-white/10 bg-white/[0.03]">
+      <div class="mono flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-xs">
+        <span class="text-[#a78bfa]">▌claude-4.7</span><span class="text-white/35">200 OK · 1.6s · 410tok · $0.006</span>
+      </div>
+      <div class="p-4 text-[14px] leading-7 text-white/75"><p>세 가지 톤을 타깃 독자·사용 맥락과 함께 구조적으로 제시…</p></div>
+      <div class="mono flex flex-wrap gap-1.5 border-t border-white/10 px-4 py-2.5 text-[11px]">
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">branch</button>
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">critique</button>
+        <button class="rounded border border-white/10 px-2.5 py-1.5 hover:bg-white/5">improve</button>
+      </div>
+    </article>
+
+    <!-- card 3 streaming -->
+    <article class="rounded-lg border border-white/10 bg-white/[0.03]">
+      <div class="mono flex items-center justify-between border-b border-white/10 px-4 py-2.5 text-xs">
+        <span class="text-[#60a5fa]">▌gemini-3.1</span><span class="text-[#60a5fa]">… streaming</span>
+      </div>
+      <div class="space-y-2 p-4"><div class="h-2 w-full rounded bg-[#60a5fa]/20"></div><div class="h-2 w-5/6 rounded bg-[#60a5fa]/15"></div><div class="h-2 w-2/3 rounded bg-[#60a5fa]/15"></div></div>
+    </article>
+  </section>
+
+  <!-- RIGHT -->
+  <aside class="border-l border-white/10 p-4 space-y-5 overflow-auto">
+    <div>
+      <p class="mono text-[11px] uppercase tracking-widest text-white/40">chain route</p>
+      <div class="mono mt-2 space-y-1 text-xs">
+        <div class="flex items-center gap-2 rounded bg-white/[0.03] px-2.5 py-2"><span class="text-[#14e0a5]">1.</span> gpt · draft</div>
+        <div class="ml-3 h-2 border-l border-white/20"></div>
+        <div class="flex items-center gap-2 rounded bg-white/[0.03] px-2.5 py-2"><span class="text-[#fb923c]">2.</span> grok · critique</div>
+        <div class="ml-3 h-2 border-l border-white/20"></div>
+        <div class="flex items-center gap-2 rounded bg-white/[0.03] px-2.5 py-2"><span class="text-[#a78bfa]">3.</span> claude · final</div>
+      </div>
+      <button class="mono mt-3 w-full rounded border border-white/10 py-1.5 text-xs hover:bg-white/5">+ add step</button>
+    </div>
+    <div>
+      <p class="mono text-[11px] uppercase tracking-widest text-white/40">run stats</p>
+      <dl class="mono mt-2 space-y-1.5 text-xs text-white/55">
+        <div class="flex justify-between"><dt>models</dt><dd class="text-white">3</dd></div>
+        <div class="flex justify-between"><dt>tokens</dt><dd class="text-white">1140</dd></div>
+        <div class="flex justify-between"><dt>est.cost</dt><dd class="text-[#14e0a5]">$0.016</dd></div>
+      </dl>
+    </div>
+  </aside>
+</main>
+
+<footer class="mono border-t border-white/10 px-4 py-3 text-center text-[11px] text-white/30">
+  컨셉 시안 03 · Console · 워크벤치 — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>
