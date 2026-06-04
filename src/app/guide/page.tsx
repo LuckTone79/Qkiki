@@ -608,10 +608,10 @@ export default function GuidePage() {
         {/*  HERO                                                      */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
             {t.eyebrow}
           </p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">
+          <h1 className="mt-4 font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
             {t.heroTitle}
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-stone-600">
@@ -631,7 +631,7 @@ export default function GuidePage() {
         {/*  WHY DIFFERENT                                             */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-24">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
             {t.diffTitle}
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-base text-stone-600">
@@ -666,7 +666,7 @@ export default function GuidePage() {
         {/*  STEP-BY-STEP GUIDE                                        */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
             {t.guideTitle}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-base text-stone-600">
@@ -710,7 +710,7 @@ export default function GuidePage() {
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28">
           <div className="mx-auto max-w-3xl">
-            <h2 className="text-center text-3xl font-bold tracking-tight">
+            <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
               {t.parallelTutorial.title}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-center text-base text-stone-600">
@@ -860,7 +860,7 @@ export default function GuidePage() {
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28">
           <div className="mx-auto max-w-3xl">
-            <h2 className="text-center text-3xl font-bold tracking-tight">
+            <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
               {t.sequentialTutorial.title}
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-center text-base text-stone-600">
@@ -969,7 +969,7 @@ export default function GuidePage() {
         {/*  FEATURES OVERVIEW TABLE                                   */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
             {t.featuresTitle}
           </h2>
 
@@ -994,7 +994,7 @@ export default function GuidePage() {
         {/*  FAQ                                                       */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28">
-          <h2 className="text-center text-3xl font-bold tracking-tight">
+          <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
             {t.faqTitle}
           </h2>
 
@@ -1030,7 +1030,7 @@ export default function GuidePage() {
         {/*  BOTTOM CTA                                                */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28 text-center">
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="font-serif text-2xl font-semibold tracking-tight">
             {t.ctaTitle}
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm text-stone-600">

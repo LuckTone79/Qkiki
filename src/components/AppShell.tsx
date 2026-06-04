@@ -8,11 +8,11 @@ import type { CurrentUser } from "@/lib/auth";
 import { APP_VERSION } from "@/lib/version";
 
 const navItems = [
-  { href: "/app/workbench", key: "workbench" },
-  { href: "/app/projects", key: "projects" },
-  { href: "/app/sessions", key: "sessions" },
-  { href: "/app/presets", key: "presets" },
-  { href: "/app/account", key: "account" },
+  { href: "/app/workbench", key: "workbench", icon: "🧪" },
+  { href: "/app/projects", key: "projects", icon: "🗂️" },
+  { href: "/app/sessions", key: "sessions", icon: "📄" },
+  { href: "/app/presets", key: "presets", icon: "⚡" },
+  { href: "/app/account", key: "account", icon: "👤" },
 ] as const;
 
 export function AppShell({
@@ -71,8 +71,10 @@ export function AppShell({
           >
             <div className="flex items-center justify-between gap-4 lg:block">
               <Link href="/app/workbench" className="block">
-                <p className="text-lg font-semibold tracking-tight">Qkiki</p>
-                <p className="text-xs text-stone-500">
+                <p className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
+                  <span aria-hidden="true">⬡</span> Qkiki
+                </p>
+                <p className="mt-0.5 text-xs text-stone-500">
                   {t("orchestrationWorkbench")}
                 </p>
               </Link>
@@ -87,8 +89,11 @@ export function AppShell({
                   <Link
                     href={item.href}
                     prefetch={false}
-                    className="block rounded-md px-3 py-2 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
+                    className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
+                    <span aria-hidden="true" className="text-[15px] leading-none opacity-80">
+                      {item.icon}
+                    </span>
                     {t(item.key)}
                   </Link>
                   {item.key === "sessions" && visibleRecentSessions.length ? (
@@ -124,13 +129,13 @@ export function AppShell({
 
             <div className="mt-6 hidden lg:block">
               <div className="flex items-center justify-between gap-2 px-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">
                   {t("projects")}
                 </p>
                 <Link
                   href="/app/projects?create=1"
                   prefetch={false}
-                  className="text-xs font-semibold text-teal-700 hover:text-teal-900"
+                  className="text-xs font-semibold text-stone-600 hover:text-stone-950"
                 >
                   {t("new")}
                 </Link>
@@ -141,9 +146,9 @@ export function AppShell({
                     key={project.id}
                     href={`/app/projects/${project.id}`}
                     prefetch={false}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
-                    <span className="text-stone-400">[ ]</span>
+                    <span aria-hidden="true" className="text-[13px] opacity-70">📁</span>
                     <span className="truncate">{project.name}</span>
                   </Link>
                 ))}
@@ -157,8 +162,8 @@ export function AppShell({
               </div>
             </div>
 
-            <div className="mt-8 hidden rounded-lg border border-stone-200 bg-[#f7f6f3] p-3 lg:block">
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
+            <div className="mt-8 hidden rounded-md border border-stone-200 bg-[#f7f6f3] p-3 lg:block">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">
                 {t("signedIn")}
               </p>
               <p className="mt-2 truncate text-sm font-medium text-stone-950">
@@ -218,8 +223,11 @@ export function AppShell({
               key={item.href}
               href={item.href}
               prefetch={false}
-              className="min-w-20 flex-1 rounded-md px-2 py-2 text-center text-xs font-semibold text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
+              className="flex min-w-16 flex-1 flex-col items-center gap-0.5 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >
+              <span aria-hidden="true" className="text-base leading-none">
+                {item.icon}
+              </span>
               {t(item.key)}
             </Link>
           ))}
