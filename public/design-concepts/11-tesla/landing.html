@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Tesla 스타일 · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:"Inter","Pretendard","Helvetica Neue",system-ui,sans-serif; }
+  .section { scroll-snap-align: start; }
+  .wrap { scroll-snap-type: y proximity; }
+  .btn { backdrop-filter: blur(6px); }
+</style>
+</head>
+<body class="bg-white text-[#171a20]">
+
+<!-- NAV -->
+<header class="fixed inset-x-0 top-0 z-50">
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 text-sm font-medium">
+    <span class="text-lg font-semibold tracking-[0.2em]">QKIKI</span>
+    <div class="hidden gap-8 md:flex">
+      <a href="#compare" class="hover:opacity-60">비교</a>
+      <a href="#chain" class="hover:opacity-60">검토 체인</a>
+      <a href="#branch" class="hover:opacity-60">분기</a>
+      <a href="workbench.html" class="hover:opacity-60">워크벤치</a>
+    </div>
+    <a href="#" class="rounded bg-black/5 px-3 py-1.5 hover:bg-black/10">메뉴</a>
+  </nav>
+</header>
+
+<div class="wrap h-screen overflow-y-auto">
+
+<!-- HERO 1 -->
+<section class="section relative flex h-screen flex-col items-center justify-between overflow-hidden">
+  <img src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1600&q=80" class="absolute inset-0 h-full w-full object-cover" alt="" />
+  <div class="absolute inset-0 bg-black/20"></div>
+  <div class="relative z-10 pt-28 text-center">
+    <h1 class="text-5xl font-semibold tracking-tight text-white sm:text-6xl">Qkiki</h1>
+    <p class="mt-2 text-lg text-white/90">여러 AI를 하나의 검토 체인으로</p>
+    <a href="#" class="mt-1 inline-block text-sm text-white/80 underline">무료 체험 알아보기</a>
+  </div>
+  <div class="relative z-10 mb-16 flex w-full max-w-md flex-col gap-3 px-6 sm:flex-row">
+    <a href="#" class="btn flex-1 rounded bg-white/90 py-3 text-center text-sm font-semibold tracking-wide text-[#171a20] hover:bg-white">무료로 시작</a>
+    <a href="workbench.html" class="btn flex-1 rounded bg-black/40 py-3 text-center text-sm font-semibold tracking-wide text-white hover:bg-black/55">워크벤치 보기</a>
+  </div>
+</section>
+
+<!-- HERO 2 (compare) -->
+<section id="compare" class="section relative flex h-screen flex-col items-center justify-between overflow-hidden bg-[#f4f4f4]">
+  <div class="pt-28 text-center">
+    <h2 class="text-5xl font-semibold tracking-tight sm:text-6xl">병렬 비교</h2>
+    <p class="mt-2 text-lg text-[#171a20]/70">한 작업을 여러 모델에 · 나란히 비교</p>
+  </div>
+  <div class="mx-auto grid w-full max-w-4xl grid-cols-2 gap-4 px-6 sm:grid-cols-4">
+    <div class="rounded-xl bg-white p-5 shadow-sm"><p class="text-xs font-bold text-emerald-600">GPT</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-emerald-100"></div><div class="h-1.5 w-3/4 rounded bg-emerald-100"></div></div></div>
+    <div class="rounded-xl bg-white p-5 shadow-sm"><p class="text-xs font-bold text-violet-600">Claude</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-violet-100"></div><div class="h-1.5 w-2/3 rounded bg-violet-100"></div></div></div>
+    <div class="rounded-xl bg-white p-5 shadow-sm"><p class="text-xs font-bold text-sky-600">Gemini</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-sky-100"></div><div class="h-1.5 w-4/5 rounded bg-sky-100"></div></div></div>
+    <div class="rounded-xl bg-white p-5 shadow-sm"><p class="text-xs font-bold text-orange-600">Grok</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-orange-100"></div><div class="h-1.5 w-1/2 rounded bg-orange-100"></div></div></div>
+  </div>
+  <div class="mb-16 flex gap-3">
+    <a href="#" class="rounded bg-[#171a20] px-12 py-3 text-sm font-semibold tracking-wide text-white hover:bg-black">자세히</a>
+  </div>
+</section>
+
+<!-- HERO 3 (chain) -->
+<section id="chain" class="section relative flex h-screen flex-col items-center justify-between overflow-hidden bg-[#171a20] text-white">
+  <div class="pt-28 text-center">
+    <h2 class="text-5xl font-semibold tracking-tight sm:text-6xl">검토 체인</h2>
+    <p class="mt-2 text-lg text-white/70">한 출력이 다음 단계의 입력으로</p>
+  </div>
+  <div class="mx-auto flex w-full max-w-4xl items-center justify-between gap-2 px-6 text-center text-sm">
+    <div class="flex-1 rounded-lg border border-white/15 py-5"><p class="text-xs text-white/50">01</p><p class="mt-1 font-semibold">GPT 초안</p></div>
+    <span class="text-white/40">→</span>
+    <div class="flex-1 rounded-lg border border-white/15 py-5"><p class="text-xs text-white/50">02</p><p class="mt-1 font-semibold">Grok 비판</p></div>
+    <span class="text-white/40">→</span>
+    <div class="flex-1 rounded-lg border border-white/15 py-5"><p class="text-xs text-white/50">03</p><p class="mt-1 font-semibold">Gemini 개선</p></div>
+    <span class="text-white/40">→</span>
+    <div class="flex-1 rounded-lg border border-white/40 bg-white/10 py-5"><p class="text-xs text-white/50">04</p><p class="mt-1 font-semibold">Claude 최종</p></div>
+  </div>
+  <div class="mb-16 flex gap-3">
+    <a href="#" class="rounded bg-white px-12 py-3 text-sm font-semibold tracking-wide text-[#171a20] hover:bg-stone-200">자세히</a>
+  </div>
+</section>
+
+<!-- HERO 4 (branch + CTA) -->
+<section id="branch" class="section relative flex h-screen flex-col items-center justify-center gap-8 overflow-hidden bg-white text-center">
+  <div>
+    <h2 class="text-5xl font-semibold tracking-tight sm:text-6xl">모든 결과가<br/>새로운 시작점.</h2>
+    <p class="mt-4 text-lg text-[#171a20]/70">분기 · 프로젝트 · 프리셋 · 파일 첨부</p>
+  </div>
+  <div class="grid w-full max-w-3xl grid-cols-2 gap-4 px-6 sm:grid-cols-4 text-sm">
+    <div class="rounded-lg bg-[#f4f4f4] py-6 font-medium">분기</div>
+    <div class="rounded-lg bg-[#f4f4f4] py-6 font-medium">프로젝트</div>
+    <div class="rounded-lg bg-[#f4f4f4] py-6 font-medium">프리셋</div>
+    <div class="rounded-lg bg-[#f4f4f4] py-6 font-medium">파일 첨부</div>
+  </div>
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+    <a href="#" class="rounded bg-[#171a20] px-10 py-3.5 text-sm font-semibold tracking-wide text-white hover:bg-black">무료로 시작하기</a>
+    <a href="../tesla-cinematic/index.html" class="rounded bg-gradient-to-r from-[#5dd3d6] to-[#8b8fc8] px-10 py-3.5 text-sm font-semibold tracking-wide text-[#0a0c10] hover:opacity-90">시네마틱 팔레트 10종 ★ →</a>
+    <a href="../tesla-workbench/index.html" class="rounded border border-[#171a20] px-10 py-3.5 text-sm font-semibold tracking-wide text-[#171a20] hover:bg-[#171a20] hover:text-white">컬러 워크벤치 20종 →</a>
+  </div>
+  <p class="absolute bottom-6 text-xs text-[#171a20]/40">컨셉 11 · Tesla 스타일 — 예시용 목업 · 실제 제품 미적용</p>
+</section>
+
+</div>
+</body>
+</html>

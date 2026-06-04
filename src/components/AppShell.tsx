@@ -55,7 +55,7 @@ export function AppShell({
   const hasMoreRecentSessions = recentSessions.length > 10;
 
   return (
-    <div className="min-h-screen bg-[#f7f8f3] text-stone-950">
+    <div className="min-h-screen bg-[#ffffff] text-stone-950">
       <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col lg:flex-row">
         <div
           className={`relative transition-[width] duration-200 lg:flex-none ${
@@ -87,7 +87,7 @@ export function AppShell({
                   <Link
                     href={item.href}
                     prefetch={false}
-                    className="block rounded-md px-3 py-2 text-sm font-medium text-stone-700 hover:bg-[#e9f7ef] hover:text-stone-950"
+                    className="block rounded-md px-3 py-2 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
                     {t(item.key)}
                   </Link>
@@ -141,7 +141,7 @@ export function AppShell({
                     key={project.id}
                     href={`/app/projects/${project.id}`}
                     prefetch={false}
-                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-stone-700 hover:bg-[#e9f7ef] hover:text-stone-950"
+                    className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
                     <span className="text-stone-400">[ ]</span>
                     <span className="truncate">{project.name}</span>
@@ -157,7 +157,7 @@ export function AppShell({
               </div>
             </div>
 
-            <div className="mt-8 hidden rounded-lg border border-stone-200 bg-[#fbfcf8] p-3 lg:block">
+            <div className="mt-8 hidden rounded-lg border border-stone-200 bg-[#f7f6f3] p-3 lg:block">
               <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                 {t("signedIn")}
               </p>
@@ -218,7 +218,7 @@ export function AppShell({
               key={item.href}
               href={item.href}
               prefetch={false}
-              className="min-w-20 flex-1 rounded-md px-2 py-2 text-center text-xs font-semibold text-stone-700 hover:bg-[#e9f7ef] hover:text-stone-950"
+              className="min-w-20 flex-1 rounded-md px-2 py-2 text-center text-xs font-semibold text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >
               {t(item.key)}
             </Link>

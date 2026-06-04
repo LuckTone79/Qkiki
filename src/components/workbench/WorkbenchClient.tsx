@@ -3806,7 +3806,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
       ) : null}
 
-      <div className="sticky top-[73px] z-30 -mx-4 bg-[#f7f8f3]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 xl:hidden">
+      <div className="sticky top-[73px] z-30 -mx-4 bg-[#ffffff]/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 xl:hidden">
         <div className="flex gap-2 overflow-x-auto">
           {mobilePanels.map((panel) => {
             const active = activeMobilePanel === panel.id;
@@ -3836,7 +3836,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       >
         {mode === "parallel" ? (
           <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
-            <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
+            <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
               <h2 className="text-sm font-semibold text-stone-950">
                 {t("modelSelection")}
               </h2>
@@ -3911,7 +3911,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   <option value="parallel">{t("parallelCompare")}</option>
                   <option value="sequential">{t("sequentialReviewChain")}</option>
                 </select>
-                <div className="inline-flex rounded-md border border-stone-200 bg-[#f7f8f3] p-1">
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
                   <button
                     type="button"
                     onClick={() => setBuilderExperience("simple")}
@@ -3942,7 +3942,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               value={originalInput}
               onChange={(event) => setOriginalInput(event.target.value)}
               rows={6}
-              className="mt-4 w-full rounded-md border border-stone-300 bg-[#fbfcf8] px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
+              className="mt-4 w-full rounded-md border border-stone-300 bg-[#f7f6f3] px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
               placeholder={t("taskTextareaPlaceholder")}
             />
             {builderExperience === "advanced" ? (
@@ -3955,7 +3955,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   placeholder={t("additionalInstructionPlaceholder")}
                 />
 
-                <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#fbfcf8] p-3">
+                <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#f7f6f3] p-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-stone-900">
@@ -4014,7 +4014,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </div>
               </>
             ) : (
-              <div className="mt-3 rounded-md border border-stone-200 bg-[#fbfcf8] px-3 py-3 text-xs leading-5 text-stone-600">
+              <div className="mt-3 rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-3 text-xs leading-5 text-stone-600">
                 {language === "ko"
                   ? "간단 모드에서는 질문과 실행에 집중합니다. 추가 지시, 첨부, 반복 설정은 고급 모드에서 이어서 조정할 수 있습니다."
                   : "Simple mode keeps the focus on your question and the run button. Add instructions, attachments, and repeat settings in advanced mode."}
@@ -4086,7 +4086,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
           {mode === "sequential" ? (
             <div
-              className={`rounded-lg border border-stone-200 bg-[#fbfcf8] p-4 ${mobilePanelClass(
+              className={`rounded-lg border border-stone-200 bg-[#f7f6f3] p-4 ${mobilePanelClass(
                 "workflow",
               )}`}
             >
@@ -4153,7 +4153,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 {plannedSequentialSteps.map((step, index) => (
                   <div
                     key={`plan-step-${step.uid}-${index + 1}`}
-                    className="rounded-md border border-stone-200 bg-[#fbfcf8] px-3 py-2"
+                    className="rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2"
                   >
                     <p className="text-xs font-semibold text-teal-700">
                       {language === "ko" ? `${index + 1}단계` : `Step ${index + 1}`}
@@ -4593,7 +4593,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   return (
                   <article
                     key={entry.key}
-                    className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-3"
+                    className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -4700,13 +4700,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </div>
               </div>
             ) : (
-              <p className="mt-4 rounded-lg border border-dashed border-stone-200 bg-[#fbfcf8] px-4 py-6 text-sm text-stone-500">
+              <p className="mt-4 rounded-lg border border-dashed border-stone-200 bg-[#f7f6f3] px-4 py-6 text-sm text-stone-500">
                 {uiText.noProgress}
               </p>
             )}
           </div>
 
-          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
+          <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
             <h2 className="text-base font-semibold text-stone-950">
               {uiText.resultOverview}
             </h2>
@@ -4786,7 +4786,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               {parallelComparisonCandidates.map((result) => (
                 <span
                   key={result.id}
-                  className="rounded-full border border-stone-200 bg-[#f7f8f3] px-3 py-1 text-xs font-medium text-stone-700"
+                  className="rounded-full border border-stone-200 bg-[#ffffff] px-3 py-1 text-xs font-medium text-stone-700"
                 >
                   {result.provider}/{getModelDisplayName(
                     result.provider,
@@ -4797,7 +4797,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-stone-200 bg-[#fbfcf8] p-4">
+            <div className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
               {parallelComparison.status === "loading" ? (
                 <p className="flex items-center gap-2 text-sm leading-6 text-stone-700">
                   <span
@@ -4842,7 +4842,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </span>
               ) : null}
               {results.length ? (
-                <div className="inline-flex rounded-md border border-stone-200 bg-[#f7f8f3] p-1">
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
                   <button
                     type="button"
                     onClick={collapseAllResults}
@@ -4865,7 +4865,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 <span className="text-xs font-medium text-stone-500">
                   {uiText.resultLayout}
                 </span>
-                <div className="inline-flex rounded-md border border-stone-200 bg-[#f7f8f3] p-1">
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
                   <button
                     type="button"
                     onClick={() => setResultLayout("single")}

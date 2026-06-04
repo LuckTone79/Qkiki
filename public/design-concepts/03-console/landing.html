@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Console (다크 / 개발자) · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: "Inter","Pretendard",system-ui,sans-serif; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, "SF Mono", monospace; }
+  .grid-bg { background-image: linear-gradient(#ffffff0a 1px,transparent 1px), linear-gradient(90deg,#ffffff0a 1px,transparent 1px); background-size: 44px 44px; }
+  .glow { box-shadow: 0 0 0 1px #ffffff12, 0 30px 80px -30px #14e0a533; }
+  .text-glow { text-shadow: 0 0 24px #14e0a566; }
+</style>
+</head>
+<body class="bg-[#0a0c10] text-[#e6e8eb]">
+
+<!-- NAV -->
+<header class="sticky top-0 z-50 border-b border-white/10 bg-[#0a0c10]/80 backdrop-blur">
+  <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 text-sm">
+    <div class="flex items-center gap-2">
+      <span class="flex h-6 w-6 items-center justify-center rounded bg-[#14e0a5] text-xs font-bold text-black">Q</span>
+      <span class="font-semibold">Qkiki</span>
+      <span class="mono ml-2 rounded border border-white/10 px-1.5 py-0.5 text-[10px] text-white/50">v1.15</span>
+    </div>
+    <div class="hidden gap-7 text-white/60 md:flex">
+      <a href="#compare" class="hover:text-white">compare</a>
+      <a href="#chain" class="hover:text-white">chain</a>
+      <a href="#branch" class="hover:text-white">branch</a>
+      <a href="workbench.html" class="hover:text-white">workbench</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="#" class="text-white/60 hover:text-white">로그인</a>
+      <a href="#" class="rounded-md bg-[#14e0a5] px-3.5 py-1.5 font-medium text-black hover:bg-[#0fc792]">시작 →</a>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="grid-bg relative border-b border-white/10">
+  <div class="mx-auto max-w-6xl px-5 py-24">
+    <div class="mono inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-[#14e0a5]">
+      <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-[#14e0a5]"></span> GPT · Claude · Gemini · Grok 연결됨
+    </div>
+    <h1 class="mt-7 max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight sm:text-7xl">
+      여러 모델을 <span class="text-[#14e0a5] text-glow">한 파이프라인</span>으로<br/>오케스트레이션.
+    </h1>
+    <p class="mt-6 max-w-2xl text-lg leading-8 text-white/60">
+      하나의 작업을 여러 모델에 동시 실행하고, 출력을 다음 단계로 라우팅하고,
+      모든 결과 카드를 새 분기의 출발점으로 만드세요. 챗봇이 아닌 작업대입니다.
+    </p>
+    <div class="mt-9 flex flex-wrap gap-3">
+      <a href="#" class="rounded-md bg-[#14e0a5] px-6 py-3 text-sm font-semibold text-black hover:bg-[#0fc792]">무료로 시작</a>
+      <a href="workbench.html" class="rounded-md border border-white/15 px-6 py-3 text-sm font-medium hover:bg-white/5">워크벤치 보기</a>
+    </div>
+
+    <!-- terminal-ish preview -->
+    <div class="glow mt-16 overflow-hidden rounded-xl border border-white/10 bg-[#0d1016]">
+      <div class="flex items-center gap-2 border-b border-white/10 px-4 py-2.5">
+        <span class="h-2.5 w-2.5 rounded-full bg-white/20"></span><span class="h-2.5 w-2.5 rounded-full bg-white/20"></span><span class="h-2.5 w-2.5 rounded-full bg-white/20"></span>
+        <span class="mono ml-2 text-xs text-white/40">run — parallel-compare</span>
+      </div>
+      <div class="mono grid gap-px bg-white/5 p-px text-[13px] sm:grid-cols-3">
+        <div class="bg-[#0d1016] p-4"><p class="text-[#14e0a5]">▌GPT-5.5 <span class="text-white/30">200 OK 1.2s</span></p><p class="mt-2 text-white/60">설득형·친근형·전문가형 카피 초안…</p></div>
+        <div class="bg-[#0d1016] p-4"><p class="text-[#a78bfa]">▌Claude-4.7 <span class="text-white/30">200 OK 1.6s</span></p><p class="mt-2 text-white/60">톤별 타깃·맥락 명시 출력…</p></div>
+        <div class="bg-[#0d1016] p-4"><p class="text-[#60a5fa]">▌Gemini-3.1 <span class="text-white/30">… streaming</span></p><p class="mt-2 text-white/40">▍</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="compare" class="mx-auto max-w-6xl px-5 py-24">
+  <div class="grid gap-12 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+    <div>
+      <p class="mono text-xs uppercase tracking-widest text-[#14e0a5]">// parallel compare</p>
+      <h2 class="mt-3 text-4xl font-semibold tracking-tight">한 번에, 나란히.</h2>
+      <p class="mt-4 text-lg leading-8 text-white/60">탭 4개에 같은 프롬프트를 4번 붙여넣지 마세요. 한 작업을 여러 모델에 보내고 결과를 한 화면에서 비교합니다.</p>
+    </div>
+    <div class="mono grid grid-cols-2 gap-3 text-xs">
+      <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4"><p class="text-[#14e0a5]">gpt-5.5</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#14e0a5]/30"></div><div class="h-1.5 w-4/5 rounded bg-[#14e0a5]/20"></div><div class="h-1.5 w-3/5 rounded bg-[#14e0a5]/20"></div></div></div>
+      <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4"><p class="text-[#a78bfa]">claude-4.7</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#a78bfa]/30"></div><div class="h-1.5 w-3/4 rounded bg-[#a78bfa]/20"></div></div></div>
+      <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4"><p class="text-[#60a5fa]">gemini-3.1</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#60a5fa]/30"></div><div class="h-1.5 w-5/6 rounded bg-[#60a5fa]/20"></div><div class="h-1.5 w-1/2 rounded bg-[#60a5fa]/20"></div></div></div>
+      <div class="rounded-lg border border-white/10 bg-white/[0.03] p-4"><p class="text-[#fb923c]">grok-4.3</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#fb923c]/30"></div><div class="h-1.5 w-2/3 rounded bg-[#fb923c]/20"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAIN -->
+<section id="chain" class="border-y border-white/10 bg-[#0d1016]">
+  <div class="mx-auto max-w-6xl px-5 py-24">
+    <p class="mono text-xs uppercase tracking-widest text-[#14e0a5]">// sequential review chain</p>
+    <h2 class="mt-3 max-w-2xl text-4xl font-semibold tracking-tight">출력을 다음 단계로 라우팅.</h2>
+    <div class="mono mt-12 flex flex-col gap-3 sm:flex-row sm:items-stretch">
+      <div class="flex-1 rounded-lg border border-white/10 bg-white/[0.03] p-5"><p class="text-[#14e0a5]">step.1 gpt</p><p class="mt-2 text-sm text-white/55">draft()</p></div>
+      <div class="flex items-center justify-center text-white/30">─►</div>
+      <div class="flex-1 rounded-lg border border-white/10 bg-white/[0.03] p-5"><p class="text-[#fb923c]">step.2 grok</p><p class="mt-2 text-sm text-white/55">critique()</p></div>
+      <div class="flex items-center justify-center text-white/30">─►</div>
+      <div class="flex-1 rounded-lg border border-white/10 bg-white/[0.03] p-5"><p class="text-[#60a5fa]">step.3 gemini</p><p class="mt-2 text-sm text-white/55">improve()</p></div>
+      <div class="flex items-center justify-center text-white/30">─►</div>
+      <div class="flex-1 rounded-lg border border-[#14e0a5]/40 bg-[#14e0a5]/10 p-5"><p class="text-[#14e0a5]">step.4 claude</p><p class="mt-2 text-sm text-white/70">finalize()</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE GRID -->
+<section id="branch" class="mx-auto max-w-6xl px-5 py-24">
+  <div class="grid gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 sm:grid-cols-3">
+    <div class="bg-[#0a0c10] p-7"><p class="mono text-[#14e0a5]">branch()</p><h3 class="mt-3 text-lg font-semibold">분기 & 후속</h3><p class="mt-2 text-sm text-white/55">모든 결과 카드를 다른 모델로 비판·개선·요약·팩트체크.</p></div>
+    <div class="bg-[#0a0c10] p-7"><p class="mono text-[#14e0a5]">project{}</p><h3 class="mt-3 text-lg font-semibold">프로젝트 폴더</h3><p class="mt-2 text-sm text-white/55">공유 노트와 최근 결과가 모든 실행에 함께 전달.</p></div>
+    <div class="bg-[#0a0c10] p-7"><p class="mono text-[#14e0a5]">preset.load()</p><h3 class="mt-3 text-lg font-semibold">재사용 프리셋</h3><p class="mt-2 text-sm text-white/55">검토 체인을 저장하고 언제든 다시 불러오기.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="grid-bg border-t border-white/10">
+  <div class="mx-auto max-w-3xl px-5 py-24 text-center">
+    <h2 class="text-4xl font-semibold tracking-tight sm:text-5xl">파이프라인을 직접 짜보세요.</h2>
+    <p class="mt-4 text-white/60">카드 등록 없이 브라우저에서 바로 체험.</p>
+    <a href="#" class="mono mt-8 inline-block rounded-md bg-[#14e0a5] px-7 py-3.5 font-semibold text-black hover:bg-[#0fc792]">$ qkiki start</a>
+  </div>
+</section>
+
+<footer class="mono border-t border-white/10 px-5 py-8 text-center text-xs text-white/35">
+  컨셉 시안 03 · Console (다크 / 개발자) — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>

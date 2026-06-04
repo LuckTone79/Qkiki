@@ -139,7 +139,7 @@ export function SharedSessionView({
           {language === "ko" ? "입력" : "Input"}
         </h2>
         <div className="mt-4 space-y-4">
-          <div className="rounded-xl border border-stone-200 bg-[#fbfcf8] p-4">
+          <div className="rounded-xl border border-stone-200 bg-[#f7f6f3] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               {language === "ko" ? "원본 입력" : "Original input"}
             </p>
@@ -148,7 +148,7 @@ export function SharedSessionView({
             </p>
           </div>
           {session.additionalInstruction ? (
-            <div className="rounded-xl border border-stone-200 bg-[#fbfcf8] p-4">
+            <div className="rounded-xl border border-stone-200 bg-[#f7f6f3] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
                 {language === "ko" ? "추가 지시" : "Additional instruction"}
               </p>
@@ -169,7 +169,7 @@ export function SharedSessionView({
             {session.workflowSteps.map((step) => (
               <article
                 key={step.id}
-                className="rounded-xl border border-stone-200 bg-[#fbfcf8] p-4"
+                className="rounded-xl border border-stone-200 bg-[#f7f6f3] p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-700">

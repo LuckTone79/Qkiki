@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Studio (에디토리얼) · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: "Inter","Pretendard",system-ui,sans-serif; color:#20231f; }
+  .serif { font-family: "Fraunces", Georgia, serif; }
+  .paper { background:#f7f8f3; }
+  .rule { background: repeating-linear-gradient(90deg,#20231f 0 6px, transparent 6px 12px); }
+</style>
+</head>
+<body class="paper">
+
+<!-- NAV -->
+<header class="border-b border-[#20231f]/10">
+  <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+    <a href="#" class="serif text-2xl font-semibold tracking-tight">Qkiki</a>
+    <div class="hidden items-center gap-8 text-sm text-[#20231f]/70 md:flex">
+      <a href="#how" class="hover:text-[#0f5c47]">작동 방식</a>
+      <a href="#features" class="hover:text-[#0f5c47]">기능</a>
+      <a href="workbench.html" class="hover:text-[#0f5c47]">워크벤치</a>
+      <a href="#" class="hover:text-[#0f5c47]">로그인</a>
+    </div>
+    <a href="#" class="rounded-full bg-[#0f5c47] px-4 py-2 text-sm font-medium text-[#f7f8f3] hover:bg-[#0b4636]">시작하기</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="mx-auto max-w-5xl px-6 pb-16 pt-20">
+  <p class="text-xs font-semibold uppercase tracking-[0.25em] text-[#0f5c47]">Qkiki Orchestration Workbench</p>
+  <h1 class="serif mt-6 max-w-4xl text-5xl font-semibold leading-[1.05] tracking-tight sm:text-7xl">
+    여러 AI 모델을<br/>하나의 <em class="italic">검토 체인</em>으로 엮다.
+  </h1>
+  <p class="mt-7 max-w-2xl text-lg leading-8 text-[#20231f]/70">
+    Qkiki는 하나의 작업을 여러 모델에 실행하고, 답변을 비교한 뒤, 각 결과를
+    다음 검토·비판·개선·요약의 출발점으로 이어가도록 만들어졌습니다.
+  </p>
+  <div class="mt-9 flex flex-wrap items-center gap-3">
+    <a href="#" class="rounded-full bg-[#20231f] px-6 py-3 text-sm font-medium text-[#f7f8f3] hover:bg-black">무료 체험 시작</a>
+    <a href="workbench.html" class="rounded-full border border-[#20231f]/20 px-6 py-3 text-sm font-medium hover:bg-white">워크벤치 둘러보기</a>
+  </div>
+
+  <!-- editorial 3-up -->
+  <div class="mt-16 grid gap-px overflow-hidden rounded-2xl border border-[#20231f]/10 bg-[#20231f]/10 sm:grid-cols-3">
+    <div class="bg-[#f7f8f3] p-6"><p class="serif text-3xl">01</p><p class="mt-3 font-medium">병렬 비교</p><p class="mt-1 text-sm text-[#20231f]/60">한 작업, 여러 모델, 나란한 결과 카드.</p></div>
+    <div class="bg-[#f7f8f3] p-6"><p class="serif text-3xl">02</p><p class="mt-3 font-medium">검토 체인</p><p class="mt-1 text-sm text-[#20231f]/60">한 출력이 다음 단계의 입력이 됩니다.</p></div>
+    <div class="bg-[#f7f8f3] p-6"><p class="serif text-3xl">03</p><p class="mt-3 font-medium">결과 분기</p><p class="mt-1 text-sm text-[#20231f]/60">모든 카드가 또 다른 흐름의 출발점.</p></div>
+  </div>
+</section>
+
+<!-- HOW (route example) -->
+<section id="how" class="border-y border-[#20231f]/10 bg-white">
+  <div class="mx-auto max-w-5xl px-6 py-20">
+    <div class="flex items-end justify-between">
+      <h2 class="serif text-4xl font-semibold tracking-tight sm:text-5xl">하나의 경로,<br/>네 개의 모델.</h2>
+      <p class="hidden max-w-xs text-sm text-[#20231f]/60 md:block">초안 → 비판 → 개선 → 정리. 각 단계가 이전 단계의 맥락을 그대로 이어받습니다.</p>
+    </div>
+    <div class="mt-12 space-y-3">
+      <div class="flex items-center gap-5 rounded-xl border border-[#20231f]/10 bg-[#f7f8f3] px-5 py-4"><span class="serif w-10 text-2xl text-[#0f5c47]">①</span><span class="w-24 text-xs font-bold uppercase tracking-wide text-[#0f5c47]">GPT</span><span class="text-[15px]">사용자 작업으로 초안을 작성합니다.</span></div>
+      <div class="flex items-center gap-5 rounded-xl border border-[#20231f]/10 bg-[#f7f8f3] px-5 py-4"><span class="serif w-10 text-2xl text-[#0f5c47]">②</span><span class="w-24 text-xs font-bold uppercase tracking-wide text-[#0f5c47]">Grok</span><span class="text-[15px]">초안의 결함과 빈틈을 비판합니다.</span></div>
+      <div class="flex items-center gap-5 rounded-xl border border-[#20231f]/10 bg-[#f7f8f3] px-5 py-4"><span class="serif w-10 text-2xl text-[#0f5c47]">③</span><span class="w-24 text-xs font-bold uppercase tracking-wide text-[#0f5c47]">Gemini</span><span class="text-[15px]">비판을 반영해 내용을 개선합니다.</span></div>
+      <div class="flex items-center gap-5 rounded-xl border border-[#0f5c47]/30 bg-[#0f5c47]/5 px-5 py-4"><span class="serif w-10 text-2xl text-[#0f5c47]">④</span><span class="w-24 text-xs font-bold uppercase tracking-wide text-[#0f5c47]">Claude</span><span class="text-[15px] font-medium">최종 답변으로 정리합니다.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="mx-auto max-w-5xl px-6 py-20">
+  <h2 class="serif text-4xl font-semibold tracking-tight">챗봇이 아닌, 작업대.</h2>
+  <div class="mt-12 grid gap-x-12 gap-y-10 sm:grid-cols-2">
+    <div class="border-t border-[#20231f] pt-5"><h3 class="text-lg font-semibold">분기 & 후속</h3><p class="mt-2 text-[15px] leading-7 text-[#20231f]/65">모든 결과 카드를 다른 모델로 비판·개선·요약·팩트체크하여 답변의 나무를 키웁니다.</p></div>
+    <div class="border-t border-[#20231f] pt-5"><h3 class="text-lg font-semibold">프로젝트 폴더</h3><p class="mt-2 text-[15px] leading-7 text-[#20231f]/65">연관 세션을 하나로 묶고 공유 노트와 최근 결과를 모든 실행에 함께 전달합니다.</p></div>
+    <div class="border-t border-[#20231f] pt-5"><h3 class="text-lg font-semibold">재사용 프리셋</h3><p class="mt-2 text-[15px] leading-7 text-[#20231f]/65">좋은 검토 체인을 프리셋으로 저장하고 언제든 동일한 워크플로를 불러옵니다.</p></div>
+    <div class="border-t border-[#20231f] pt-5"><h3 class="text-lg font-semibold">파일 첨부</h3><p class="mt-2 text-[15px] leading-7 text-[#20231f]/65">텍스트·이미지·PDF를 첨부하면 서버에서 처리되어 모든 모델 프롬프트에 주입됩니다.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-[#0f5c47] text-[#f7f8f3]">
+  <div class="mx-auto flex max-w-5xl flex-col items-start gap-6 px-6 py-20 md:flex-row md:items-center md:justify-between">
+    <h2 class="serif max-w-md text-4xl font-semibold leading-tight">더 나은 답은<br/>한 모델에서 나오지 않습니다.</h2>
+    <a href="#" class="rounded-full bg-[#f7f8f3] px-7 py-3.5 text-sm font-semibold text-[#0f5c47] hover:bg-white">지금 시작하기 →</a>
+  </div>
+</section>
+
+<footer class="mx-auto max-w-5xl px-6 py-10 text-xs text-[#20231f]/50">
+  컨셉 시안 02 · Studio (에디토리얼) — 예시용 목업 · 실제 제품에는 미적용
+</footer>
+</body>
+</html>

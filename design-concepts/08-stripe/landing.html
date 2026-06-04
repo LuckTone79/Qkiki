@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Stripe 스타일 · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:"Inter","Pretendard",system-ui,sans-serif; color:#0a2540; }
+  .angled { background: linear-gradient(150deg,#a960ee 0%,#7b61ff 25%,#5b8def 50%,#21d4fd 100%); clip-path: polygon(0 0,100% 0,100% 78%,0 100%); }
+  .grad-text { background:linear-gradient(90deg,#7a4ddb,#0aa5ff); -webkit-background-clip:text;background-clip:text;color:transparent; }
+  .pill { box-shadow: 0 2px 5px -1px #0a254033, 0 1px 3px -1px #0a254022; }
+</style>
+</head>
+<body class="bg-white">
+
+<!-- angled gradient hero bg -->
+<div class="angled absolute inset-x-0 top-0 h-[520px] -z-0"></div>
+
+<!-- NAV -->
+<header class="relative z-10">
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 text-sm font-medium text-white">
+    <span class="text-xl font-bold tracking-tight">Qkiki</span>
+    <div class="hidden gap-7 md:flex">
+      <a href="#compare" class="hover:opacity-80">제품</a>
+      <a href="#chain" class="hover:opacity-80">솔루션</a>
+      <a href="#branch" class="hover:opacity-80">개발자</a>
+      <a href="workbench.html" class="hover:opacity-80">워크벤치</a>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="#" class="hover:opacity-80">로그인 ›</a>
+      <a href="#" class="rounded-full bg-white px-4 py-1.5 font-semibold text-[#635bff] pill">시작하기 ›</a>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-5 pb-16 pt-12 md:grid-cols-2">
+  <div class="text-white">
+    <h1 class="text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl">여러 AI를 위한<br/>오케스트레이션 인프라</h1>
+    <p class="mt-6 max-w-lg text-lg leading-8 text-white/85">
+      하나의 작업을 여러 모델에 실행하고, 출력을 다음 단계로 라우팅하고,
+      모든 결과를 구조화된 검토 흐름으로 관리하세요.
+    </p>
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a href="#" class="rounded-full bg-[#0a2540] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0a2540]/90">지금 시작 ›</a>
+      <a href="workbench.html" class="rounded-full bg-white/15 px-6 py-3 text-sm font-semibold text-white ring-1 ring-white/30 hover:bg-white/25">워크벤치 보기</a>
+    </div>
+  </div>
+  <!-- code/dashboard preview -->
+  <div class="rounded-2xl bg-[#0a2540] p-2 shadow-2xl">
+    <div class="rounded-xl bg-[#0e2a44] p-5 font-mono text-[13px]">
+      <div class="flex gap-1.5 pb-3"><span class="h-2.5 w-2.5 rounded-full bg-white/20"></span><span class="h-2.5 w-2.5 rounded-full bg-white/20"></span><span class="h-2.5 w-2.5 rounded-full bg-white/20"></span></div>
+      <p class="text-[#21d4fd]">POST <span class="text-white/60">/v1/runs</span></p>
+      <pre class="mt-2 leading-6 text-white/80">{
+  <span class="text-[#a960ee]">"mode"</span>: <span class="text-[#7ee787]">"parallel"</span>,
+  <span class="text-[#a960ee]">"models"</span>: [<span class="text-[#7ee787]">"gpt-5.5"</span>,<span class="text-[#7ee787]">"claude-4.7"</span>,
+            <span class="text-[#7ee787]">"gemini-3.1"</span>],
+  <span class="text-[#a960ee]">"input"</span>: <span class="text-[#7ee787]">"3가지 톤 카피 작성"</span>
+}</pre>
+      <p class="mt-3 text-[#7ee787]">← 200 OK · 3 results · 1.4s</p>
+    </div>
+  </div>
+</section>
+
+<!-- logo strip -->
+<section class="relative z-10 mx-auto max-w-6xl px-5 py-10">
+  <p class="text-center text-xs font-semibold uppercase tracking-widest text-[#425466]">통합된 모델 공급자</p>
+  <div class="mt-5 flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-lg font-bold text-[#425466]/70">
+    <span>OpenAI GPT</span><span>Anthropic Claude</span><span>Google Gemini</span><span>xAI Grok</span>
+  </div>
+</section>
+
+<!-- FEATURE: compare -->
+<section id="compare" class="mx-auto max-w-6xl px-5 py-16">
+  <div class="grid items-center gap-12 md:grid-cols-2">
+    <div>
+      <p class="text-sm font-bold grad-text">병렬 비교</p>
+      <h2 class="mt-2 text-4xl font-bold tracking-tight">한 번의 호출, 모든 모델</h2>
+      <p class="mt-4 text-lg leading-8 text-[#425466]">하나의 작업을 여러 모델에 동시에 보내고, 토큰·지연·비용 메타와 함께 결과 카드로 나란히 비교하세요.</p>
+      <ul class="mt-6 space-y-2.5 text-[15px] text-[#0a2540]">
+        <li class="flex gap-2"><span class="grad-text font-bold">→</span> 답변을 한 화면에서 비교</li>
+        <li class="flex gap-2"><span class="grad-text font-bold">→</span> 실패한 모델만 별도 카드로 격리</li>
+        <li class="flex gap-2"><span class="grad-text font-bold">→</span> 서버 전용 호출 · 데이터 소유권 보장</li>
+      </ul>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#635bff]">GPT</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#635bff]/20"></div><div class="h-1.5 w-4/5 rounded bg-[#635bff]/15"></div></div></div>
+      <div class="rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#a960ee]">Claude</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#a960ee]/20"></div><div class="h-1.5 w-3/4 rounded bg-[#a960ee]/15"></div></div></div>
+      <div class="rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#0aa5ff]">Gemini</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#0aa5ff]/20"></div><div class="h-1.5 w-5/6 rounded bg-[#0aa5ff]/15"></div></div></div>
+      <div class="rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#21d4fd]">Grok</p><div class="mt-3 space-y-1.5"><div class="h-1.5 w-full rounded bg-[#21d4fd]/20"></div><div class="h-1.5 w-2/3 rounded bg-[#21d4fd]/15"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAIN -->
+<section id="chain" class="bg-[#f6f9fc]">
+  <div class="mx-auto max-w-6xl px-5 py-16">
+    <p class="text-sm font-bold grad-text">순차 검토 체인</p>
+    <h2 class="mt-2 text-4xl font-bold tracking-tight">출력을 다음 단계로 라우팅</h2>
+    <div class="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="flex-1 rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#635bff]">01 · GPT</p><p class="mt-1.5 text-sm text-[#425466]">초안 작성</p></div>
+      <span class="text-center text-[#635bff]">→</span>
+      <div class="flex-1 rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#635bff]">02 · Grok</p><p class="mt-1.5 text-sm text-[#425466]">결함 비판</p></div>
+      <span class="text-center text-[#635bff]">→</span>
+      <div class="flex-1 rounded-xl border border-[#e3e8ee] bg-white p-5 pill"><p class="text-xs font-bold text-[#635bff]">03 · Gemini</p><p class="mt-1.5 text-sm text-[#425466]">개선 반영</p></div>
+      <span class="text-center text-[#635bff]">→</span>
+      <div class="flex-1 rounded-xl bg-[#635bff] p-5 pill"><p class="text-xs font-bold text-white">04 · Claude</p><p class="mt-1.5 text-sm text-white/85">최종 정리</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE GRID -->
+<section id="branch" class="mx-auto max-w-6xl px-5 py-16">
+  <div class="grid gap-6 md:grid-cols-3">
+    <div><h3 class="text-lg font-bold">분기 & 후속</h3><p class="mt-2 text-[15px] leading-7 text-[#425466]">결과 카드를 다른 모델로 비판·개선·요약·팩트체크.</p></div>
+    <div><h3 class="text-lg font-bold">프로젝트 폴더</h3><p class="mt-2 text-[15px] leading-7 text-[#425466]">공유 노트와 최근 결과가 모든 실행에 함께 전달.</p></div>
+    <div><h3 class="text-lg font-bold">재사용 프리셋</h3><p class="mt-2 text-[15px] leading-7 text-[#425466]">검토 체인을 저장하고 언제든 다시 불러오기.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="relative overflow-hidden bg-[#0a2540] text-white">
+  <div class="mx-auto max-w-6xl px-5 py-20">
+    <h2 class="text-4xl font-bold tracking-tight">몇 분 안에 시작하세요</h2>
+    <p class="mt-3 text-white/70">카드 등록 없이 브라우저에서 바로 체험할 수 있습니다.</p>
+    <a href="#" class="mt-7 inline-block rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-[#635bff]">무료로 시작 ›</a>
+  </div>
+</section>
+
+<footer class="mx-auto max-w-6xl px-5 py-8 text-xs text-[#425466]">
+  컨셉 08 · Stripe 스타일 — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>

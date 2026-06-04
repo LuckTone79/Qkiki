@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Blueprint (엔터프라이즈) · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:"Inter","Pretendard",system-ui,sans-serif; color:#0f172a; }
+  .blueprint { background-color:#f8fafc; background-image: linear-gradient(#0f172a08 1px,transparent 1px), linear-gradient(90deg,#0f172a08 1px,transparent 1px); background-size: 32px 32px; }
+  .node { box-shadow: 0 1px 0 #0f172a0d, 0 8px 24px -12px #1e3a8a22; }
+</style>
+</head>
+<body class="bg-white">
+
+<!-- top utility bar -->
+<div class="bg-[#0f172a] text-white">
+  <div class="mx-auto flex max-w-6xl items-center justify-between px-5 py-1.5 text-xs">
+    <span class="text-white/70">엔터프라이즈급 멀티-AI 오케스트레이션 · SOC 친화 데이터 소유권</span>
+    <span class="text-white/50">EN / 한국어</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<header class="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
+  <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+    <div class="flex items-center gap-2">
+      <span class="flex h-7 w-7 items-center justify-center rounded bg-[#1e40af] text-sm font-bold text-white">Q</span>
+      <span class="text-lg font-bold tracking-tight">Qkiki</span>
+    </div>
+    <div class="hidden gap-8 text-sm font-medium text-slate-600 md:flex">
+      <a href="#workflow" class="hover:text-[#1e40af]">워크플로</a>
+      <a href="#features" class="hover:text-[#1e40af]">기능</a>
+      <a href="#security" class="hover:text-[#1e40af]">보안</a>
+      <a href="workbench.html" class="hover:text-[#1e40af]">워크벤치</a>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <a href="#" class="font-medium text-slate-700 hover:text-[#1e40af]">로그인</a>
+      <a href="#" class="rounded-md bg-[#1e40af] px-4 py-2 font-semibold text-white hover:bg-[#1a3590]">데모 시작</a>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="blueprint border-b border-slate-200">
+  <div class="mx-auto grid max-w-6xl items-center gap-10 px-5 py-20 md:grid-cols-[1.1fr_0.9fr]">
+    <div>
+      <p class="inline-flex items-center gap-2 rounded-full border border-[#1e40af]/20 bg-[#1e40af]/5 px-3 py-1 text-xs font-semibold text-[#1e40af]">멀티-AI 오케스트레이션 워크벤치</p>
+      <h1 class="mt-5 text-4xl font-bold leading-tight tracking-tight sm:text-6xl">
+        여러 AI 모델을<br/>하나의 <span class="text-[#1e40af]">검토 파이프라인</span>으로.
+      </h1>
+      <p class="mt-5 max-w-xl text-lg leading-8 text-slate-600">
+        하나의 작업을 여러 모델에 실행하고, 출력을 다음 단계로 라우팅하고, 모든 결과를
+        구조화된 검토·비판·개선 흐름으로 관리하세요. 모든 데이터는 사용자 소유로 격리됩니다.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a href="#" class="rounded-md bg-[#1e40af] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1a3590]">무료 체험 시작</a>
+        <a href="workbench.html" class="rounded-md border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">워크벤치 둘러보기</a>
+      </div>
+      <dl class="mt-10 grid max-w-md grid-cols-3 gap-4 text-center">
+        <div class="rounded-lg border border-slate-200 bg-white p-3"><dt class="text-2xl font-bold text-[#1e40af]">4</dt><dd class="text-xs text-slate-500">AI 공급자</dd></div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3"><dt class="text-2xl font-bold text-[#1e40af]">6</dt><dd class="text-xs text-slate-500">검토 액션</dd></div>
+        <div class="rounded-lg border border-slate-200 bg-white p-3"><dt class="text-2xl font-bold text-[#1e40af]">∞</dt><dd class="text-xs text-slate-500">분기 트리</dd></div>
+      </dl>
+    </div>
+
+    <!-- pipeline diagram -->
+    <div class="rounded-xl border border-slate-200 bg-white p-6 node">
+      <p class="text-xs font-bold uppercase tracking-widest text-slate-400">파이프라인 미리보기</p>
+      <div class="mt-4 space-y-0">
+        <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-md bg-[#1e40af] text-xs font-bold text-white">01</span><div class="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"><b>GPT</b> · 초안 작성</div></div>
+        <div class="ml-4 h-5 border-l-2 border-dashed border-slate-300"></div>
+        <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-md bg-[#1e40af] text-xs font-bold text-white">02</span><div class="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"><b>Grok</b> · 결함 비판</div></div>
+        <div class="ml-4 h-5 border-l-2 border-dashed border-slate-300"></div>
+        <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-md bg-[#1e40af] text-xs font-bold text-white">03</span><div class="flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm"><b>Gemini</b> · 개선 반영</div></div>
+        <div class="ml-4 h-5 border-l-2 border-dashed border-slate-300"></div>
+        <div class="flex items-center gap-3"><span class="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-600 text-xs font-bold text-white">04</span><div class="flex-1 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900"><b>Claude</b> · 최종 정리</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOW MODES -->
+<section id="workflow" class="mx-auto max-w-6xl px-5 py-20">
+  <h2 class="text-3xl font-bold tracking-tight">세 가지 워크플로</h2>
+  <p class="mt-2 text-slate-600">필요에 따라 비교·체인·분기를 조합하세요.</p>
+  <div class="mt-10 grid gap-6 md:grid-cols-3">
+    <div class="rounded-xl border border-slate-200 p-6 node"><div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e40af]/10 text-[#1e40af]">⇉</div><h3 class="mt-4 text-lg font-semibold">병렬 비교</h3><p class="mt-2 text-sm leading-7 text-slate-600">한 입력을 여러 모델에 동시에 보내 답변을 나란히 비교합니다.</p></div>
+    <div class="rounded-xl border border-slate-200 p-6 node"><div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e40af]/10 text-[#1e40af]">→</div><h3 class="mt-4 text-lg font-semibold">순차 검토 체인</h3><p class="mt-2 text-sm leading-7 text-slate-600">각 단계가 이전 출력·선택 결과·전체 결과를 소비하는 단계 리스트.</p></div>
+    <div class="rounded-xl border border-slate-200 p-6 node"><div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e40af]/10 text-[#1e40af]">⌥</div><h3 class="mt-4 text-lg font-semibold">후속 분기</h3><p class="mt-2 text-sm leading-7 text-slate-600">모든 결과 카드에서 자식 결과를 생성해 답변의 트리를 키웁니다.</p></div>
+  </div>
+</section>
+
+<!-- FEATURE TABLE -->
+<section id="features" class="border-y border-slate-200 bg-slate-50">
+  <div class="mx-auto max-w-6xl px-5 py-20">
+    <h2 class="text-3xl font-bold tracking-tight">Qkiki는 무엇이 다른가</h2>
+    <div class="mt-10 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-100 text-left text-slate-500">
+          <tr><th class="px-5 py-3 font-semibold">기능</th><th class="px-5 py-3 font-semibold">Qkiki</th><th class="px-5 py-3 font-semibold">일반 챗봇</th></tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr><td class="px-5 py-3 font-medium">다중 모델 동시 비교</td><td class="px-5 py-3 text-emerald-700">✓ 결과 카드로 한 화면</td><td class="px-5 py-3 text-slate-400">탭 4개 수동 비교</td></tr>
+          <tr><td class="px-5 py-3 font-medium">모델 간 출력 라우팅</td><td class="px-5 py-3 text-emerald-700">✓ 자동 체인</td><td class="px-5 py-3 text-slate-400">복붙, 맥락 유실</td></tr>
+          <tr><td class="px-5 py-3 font-medium">결과 분기·후속</td><td class="px-5 py-3 text-emerald-700">✓ 카드 단위 액션</td><td class="px-5 py-3 text-slate-400">최종 텍스트뿐</td></tr>
+          <tr><td class="px-5 py-3 font-medium">프로젝트 공유 맥락</td><td class="px-5 py-3 text-emerald-700">✓ 폴더·노트</td><td class="px-5 py-3 text-slate-400">대화별 격리</td></tr>
+          <tr><td class="px-5 py-3 font-medium">재사용 워크플로</td><td class="px-5 py-3 text-emerald-700">✓ 프리셋 저장</td><td class="px-5 py-3 text-slate-400">매번 재작성</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY -->
+<section id="security" class="mx-auto max-w-6xl px-5 py-20">
+  <div class="grid gap-8 md:grid-cols-2">
+    <div>
+      <h2 class="text-3xl font-bold tracking-tight">데이터는 사용자 소유</h2>
+      <p class="mt-4 text-lg leading-8 text-slate-600">모든 주요 엔티티는 사용자 소유권에 묶입니다. API 라우트는 클라이언트가 보낸 사용자 ID를 신뢰하지 않고, 보안 세션 쿠키에서 사용자를 도출해 소유권을 검증합니다.</p>
+    </div>
+    <ul class="space-y-3">
+      <li class="flex items-start gap-3 rounded-lg border border-slate-200 p-4"><span class="text-[#1e40af]">🔐</span><span class="text-sm text-slate-700"><b>서버 전용 모델 호출</b> — 모든 AI 요청은 서버 측에서만 실행됩니다.</span></li>
+      <li class="flex items-start gap-3 rounded-lg border border-slate-200 p-4"><span class="text-[#1e40af]">🔑</span><span class="text-sm text-slate-700"><b>암호화 자격증명</b> — 사용자별 공급자 키는 DB 암호화로 저장됩니다.</span></li>
+      <li class="flex items-start gap-3 rounded-lg border border-slate-200 p-4"><span class="text-[#1e40af]">🍪</span><span class="text-sm text-slate-700"><b>HttpOnly 세션</b> — 보안 쿠키 기반 이메일/비밀번호·Google 인증.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-[#0f172a] text-white">
+  <div class="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-5 py-16 md:flex-row md:items-center">
+    <div>
+      <h2 class="text-3xl font-bold tracking-tight">팀의 검토 파이프라인을 표준화하세요.</h2>
+      <p class="mt-2 text-white/60">설치 없이 브라우저에서 바로 시작.</p>
+    </div>
+    <a href="#" class="rounded-md bg-white px-7 py-3.5 text-sm font-semibold text-[#0f172a] hover:bg-slate-100">데모 시작하기 →</a>
+  </div>
+</section>
+
+<footer class="mx-auto max-w-6xl px-5 py-8 text-xs text-slate-400">
+  컨셉 시안 05 · Blueprint (엔터프라이즈) — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>

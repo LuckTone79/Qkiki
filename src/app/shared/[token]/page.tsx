@@ -22,7 +22,7 @@ export default async function SharedPage(props: SharedPageProps) {
     typeof searchParams.result === "string" ? searchParams.result : null;
 
   return (
-    <main className="min-h-screen bg-[#f7f8f3]">
+    <main className="min-h-screen bg-[#ffffff]">
       <SharedSessionView payload={payload} focusedResultId={focusedResultId} />
     </main>
   );

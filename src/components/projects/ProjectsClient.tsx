@@ -257,7 +257,7 @@ export function ProjectsClient() {
                     <Link
                       key={session.id}
                       href={`/app/workbench?session=${session.id}`}
-                      className="block rounded-md border border-stone-200 bg-[#fbfcf8] px-3 py-2 hover:bg-[#e9f7ef]"
+                      className="block rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2 hover:bg-[#f1f0ee]"
                     >
                       <span className="block truncate text-sm font-medium text-stone-800">
                         {session.title}

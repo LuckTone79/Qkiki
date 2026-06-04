@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Canvas (글래스/그라데이션) · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:"Inter","Pretendard",system-ui,sans-serif; }
+  .mesh {
+    background:
+      radial-gradient(50% 50% at 12% 18%, #5b8cff55, transparent 60%),
+      radial-gradient(45% 55% at 88% 12%, #b86bff55, transparent 60%),
+      radial-gradient(55% 55% at 75% 80%, #19d3a255, transparent 60%),
+      radial-gradient(45% 45% at 20% 85%, #ff9f6b44, transparent 60%),
+      #0b0a17;
+  }
+  .glass { background: rgba(255,255,255,.07); backdrop-filter: blur(22px); border:1px solid rgba(255,255,255,.14); }
+  .glass-lite { background: rgba(255,255,255,.05); backdrop-filter: blur(14px); border:1px solid rgba(255,255,255,.1); }
+  .grad-text { background:linear-gradient(100deg,#8db4ff,#cf9bff 55%,#7af0cf); -webkit-background-clip:text;background-clip:text;color:transparent; }
+  .grad-btn { background:linear-gradient(100deg,#5b8cff,#b86bff); }
+</style>
+</head>
+<body class="mesh min-h-screen text-white">
+
+<!-- NAV -->
+<header class="sticky top-0 z-50">
+  <nav class="mx-auto mt-4 flex max-w-6xl items-center justify-between rounded-2xl glass px-5 py-3 text-sm">
+    <span class="font-semibold tracking-tight">✦ Qkiki</span>
+    <div class="hidden gap-7 text-white/70 md:flex">
+      <a href="#compare" class="hover:text-white">비교</a>
+      <a href="#chain" class="hover:text-white">체인</a>
+      <a href="#branch" class="hover:text-white">분기</a>
+      <a href="workbench.html" class="hover:text-white">워크벤치</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="#" class="text-white/70 hover:text-white">로그인</a>
+      <a href="#" class="grad-btn rounded-xl px-4 py-2 font-medium shadow-lg shadow-indigo-500/30">시작하기</a>
+    </div>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="mx-auto max-w-6xl px-5 pb-16 pt-20 text-center">
+  <div class="glass-lite mx-auto inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-white/80">
+    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> 4개 AI 모델 · 하나의 워크벤치
+  </div>
+  <h1 class="mx-auto mt-6 max-w-4xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl">
+    여러 AI를 엮어<br/><span class="grad-text">더 나은 답</span>을 만들다.
+  </h1>
+  <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-white/70">
+    한 작업을 GPT·Claude·Gemini·Grok에 동시에 보내고, 답을 비교하고,
+    한 결과를 다음 모델의 검토·개선 출발점으로 이어가세요.
+  </p>
+  <div class="mt-9 flex items-center justify-center gap-3">
+    <a href="#" class="grad-btn rounded-2xl px-7 py-3.5 font-semibold shadow-xl shadow-indigo-500/30">무료로 시작하기</a>
+    <a href="workbench.html" class="glass rounded-2xl px-7 py-3.5 font-semibold hover:bg-white/10">워크벤치 보기</a>
+  </div>
+
+  <!-- floating glass preview -->
+  <div class="glass mx-auto mt-16 max-w-4xl rounded-3xl p-5 text-left shadow-2xl">
+    <div class="glass-lite mb-4 rounded-2xl px-4 py-3 text-sm text-white/80">입력 · 신제품 출시 메시지를 3가지 톤으로 작성해줘.</div>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div class="glass-lite rounded-2xl p-4"><p class="text-xs font-bold text-[#8db4ff]">GPT-5.5</p><div class="mt-3 space-y-2"><div class="h-2 w-full rounded-full bg-white/15"></div><div class="h-2 w-4/5 rounded-full bg-white/10"></div><div class="h-2 w-3/5 rounded-full bg-white/10"></div></div></div>
+      <div class="glass-lite rounded-2xl p-4"><p class="text-xs font-bold text-[#cf9bff]">Claude 4.7</p><div class="mt-3 space-y-2"><div class="h-2 w-full rounded-full bg-white/15"></div><div class="h-2 w-3/4 rounded-full bg-white/10"></div></div></div>
+      <div class="glass-lite rounded-2xl p-4"><p class="text-xs font-bold text-[#7af0cf]">Gemini 3.1</p><div class="mt-3 space-y-2"><div class="h-2 w-full rounded-full bg-white/15"></div><div class="h-2 w-5/6 rounded-full bg-white/10"></div><div class="h-2 w-1/2 rounded-full bg-white/10"></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="compare" class="mx-auto max-w-6xl px-5 py-20">
+  <div class="grid items-center gap-12 md:grid-cols-2">
+    <div>
+      <p class="text-sm font-semibold text-[#8db4ff]">병렬 비교</p>
+      <h2 class="mt-3 text-4xl font-bold tracking-tight">한 번에, 나란히.</h2>
+      <p class="mt-4 text-lg leading-8 text-white/70">한 작업을 여러 모델에 동시에 보내고, 흩어진 채팅창이 아니라 한 화면의 결과 카드로 차이를 비교하세요.</p>
+      <ul class="mt-6 space-y-2 text-white/80">
+        <li class="glass-lite rounded-xl px-4 py-2.5 text-sm">✓ 답변을 나란히 비교</li>
+        <li class="glass-lite rounded-xl px-4 py-2.5 text-sm">✓ 토큰·지연·예상 비용 표시</li>
+        <li class="glass-lite rounded-xl px-4 py-2.5 text-sm">✓ 실패 모델만 별도 카드로 격리</li>
+      </ul>
+    </div>
+    <div class="glass rounded-3xl p-6">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="glass-lite rounded-2xl p-5"><p class="text-xs font-bold text-[#8db4ff]">GPT</p><div class="mt-3 h-16 rounded-xl bg-gradient-to-br from-[#5b8cff]/40 to-transparent"></div></div>
+        <div class="glass-lite rounded-2xl p-5"><p class="text-xs font-bold text-[#cf9bff]">Claude</p><div class="mt-3 h-16 rounded-xl bg-gradient-to-br from-[#b86bff]/40 to-transparent"></div></div>
+        <div class="glass-lite rounded-2xl p-5"><p class="text-xs font-bold text-[#7af0cf]">Gemini</p><div class="mt-3 h-16 rounded-xl bg-gradient-to-br from-[#19d3a2]/40 to-transparent"></div></div>
+        <div class="glass-lite rounded-2xl p-5"><p class="text-xs font-bold text-[#ff9f6b]">Grok</p><div class="mt-3 h-16 rounded-xl bg-gradient-to-br from-[#ff9f6b]/40 to-transparent"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CHAIN -->
+<section id="chain" class="mx-auto max-w-5xl px-5 py-20 text-center">
+  <p class="text-sm font-semibold text-[#cf9bff]">순차 검토 체인</p>
+  <h2 class="mx-auto mt-3 max-w-2xl text-4xl font-bold tracking-tight">한 출력이 다음 입력이 됩니다.</h2>
+  <div class="mt-12 flex flex-col items-stretch gap-3 sm:flex-row">
+    <div class="glass flex-1 rounded-2xl p-5"><p class="text-xs font-bold text-[#8db4ff]">GPT</p><p class="mt-1 text-sm text-white/70">초안</p></div>
+    <div class="flex items-center justify-center text-white/40">→</div>
+    <div class="glass flex-1 rounded-2xl p-5"><p class="text-xs font-bold text-[#ff9f6b]">Grok</p><p class="mt-1 text-sm text-white/70">비판</p></div>
+    <div class="flex items-center justify-center text-white/40">→</div>
+    <div class="glass flex-1 rounded-2xl p-5"><p class="text-xs font-bold text-[#7af0cf]">Gemini</p><p class="mt-1 text-sm text-white/70">개선</p></div>
+    <div class="flex items-center justify-center text-white/40">→</div>
+    <div class="glass flex-1 rounded-2xl border-white/30 p-5"><p class="text-xs font-bold text-[#cf9bff]">Claude</p><p class="mt-1 text-sm text-white/70">최종</p></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="branch" class="mx-auto max-w-6xl px-5 py-20">
+  <div class="grid gap-5 md:grid-cols-3">
+    <div class="glass rounded-3xl p-7"><div class="text-3xl">🌿</div><h3 class="mt-4 text-xl font-bold">분기 & 후속</h3><p class="mt-2 text-sm leading-7 text-white/70">결과 카드를 다른 모델로 비판·개선·요약·팩트체크.</p></div>
+    <div class="glass rounded-3xl p-7"><div class="text-3xl">🗂️</div><h3 class="mt-4 text-xl font-bold">프로젝트 폴더</h3><p class="mt-2 text-sm leading-7 text-white/70">공유 노트와 최근 결과가 모든 실행에 함께 전달.</p></div>
+    <div class="glass rounded-3xl p-7"><div class="text-3xl">⚡</div><h3 class="mt-4 text-xl font-bold">재사용 프리셋</h3><p class="mt-2 text-sm leading-7 text-white/70">좋은 검토 체인을 저장하고 언제든 다시 불러오기.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="mx-auto max-w-4xl px-5 pb-24">
+  <div class="glass rounded-[32px] p-12 text-center shadow-2xl">
+    <h2 class="text-4xl font-bold tracking-tight sm:text-5xl">지금 바로 엮어보세요.</h2>
+    <p class="mt-4 text-white/70">카드 등록 없이 브라우저에서 무료 체험.</p>
+    <a href="#" class="grad-btn mt-8 inline-block rounded-2xl px-8 py-4 font-semibold shadow-xl shadow-indigo-500/30">Qkiki 시작하기</a>
+  </div>
+</section>
+
+<footer class="px-5 py-8 text-center text-xs text-white/40">
+  컨셉 시안 04 · Canvas (글래스/그라데이션) — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Notion 스타일 · 워크벤치</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family:"Inter","Pretendard",system-ui,sans-serif; color:#37352f; }
+  .lora { font-family:"Lora",Georgia,serif; }
+</style>
+</head>
+<body class="bg-white">
+
+<header class="sticky top-0 z-50 border-b border-[#ecebe9] bg-white">
+  <div class="mx-auto flex h-13 max-w-7xl items-center justify-between px-4 py-2.5">
+    <div class="flex items-center gap-5">
+      <a href="landing.html" class="flex items-center gap-2 font-semibold"><span>⬡</span> Qkiki</a>
+      <nav class="hidden gap-1 text-sm text-[#787774] md:flex">
+        <a class="rounded-md bg-[#f1f0ee] px-2.5 py-1 font-medium text-[#37352f]">워크벤치</a>
+        <a class="rounded-md px-2.5 py-1 hover:bg-[#f7f6f3]">프로젝트</a>
+        <a class="rounded-md px-2.5 py-1 hover:bg-[#f7f6f3]">세션</a>
+        <a class="rounded-md px-2.5 py-1 hover:bg-[#f7f6f3]">프리셋</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-3 text-sm">
+      <span class="rounded-md bg-[#f1f0ee] px-2.5 py-1 text-xs text-[#787774]">체험판 · 14일</span>
+      <div class="flex h-7 w-7 items-center justify-center rounded-full bg-[#37352f] text-xs text-white">L</div>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto grid max-w-7xl gap-4 px-4 py-5 lg:grid-cols-[240px_1fr_270px]">
+  <aside class="space-y-5">
+    <div>
+      <h2 class="px-2 text-xs font-semibold uppercase tracking-wide text-[#9b9a97]">모델</h2>
+      <div class="mt-2 space-y-0.5 text-sm">
+        <label class="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-[#f7f6f3]"><span>🟢 GPT-5.5</span><input type="checkbox" checked class="accent-[#37352f]"></label>
+        <label class="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-[#f7f6f3]"><span>🟣 Claude 4.7</span><input type="checkbox" checked class="accent-[#37352f]"></label>
+        <label class="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-[#f7f6f3]"><span>🔵 Gemini 3.1</span><input type="checkbox" checked class="accent-[#37352f]"></label>
+        <label class="flex items-center justify-between rounded-md px-2 py-1.5 text-[#9b9a97] hover:bg-[#f7f6f3]"><span>🟠 Grok 4.3</span><input type="checkbox" class="accent-[#37352f]"></label>
+      </div>
+    </div>
+    <div>
+      <h2 class="px-2 text-xs font-semibold uppercase tracking-wide text-[#9b9a97]">워크플로</h2>
+      <div class="mt-2 space-y-1 text-sm">
+        <button class="w-full rounded-md bg-[#f1f0ee] px-2 py-1.5 text-left font-medium">⇉ 병렬 비교</button>
+        <button class="w-full rounded-md px-2 py-1.5 text-left text-[#787774] hover:bg-[#f7f6f3]">→ 순차 검토 체인</button>
+      </div>
+    </div>
+  </aside>
+
+  <section class="space-y-4">
+    <div class="rounded-lg border border-[#ecebe9] p-5">
+      <h1 class="lora text-2xl font-semibold">신제품 출시 메시지</h1>
+      <textarea rows="3" class="mt-3 w-full resize-none rounded-md bg-[#f7f6f3] p-3 text-[15px] leading-7 outline-none focus:ring-1 focus:ring-[#37352f]">신제품 출시 메시지를 설득형·친근형·전문가형 3가지 톤으로 작성해줘.</textarea>
+      <div class="mt-3 flex items-center justify-between">
+        <div class="flex gap-1.5 text-xs">
+          <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">📎 첨부</button>
+          <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">⚡ 프리셋</button>
+        </div>
+        <button class="rounded-md bg-[#37352f] px-6 py-2 text-sm font-medium text-white hover:bg-black">실행 ▶</button>
+      </div>
+    </div>
+
+    <p class="px-1 text-xs text-[#9b9a97]">3개 결과 · 0.8초</p>
+
+    <article class="rounded-lg border border-[#ecebe9]">
+      <div class="flex items-center justify-between border-b border-[#ecebe9] px-5 py-3">
+        <div class="flex items-center gap-2"><span class="text-sm font-medium">🟢 GPT-5.5</span><span class="rounded bg-[#f1f0ee] px-1.5 py-0.5 text-[10px] text-[#787774]">초안</span></div>
+        <span class="text-[11px] text-[#9b9a97]">1.2s · 320 tok · $0.004</span>
+      </div>
+      <div class="p-5 text-[15px] leading-7 text-[#37352f]">
+        <p><b>설득형:</b> 지금 바로, 당신의 하루를 바꿀 단 하나의 선택.</p>
+        <p class="mt-2"><b>친근형:</b> 오래 준비했어요 — 한번 써보면 알게 될 거예요.</p>
+        <p class="mt-2"><b>전문가형:</b> 검증된 설계와 데이터로 완성한 차세대 솔루션.</p>
+      </div>
+      <div class="flex flex-wrap gap-1.5 border-t border-[#ecebe9] px-5 py-3 text-xs">
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">↳ 분기</button>
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">비판</button>
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">개선</button>
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">요약</button>
+        <button class="ml-auto rounded-md bg-[#37352f] px-3 py-1.5 font-medium text-white">★ 최종 선택</button>
+      </div>
+    </article>
+
+    <article class="rounded-lg border border-[#ecebe9]">
+      <div class="flex items-center justify-between border-b border-[#ecebe9] px-5 py-3">
+        <span class="text-sm font-medium">🟣 Claude 4.7</span><span class="text-[11px] text-[#9b9a97]">1.6s · 410 tok · $0.006</span>
+      </div>
+      <div class="p-5 text-[15px] leading-7 text-[#37352f]"><p>세 가지 톤을 타깃 독자·사용 맥락과 함께 구조적으로 제시…</p></div>
+      <div class="flex flex-wrap gap-1.5 border-t border-[#ecebe9] px-5 py-3 text-xs">
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">↳ 분기</button>
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">비판</button>
+        <button class="rounded-md border border-[#ecebe9] px-3 py-1.5 hover:bg-[#f7f6f3]">개선</button>
+      </div>
+    </article>
+
+    <article class="rounded-lg border border-[#ecebe9]">
+      <div class="flex items-center justify-between border-b border-[#ecebe9] px-5 py-3">
+        <span class="text-sm font-medium">🔵 Gemini 3.1</span><span class="text-[11px] text-[#787774]">생성 중…</span>
+      </div>
+      <div class="space-y-2 p-5"><div class="h-2.5 w-full rounded bg-[#f1f0ee]"></div><div class="h-2.5 w-5/6 rounded bg-[#f1f0ee]"></div><div class="h-2.5 w-2/3 rounded bg-[#f1f0ee]"></div></div>
+    </article>
+  </section>
+
+  <aside class="space-y-5">
+    <div>
+      <h2 class="px-2 text-xs font-semibold uppercase tracking-wide text-[#9b9a97]">검토 체인</h2>
+      <div class="mt-2 space-y-1 text-xs">
+        <div class="flex items-center gap-2 rounded-md bg-[#f7f6f3] px-2.5 py-2"><span class="font-semibold">1.</span> 🟢 GPT · 초안</div>
+        <div class="ml-3 h-2.5 border-l border-[#ecebe9]"></div>
+        <div class="flex items-center gap-2 rounded-md bg-[#f7f6f3] px-2.5 py-2"><span class="font-semibold">2.</span> 🟠 Grok · 비판</div>
+        <div class="ml-3 h-2.5 border-l border-[#ecebe9]"></div>
+        <div class="flex items-center gap-2 rounded-md bg-[#f1f0ee] px-2.5 py-2"><span class="font-semibold">3.</span> 🟣 Claude · 최종</div>
+      </div>
+      <button class="mt-2 w-full rounded-md border border-[#ecebe9] py-1.5 text-xs text-[#787774] hover:bg-[#f7f6f3]">+ 단계 추가</button>
+    </div>
+    <div>
+      <h2 class="px-2 text-xs font-semibold uppercase tracking-wide text-[#9b9a97]">실행 통계</h2>
+      <dl class="mt-2 space-y-1.5 px-2 text-xs text-[#787774]">
+        <div class="flex justify-between"><dt>모델</dt><dd class="font-medium text-[#37352f]">3</dd></div>
+        <div class="flex justify-between"><dt>총 토큰</dt><dd class="font-medium text-[#37352f]">1,140</dd></div>
+        <div class="flex justify-between"><dt>예상 비용</dt><dd class="font-medium text-[#37352f]">$0.016</dd></div>
+      </dl>
+    </div>
+  </aside>
+</main>
+
+<footer class="border-t border-[#ecebe9] px-4 py-6 text-center text-xs text-[#9b9a97]">
+  컨셉 15 · Notion · 워크벤치 — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>

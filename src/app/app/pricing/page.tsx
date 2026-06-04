@@ -58,7 +58,7 @@ export default async function PricingPage(props: PricingPageProps) {
             </p>
             <h2 className="mt-2 text-xl font-semibold text-stone-950">{card.title}</h2>
             <p className="mt-3 text-sm leading-6 text-stone-600">{card.description}</p>
-            <div className="mt-6 rounded-lg border border-dashed border-stone-300 bg-[#fbfcf8] px-3 py-3 text-xs text-stone-500">
+            <div className="mt-6 rounded-lg border border-dashed border-stone-300 bg-[#f7f6f3] px-3 py-3 text-xs text-stone-500">
               실제 가격, 결제 수단, 영수증 흐름은 다음 단계에서 연결됩니다.
             </div>
           </article>
