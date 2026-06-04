@@ -21,6 +21,7 @@ function shouldRewriteToAdmin(pathname: string) {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
+  const hostname = host?.split(":")[0]?.trim().toLowerCase() || request.nextUrl.hostname;
   const hasUserSession = request.cookies.has(SESSION_COOKIE);
   const hasAdminSession = request.cookies.has(ADMIN_SESSION_COOKIE);
 
@@ -33,7 +34,7 @@ export function proxy(request: NextRequest) {
   if (
     !shouldRedirectToCanonicalHost({
       env: process.env,
-      hostname: request.nextUrl.hostname,
+      hostname,
       pathname,
       method: request.method,
     })
