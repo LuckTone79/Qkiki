@@ -2,8 +2,9 @@
 
 import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import type { ProviderName } from "@/lib/ai/types";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
+import type { ProviderName } from "@/lib/ai/types";
+import { getModelGuidance } from "@/lib/workbench-model-guidance";
 
 export type ProviderOption = {
   providerName: ProviderName;
@@ -72,10 +73,21 @@ export function ProviderSelectorRow({
                 : "None selected"}
           </span>
         </div>
+        <p className="mb-2 text-[11px] leading-5 text-stone-500">
+          {language === "ko"
+            ? "선택한 모델 그대로 실행하며, 자동 fallback 없이 결과를 보여줍니다."
+            : "Runs with the exact model you selected, without automatic fallback."}
+        </p>
         <div className="flex flex-wrap gap-2">
           {provider.models.map((option) => {
             const checked = selectedModels.includes(option);
             const label = getModelOptionLabel(provider.providerName, option);
+            const guidance = getModelGuidance(
+              provider.providerName,
+              option,
+              provider.defaultModel,
+              language,
+            );
             return (
               <label
                 key={option}
@@ -84,8 +96,8 @@ export function ProviderSelectorRow({
                     ? "border-teal-300 bg-teal-50 text-teal-900"
                     : "border-stone-300 bg-white text-stone-700"
                 } ${!isReady ? "cursor-not-allowed opacity-50" : ""}`}
-                >
-                  <input
+              >
+                <input
                   type="checkbox"
                   checked={checked}
                   disabled={!isReady}
@@ -97,7 +109,22 @@ export function ProviderSelectorRow({
                   }}
                   className="mr-1 accent-teal-700"
                 />
-                {label}
+                <span>{label}</span>
+                <span className="mt-1 flex flex-wrap gap-1">
+                  {guidance.recommended ? (
+                    <span className="rounded-full border border-teal-200 bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">
+                      {guidance.recommendedLabel}
+                    </span>
+                  ) : null}
+                  {guidance.traits.map((trait) => (
+                    <span
+                      key={`${option}-${trait}`}
+                      className="rounded-full border border-stone-200 bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600"
+                    >
+                      {trait}
+                    </span>
+                  ))}
+                </span>
               </label>
             );
           })}

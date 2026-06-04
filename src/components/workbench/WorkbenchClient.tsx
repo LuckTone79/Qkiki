@@ -61,6 +61,12 @@ import {
   mergeResultExpansionMap,
   setAllResultsExpanded,
 } from "@/lib/workbench-result-expansion";
+import { buildWorkbenchRunPayload } from "@/lib/workbench-run-payload";
+import {
+  buildResultBoardView,
+  type ResultBoardFilter,
+  type ResultBoardSort,
+} from "@/lib/workbench-result-board";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -68,6 +74,7 @@ type ProviderSelection = {
 };
 
 type MobilePanel = "models" | "input" | "workflow" | "results";
+type BuilderExperience = "simple" | "advanced";
 
 type Preset = {
   id: string;
@@ -1058,6 +1065,25 @@ function activeWorkLines(
   ];
 }
 
+function shouldUseAdvancedBuilder(input: {
+  mode: "parallel" | "sequential";
+  additionalInstruction: string;
+  attachmentsCount: number;
+  outputStyle: string;
+  workflowSteps: WorkflowStepState[];
+  workflowControl: WorkflowControlState;
+}) {
+  return (
+    input.mode === "sequential" ||
+    input.additionalInstruction.trim().length > 0 ||
+    input.attachmentsCount > 0 ||
+    input.outputStyle !== "detailed" ||
+    input.workflowSteps.length > 3 ||
+    input.workflowControl.repeatBlocks.length > 0 ||
+    input.workflowControl.stopConditionEnabled
+  );
+}
+
 type WorkbenchClientProps = {
   isTrialMode?: boolean;
 };
@@ -1089,6 +1115,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
+  const [builderExperience, setBuilderExperience] =
+    useState<BuilderExperience>("simple");
   const [resultExpansionById, setResultExpansionById] = useState<Record<string, boolean>>(
     () => buildCollapsedResultExpansionMap([]),
   );
@@ -1110,6 +1138,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     useState<MobilePanel>("input");
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [resultLayout, setResultLayout] = useState<ResultLayout>("double");
+  const [resultFilter, setResultFilter] = useState<ResultBoardFilter>("all");
+  const [resultSort, setResultSort] = useState<ResultBoardSort>("workflow");
+  const [resultSearch, setResultSearch] = useState("");
   const [runMonitor, setRunMonitor] = useState<RunMonitor | null>(null);
   const [usage, setUsage] = useState<UsageStatusType | null>(null);
   const [usageLoading, setUsageLoading] = useState(true);
@@ -1241,12 +1272,31 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }
 
   function jumpToResult(resultId: string) {
-    const element = document.getElementById(buildResultDomId(resultId));
-    if (!element) {
+    setResultExpansionById((current) => ({
+      ...current,
+      [resultId]: true,
+    }));
+
+    const scrollToResult = () => {
+      const element = document.getElementById(buildResultDomId(resultId));
+      if (!element) {
+        return;
+      }
+
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    const needsReset = resultFilter !== "all" || resultSearch.trim().length > 0;
+    if (needsReset) {
+      setResultFilter("all");
+      setResultSearch("");
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(scrollToResult);
+      });
       return;
     }
 
-    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToResult();
   }
 
   function toggleResultExpanded(resultId: string) {
@@ -1257,11 +1307,23 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }
 
   function collapseAllResults() {
-    setResultExpansionById(buildCollapsedResultExpansionMap(results));
+    setResultExpansionById((current) => ({
+      ...current,
+      ...buildCollapsedResultExpansionMap(displayResults),
+    }));
   }
 
   function expandAllResults() {
-    setResultExpansionById(setAllResultsExpanded(results, true));
+    setResultExpansionById((current) => ({
+      ...current,
+      ...setAllResultsExpanded(displayResults, true),
+    }));
+  }
+
+  function resetResultBoardControls() {
+    setResultFilter("all");
+    setResultSort("workflow");
+    setResultSearch("");
   }
 
   function createRunMonitor(
@@ -1516,14 +1578,25 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         })),
         providers,
       );
-      setWorkflowSteps(nextSteps);
-      setWorkflowControl(
-        workflowControlFromInput(
-          parsed.workflowControl as WorkflowControlInput | undefined,
-          parsedSteps.length,
-        ),
+      const nextWorkflowControl = workflowControlFromInput(
+        parsed.workflowControl as WorkflowControlInput | undefined,
+        parsedSteps.length,
       );
+      setWorkflowSteps(nextSteps);
+      setWorkflowControl(nextWorkflowControl);
       setMode("sequential");
+      setBuilderExperience(
+        shouldUseAdvancedBuilder({
+          mode: "sequential",
+          additionalInstruction,
+          attachmentsCount: attachments.length,
+          outputStyle,
+          workflowSteps: nextSteps,
+          workflowControl: nextWorkflowControl,
+        })
+          ? "advanced"
+          : "simple",
+      );
       setNotice(`${t("loadPreset")}: ${preset.name}`);
     }
   }
@@ -1600,6 +1673,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
   function applySessionToState(session: LoadedSession) {
     const sessionWorkflowSteps = toSessionWorkflowSteps(session);
+    const sessionWorkflowControl = workflowControlFromInput(
+      parseWorkflowControlJson(session.workflowControlJson),
+      sessionWorkflowSteps.length,
+    );
     setSessionId(session.id);
     setProject(
       session.project
@@ -1625,12 +1702,20 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setAttachments(session.attachments || []);
     setResults(session.results);
     setRunMonitor(null);
+    resetResultBoardControls();
     setWorkflowSteps(sessionWorkflowSteps);
-    setWorkflowControl(
-      workflowControlFromInput(
-        parseWorkflowControlJson(session.workflowControlJson),
-        sessionWorkflowSteps.length,
-      ),
+    setWorkflowControl(sessionWorkflowControl);
+    setBuilderExperience(
+      shouldUseAdvancedBuilder({
+        mode: session.mode === "sequential" ? "sequential" : "parallel",
+        additionalInstruction: session.additionalInstruction || "",
+        attachmentsCount: session.attachments?.length ?? 0,
+        outputStyle: session.outputStyle || "detailed",
+        workflowSteps: sessionWorkflowSteps,
+        workflowControl: sessionWorkflowControl,
+      })
+        ? "advanced"
+        : "simple",
     );
   }
 
@@ -1645,9 +1730,23 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setCurrentRunId(null);
     setRunning(false);
     setStoppingStepIndexes(new Set<number>());
+    resetResultBoardControls();
 
     const draft = loadDraft();
     if (draft && draft.originalInput.trim()) {
+      const draftWorkflowSteps = sortSteps(
+        draft.workflowSteps.map((step) => ({
+          ...step,
+          uid: step.uid || newUid(),
+          actionType: step.actionType as ActionType,
+          targetProvider: step.targetProvider as ProviderName,
+          sourceMode: step.sourceMode as WorkflowStepState["sourceMode"],
+        })),
+      );
+      const draftWorkflowControl = workflowControlFromInput(
+        draft.workflowControl as WorkflowControlInput | undefined,
+        draft.workflowSteps.length || initialSteps(language).length,
+      );
       setOriginalInput(draft.originalInput);
       setAdditionalInstruction(draft.additionalInstruction);
       setOutputStyle(draft.outputStyle);
@@ -1658,22 +1757,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       );
       setMode(draft.mode);
       setAttachments(draft.attachments || []);
-      setWorkflowSteps(
-        sortSteps(
-          draft.workflowSteps.map((step) => ({
-            ...step,
-            uid: step.uid || newUid(),
-            actionType: step.actionType as ActionType,
-            targetProvider: step.targetProvider as ProviderName,
-            sourceMode: step.sourceMode as WorkflowStepState["sourceMode"],
-          })),
-        ),
-      );
-      setWorkflowControl(
-        workflowControlFromInput(
-          draft.workflowControl as WorkflowControlInput | undefined,
-          draft.workflowSteps.length || initialSteps(language).length,
-        ),
+      setWorkflowSteps(draftWorkflowSteps);
+      setWorkflowControl(draftWorkflowControl);
+      setBuilderExperience(
+        shouldUseAdvancedBuilder({
+          mode: draft.mode,
+          additionalInstruction: draft.additionalInstruction,
+          attachmentsCount: draft.attachments?.length ?? 0,
+          outputStyle: draft.outputStyle,
+          workflowSteps: draftWorkflowSteps,
+          workflowControl: draftWorkflowControl,
+        })
+          ? "advanced"
+          : "simple",
       );
       setDraftBanner({ savedAt: draft.savedAt });
       return;
@@ -1693,6 +1789,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         nextSteps.length,
       ),
     );
+    setBuilderExperience("simple");
     setDraftBanner(null);
   }
 
@@ -1829,6 +1926,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       // No URL session — try to restore unsaved draft from localStorage
       const draft = loadDraft();
       if (draft && draft.originalInput.trim()) {
+        const draftWorkflowSteps = sortSteps(
+          draft.workflowSteps.map((s) => ({
+            ...s,
+            uid: s.uid || newUid(),
+            actionType: s.actionType as ActionType,
+            targetProvider: s.targetProvider as ProviderName,
+            sourceMode: s.sourceMode as WorkflowStepState["sourceMode"],
+          })),
+        );
+        const draftWorkflowControl = workflowControlFromInput(
+          draft.workflowControl as WorkflowControlInput | undefined,
+          draft.workflowSteps.length || initialSteps(language).length,
+        );
         setOriginalInput(draft.originalInput);
         setAdditionalInstruction(draft.additionalInstruction);
         setOutputStyle(draft.outputStyle);
@@ -1839,22 +1949,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         );
         setMode(draft.mode);
         setAttachments(draft.attachments || []);
-        setWorkflowSteps(
-          sortSteps(
-            draft.workflowSteps.map((s) => ({
-              ...s,
-              uid: s.uid || newUid(),
-              actionType: s.actionType as ActionType,
-              targetProvider: s.targetProvider as ProviderName,
-              sourceMode: s.sourceMode as WorkflowStepState["sourceMode"],
-            })),
-          ),
-        );
-        setWorkflowControl(
-          workflowControlFromInput(
-            draft.workflowControl as WorkflowControlInput | undefined,
-            draft.workflowSteps.length || initialSteps(language).length,
-          ),
+        setWorkflowSteps(draftWorkflowSteps);
+        setWorkflowControl(draftWorkflowControl);
+        setBuilderExperience(
+          shouldUseAdvancedBuilder({
+            mode: draft.mode,
+            additionalInstruction: draft.additionalInstruction,
+            attachmentsCount: draft.attachments?.length ?? 0,
+            outputStyle: draft.outputStyle,
+            workflowSteps: draftWorkflowSteps,
+            workflowControl: draftWorkflowControl,
+          })
+            ? "advanced"
+            : "simple",
         );
         setDraftBanner({ savedAt: draft.savedAt });
       }
@@ -2211,7 +2318,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     [effectiveFinalResultId, results],
   );
 
-  const displayResults = useMemo(
+  const orderedResults = useMemo(
     () => {
       const sortedResults = sortResultsForDisplay(results, mode);
       const pinnedIds = [effectiveFinalResultId, latestProgressResultId];
@@ -2222,8 +2329,85 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     [effectiveFinalResultId, latestProgressResultId, mode, results],
   );
 
+  const displayResults = useMemo(
+    () =>
+      buildResultBoardView(
+        orderedResults.map((result) => ({
+          ...result,
+          searchTokens: [
+            result.workflowStep?.orderIndex
+              ? `${language === "ko" ? "단계" : "step"} ${result.workflowStep.orderIndex}`
+              : null,
+            result.executionRunStep?.orderIndex
+              ? `${language === "ko" ? "단계" : "step"} ${result.executionRunStep.orderIndex}`
+              : null,
+            result.executionRunStep?.templateStepIndex
+              ? `${language === "ko" ? "템플릿" : "template"} ${result.executionRunStep.templateStepIndex}`
+              : null,
+            result.executionRunStep?.actionType ?? null,
+            result.executionRunStep?.sourceMode ?? null,
+            result.promptSnapshot ?? null,
+          ],
+        })),
+        {
+          filter: resultFilter,
+          sort: resultSort,
+          query: resultSearch,
+          finalResultId: effectiveFinalResultId,
+        },
+      ),
+    [effectiveFinalResultId, language, orderedResults, resultFilter, resultSearch, resultSort],
+  );
+
   const { mainResults: mainDisplayResults, branchResults: branchDisplayResults } =
     useMemo(() => partitionResultsForWorkbench(displayResults), [displayResults]);
+
+  const finalDisplayResult = useMemo(
+    () => results.find((result) => result.id === effectiveFinalResultId) ?? null,
+    [effectiveFinalResultId, results],
+  );
+
+  const plannedSequentialSteps = useMemo(
+    () =>
+      mode === "sequential"
+        ? expandWorkflowStepsForMonitor(workflowSteps, normalizedWorkflowControl)
+        : [],
+    [mode, normalizedWorkflowControl, workflowSteps],
+  );
+
+  const runSummary = useMemo(() => {
+    if (mode === "parallel") {
+      const completed = results.filter((result) => result.status === "completed").length;
+      const runningCount = results.filter((result) => result.status === "running").length;
+      return {
+        title:
+          language === "ko"
+            ? "병렬 실행 요약"
+            : "Parallel run summary",
+        detail:
+          language === "ko"
+            ? `${completed}개 완료, ${runningCount}개 진행 중`
+            : `${completed} completed, ${runningCount} running`,
+      };
+    }
+
+    const total = plannedSequentialSteps.length;
+    const completed = runMonitor?.entries.filter((entry) => entry.status === "completed")
+      .length;
+    const activeEntry = runMonitor?.entries.find((entry) => entry.status === "active");
+    const queued = runMonitor?.entries.filter((entry) => entry.status === "queued").length;
+
+    return {
+      title:
+        language === "ko"
+          ? "현재 작업 요약"
+          : "Current run summary",
+      detail:
+        language === "ko"
+          ? `총 ${total}단계 중 ${completed ?? 0}단계 완료${activeEntry?.orderIndex ? ` · 현재 ${activeEntry.orderIndex}단계` : ""}${queued ? ` · 대기 ${queued}단계` : ""}`
+          : `${completed ?? 0} of ${total} steps done${activeEntry?.orderIndex ? ` · step ${activeEntry.orderIndex} now` : ""}${queued ? ` · ${queued} queued` : ""}`,
+    };
+  }, [language, mode, plannedSequentialSteps.length, results, runMonitor]);
 
   useEffect(() => {
     setResultExpansionById({});
@@ -3059,6 +3243,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     setProgressNow(Date.now());
     setStoppingStepIndexes(new Set<number>());
+    resetResultBoardControls();
     setRunMonitor(createRunMonitor(mode));
     focusProgressPanel();
     if (mode === "parallel") {
@@ -3066,7 +3251,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
     setCurrentRunId("pending");
     setRunning(true);
-    const body = {
+    const effectiveWorkflowControl =
+      builderExperience === "advanced"
+        ? workflowControlToInput(normalizedWorkflowControl)
+        : undefined;
+    const body = buildWorkbenchRunPayload({
       sessionId,
       projectId: project?.id ?? null,
       title: sessionTitle || null,
@@ -3074,26 +3263,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       additionalInstruction,
       outputStyle,
       outputLanguage,
-      attachmentIds: attachments.map((attachment) => attachment.id),
+      attachments,
       mode,
-      targets: mode === "parallel" ? selectedTargets : undefined,
-      steps:
-        mode === "sequential"
-          ? workflowSteps.map((step) => ({
-              orderIndex: step.orderIndex,
-              actionType: step.actionType,
-              targetProvider: step.targetProvider,
-              targetModel: step.targetModel,
-              sourceMode: step.sourceMode,
-              sourceResultId: step.sourceResultId,
-              instructionTemplate: step.instructionTemplate,
-            }))
-          : undefined,
-      workflowControl:
-        mode === "sequential"
-          ? workflowControlToInput(normalizedWorkflowControl)
-          : undefined,
-    };
+      targets: selectedTargets,
+      workflowSteps,
+      workflowControl: effectiveWorkflowControl,
+      builderExperience,
+    });
     let data: ({
       session?: { id: string; title: string; finalResultId?: string | null };
       results?: WorkbenchResult[];
@@ -3547,6 +3723,28 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
       ) : null}
 
+      <div className="rounded-lg border border-stone-200 bg-white px-4 py-3 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+          {runSummary.title}
+        </p>
+        <p className="mt-2 text-sm font-semibold text-stone-950">
+          {runSummary.detail}
+        </p>
+        {mode === "sequential" ? (
+          <p className="mt-1 text-xs leading-5 text-stone-600">
+            {language === "ko"
+              ? "실행 전에 전체 계획을 먼저 확인하고, 반복 구간과 입력 source가 기대한 흐름인지 점검하세요."
+              : "Review the full plan before you run, especially repeat blocks and input sources."}
+          </p>
+        ) : (
+          <p className="mt-1 text-xs leading-5 text-stone-600">
+            {language === "ko"
+              ? "병렬 비교는 같은 질문을 여러 모델에 보내고, 결과보드에서 바로 비교할 수 있습니다."
+              : "Parallel compare sends the same task to multiple models so you can compare the cards right away."}
+          </p>
+        )}
+      </div>
+
       {project ? (
         <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -3702,16 +3900,42 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {t("startPointDescription")}
                 </p>
               </div>
-              <select
-                value={mode}
-                onChange={(event) =>
-                  setMode(event.target.value as "parallel" | "sequential")
-                }
-                className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 sm:w-auto"
-              >
-                <option value="parallel">{t("parallelCompare")}</option>
-                <option value="sequential">{t("sequentialReviewChain")}</option>
-              </select>
+              <div className="flex flex-col gap-2 sm:items-end">
+                <select
+                  value={mode}
+                  onChange={(event) =>
+                    setMode(event.target.value as "parallel" | "sequential")
+                  }
+                  className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 sm:w-auto"
+                >
+                  <option value="parallel">{t("parallelCompare")}</option>
+                  <option value="sequential">{t("sequentialReviewChain")}</option>
+                </select>
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#f7f8f3] p-1">
+                  <button
+                    type="button"
+                    onClick={() => setBuilderExperience("simple")}
+                    className={`rounded px-3 py-1.5 text-xs font-semibold ${
+                      builderExperience === "simple"
+                        ? "bg-white text-stone-950 shadow-sm"
+                        : "text-stone-600"
+                    }`}
+                  >
+                    {language === "ko" ? "간단 모드" : "Simple mode"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBuilderExperience("advanced")}
+                    className={`rounded px-3 py-1.5 text-xs font-semibold ${
+                      builderExperience === "advanced"
+                        ? "bg-white text-stone-950 shadow-sm"
+                        : "text-stone-600"
+                    }`}
+                  >
+                    {language === "ko" ? "고급 모드" : "Advanced mode"}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <textarea
@@ -3721,71 +3945,81 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               className="mt-4 w-full rounded-md border border-stone-300 bg-[#fbfcf8] px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
               placeholder={t("taskTextareaPlaceholder")}
             />
-            <textarea
-              value={additionalInstruction}
-              onChange={(event) => setAdditionalInstruction(event.target.value)}
-              rows={3}
-              className="mt-3 w-full rounded-md border border-stone-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
-              placeholder={t("additionalInstructionPlaceholder")}
-            />
+            {builderExperience === "advanced" ? (
+              <>
+                <textarea
+                  value={additionalInstruction}
+                  onChange={(event) => setAdditionalInstruction(event.target.value)}
+                  rows={3}
+                  className="mt-3 w-full rounded-md border border-stone-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
+                  placeholder={t("additionalInstructionPlaceholder")}
+                />
 
-            <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#fbfcf8] p-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-stone-900">
-                    {t("attachments")}
-                  </p>
-                  <p className="text-xs leading-5 text-stone-600">
-                    {t("attachmentsDescription")}
-                  </p>
-                </div>
-                <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
-                  <input
-                    type="file"
-                    multiple
-                    accept={ATTACHMENT_ACCEPT}
-                    onChange={(event) => {
-                      uploadFiles(event.target.files);
-                      event.currentTarget.value = "";
-                    }}
-                    className="sr-only"
-                  />
-                  {uploadingAttachments ? t("uploading") : t("attachFiles")}
-                </label>
-              </div>
-
-              {attachments.length ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="flex min-w-0 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700"
-                    >
-                      <span className="rounded bg-stone-100 px-2 py-1 font-semibold text-stone-600">
-                        {attachmentKindLabel(attachment.kind, language)}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-stone-900">
-                          {attachment.name}
-                        </p>
-                        <p className="text-stone-500">
-                          {formatFileSize(attachment.sizeBytes, language)}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeAttachment(attachment.id)}
-                        className="rounded border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-500 hover:bg-stone-50"
-                      >
-                        {t("remove")}
-                      </button>
+                <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#fbfcf8] p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">
+                        {t("attachments")}
+                      </p>
+                      <p className="text-xs leading-5 text-stone-600">
+                        {t("attachmentsDescription")}
+                      </p>
                     </div>
-                  ))}
+                    <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+                      <input
+                        type="file"
+                        multiple
+                        accept={ATTACHMENT_ACCEPT}
+                        onChange={(event) => {
+                          uploadFiles(event.target.files);
+                          event.currentTarget.value = "";
+                        }}
+                        className="sr-only"
+                      />
+                      {uploadingAttachments ? t("uploading") : t("attachFiles")}
+                    </label>
+                  </div>
+
+                  {attachments.length ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {attachments.map((attachment) => (
+                        <div
+                          key={attachment.id}
+                          className="flex min-w-0 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700"
+                        >
+                          <span className="rounded bg-stone-100 px-2 py-1 font-semibold text-stone-600">
+                            {attachmentKindLabel(attachment.kind, language)}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-stone-900">
+                              {attachment.name}
+                            </p>
+                            <p className="text-stone-500">
+                              {formatFileSize(attachment.sizeBytes, language)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(attachment.id)}
+                            className="rounded border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-500 hover:bg-stone-50"
+                          >
+                            {t("remove")}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-xs text-stone-500">{t("noAttachments")}</p>
+                  )}
                 </div>
-              ) : (
-                <p className="mt-3 text-xs text-stone-500">{t("noAttachments")}</p>
-              )}
-            </div>
+              </>
+            ) : (
+              <div className="mt-3 rounded-md border border-stone-200 bg-[#fbfcf8] px-3 py-3 text-xs leading-5 text-stone-600">
+                {language === "ko"
+                  ? "간단 모드에서는 질문과 실행에 집중합니다. 추가 지시, 첨부, 반복 설정은 고급 모드에서 이어서 조정할 수 있습니다."
+                  : "Simple mode keeps the focus on your question and the run button. Add instructions, attachments, and repeat settings in advanced mode."}
+              </div>
+            )}
 
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
               <label className="flex flex-col gap-1 text-sm text-stone-600">
@@ -3794,6 +4028,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   value={outputStyle}
                   onChange={(event) => setOutputStyle(event.target.value)}
                   className="rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
+                  disabled={builderExperience !== "advanced"}
                 >
                   {outputStyles.map((style) => (
                     <option key={style} value={style}>
@@ -3896,6 +4131,60 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               ))}
             </div>
 
+            <div className="mt-4 rounded-lg border border-stone-200 bg-white p-3">
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">
+                    {language === "ko" ? "실행 계획 미리보기" : "Planned run preview"}
+                  </p>
+                  <p className="text-xs leading-5 text-stone-600">
+                    {language === "ko"
+                      ? `실행 전에 총 ${plannedSequentialSteps.length}단계를 한 번에 확인합니다.`
+                      : `Preview all ${plannedSequentialSteps.length} planned steps before you run.`}
+                  </p>
+                </div>
+                <p className="text-xs font-medium text-stone-500">
+                  {language === "ko"
+                    ? `${normalizedWorkflowControl.repeatBlocks.length}개 반복 블록`
+                    : `${normalizedWorkflowControl.repeatBlocks.length} repeat block(s)`}
+                </p>
+              </div>
+              <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                {plannedSequentialSteps.map((step, index) => (
+                  <div
+                    key={`plan-step-${step.uid}-${index + 1}`}
+                    className="rounded-md border border-stone-200 bg-[#fbfcf8] px-3 py-2"
+                  >
+                    <p className="text-xs font-semibold text-teal-700">
+                      {language === "ko" ? `${index + 1}단계` : `Step ${index + 1}`}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-stone-900">
+                      {providerLabel(step.targetProvider)} /{" "}
+                      {getModelDisplayName(step.targetProvider, step.targetModel)}
+                    </p>
+                    <p className="mt-1 text-xs text-stone-600">
+                      {getActionTypeDisplayLabel(step.actionType, language)} ·{" "}
+                      {step.sourceMode === "previous"
+                        ? language === "ko"
+                          ? "이전 완료 결과 사용"
+                          : "Uses previous completed result"
+                        : step.sourceMode === "selected_result"
+                          ? language === "ko"
+                            ? "선택 결과 고정 참조"
+                            : "Uses selected result"
+                          : step.sourceMode === "all_results"
+                            ? language === "ko"
+                              ? "이전 완료 결과 모음 사용"
+                              : "Uses prior completed results"
+                            : language === "ko"
+                              ? "원본 입력 사용"
+                              : "Uses original input"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 type="button"
@@ -3915,7 +4204,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ) : null}
 
             {mode === "sequential" ? (
-              <div className="mt-4 space-y-3 rounded-lg border border-stone-200 bg-white p-3">
+              <div
+                className={`mt-4 space-y-3 rounded-lg border border-stone-200 bg-white p-3 ${
+                  builderExperience === "advanced" ? "" : "hidden"
+                }`}
+              >
                 <div>
                   <p className="text-sm font-semibold text-stone-900">
                     {builderText.repeatSettings}
@@ -4123,7 +4416,19 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
             ) : null}
 
-            <div className="mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
+            {builderExperience === "simple" ? (
+              <div className="mt-4 rounded-lg border border-dashed border-stone-300 bg-white px-3 py-3 text-xs leading-5 text-stone-600">
+                {language === "ko"
+                  ? "간단 모드에서는 반복 설정과 조기 종료를 숨깁니다. 필요할 때 고급 모드로 전환해 상세 실행 계획을 조정하세요."
+                  : "Simple mode hides repeat settings and early stop controls. Switch to advanced mode when you want to tune the detailed execution plan."}
+              </div>
+            ) : null}
+
+            <div
+              className={`mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] ${
+                builderExperience === "advanced" ? "" : "hidden"
+              }`}
+            >
               <input
                 value={presetName}
                 onChange={(event) => setPresetName(event.target.value)}
@@ -4586,11 +4891,125 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </div>
               </div>
             </div>
+            {results.length ? (
+              <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_200px_180px]">
+                <input
+                  value={resultSearch}
+                  onChange={(event) => setResultSearch(event.target.value)}
+                  placeholder={
+                    language === "ko"
+                      ? "결과, 모델, 단계 키워드 검색"
+                      : "Search results, models, or step keywords"
+                  }
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
+                />
+                <select
+                  value={resultFilter}
+                  onChange={(event) =>
+                    setResultFilter(event.target.value as ResultBoardFilter)
+                  }
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
+                >
+                  <option value="all">{language === "ko" ? "전체 결과" : "All results"}</option>
+                  <option value="final">
+                    {language === "ko" ? "최종결과만" : "Final only"}
+                  </option>
+                  <option value="failed">
+                    {language === "ko" ? "실패만" : "Failed only"}
+                  </option>
+                  <option value="main">
+                    {language === "ko" ? "메인 결과만" : "Main only"}
+                  </option>
+                  <option value="branch">
+                    {language === "ko" ? "분기만" : "Branches only"}
+                  </option>
+                </select>
+                <select
+                  value={resultSort}
+                  onChange={(event) =>
+                    setResultSort(event.target.value as ResultBoardSort)
+                  }
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
+                >
+                  <option value="workflow">
+                    {language === "ko" ? "워크플로우 순서" : "Workflow order"}
+                  </option>
+                  <option value="latest">
+                    {language === "ko" ? "최신순" : "Latest first"}
+                  </option>
+                  <option value="oldest">
+                    {language === "ko" ? "오래된순" : "Oldest first"}
+                  </option>
+                  <option value="failed_first">
+                    {language === "ko" ? "실패 우선" : "Failed first"}
+                  </option>
+                </select>
+              </div>
+            ) : null}
           </div>
         </div>
 
         {results.length ? (
           <div className="space-y-6">
+            {finalDisplayResult ? (
+              <div className="rounded-lg border border-teal-200 bg-teal-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+                      {language === "ko" ? "최종결과 빠른 보기" : "Final result spotlight"}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-stone-950">
+                      {finalDisplayResult.provider}/
+                      {getModelDisplayName(
+                        finalDisplayResult.provider,
+                        finalDisplayResult.model,
+                      )}
+                    </p>
+                    <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-stone-700">
+                      {finalDisplayResult.outputText || finalDisplayResult.errorMessage}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => jumpToResult(finalDisplayResult.id)}
+                      className="rounded-md border border-teal-300 bg-white px-3 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-100"
+                    >
+                      {language === "ko" ? "최종결과로 이동" : "Jump to final"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const text =
+                          finalDisplayResult.outputText ||
+                          finalDisplayResult.errorMessage ||
+                          "";
+                        const outcome = await copyTextToClipboard(text);
+                        setNotice(
+                          outcome.copied
+                            ? language === "ko"
+                              ? "최종결과를 복사했습니다."
+                              : "Copied the final result."
+                            : language === "ko"
+                              ? "브라우저가 자동 복사를 막았습니다."
+                              : "The browser blocked automatic copying.",
+                        );
+                      }}
+                      className="rounded-md border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+                    >
+                      {language === "ko" ? "최종결과 복사" : "Copy final"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            {!displayResults.length ? (
+              <div className="rounded-lg border border-dashed border-stone-300 bg-white px-4 py-6 text-sm text-stone-500">
+                {language === "ko"
+                  ? "현재 필터와 검색 조건에 맞는 결과가 없습니다."
+                  : "No results match the current filter and search."}
+              </div>
+            ) : null}
             <div>
               {branchDisplayResults.length ? (
                 <div className="mb-3">

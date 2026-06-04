@@ -9,13 +9,13 @@ import {
 } from "@/lib/execution-runs";
 
 type RouteContext = {
-  params: Promise<{ runId: string; stepIndex: string }>;
+  params: Promise<{ runId: string; orderIndex: string }>;
 };
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
   try {
     const user = await requireApiGenerationUser();
-    const { runId, stepIndex: rawStepIndex } = await params;
+    const { runId, orderIndex: rawOrderIndex } = await params;
     let token;
 
     try {
@@ -35,14 +35,14 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       );
     }
 
-    const stepIndex = Number.parseInt(rawStepIndex, 10);
+    const orderIndex = Number.parseInt(rawOrderIndex, 10);
     if (
-      !Number.isInteger(stepIndex) ||
-      stepIndex < 0 ||
-      stepIndex > MAX_STEP_STOP_INDEX
+      !Number.isInteger(orderIndex) ||
+      orderIndex < 0 ||
+      orderIndex > MAX_STEP_STOP_INDEX
     ) {
       return NextResponse.json(
-        { error: "Step index is out of bounds." },
+        { error: "Step order index is out of bounds." },
         { status: 400 },
       );
     }
@@ -60,7 +60,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       const stoppedStep = await cancelExecutionRunStepV2({
         executionRunId: token.executionRunId,
         userId: user.id,
-        orderIndex: stepIndex,
+        orderIndex,
       });
 
       if (!stoppedStep) {
@@ -80,7 +80,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
         ok: true,
         runId,
         executionRunId: token.executionRunId,
-        stepIndex,
+        orderIndex,
         status: stoppedStep.status,
       });
     }
@@ -88,7 +88,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     const stoppedLegacyRun = await requestExecutionRunStepStop({
       executionRunId: token.executionRunId,
       userId: user.id,
-      stepIndex,
+      stepIndex: orderIndex,
     });
 
     if (!stoppedLegacyRun) {
@@ -99,7 +99,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       ok: true,
       runId,
       executionRunId: stoppedLegacyRun.id,
-      stepIndex,
+      orderIndex,
       status: stoppedLegacyRun.status,
     });
   } catch (error) {

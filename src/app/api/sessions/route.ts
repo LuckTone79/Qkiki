@@ -19,6 +19,19 @@ export async function GET() {
         updatedAt: true,
         project: { select: { id: true, name: true } },
         _count: { select: { results: true, workflowSteps: true } },
+        executionRuns: {
+          orderBy: { updatedAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            mode: true,
+            status: true,
+            totalStepsPlanned: true,
+            totalStepsDone: true,
+            finalResultId: true,
+            updatedAt: true,
+          },
+        },
       },
     });
 

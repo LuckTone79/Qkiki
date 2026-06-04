@@ -57,6 +57,24 @@ export default function LandingPage() {
     ["Gemini", t("stepImproveCritique")],
     ["Claude", t("stepFinalAnswer")],
   ];
+  const quickStarts = [
+    {
+      key: "parallel",
+      title: language === "ko" ? "빠르게 비교하기" : "Quick compare",
+      description:
+        language === "ko"
+          ? "같은 질문을 여러 모델에 보내고 답변 차이를 바로 비교합니다."
+          : "Send one prompt to multiple models and compare the differences right away.",
+    },
+    {
+      key: "sequential",
+      title: language === "ko" ? "단계별 개선하기" : "Step-by-step improve",
+      description:
+        language === "ko"
+          ? "초안 생성, 비판, 개선을 체인으로 묶어 끝까지 다듬습니다."
+          : "Chain drafting, critique, and improvement into one guided run.",
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-[#f7f8f3] text-stone-950">
@@ -110,6 +128,20 @@ export default function LandingPage() {
               </li>
             ))}
           </ul>
+
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {quickStarts.map((item) => (
+              <div
+                key={item.key}
+                className="rounded-lg border border-stone-200 bg-white px-4 py-4 shadow-sm"
+              >
+                <p className="text-sm font-semibold text-stone-950">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-stone-600">
+                  {item.description}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">

@@ -30,7 +30,7 @@ export function UsageStatus({
   const title =
     language === "ko"
       ? usage.isBoostActive
-        ? "Qkiki Boost 활성화 중"
+        ? "Qkiki Boost 사용 중"
         : usage.planType === "PRO"
           ? "Qkiki Pro 플랜"
           : usage.planType === "STARTER"
@@ -66,6 +66,11 @@ export function UsageStatus({
           ? "Free users can compare multiple AI models up to 10 times per day."
           : `Used today: ${used} / ${limitLabel}`;
 
+  const guidance =
+    language === "ko"
+      ? "실행 전 예상 단계 수를 먼저 확인하세요. 반복 구간과 긴 첨부가 있으면 실제 사용량이 더 커질 수 있습니다."
+      : "Check the planned step count before you run. Repeat blocks and large attachments can increase actual usage.";
+
   const warning =
     usage.isLimitReached
       ? language === "ko"
@@ -95,19 +100,27 @@ export function UsageStatus({
         </div>
         <div className="grid min-w-52 grid-cols-3 gap-2 text-sm">
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
-            <p className="text-xs text-stone-500">{language === "ko" ? "남음" : "Remaining"}</p>
+            <p className="text-xs text-stone-500">
+              {language === "ko" ? "남음" : "Remaining"}
+            </p>
             <p className="mt-1 font-semibold text-stone-950">
-              {language === "ko" ? `${usage.remaining}회` : `${usage.remaining} uses`}
+              {language === "ko"
+                ? `${usage.remaining}회`
+                : `${usage.remaining} uses`}
             </p>
           </div>
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
-            <p className="text-xs text-stone-500">{language === "ko" ? "사용" : "Used"}</p>
+            <p className="text-xs text-stone-500">
+              {language === "ko" ? "사용" : "Used"}
+            </p>
             <p className="mt-1 font-semibold text-stone-950">
               {language === "ko" ? `${used}회` : `${used} uses`}
             </p>
           </div>
           <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
-            <p className="text-xs text-stone-500">{language === "ko" ? "한도" : "Limit"}</p>
+            <p className="text-xs text-stone-500">
+              {language === "ko" ? "한도" : "Limit"}
+            </p>
             <p className="mt-1 font-semibold text-stone-950">
               {usage.isUnlimitedDaily
                 ? limitLabel
@@ -124,6 +137,10 @@ export function UsageStatus({
           {warning}
         </div>
       ) : null}
+
+      <div className="mt-4 rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-3 text-xs leading-5 text-stone-600">
+        {guidance}
+      </div>
 
       <p className="mt-4 text-xs text-stone-500">
         {language === "ko" ? "다음 초기화" : "Next reset"}:{" "}

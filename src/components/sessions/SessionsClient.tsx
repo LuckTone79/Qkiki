@@ -15,6 +15,15 @@ type SessionListItem = {
   createdAt: string;
   updatedAt: string;
   _count: { results: number; workflowSteps: number };
+  executionRuns: Array<{
+    id: string;
+    mode: string;
+    status: string;
+    totalStepsPlanned: number;
+    totalStepsDone: number;
+    finalResultId: string | null;
+    updatedAt: string;
+  }>;
 };
 
 function formatDate(value: string, language: "en" | "ko") {
@@ -28,6 +37,56 @@ function formatDate(value: string, language: "en" | "ko") {
 
 function displayMode(mode: string, t: ReturnType<typeof useLanguage>["t"]) {
   return mode === "sequential" ? t("sequentialReviewChain") : t("parallelCompare");
+}
+
+function formatRunSummary(
+  session: SessionListItem,
+  language: "en" | "ko",
+) {
+  const latestRun = session.executionRuns[0];
+  if (!latestRun) {
+    return language === "ko" ? "아직 실행 기록이 없습니다." : "No runs yet.";
+  }
+
+  const doneLabel =
+    latestRun.mode === "sequential"
+      ? language === "ko"
+        ? `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}단계 완료`
+        : `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned} steps done`
+      : language === "ko"
+        ? `${session._count.results}개 결과 저장`
+        : `${session._count.results} results saved`;
+
+  const statusLabel =
+    latestRun.status === "completed"
+      ? language === "ko"
+        ? "완료"
+        : "Completed"
+      : latestRun.status === "failed"
+        ? language === "ko"
+          ? "실패"
+          : "Failed"
+        : latestRun.status === "canceled"
+          ? language === "ko"
+            ? "중지됨"
+            : "Canceled"
+          : latestRun.status === "running"
+            ? language === "ko"
+              ? "진행 중"
+              : "Running"
+            : language === "ko"
+              ? "대기 중"
+              : "Queued";
+
+  const finalLabel = latestRun.finalResultId
+    ? language === "ko"
+      ? "최종결과 선택됨"
+      : "Final result picked"
+    : language === "ko"
+      ? "최종결과 미선택"
+      : "Final result pending";
+
+  return `${statusLabel} · ${doneLabel} · ${finalLabel}`;
 }
 
 export function SessionsClient() {
@@ -145,6 +204,9 @@ export function SessionsClient() {
                     {t("updatedAt")} {formatDate(session.updatedAt, language)} -{" "}
                     {session._count.results} {t("results")} -{" "}
                     {session._count.workflowSteps} {t("steps")}
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-stone-700">
+                    {formatRunSummary(session, language)}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
