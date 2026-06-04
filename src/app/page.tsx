@@ -51,7 +51,7 @@ export default function LandingPage() {
   };
 
   const features = [t("featureCompare"), t("featureRoute"), t("featureSave")];
-  const routeExample = [
+  const routeExample: Array<[string, string]> = [
     ["GPT", t("stepDraftAnswer")],
     ["Grok", t("stepCritiqueFlaws")],
     ["Gemini", t("stepImproveCritique")],
@@ -76,97 +76,207 @@ export default function LandingPage() {
     },
   ];
 
+  const heroImage =
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80";
+  const guideLabel = language === "ko" ? "가이드북" : "Guidebook";
+
   return (
-    <main className="min-h-screen bg-[#f7f8f3] text-stone-950">
-      <section className="mx-auto grid min-h-screen max-w-6xl gap-10 px-5 py-8 md:grid-cols-[1fr_0.9fr] md:items-center">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">
+    <main className="bg-white text-[#171a20]">
+      {/* HERO — Tesla full-bleed cinematic section */}
+      <section className="relative flex min-h-[100svh] flex-col items-center justify-between overflow-hidden">
+        <Image
+          src={heroImage}
+          alt="Networked Earth from space"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-black/45" />
+
+        <div className="relative z-10 flex w-full flex-col items-center px-5 pt-28 text-center sm:pt-32">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/85">
             {t("landingEyebrow")}
           </p>
-          <h1 className="mt-4 max-w-3xl text-5xl font-semibold tracking-tight text-stone-950 sm:text-6xl">
+          <h1 className="mt-4 max-w-3xl text-5xl font-semibold tracking-tight text-white sm:text-6xl">
             {t("landingTitle")}
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-stone-600">
+          <p className="mt-4 max-w-xl text-base leading-7 text-white/85 sm:text-lg">
             {t("landingDescription")}
           </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={handleTrialStart}
-              disabled={isLoading}
-              className="rounded-md bg-stone-950 px-5 py-3 text-center text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Loading..." : t("getStarted")}
-            </button>
-            <Link
-              href="/sign-in"
-              className="rounded-md border border-stone-300 bg-white px-5 py-3 text-center text-sm font-semibold text-stone-800 hover:bg-stone-50"
-            >
-              {t("signIn")}
-            </Link>
-            <Link
-              href="/guide"
-              className="rounded-md border border-teal-200 bg-teal-50 px-5 py-3 text-center text-sm font-semibold text-teal-800 hover:bg-teal-100"
-            >
-              {language === "ko" ? "가이드북" : "Guidebook"}
-            </Link>
-          </div>
-
-          {trialError ? (
-            <p className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              {trialError}
-            </p>
-          ) : null}
-
-          <ul className="mt-10 grid gap-3 text-sm text-stone-700">
-            {features.map((feature) => (
-              <li
-                key={feature}
-                className="rounded-md border border-stone-200 bg-white/80 px-4 py-3"
-              >
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            {quickStarts.map((item) => (
-              <div
-                key={item.key}
-                className="rounded-lg border border-stone-200 bg-white px-4 py-4 shadow-sm"
-              >
-                <p className="text-sm font-semibold text-stone-950">{item.title}</p>
-                <p className="mt-2 text-sm leading-6 text-stone-600">
-                  {item.description}
-                </p>
-              </div>
-            ))}
-          </div>
+          <Link
+            href="/guide"
+            className="mt-3 text-sm font-medium text-white/85 underline-offset-4 hover:underline"
+          >
+            {guideLabel}
+          </Link>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
-          <Image
-            src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80"
-            alt="Networked Earth from space"
-            width={1200}
-            height={600}
-            className="h-56 w-full object-cover"
-          />
-          <div className="space-y-3 p-5">
-            {routeExample.map(([model, text], index) => (
+        <div className="relative z-10 mb-12 flex w-full max-w-2xl flex-col gap-3 px-5 sm:flex-row sm:px-8">
+          <button
+            type="button"
+            onClick={handleTrialStart}
+            disabled={isLoading}
+            className="flex-1 rounded bg-white/95 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-[#171a20] backdrop-blur transition hover:bg-white disabled:opacity-60"
+          >
+            {isLoading ? "Loading..." : t("getStarted")}
+          </button>
+          <Link
+            href="/sign-in"
+            className="flex-1 rounded bg-black/45 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-white backdrop-blur transition hover:bg-black/60"
+          >
+            {t("signIn")}
+          </Link>
+        </div>
+
+        {trialError ? (
+          <div className="absolute inset-x-0 bottom-28 z-20 mx-auto max-w-md px-5">
+            <p className="rounded-md border border-rose-200 bg-rose-50/95 px-4 py-3 text-center text-sm text-rose-800 backdrop-blur">
+              {trialError}
+            </p>
+          </div>
+        ) : null}
+      </section>
+
+      {/* SECTION 2 — Parallel Compare / Feature highlights */}
+      <section className="relative flex min-h-[100svh] flex-col items-center justify-between gap-12 bg-[#f4f4f4] py-16">
+        <div className="px-5 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#171a20]/55">
+            {language === "ko" ? "병렬 비교" : "Parallel compare"}
+          </p>
+          <h2 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+            {language === "ko"
+              ? "한 번에, 나란히."
+              : "All at once. Side by side."}
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#171a20]/70 sm:text-lg">
+            {language === "ko"
+              ? "하나의 작업을 여러 모델에 동시에 보내고 한 화면에서 차이를 비교하세요."
+              : "Send one task to multiple models simultaneously and compare differences on a single screen."}
+          </p>
+        </div>
+
+        <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 px-5 sm:grid-cols-3">
+          {features.map((feature, index) => (
+            <div
+              key={feature}
+              className="rounded-xl bg-white px-5 py-6 text-left shadow-sm ring-1 ring-black/5"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#171a20]/45">
+                {`0${index + 1}`}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[#171a20]/85">{feature}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 px-5">
+          <button
+            type="button"
+            onClick={handleTrialStart}
+            disabled={isLoading}
+            className="rounded bg-[#171a20] px-12 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-black disabled:opacity-60"
+          >
+            {isLoading ? "Loading..." : t("getStarted")}
+          </button>
+        </div>
+      </section>
+
+      {/* SECTION 3 — Sequential Review Chain */}
+      <section className="relative flex min-h-[100svh] flex-col items-center justify-between gap-12 bg-[#171a20] py-16 text-white">
+        <div className="px-5 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/55">
+            {language === "ko" ? "순차 검토 체인" : "Sequential review chain"}
+          </p>
+          <h2 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
+            {language === "ko"
+              ? "한 출력이 다음 입력이 됩니다."
+              : "One output becomes the next input."}
+          </h2>
+        </div>
+
+        <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-3 px-5 sm:grid-cols-4">
+          {routeExample.map(([model, text], index) => {
+            const isFinal = index === routeExample.length - 1;
+            return (
               <div
                 key={model}
-                className="grid grid-cols-[72px_1fr] items-center gap-3 rounded-md border border-stone-200 bg-[#fbfcf8] px-3 py-3"
+                className={`rounded-lg border px-4 py-5 text-left ${
+                  isFinal
+                    ? "border-white/40 bg-white/10"
+                    : "border-white/15 bg-transparent"
+                }`}
               >
-                <span className="text-xs font-semibold uppercase text-teal-700">
-                  {t("step")} {index + 1}
-                </span>
-                <span className="text-sm text-stone-700">
-                  {model}: {text}
-                </span>
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/55">
+                  {t("step")} {String(index + 1).padStart(2, "0")}
+                </p>
+                <p className="mt-2 text-base font-semibold text-white">{model}</p>
+                <p className="mt-1 text-sm leading-6 text-white/75">{text}</p>
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
+
+        <div>
+          <Link
+            href="/sign-in"
+            className="rounded bg-white px-12 py-3 text-sm font-semibold tracking-wide text-[#171a20] transition hover:bg-stone-200"
+          >
+            {language === "ko" ? "자세히" : "Learn more"}
+          </Link>
+        </div>
+      </section>
+
+      {/* SECTION 4 — Quick starts + final CTA */}
+      <section className="relative flex min-h-[100svh] flex-col items-center justify-center gap-10 bg-white py-16 text-center">
+        <div className="px-5">
+          <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            {language === "ko"
+              ? "모든 결과가 새로운 시작점."
+              : "Every result is a new beginning."}
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#171a20]/70 sm:text-lg">
+            {language === "ko"
+              ? "분기 · 프로젝트 · 프리셋 · 파일 첨부까지, 한 작업대에서."
+              : "Branch · projects · presets · file attachments — all in one workbench."}
+          </p>
+        </div>
+
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 px-5 sm:grid-cols-2">
+          {quickStarts.map((item) => (
+            <div
+              key={item.key}
+              className="rounded-xl bg-[#f4f4f4] px-5 py-6 text-left"
+            >
+              <p className="text-sm font-semibold text-[#171a20]">{item.title}</p>
+              <p className="mt-2 text-sm leading-6 text-[#171a20]/70">
+                {item.description}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 px-5">
+          <button
+            type="button"
+            onClick={handleTrialStart}
+            disabled={isLoading}
+            className="rounded bg-[#171a20] px-12 py-3.5 text-sm font-semibold tracking-wide text-white transition hover:bg-black disabled:opacity-60"
+          >
+            {isLoading ? "Loading..." : t("getStarted")}
+          </button>
+          <Link
+            href="/sign-in"
+            className="rounded border border-[#171a20] px-12 py-3.5 text-sm font-semibold tracking-wide text-[#171a20] transition hover:bg-[#171a20] hover:text-white"
+          >
+            {t("signIn")}
+          </Link>
+          <Link
+            href="/guide"
+            className="rounded bg-[#f4f4f4] px-12 py-3.5 text-sm font-semibold tracking-wide text-[#171a20] transition hover:bg-stone-200"
+          >
+            {guideLabel}
+          </Link>
         </div>
       </section>
     </main>

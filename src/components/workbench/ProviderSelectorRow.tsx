@@ -60,7 +60,7 @@ export function ProviderSelectorRow({
         </label>
         <StatusBadge status={provider.status} />
       </div>
-      <div className="mt-3 rounded-md border border-stone-200 bg-[#fbfcf8] p-3">
+      <div className="mt-3 rounded-md border border-stone-200 bg-[#f7f6f3] p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs font-medium text-stone-500">
             {language === "ko" ? "선택 모델" : "Selected models"}

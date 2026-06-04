@@ -99,7 +99,7 @@ export function UsageStatus({
           <p className="mt-1 text-sm text-stone-600">{secondary}</p>
         </div>
         <div className="grid min-w-52 grid-cols-3 gap-2 text-sm">
-          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
+          <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] px-3 py-2">
             <p className="text-xs text-stone-500">
               {language === "ko" ? "남음" : "Remaining"}
             </p>
@@ -109,7 +109,7 @@ export function UsageStatus({
                 : `${usage.remaining} uses`}
             </p>
           </div>
-          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
+          <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] px-3 py-2">
             <p className="text-xs text-stone-500">
               {language === "ko" ? "사용" : "Used"}
             </p>
@@ -117,7 +117,7 @@ export function UsageStatus({
               {language === "ko" ? `${used}회` : `${used} uses`}
             </p>
           </div>
-          <div className="rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-2">
+          <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] px-3 py-2">
             <p className="text-xs text-stone-500">
               {language === "ko" ? "한도" : "Limit"}
             </p>
@@ -138,7 +138,7 @@ export function UsageStatus({
         </div>
       ) : null}
 
-      <div className="mt-4 rounded-lg border border-stone-200 bg-[#fbfcf8] px-3 py-3 text-xs leading-5 text-stone-600">
+      <div className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] px-3 py-3 text-xs leading-5 text-stone-600">
         {guidance}
       </div>
 

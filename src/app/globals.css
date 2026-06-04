@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8f3;
-  --foreground: #20231f;
+  /* Notion-style palette for all detail pages */
+  --background: #ffffff;
+  --foreground: #37352f;
+  --notion-ink: #37352f;
+  --notion-muted: #787774;
+  --notion-line: #ecebe9;
+  --notion-soft: #f7f6f3;
+  --notion-softer: #f1f0ee;
+  --notion-faint: #fafaf9;
 }
 
 @theme inline {
@@ -10,6 +17,50 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-lora);
+
+  /* Remap stone -> Notion warm-gray neutrals
+     The codebase uses stone extensively for borders/text/bg; remapping
+     here propagates the Notion look to every detail page automatically. */
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f1f0ee;
+  --color-stone-200: #ecebe9;
+  --color-stone-300: #d9d8d5;
+  --color-stone-400: #b1b0ad;
+  --color-stone-500: #9b9a97;
+  --color-stone-600: #787774;
+  --color-stone-700: #5c5b58;
+  --color-stone-800: #4b4a47;
+  --color-stone-900: #3d3c3a;
+  --color-stone-950: #37352f;
+
+  /* Remap slate to the same neutral scale for consistency across pages */
+  --color-slate-50: #fafaf9;
+  --color-slate-100: #f1f0ee;
+  --color-slate-200: #ecebe9;
+  --color-slate-300: #d9d8d5;
+  --color-slate-400: #b1b0ad;
+  --color-slate-500: #9b9a97;
+  --color-slate-600: #787774;
+  --color-slate-700: #5c5b58;
+  --color-slate-800: #4b4a47;
+  --color-slate-900: #3d3c3a;
+  --color-slate-950: #37352f;
+
+  /* Teal was the accent color. Notion's primary action is the ink color
+     itself; secondary accents are subtle. Remap to keep the same visual
+     hierarchy (text-teal-700 ~ ink, bg-teal-50 ~ soft, border-teal-200 ~ line). */
+  --color-teal-50: #f7f6f3;
+  --color-teal-100: #f1f0ee;
+  --color-teal-200: #e3e2df;
+  --color-teal-300: #c9c8c4;
+  --color-teal-400: #8e8d89;
+  --color-teal-500: #5c5b58;
+  --color-teal-600: #37352f;
+  --color-teal-700: #37352f;
+  --color-teal-800: #37352f;
+  --color-teal-900: #2a2a28;
+  --color-teal-950: #1f1f1d;
 }
 
 html {
@@ -31,6 +82,11 @@ textarea {
 }
 
 ::selection {
-  background: #c8f7dc;
-  color: #123225;
+  background: #ecebe9;
+  color: #37352f;
 }
+
+/* Notion-style serif for display headings in the app shell.
+   Components opt in by using the Tailwind `font-serif` utility
+   (mapped above to Lora). No global override is applied so the
+   Tesla landing keeps its sans-serif look. */

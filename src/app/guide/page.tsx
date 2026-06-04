@@ -590,7 +590,7 @@ export default function GuidePage() {
   const t = guide[language];
 
   return (
-    <main className="min-h-screen bg-[#f7f8f3] text-stone-950">
+    <main className="min-h-screen bg-[#ffffff] text-stone-950">
       {/* ─── Sticky top bar ─── */}
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3">
