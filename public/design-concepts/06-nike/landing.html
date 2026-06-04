@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Qkiki — Nike 스타일 · 랜딩</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:"Helvetica Neue",Arial,"Pretendard",system-ui,sans-serif; }
+  .italic-impact { font-style: italic; font-weight: 900; letter-spacing: -0.03em; }
+  .volt { color:#d8ff00; }
+  .bg-volt { background:#d8ff00; }
+  .marquee { animation: scroll 18s linear infinite; }
+  @keyframes scroll { from { transform: translateX(0);} to { transform: translateX(-50%);} }
+</style>
+</head>
+<body class="bg-white text-black">
+
+<!-- NAV -->
+<header class="sticky top-0 z-50 bg-white">
+  <div class="flex items-center justify-between px-5 py-4">
+    <a href="#" class="text-2xl italic-impact tracking-tighter">QKIKI</a>
+    <nav class="hidden gap-7 text-sm font-bold uppercase tracking-wide md:flex">
+      <a href="#compare" class="hover:opacity-50">Compare</a>
+      <a href="#chain" class="hover:opacity-50">Chain</a>
+      <a href="#branch" class="hover:opacity-50">Branch</a>
+      <a href="workbench.html" class="hover:opacity-50">Workbench</a>
+    </nav>
+    <a href="#" class="rounded-full bg-black px-5 py-2 text-sm font-bold text-white hover:bg-stone-800">시작하기</a>
+  </div>
+  <div class="overflow-hidden bg-black py-2">
+    <div class="marquee flex w-[200%] gap-8 whitespace-nowrap text-sm font-bold uppercase volt">
+      <span>GPT · CLAUDE · GEMINI · GROK · 하나의 작업대 · JUST RUN IT · GPT · CLAUDE · GEMINI · GROK · 하나의 작업대 · JUST RUN IT ·</span>
+      <span>GPT · CLAUDE · GEMINI · GROK · 하나의 작업대 · JUST RUN IT · GPT · CLAUDE · GEMINI · GROK · 하나의 작업대 · JUST RUN IT ·</span>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="relative">
+  <div class="relative flex min-h-[88vh] items-end overflow-hidden bg-black">
+    <img src="https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1600&q=80" alt="" class="absolute inset-0 h-full w-full object-cover opacity-60" />
+    <div class="relative z-10 px-5 pb-16">
+      <p class="text-sm font-bold uppercase tracking-[0.3em] volt">Multi-AI Orchestration</p>
+      <h1 class="mt-3 text-[18vw] leading-[0.82] italic-impact text-white sm:text-[14vw] lg:text-[150px]">
+        JUST<br/>RUN IT.
+      </h1>
+      <p class="mt-5 max-w-xl text-lg font-medium text-white/80">
+        하나의 작업을 여러 AI에 던지고, 비교하고, 다음 모델로 이어간다.
+        망설이지 말고, 그냥 돌려라.
+      </p>
+      <div class="mt-7 flex gap-3">
+        <a href="#" class="rounded-full bg-white px-7 py-3.5 text-sm font-bold text-black hover:bg-stone-200">무료로 시작</a>
+        <a href="workbench.html" class="rounded-full border-2 border-white px-7 py-3.5 text-sm font-bold text-white hover:bg-white hover:text-black">워크벤치 보기</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BIG STATEMENT -->
+<section id="compare" class="px-5 py-24">
+  <h2 class="text-[12vw] leading-[0.85] italic-impact tracking-tighter lg:text-[110px]">
+    하나로는<br/>부족하다.
+  </h2>
+  <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="group relative overflow-hidden rounded-2xl bg-black p-7 text-white">
+      <p class="text-xs font-bold uppercase volt">GPT-5.5</p>
+      <p class="mt-20 text-2xl italic-impact">DRAFT</p>
+      <p class="mt-1 text-sm text-white/60">빠른 초안</p>
+    </div>
+    <div class="group relative overflow-hidden rounded-2xl bg-stone-100 p-7">
+      <p class="text-xs font-bold uppercase text-stone-500">GROK-4.3</p>
+      <p class="mt-20 text-2xl italic-impact">CRITIQUE</p>
+      <p class="mt-1 text-sm text-stone-500">날카로운 비판</p>
+    </div>
+    <div class="group relative overflow-hidden rounded-2xl bg-stone-100 p-7">
+      <p class="text-xs font-bold uppercase text-stone-500">GEMINI-3.1</p>
+      <p class="mt-20 text-2xl italic-impact">IMPROVE</p>
+      <p class="mt-1 text-sm text-stone-500">개선</p>
+    </div>
+    <div class="group relative overflow-hidden rounded-2xl bg-volt p-7">
+      <p class="text-xs font-bold uppercase text-black/60">CLAUDE-4.7</p>
+      <p class="mt-20 text-2xl italic-impact">FINAL</p>
+      <p class="mt-1 text-sm text-black/60">최종 정리</p>
+    </div>
+  </div>
+</section>
+
+<!-- CHAIN -->
+<section id="chain" class="bg-black px-5 py-24 text-white">
+  <p class="text-sm font-bold uppercase tracking-[0.3em] volt">Sequential Review Chain</p>
+  <h2 class="mt-3 text-[11vw] leading-[0.85] italic-impact lg:text-[96px]">한 번에 끝까지.</h2>
+  <div class="mt-12 flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div class="flex-1 rounded-2xl border border-white/15 p-6"><p class="text-xs font-bold volt">01 GPT</p><p class="mt-2 text-xl italic-impact">초안</p></div>
+    <span class="text-center text-2xl volt">▶</span>
+    <div class="flex-1 rounded-2xl border border-white/15 p-6"><p class="text-xs font-bold volt">02 GROK</p><p class="mt-2 text-xl italic-impact">비판</p></div>
+    <span class="text-center text-2xl volt">▶</span>
+    <div class="flex-1 rounded-2xl border border-white/15 p-6"><p class="text-xs font-bold volt">03 GEMINI</p><p class="mt-2 text-xl italic-impact">개선</p></div>
+    <span class="text-center text-2xl volt">▶</span>
+    <div class="flex-1 rounded-2xl bg-volt p-6 text-black"><p class="text-xs font-bold">04 CLAUDE</p><p class="mt-2 text-xl italic-impact">최종</p></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="branch" class="px-5 py-24">
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="rounded-2xl border-2 border-black p-8"><p class="text-3xl italic-impact">분기</p><p class="mt-3 text-sm font-medium text-stone-600">모든 결과 카드를 다른 모델로 비판·개선·요약·팩트체크.</p></div>
+    <div class="rounded-2xl border-2 border-black p-8"><p class="text-3xl italic-impact">프로젝트</p><p class="mt-3 text-sm font-medium text-stone-600">공유 노트와 최근 결과가 모든 실행에 함께 간다.</p></div>
+    <div class="rounded-2xl border-2 border-black p-8"><p class="text-3xl italic-impact">프리셋</p><p class="mt-3 text-sm font-medium text-stone-600">좋은 체인을 저장하고 언제든 다시 꺼낸다.</p></div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="bg-volt px-5 py-24 text-center">
+  <h2 class="text-[13vw] leading-[0.85] italic-impact tracking-tighter lg:text-[120px]">시작은 지금.</h2>
+  <a href="#" class="mt-8 inline-block rounded-full bg-black px-9 py-4 text-base font-bold text-white hover:bg-stone-800">무료로 RUN IT →</a>
+</section>
+
+<footer class="bg-black px-5 py-8 text-center text-xs font-bold uppercase tracking-wide text-white/40">
+  컨셉 06 · Nike 스타일 — 예시용 목업 · 실제 제품 미적용
+</footer>
+</body>
+</html>
