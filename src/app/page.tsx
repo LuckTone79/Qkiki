@@ -77,7 +77,7 @@ export default function LandingPage() {
   ];
 
   const heroImage =
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80";
+    "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1600&q=80";
   const guideLabel = language === "ko" ? "가이드북" : "Guidebook";
 
   return (
@@ -86,13 +86,13 @@ export default function LandingPage() {
       <section className="relative flex min-h-[100svh] flex-col items-center justify-between overflow-hidden">
         <Image
           src={heroImage}
-          alt="Networked Earth from space"
+          alt="Qkiki orchestration — networked architecture"
           fill
           priority
           sizes="100vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-black/45" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/55" />
 
         <div className="relative z-10 flex w-full flex-col items-center px-5 pt-28 text-center sm:pt-32">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/85">
