@@ -67,6 +67,10 @@ import {
   type ResultBoardFilter,
   type ResultBoardSort,
 } from "@/lib/workbench-result-board";
+import {
+  finalizeRepeatCountDraft,
+  sanitizeRepeatCountDraftInput,
+} from "@/lib/repeat-count-input";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -1112,6 +1116,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     useState<WorkflowStepState[]>(() => initialSteps(language));
   const [workflowControl, setWorkflowControl] = useState<WorkflowControlState>(
     () => defaultWorkflowControlState(),
+  );
+  const [repeatCountDraftById, setRepeatCountDraftById] = useState<Record<string, string>>(
+    {},
   );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
@@ -2252,6 +2259,25 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     [workflowControl, workflowSteps.length],
   );
 
+  useEffect(() => {
+    setRepeatCountDraftById((current) => {
+      const activeIds = new Set(
+        normalizedWorkflowControl.repeatBlocks.map((repeatBlock) => repeatBlock.id),
+      );
+      let changed = false;
+      const next = { ...current };
+
+      Object.keys(next).forEach((repeatBlockId) => {
+        if (!activeIds.has(repeatBlockId)) {
+          delete next[repeatBlockId];
+          changed = true;
+        }
+      });
+
+      return changed ? next : current;
+    });
+  }, [normalizedWorkflowControl.repeatBlocks]);
+
   const estimatedSequentialExecutions = useMemo(
     () =>
       calculateSequentialExecutionCount(
@@ -2297,6 +2323,57 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         (repeatBlock) => repeatBlock.id !== repeatBlockId,
       ),
     }));
+  }
+
+  function updateRepeatCountDraft(repeatBlockId: string, rawValue: string) {
+    const sanitized = sanitizeRepeatCountDraftInput(rawValue);
+    if (sanitized === null) {
+      return;
+    }
+
+    setRepeatCountDraftById((current) => ({
+      ...current,
+      [repeatBlockId]: sanitized,
+    }));
+
+    if (sanitized === "") {
+      return;
+    }
+
+    const nextRepeatCount = finalizeRepeatCountDraft(
+      sanitized,
+      1,
+      MAX_TOTAL_SEQUENTIAL_STEPS,
+    );
+
+    updateRepeatBlock(repeatBlockId, (current) => ({
+      ...current,
+      repeatCount: nextRepeatCount,
+    }));
+  }
+
+  function commitRepeatCountDraft(repeatBlockId: string) {
+    const draftValue = repeatCountDraftById[repeatBlockId];
+    if (draftValue === undefined) {
+      return;
+    }
+
+    const nextRepeatCount = finalizeRepeatCountDraft(
+      draftValue,
+      1,
+      MAX_TOTAL_SEQUENTIAL_STEPS,
+    );
+
+    updateRepeatBlock(repeatBlockId, (current) => ({
+      ...current,
+      repeatCount: nextRepeatCount,
+    }));
+
+    setRepeatCountDraftById((current) => {
+      const next = { ...current };
+      delete next[repeatBlockId];
+      return next;
+    });
   }
 
   const resultDepths = useMemo(() => buildResultDepthMap(results), [results]);
@@ -4297,18 +4374,18 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                               type="number"
                               min={1}
                               max={MAX_TOTAL_SEQUENTIAL_STEPS}
-                              value={repeatBlock.repeatCount}
+                              inputMode="numeric"
+                              value={
+                                repeatCountDraftById[repeatBlock.id] ??
+                                String(repeatBlock.repeatCount)
+                              }
                               onChange={(event) => {
-                                const nextRepeatCount = clampInteger(
-                                  Number(event.target.value),
-                                  1,
-                                  MAX_TOTAL_SEQUENTIAL_STEPS,
+                                updateRepeatCountDraft(
+                                  repeatBlock.id,
+                                  event.target.value,
                                 );
-                                updateRepeatBlock(repeatBlock.id, (current) => ({
-                                  ...current,
-                                  repeatCount: nextRepeatCount,
-                                }));
                               }}
+                              onBlur={() => commitRepeatCountDraft(repeatBlock.id)}
                               className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
                             />
                           </label>
