@@ -6,7 +6,8 @@
       "Bash(cat src/app/app/projects/[id]/page.tsx)",
       "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_teams",
       "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_projects",
-      "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_deployments"
+      "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_deployments",
+      "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__get_project"
     ]
   }
 }
