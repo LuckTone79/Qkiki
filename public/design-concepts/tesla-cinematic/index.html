@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tesla 시네마틱 워크벤치 10종 — 이미지 팔레트</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Inter","Pretendard","Helvetica Neue",system-ui,sans-serif;background:#0a0c10;color:#f1f2f5;-webkit-font-smoothing:antialiased;min-height:100vh;position:relative;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      linear-gradient(transparent 0,transparent 96%, rgba(93,211,214,.14) 100%) 0 0/100% 110px,
+      linear-gradient(90deg,transparent 0,transparent 96%, rgba(93,211,214,.14) 100%) 0 0/110px 100%;
+    mask:linear-gradient(180deg,black,transparent 65%);
+  }
+  body::after{content:"";position:fixed;inset:auto -10% -25% -10%;height:60%;pointer-events:none;z-index:0;
+    background: radial-gradient(60% 80% at 25% 100%, rgba(93,211,214,.25), transparent 70%),
+                radial-gradient(50% 70% at 75% 100%, rgba(139,143,200,.22), transparent 70%);
+    filter:blur(40px);}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+  header{border-bottom:1px solid rgba(255,255,255,.08);background:rgba(10,12,16,.7);backdrop-filter:blur(20px)}
+  .head{padding:50px 0 38px}
+  .eyebrow{font-size:11px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:#5dd3d6}
+  h1{margin-top:12px;font-size:36px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+  .sub{margin-top:14px;max-width:680px;color:#9fa3af;line-height:1.75;font-size:15px}
+  .palette{margin-top:18px;display:flex;gap:8px;align-items:center;font-size:11px;color:#7a808a;letter-spacing:.06em}
+  .sw{width:22px;height:22px;border-radius:6px;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+  .links{margin-top:22px;display:flex;gap:10px;flex-wrap:wrap}
+  .btn{border-radius:11px;padding:11px 20px;font-size:13px;font-weight:600;letter-spacing:.02em}
+  .btn-cyan{background:linear-gradient(135deg,#5dd3d6,#6fe5e8);color:#0a0c10}
+  .btn-ghost{border:1px solid rgba(255,255,255,.18);color:#f1f2f5}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px;padding:32px 0 60px}
+  .item{display:block;border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;background:rgba(255,255,255,.03);backdrop-filter:blur(10px);transition:all .4s cubic-bezier(.16,1,.3,1);position:relative}
+  .item:hover{transform:translateY(-6px);border-color:rgba(93,211,214,.35);box-shadow:0 22px 50px -20px rgba(93,211,214,.25)}
+  .swatch{height:108px;position:relative;overflow:hidden}
+  .swatch::before{content:"";position:absolute;inset:0;
+    background:
+      linear-gradient(transparent 0,transparent 96%, rgba(255,255,255,.22) 100%) 0 0/100% 24px,
+      linear-gradient(90deg,transparent 0,transparent 96%, rgba(255,255,255,.22) 100%) 0 0/24px 100%;
+    mask:linear-gradient(120deg,transparent 0%, black 35%, black 80%, transparent 100%); opacity:.5;}
+  .swatch::after{content:"";position:absolute;right:-30px;top:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.45),transparent 65%);filter:blur(8px)}
+  .num{position:absolute;left:14px;bottom:14px;font-size:12px;font-weight:800;color:#fff;background:rgba(0,0,0,.32);padding:4px 10px;border-radius:999px;backdrop-filter:blur(4px);letter-spacing:.08em;z-index:2}
+  .meta{padding:16px 18px;display:flex;align-items:center;justify-content:space-between}
+  .name{font-weight:600;font-size:15px;letter-spacing:-.01em}
+  .en{font-size:11.5px;color:#7a808a;margin-top:3px;letter-spacing:.06em;text-transform:uppercase}
+  .go{font-size:12px;font-weight:700;color:#5dd3d6}
+  footer{border-top:1px solid rgba(255,255,255,.06);padding:26px 0;text-align:center;font-size:12px;color:#7a808a;letter-spacing:.04em}
+</style>
+</head>
+<body>
+<header><div class="wrap head">
+  <p class="eyebrow">Tesla Landing Palette · Cinematic Workbench</p>
+  <h1>Tesla 랜딩 이미지 팔레트로<br/>만든 워크벤치 10종</h1>
+  <p class="sub">테슬라 랜딩페이지의 그 차콜 배경, 시안 글로우 네트워크 라인, 라벤더 빛 코어, 실버 큐브 — 이 색조만으로 워크벤치 10가지 분위기를 변주했습니다. 시네마틱 그라데이션 히어로, 정돈된 3패널 구조, 모델별 색 코딩까지 공통.</p>
+  <div class="palette">
+    <span class="sw" style="background:#0a0c10"></span>
+    <span class="sw" style="background:#5dd3d6"></span>
+    <span class="sw" style="background:#6fe5e8"></span>
+    <span class="sw" style="background:#8b8fc8"></span>
+    <span class="sw" style="background:#a8acdd"></span>
+    <span class="sw" style="background:#b0b3b8"></span>
+    <span style="margin-left:6px">Tesla 랜딩 이미지에서 추출</span>
+  </div>
+  <div class="links">
+    <a class="btn btn-cyan" href="../11-tesla/landing.html">↗ Tesla 랜딩페이지로</a>
+    <a class="btn btn-ghost" href="../index.html">전체 디자인 갤러리</a>
+  </div>
+</div></header>
+
+<main class="wrap"><div class="grid" id="grid"></div></main>
+
+<footer>Tesla 시네마틱 워크벤치 10종 · 이미지 팔레트 기반 · 예시용 목업 · 실제 제품 미적용</footer>
+
+<script>
+  const items = [
+    [1,"네트워크 시안","Network Cyan","linear-gradient(135deg,#5dd3d6,#6fe5e8)"],
+    [2,"라벤더 코어","Lavender Core","linear-gradient(135deg,#8b8fc8,#a8acdd)"],
+    [3,"시안 × 라벤더","Cyan × Lavender","linear-gradient(135deg,#5dd3d6,#8b8fc8)"],
+    [4,"실버 메시","Silver Mesh","linear-gradient(135deg,#b0b3b8,#5dd3d6)"],
+    [5,"딥 보이드","Deep Void","linear-gradient(135deg,#1a1d24,#5dd3d6 95%)"],
+    [6,"앰비언트 헤일로","Ambient Halo","linear-gradient(135deg,#6fe5e8,#a8acdd)"],
+    [7,"홀로그래픽 프리즘","Holographic Prism","linear-gradient(135deg,#5dd3d6 0%,#8b8fc8 50%,#a8acdd 100%)"],
+    [8,"아키텍처럴 블루프린트","Architectural Blueprint","linear-gradient(135deg,#7be8eb,#5dd3d6)"],
+    [9,"데이라이트","Daylight","linear-gradient(135deg,#4fb3b6,#7a7fc0)"],
+    [10,"차콜 × 시안 볼드","Charcoal Bold","linear-gradient(135deg,#0a0c10 0%,#6fe5e8 100%)"],
+  ];
+  const grid = document.getElementById("grid");
+  items.forEach(([n,ko,en,grad])=>{
+    const file = "v"+String(n).padStart(2,"0")+".html";
+    grid.insertAdjacentHTML("beforeend", `
+      <a class="item" href="${file}">
+        <div class="swatch" style="background:${grad}">
+          <span class="num">${String(n).padStart(2,"0")}</span>
+        </div>
+        <div class="meta">
+          <div><div class="name">${ko}</div><div class="en">${en}</div></div>
+          <span class="go">열기 →</span>
+        </div>
+      </a>`);
+  });
+</script>
+</body>
+</html>
