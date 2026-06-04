@@ -15,11 +15,11 @@ export function SectionHeader({
     <div className="flex flex-col gap-3 border-b border-stone-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         {eyebrow ? (
-          <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-stone-950">
+        <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight text-stone-950">
           {title}
         </h1>
         {description ? (

@@ -100,8 +100,10 @@ export function AdminShell({
         <aside className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur lg:static lg:w-72 lg:border-b-0 lg:border-r lg:bg-white lg:px-5">
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/admin" className="block">
-              <p className="text-lg font-semibold tracking-tight">{t.title}</p>
-              <p className="text-xs text-slate-500">{t.subtitle}</p>
+              <p className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
+                <span aria-hidden="true">⬡</span> {t.title}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">{t.subtitle}</p>
             </Link>
             <div className="lg:hidden">
               <AdminSignOutButton compact />
@@ -126,8 +128,8 @@ export function AdminShell({
             ))}
           </nav>
 
-          <div className="mt-8 hidden rounded-lg border border-slate-200 bg-slate-50 p-3 lg:block">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <div className="mt-8 hidden rounded-md border border-slate-200 bg-slate-50 p-3 lg:block">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
               {t.signedInAs}
             </p>
             <p className="mt-2 truncate text-sm font-medium text-slate-950">

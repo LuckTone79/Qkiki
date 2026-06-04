@@ -8,11 +8,11 @@ export default function SignInPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#ffffff] px-5 py-10">
-      <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">
-          Qkiki
+      <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-7">
+        <p className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight text-stone-950">
+          <span aria-hidden="true">⬡</span> Qkiki
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">
+        <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-stone-950">
           {t("signIn")}
         </h1>
         <p className="mt-2 text-sm leading-6 text-stone-600">
