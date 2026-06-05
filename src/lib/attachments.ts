@@ -3,6 +3,11 @@ import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import {
+  extractAttachmentTextContent,
+  listAcceptedAttachmentTypes as listAcceptedAttachmentTypeValues,
+  resolveAttachmentDescriptor,
+} from "@/lib/attachment-files";
 import { prisma } from "@/lib/prisma";
 import type { AttachmentKind, SessionAttachment } from "@prisma/client";
 
@@ -28,11 +33,7 @@ const STORAGE_DIR = path.join(
 );
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_RUN = 8;
-const MAX_EXTRACTED_TEXT_LENGTH = 40000;
 const MAX_PROMPT_TEXT_LENGTH = 24000;
-
-const textExtensions = new Set([".txt", ".md", ".csv", ".json"]);
-const imageExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
 
 function sanitizeName(value: string) {
   return value.replace(/[^\w.\-() ]+/g, "_").slice(0, 120) || "attachment";
@@ -40,92 +41,6 @@ function sanitizeName(value: string) {
 
 function extensionOf(name: string) {
   return path.extname(name).toLowerCase();
-}
-
-function normalizeMimeType(fileName: string, mimeType?: string | null) {
-  const normalized = mimeType?.trim().toLowerCase();
-  if (normalized && normalized !== "application/octet-stream") {
-    return normalized;
-  }
-
-  const extension = extensionOf(fileName);
-  if (textExtensions.has(extension)) {
-    if (extension === ".md") {
-      return "text/markdown";
-    }
-    if (extension === ".csv") {
-      return "text/csv";
-    }
-    if (extension === ".json") {
-      return "application/json";
-    }
-    return "text/plain";
-  }
-
-  if (imageExtensions.has(extension)) {
-    if (extension === ".jpg") {
-      return "image/jpeg";
-    }
-    return `image/${extension.slice(1)}`;
-  }
-
-  if (extension === ".pdf") {
-    return "application/pdf";
-  }
-
-  return normalized || "application/octet-stream";
-}
-
-function getAttachmentKind(mimeType: string, fileName: string): AttachmentKind | null {
-  if (mimeType.startsWith("image/")) {
-    return "IMAGE";
-  }
-
-  if (mimeType === "application/pdf" || extensionOf(fileName) === ".pdf") {
-    return "PDF";
-  }
-
-  if (
-    mimeType.startsWith("text/") ||
-    mimeType === "application/json" ||
-    textExtensions.has(extensionOf(fileName))
-  ) {
-    return "TEXT";
-  }
-
-  return null;
-}
-
-async function extractPdfText(buffer: Buffer) {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    return (result.text || "").trim();
-  } finally {
-    await parser.destroy();
-  }
-}
-
-async function extractAttachmentText(
-  kind: AttachmentKind,
-  mimeType: string,
-  buffer: Buffer,
-) {
-  if (kind === "TEXT") {
-    return new TextDecoder("utf-8", { fatal: false })
-      .decode(buffer)
-      .replace(/\0/g, "")
-      .trim()
-      .slice(0, MAX_EXTRACTED_TEXT_LENGTH);
-  }
-
-  if (kind === "PDF" && mimeType === "application/pdf") {
-    const text = await extractPdfText(buffer);
-    return text.slice(0, MAX_EXTRACTED_TEXT_LENGTH);
-  }
-
-  return null;
 }
 
 function toMeta(attachment: SessionAttachment): AttachmentMeta {
@@ -140,7 +55,7 @@ function toMeta(attachment: SessionAttachment): AttachmentMeta {
 }
 
 export function listAcceptedAttachmentTypes() {
-  return ".txt,.md,.csv,.json,.pdf,image/png,image/jpeg,image/webp,image/gif";
+  return listAcceptedAttachmentTypeValues();
 }
 
 export function getAttachmentLimits() {
@@ -158,12 +73,12 @@ export async function createAttachment(input: {
   sessionId?: string | null;
 }) {
   const safeName = sanitizeName(input.fileName);
-  const mimeType = normalizeMimeType(safeName, input.mimeType);
-  const kind = getAttachmentKind(mimeType, safeName);
+  const descriptor = resolveAttachmentDescriptor(safeName, input.mimeType);
 
-  if (!kind) {
-    throw new Error("Supported attachments are text, JSON, CSV, Markdown, PDF, and common images.");
+  if (!descriptor) {
+    throw new Error("Supported attachments are text, JSON, CSV, Markdown, Word (.docx), PDF, and common images.");
   }
+  const { kind, mimeType } = descriptor;
 
   if (input.bytes.byteLength > MAX_ATTACHMENT_BYTES) {
     throw new Error(`Each attachment must be ${Math.floor(MAX_ATTACHMENT_BYTES / (1024 * 1024))}MB or smaller.`);
@@ -185,7 +100,11 @@ export async function createAttachment(input: {
     console.warn("[attachments] falling back to database-backed storage", error);
   }
 
-  const extractedText = await extractAttachmentText(kind, mimeType, buffer);
+  const extractedText = await extractAttachmentTextContent({
+    kind,
+    mimeType,
+    bytes: buffer,
+  });
 
   const created = await prisma.sessionAttachment.create({
     data: {

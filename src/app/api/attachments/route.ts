@@ -8,7 +8,11 @@ function attachmentErrorResponse(error: unknown) {
     return apiErrorResponse(error);
   }
 
-  if (error.message.includes("smaller") || error.message.includes("Supported attachments")) {
+  if (
+    error.message.includes("smaller") ||
+    error.message.includes("Supported attachments") ||
+    error.message.includes("could not be read")
+  ) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 

@@ -26,7 +26,7 @@ const dictionaries = {
     attachFiles: "Attach files",
     attachments: "Attachments",
     attachmentsDescription:
-      "Add text, image, or PDF files. Uploaded files stay server-side and remain linked to this session.",
+      "Add text, Word, image, or PDF files. Uploaded files stay server-side and remain linked to this session.",
     apiKey: "API key",
     alreadyHaveAccount: "Already have an account?",
     authFailed: "Authentication failed.",
@@ -279,7 +279,7 @@ const dictionaries = {
     attachFiles: "\ud30c\uc77c \ucca8\ubd80",
     attachments: "\ucca8\ubd80 \ud30c\uc77c",
     attachmentsDescription:
-      "\ud14d\uc2a4\ud2b8, \uc774\ubbf8\uc9c0, PDF\ub97c \ucd94\uac00\ud558\uc138\uc694. \uc5c5\ub85c\ub4dc\ub41c \ud30c\uc77c\uc740 \uc11c\ubc84 \uce21\uc5d0 \ub0a8\uace0 \uc774 \uc138\uc158\uc5d0 \uacc4\uc18d \uc5f0\uacb0\ub429\ub2c8\ub2e4.",
+      "\ud14d\uc2a4\ud2b8, Word, \uc774\ubbf8\uc9c0, PDF\ub97c \ucd94\uac00\ud558\uc138\uc694. \uc5c5\ub85c\ub4dc\ub41c \ud30c\uc77c\uc740 \uc11c\ubc84 \uce21\uc5d0 \ub0a8\uace0 \uc774 \uc138\uc158\uc5d0 \uacc4\uc18d \uc5f0\uacb0\ub429\ub2c8\ub2e4.",
     apiKey: "API \ud0a4",
     alreadyHaveAccount: "\uc774\ubbf8 \uacc4\uc815\uc774 \uc788\ub098\uc694?",
     authFailed: "\uc778\uc99d\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.",

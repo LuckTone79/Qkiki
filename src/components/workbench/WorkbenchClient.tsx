@@ -354,7 +354,7 @@ const outputLanguageLabels: Record<OutputLanguage, string> = {
 
 const MAX_TEMPLATE_STEPS = 50;
 const ATTACHMENT_ACCEPT =
-  ".txt,.md,.csv,.json,.pdf,image/png,image/jpeg,image/webp,image/gif";
+  ".txt,.md,.csv,.json,.docx,.pdf,image/png,image/jpeg,image/webp,image/gif";
 const MAX_ATTACHMENTS_PER_RUN = 8;
 
 const draftText = {

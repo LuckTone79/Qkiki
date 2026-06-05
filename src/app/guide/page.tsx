@@ -59,7 +59,7 @@ const guide = {
       {
         icon: "attach",
         title: "File Attachments",
-        desc: "Attach text, images, or PDFs to your task. Files are processed server-side and injected into prompts automatically for all models.",
+        desc: "Attach text, Word, images, or PDFs to your task. Files are processed server-side and injected into prompts automatically for all models.",
         vs: "Other platforms: file upload support varies per model, no cross-model file sharing.",
       },
     ],
@@ -91,7 +91,7 @@ const guide = {
         num: "04",
         title: "Write a task and select models",
         desc: 'Type your question, analysis request, or instruction in the text area. Then enable the AI models you want to compare by toggling them in the "Model Selection" panel. You can also choose an output style (detailed, short, bullet, table, or executive) to control how results are formatted.',
-        tip: "Use the additional instruction field to add optional context, constraints, or evaluation criteria. Attach files (text, images, PDF) for richer inputs.",
+        tip: "Use the additional instruction field to add optional context, constraints, or evaluation criteria. Attach files (text, Word, images, PDF) for richer inputs.",
       },
       {
         num: "05",
@@ -148,7 +148,7 @@ const guide = {
         {
           num: "5",
           title: "Attach files if needed (optional)",
-          desc: "Click the attach button to add images, PDFs, or text files. All selected AI models will read your files automatically.",
+          desc: "Click the attach button to add Word documents, images, PDFs, or text files. All selected AI models will read your files automatically.",
         },
         {
           num: "6",
@@ -223,7 +223,7 @@ const guide = {
       { label: "Supported models", value: "GPT, Claude, Gemini, Grok (16 model variants)" },
       { label: "Workflow modes", value: "Parallel Compare & Sequential Review Chain" },
       { label: "Actions", value: "Generate, Critique, Fact-check, Improve, Summarize, Simplify, Consistency Review, Follow-up" },
-      { label: "Attachments", value: "Text, Image, PDF — server-side processing" },
+      { label: "Attachments", value: "Text, Word, Image, PDF — server-side processing" },
       { label: "Languages", value: "English & Korean (switchable anytime)" },
       { label: "Security", value: "Encrypted credentials, HttpOnly cookies, server-side only provider calls" },
     ],
@@ -241,7 +241,7 @@ const guide = {
       },
       {
         q: "What file types can I attach?",
-        a: "Text files (.txt, .md, .csv), JSON, PDF documents, and images (.png, .jpg, .webp, .gif). Files are processed server-side and included in prompts for all models.",
+        a: "Text files (.txt, .md, .csv), JSON, Word documents (.docx), PDF documents, and images (.png, .jpg, .webp, .gif). Files are processed server-side and included in prompts for all models.",
       },
       {
         q: "What happens if one AI model fails during a run?",
@@ -309,7 +309,7 @@ const guide = {
       {
         icon: "attach",
         title: "파일 첨부",
-        desc: "텍스트, 이미지, PDF를 작업에 첨부하세요. 파일은 서버에서 처리되어 모든 모델의 프롬프트에 자동 주입됩니다.",
+        desc: "텍스트, Word, 이미지, PDF를 작업에 첨부하세요. 파일은 서버에서 처리되어 모든 모델의 프롬프트에 자동 주입됩니다.",
         vs: "다른 플랫폼: 모델별 파일 업로드 지원이 제각각, 교차 모델 파일 공유 불가.",
       },
     ],
@@ -341,7 +341,7 @@ const guide = {
         num: "04",
         title: "작업 입력 & 모델 선택",
         desc: '텍스트 영역에 질문, 분석 요청, 지시문을 입력하세요. "모델 선택" 패널에서 비교할 AI 모델을 토글로 켜세요. 출력 스타일(상세, 짧게, 글머리, 표, 요약)을 선택해 결과 형식을 조절할 수도 있습니다.',
-        tip: "추가 지시 필드에 맥락, 제약 조건, 평가 기준을 입력하세요. 텍스트, 이미지, PDF 파일도 첨부 가능합니다.",
+        tip: "추가 지시 필드에 맥락, 제약 조건, 평가 기준을 입력하세요. 텍스트, Word, 이미지, PDF 파일도 첨부 가능합니다.",
       },
       {
         num: "05",
@@ -398,7 +398,7 @@ const guide = {
         {
           num: "5",
           title: "파일 첨부하기 (선택)",
-          desc: "첨부 버튼을 누르면 이미지, PDF, 텍스트 파일을 추가할 수 있어요. 선택한 모든 AI 모델이 파일을 자동으로 읽어요.",
+          desc: "첨부 버튼을 누르면 Word 문서, 이미지, PDF, 텍스트 파일을 추가할 수 있어요. 선택한 모든 AI 모델이 파일을 자동으로 읽어요.",
         },
         {
           num: "6",
@@ -473,7 +473,7 @@ const guide = {
       { label: "지원 모델", value: "GPT, Claude, Gemini, Grok (16개 모델 변형)" },
       { label: "워크플로우 모드", value: "병렬 비교 & 순차 검토 체인" },
       { label: "작업 유형", value: "생성, 비판, 팩트체크, 개선, 요약, 단순화, 일관성 검토, 후속 질문" },
-      { label: "첨부 파일", value: "텍스트, 이미지, PDF — 서버 측 처리" },
+      { label: "첨부 파일", value: "텍스트, Word, 이미지, PDF — 서버 측 처리" },
       { label: "언어", value: "영어 & 한국어 (언제든 전환 가능)" },
       { label: "보안", value: "자격 증명 암호화, HttpOnly 쿠키, 서버 측 전용 AI 호출" },
     ],
@@ -491,7 +491,7 @@ const guide = {
       },
       {
         q: "어떤 파일을 첨부할 수 있나요?",
-        a: "텍스트 파일(.txt, .md, .csv), JSON, PDF 문서, 이미지(.png, .jpg, .webp, .gif)를 지원합니다. 파일은 서버에서 처리되어 모든 모델 프롬프트에 포함됩니다.",
+        a: "텍스트 파일(.txt, .md, .csv), JSON, Word 문서(.docx), PDF 문서, 이미지(.png, .jpg, .webp, .gif)를 지원합니다. 파일은 서버에서 처리되어 모든 모델 프롬프트에 포함됩니다.",
       },
       {
         q: "실행 중 AI 모델 하나가 실패하면 어떻게 되나요?",
