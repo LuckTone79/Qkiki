@@ -43,13 +43,13 @@ export function getModelGuidance(
 
   if (
     normalizedModel.includes("sonnet") ||
-    normalizedModel.includes("gpt-5.4") ||
-    normalizedModel.includes("gpt-5.5")
+    normalizedModel.includes("gpt-5.4")
   ) {
     traits.push(traitLabels("balanced", language));
   }
 
   if (
+    normalizedModel.includes("gpt-5.5") ||
     normalizedModel.includes("opus") ||
     normalizedModel.includes("pro") ||
     normalizedModel.includes("ultra")

@@ -86,7 +86,7 @@ test("buildResultBoardView applies free-text search across model content", () =>
   const first = makeResult({
     id: "first",
     provider: "anthropic",
-    model: "claude-opus-4-7",
+    model: "claude-opus-4-8",
     outputText: "Detailed final brief",
   });
   const second = makeResult({

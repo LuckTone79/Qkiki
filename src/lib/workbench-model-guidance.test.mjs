@@ -27,11 +27,18 @@ test("getModelGuidance derives fast traits for mini and flash models", () => {
   );
 });
 
+test("getModelGuidance classifies GPT-5.5 as a top-tier model", () => {
+  assert.deepEqual(
+    getModelGuidance("openai", "gpt-5.5", "gpt-5.4-mini", "en").traits,
+    ["Deep"],
+  );
+});
+
 test("getModelGuidance derives deeper review traits for opus-like models", () => {
   assert.deepEqual(
     getModelGuidance(
       "anthropic",
-      "claude-opus-4-7",
+      "claude-opus-4-8",
       "claude-sonnet-4-6",
       "en",
     ).traits,

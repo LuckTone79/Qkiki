@@ -1,9 +1,20 @@
 import type { ProviderName } from "@/lib/ai/types";
 
 const ANTHROPIC_LEGACY_MODEL_MAP: Record<string, string> = {
-  "claude-opus-4-1-20250805": "claude-opus-4-7",
+  "claude-opus-4-8": "claude-opus-4-8",
+  "claude-opus-4-7": "claude-opus-4-8",
+  "claude-opus-4-1-20250805": "claude-opus-4-8",
   "claude-sonnet-4-20250514": "claude-sonnet-4-6",
+  "claude-haiku-4-5-20251001": "claude-haiku-4-5",
   "claude-3-5-haiku-20241022": "claude-haiku-4-5",
+};
+
+const GOOGLE_LEGACY_MODEL_MAP: Record<string, string> = {
+  "gemini-3.1-pro-preview": "gemini-3-pro-preview",
+  "gemini-3.1-pro": "gemini-3-pro-preview",
+  "gemini-3.5-flash": "gemini-3-flash-preview",
+  "gemini-3-flash-preview": "gemini-3-flash-preview",
+  "gemini-3.1-flash-lite": "gemini-2.5-flash-lite",
 };
 
 export type ProviderCatalogItem = {
@@ -41,7 +52,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     models: [
       "claude-sonnet-4-6",
       "claude-haiku-4-5",
-      "claude-opus-4-7",
+      "claude-opus-4-8",
     ],
   },
   {
@@ -49,15 +60,14 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "Gemini / Google",
     shortName: "Gemini",
     envKey: "GOOGLE_API_KEY",
-    defaultModel: "gemini-2.5-flash",
+    defaultModel: "gemini-3-flash-preview",
     defaultTimeoutSeconds: 75,
     models: [
-      "gemini-2.5-flash",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-flash-lite",
       "gemini-3-flash-preview",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash",
+      "gemini-3-pro-preview",
       "gemini-2.5-pro",
-      "gemini-3.1-pro-preview",
     ],
   },
   {
@@ -98,6 +108,10 @@ export function normalizeProviderModel(
     return ANTHROPIC_LEGACY_MODEL_MAP[model] ?? model;
   }
 
+  if (provider === "google") {
+    return GOOGLE_LEGACY_MODEL_MAP[model] ?? model;
+  }
+
   return model;
 }
 
@@ -126,7 +140,7 @@ export function getMinimumTimeoutSecondsForModel(
   }
 
   if (provider === "anthropic") {
-    if (normalizedModel === "claude-opus-4-7") {
+    if (normalizedModel === "claude-opus-4-8") {
       return 180;
     }
 

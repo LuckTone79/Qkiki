@@ -24,6 +24,7 @@ import {
   WorkbenchResult,
 } from "@/components/workbench/ResultCard";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
+import { normalizeProviderModel } from "@/lib/ai/provider-catalog";
 import {
   expandWorkflowSteps,
   MAX_REPEAT_BLOCKS,
@@ -570,7 +571,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 3,
       actionType: "improve",
       targetProvider: "google",
-      targetModel: "gemini-2.5-flash",
+      targetModel: "gemini-3-flash-preview",
       sourceMode: "previous",
       instructionTemplate:
         language === "ko"
@@ -595,9 +596,25 @@ function normalizeStepsForProviders(
       const provider = providers.find(
         (item) => item.providerName === step.targetProvider,
       );
+      const normalizedModel = normalizeProviderModel(
+        step.targetProvider,
+        step.targetModel,
+      );
 
-      if (!provider || provider.models.includes(step.targetModel)) {
-        return step;
+      if (!provider) {
+        return {
+          ...step,
+          targetModel: normalizedModel,
+        };
+      }
+
+      if (provider.models.includes(normalizedModel)) {
+        return normalizedModel === step.targetModel
+          ? step
+          : {
+              ...step,
+              targetModel: normalizedModel,
+            };
       }
 
       return {
@@ -619,7 +636,9 @@ function normalizeProviderSelection(
   const nextModels = dedupeModels([
     ...(Array.isArray(selection?.models) ? selection.models : []),
     ...(typeof selection?.model === "string" ? [selection.model] : []),
-  ]).filter((model) => provider.models.includes(model));
+  ])
+    .map((model) => normalizeProviderModel(provider.providerName, model))
+    .filter((model) => provider.models.includes(model));
 
   return {
     enabled: selection?.enabled ?? provider.isEnabled,

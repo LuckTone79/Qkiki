@@ -10,6 +10,7 @@ import {
 } from "@/lib/attachments";
 import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
+import { getParallelComparisonSummaryTarget } from "@/lib/ai/summary-model";
 import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
 import { encryptTextContent } from "@/lib/secret-crypto";
 import {
@@ -531,8 +532,7 @@ export async function generateParallelComparisonSummary(input: {
   sessionId: string;
   resultIds?: string[];
 }) {
-  const provider: ProviderName = "openai";
-  const model = "gpt-5.4";
+  const { provider, model } = getParallelComparisonSummaryTarget();
   const session = await prisma.workbenchSession.findFirst({
     where: {
       id: input.sessionId,

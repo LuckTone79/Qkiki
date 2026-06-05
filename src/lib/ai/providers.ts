@@ -647,6 +647,10 @@ export async function callProvider(
   userId: string,
   input: ProviderCallInput,
 ): Promise<ProviderCallResult> {
+  const normalizedInput: ProviderCallInput = {
+    ...input,
+    model: normalizeProviderModel(input.provider, input.model),
+  };
   const baseOwnerKind = input.concurrencyOwner?.ownerKind ?? "provider_call";
   const baseOwnerId =
     input.concurrencyOwner?.ownerId ??
@@ -690,32 +694,32 @@ export async function callProvider(
     }
   };
 
-  const runtime = await getProviderRuntimeConfig(input.provider);
+  const runtime = await getProviderRuntimeConfig(normalizedInput.provider);
   let primaryResult: ProviderCallResult | null = null;
 
   for (let attemptNumber = 1; ; attemptNumber += 1) {
     primaryResult = await executeAttemptWithLease(
-      input.provider,
+      normalizedInput.provider,
       runtime,
-      input,
+      normalizedInput,
       attemptNumber === 1 ? "primary" : `retry:${attemptNumber}`,
     );
 
     if (
       !shouldRetryProviderCall(
-        input.provider,
-        input.model,
+        normalizedInput.provider,
+        normalizedInput.model,
         primaryResult,
         attemptNumber,
-        input.disableInternalRetries,
+        normalizedInput.disableInternalRetries,
       )
     ) {
       break;
     }
 
     console.warn("[provider] retrying timed out request", {
-      provider: input.provider,
-      model: input.model,
+      provider: normalizedInput.provider,
+      model: normalizedInput.model,
       attemptNumber,
       errorMessage: primaryResult.errorMessage ?? null,
     });
@@ -728,15 +732,15 @@ export async function callProvider(
 
   if (
     primaryResult.status === "completed" ||
-    input.allowFallback === false ||
+    normalizedInput.allowFallback === false ||
     !runtime.fallbackProvider
   ) {
     return primaryResult;
   }
 
   console.warn("[provider] primary request failed", {
-    provider: input.provider,
-    model: input.model,
+    provider: normalizedInput.provider,
+    model: normalizedInput.model,
     fallbackProvider: runtime.fallbackProvider,
     errorMessage: primaryResult.errorMessage ?? null,
   });
@@ -746,7 +750,7 @@ export async function callProvider(
     runtime.fallbackProvider,
     fallbackRuntime,
     {
-      ...input,
+      ...normalizedInput,
       provider: runtime.fallbackProvider,
       model: fallbackRuntime.defaultModel,
     },
@@ -755,17 +759,17 @@ export async function callProvider(
 
   if (fallbackResult.status === "completed") {
     console.warn("[provider] fallback request succeeded", {
-      requestedProvider: input.provider,
-      requestedModel: input.model,
+      requestedProvider: normalizedInput.provider,
+      requestedModel: normalizedInput.model,
       fallbackProvider: fallbackResult.provider,
       fallbackModel: fallbackResult.model,
     });
-    return buildFallbackResponse(input, primaryResult, fallbackResult);
+    return buildFallbackResponse(normalizedInput, primaryResult, fallbackResult);
   }
 
   console.error("[provider] fallback request failed", {
-    requestedProvider: input.provider,
-    requestedModel: input.model,
+    requestedProvider: normalizedInput.provider,
+    requestedModel: normalizedInput.model,
     requestedError: primaryResult.errorMessage ?? null,
     fallbackProvider: fallbackResult.provider,
     fallbackModel: fallbackResult.model,

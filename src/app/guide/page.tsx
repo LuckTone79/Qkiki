@@ -220,7 +220,7 @@ const guide = {
     /* features overview */
     featuresTitle: "Feature Overview",
     features: [
-      { label: "Supported models", value: "GPT, Claude, Gemini, Grok (17 model variants)" },
+      { label: "Supported models", value: "GPT, Claude, Gemini, Grok (16 model variants)" },
       { label: "Workflow modes", value: "Parallel Compare & Sequential Review Chain" },
       { label: "Actions", value: "Generate, Critique, Fact-check, Improve, Summarize, Simplify, Consistency Review, Follow-up" },
       { label: "Attachments", value: "Text, Image, PDF — server-side processing" },
@@ -470,7 +470,7 @@ const guide = {
     /* features overview */
     featuresTitle: "기능 한눈에 보기",
     features: [
-      { label: "지원 모델", value: "GPT, Claude, Gemini, Grok (17개 모델 변형)" },
+      { label: "지원 모델", value: "GPT, Claude, Gemini, Grok (16개 모델 변형)" },
       { label: "워크플로우 모드", value: "병렬 비교 & 순차 검토 체인" },
       { label: "작업 유형", value: "생성, 비판, 팩트체크, 개선, 요약, 단순화, 일관성 검토, 후속 질문" },
       { label: "첨부 파일", value: "텍스트, 이미지, PDF — 서버 측 처리" },

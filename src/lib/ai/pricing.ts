@@ -13,12 +13,12 @@ const pricing: Record<string, Pricing> = {
   "openai:gpt-5.4-nano": { promptPerMillion: 0.2, completionPerMillion: 1.25 },
 
   // Anthropic - Claude 4 family (2026 pricing)
-  "anthropic:claude-opus-4-7": { promptPerMillion: 5, completionPerMillion: 25 },
+  "anthropic:claude-opus-4-8": { promptPerMillion: 5, completionPerMillion: 25 },
   "anthropic:claude-sonnet-4-6": { promptPerMillion: 3, completionPerMillion: 15 },
   "anthropic:claude-haiku-4-5": { promptPerMillion: 1, completionPerMillion: 5 },
 
   // Google - Gemini family (2026 standard pricing)
-  "google:gemini-3.1-pro-preview": {
+  "google:gemini-3-pro-preview": {
     promptPerMillion: 2,
     completionPerMillion: 12,
   },
