@@ -6,7 +6,7 @@ type NavigatorLike = {
   clipboard?: ClipboardLike;
 };
 
-type ClipboardEnvironment = {
+export type ClipboardEnvironment = {
   navigator?: NavigatorLike;
 };
 

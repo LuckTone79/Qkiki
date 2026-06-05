@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { copyTextToClipboard } from "@/lib/browser-clipboard";
+import { buildSessionInputCopyNotice } from "@/lib/session-input-copy";
 
 type SessionListItem = {
   id: string;
@@ -93,6 +95,7 @@ export function SessionsClient() {
   const { language, t } = useLanguage();
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   async function loadSessions() {
     const response = await fetch("/api/sessions");
@@ -144,6 +147,16 @@ export function SessionsClient() {
     }
   }
 
+  async function copySessionInput(originalInput: string) {
+    const outcome = await copyTextToClipboard(originalInput);
+    setNotice(
+      buildSessionInputCopyNotice({
+        language,
+        copied: outcome.copied,
+      }),
+    );
+  }
+
   useEffect(() => {
     loadSessions();
     // Load session history once on entry.
@@ -169,6 +182,12 @@ export function SessionsClient() {
       {error ? (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
           {error}
+        </div>
+      ) : null}
+
+      {notice ? (
+        <div className="rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-800">
+          {notice}
         </div>
       ) : null}
 
@@ -216,6 +235,13 @@ export function SessionsClient() {
                   >
                     {t("open")}
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => copySessionInput(session.originalInput)}
+                    className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                  >
+                    {language === "ko" ? "질문 복사" : "Copy input"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => duplicateSession(session.id)}

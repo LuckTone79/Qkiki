@@ -49,6 +49,7 @@ import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
 import { buildResultDomId, buildWorkbenchMobilePanels } from "@/lib/workbench-sharing";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
+import { buildSessionInputCopyNotice } from "@/lib/session-input-copy";
 import {
   buildResultDepthMap,
   partitionResultsForWorkbench,
@@ -3684,6 +3685,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
   }
 
+  async function copyOriginalInputText() {
+    const outcome = await copyTextToClipboard(originalInput);
+    setNotice(
+      buildSessionInputCopyNotice({
+        language,
+        copied: outcome.copied,
+      }),
+    );
+  }
+
   async function shareResultLink(resultId: string) {
     setError("");
     try {
@@ -3997,6 +4008,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:items-end">
+                <button
+                  type="button"
+                  onClick={copyOriginalInputText}
+                  disabled={!originalInput.trim()}
+                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {language === "ko" ? "질문 복사" : "Copy input"}
+                </button>
                 <select
                   value={mode}
                   onChange={(event) =>
