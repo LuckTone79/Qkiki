@@ -80,7 +80,6 @@ type ProviderSelection = {
 };
 
 type MobilePanel = "models" | "input" | "workflow" | "results";
-type BuilderExperience = "simple" | "advanced";
 
 type Preset = {
   id: string;
@@ -1089,25 +1088,6 @@ function activeWorkLines(
   ];
 }
 
-function shouldUseAdvancedBuilder(input: {
-  mode: "parallel" | "sequential";
-  additionalInstruction: string;
-  attachmentsCount: number;
-  outputStyle: string;
-  workflowSteps: WorkflowStepState[];
-  workflowControl: WorkflowControlState;
-}) {
-  return (
-    input.mode === "sequential" ||
-    input.additionalInstruction.trim().length > 0 ||
-    input.attachmentsCount > 0 ||
-    input.outputStyle !== "detailed" ||
-    input.workflowSteps.length > 3 ||
-    input.workflowControl.repeatBlocks.length > 0 ||
-    input.workflowControl.stopConditionEnabled
-  );
-}
-
 type WorkbenchClientProps = {
   isTrialMode?: boolean;
 };
@@ -1142,8 +1122,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
-  const [builderExperience, setBuilderExperience] =
-    useState<BuilderExperience>("simple");
   const [resultExpansionById, setResultExpansionById] = useState<Record<string, boolean>>(
     () => buildCollapsedResultExpansionMap([]),
   );
@@ -1612,18 +1590,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       setWorkflowSteps(nextSteps);
       setWorkflowControl(nextWorkflowControl);
       setMode("sequential");
-      setBuilderExperience(
-        shouldUseAdvancedBuilder({
-          mode: "sequential",
-          additionalInstruction,
-          attachmentsCount: attachments.length,
-          outputStyle,
-          workflowSteps: nextSteps,
-          workflowControl: nextWorkflowControl,
-        })
-          ? "advanced"
-          : "simple",
-      );
       setNotice(`${t("loadPreset")}: ${preset.name}`);
     }
   }
@@ -1732,18 +1698,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     resetResultBoardControls();
     setWorkflowSteps(sessionWorkflowSteps);
     setWorkflowControl(sessionWorkflowControl);
-    setBuilderExperience(
-      shouldUseAdvancedBuilder({
-        mode: session.mode === "sequential" ? "sequential" : "parallel",
-        additionalInstruction: session.additionalInstruction || "",
-        attachmentsCount: session.attachments?.length ?? 0,
-        outputStyle: session.outputStyle || "detailed",
-        workflowSteps: sessionWorkflowSteps,
-        workflowControl: sessionWorkflowControl,
-      })
-        ? "advanced"
-        : "simple",
-    );
   }
 
   function restoreDraftOrDefaultState() {
@@ -1786,18 +1740,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       setAttachments(draft.attachments || []);
       setWorkflowSteps(draftWorkflowSteps);
       setWorkflowControl(draftWorkflowControl);
-      setBuilderExperience(
-        shouldUseAdvancedBuilder({
-          mode: draft.mode,
-          additionalInstruction: draft.additionalInstruction,
-          attachmentsCount: draft.attachments?.length ?? 0,
-          outputStyle: draft.outputStyle,
-          workflowSteps: draftWorkflowSteps,
-          workflowControl: draftWorkflowControl,
-        })
-          ? "advanced"
-          : "simple",
-      );
       setDraftBanner({ savedAt: draft.savedAt });
       return;
     }
@@ -1816,7 +1758,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         nextSteps.length,
       ),
     );
-    setBuilderExperience("simple");
     setDraftBanner(null);
   }
 
@@ -1978,18 +1919,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         setAttachments(draft.attachments || []);
         setWorkflowSteps(draftWorkflowSteps);
         setWorkflowControl(draftWorkflowControl);
-        setBuilderExperience(
-          shouldUseAdvancedBuilder({
-            mode: draft.mode,
-            additionalInstruction: draft.additionalInstruction,
-            attachmentsCount: draft.attachments?.length ?? 0,
-            outputStyle: draft.outputStyle,
-            workflowSteps: draftWorkflowSteps,
-            workflowControl: draftWorkflowControl,
-          })
-            ? "advanced"
-            : "simple",
-        );
         setDraftBanner({ savedAt: draft.savedAt });
       }
     }
@@ -3348,10 +3277,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
     setCurrentRunId("pending");
     setRunning(true);
-    const effectiveWorkflowControl =
-      builderExperience === "advanced"
-        ? workflowControlToInput(normalizedWorkflowControl)
-        : undefined;
     const body = buildWorkbenchRunPayload({
       sessionId,
       projectId: project?.id ?? null,
@@ -3364,8 +3289,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       mode,
       targets: selectedTargets,
       workflowSteps,
-      workflowControl: effectiveWorkflowControl,
-      builderExperience,
+      workflowControl: workflowControlToInput(normalizedWorkflowControl),
     });
     let data: ({
       session?: { id: string; title: string; finalResultId?: string | null };
@@ -4007,47 +3931,39 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {t("startPointDescription")}
                 </p>
               </div>
-              <div className="flex flex-col gap-2 sm:items-end">
-                <button
-                  type="button"
-                  onClick={copyOriginalInputText}
-                  disabled={!originalInput.trim()}
-                  className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {language === "ko" ? "질문 복사" : "Copy input"}
-                </button>
-                <select
-                  value={mode}
-                  onChange={(event) =>
-                    setMode(event.target.value as "parallel" | "sequential")
-                  }
-                  className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600 sm:w-auto"
-                >
-                  <option value="parallel">{t("parallelCompare")}</option>
-                  <option value="sequential">{t("sequentialReviewChain")}</option>
-                </select>
-                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
+              <div className="overflow-x-auto">
+                <div className="flex min-w-max items-center gap-2">
+                  <div className="inline-flex rounded-md border border-stone-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setMode("parallel")}
+                      className={`rounded px-3 py-2 text-sm font-semibold ${
+                        mode === "parallel"
+                          ? "bg-stone-950 text-white shadow-sm"
+                          : "text-stone-600 hover:bg-stone-50"
+                      }`}
+                    >
+                      {t("parallelCompare")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode("sequential")}
+                      className={`rounded px-3 py-2 text-sm font-semibold ${
+                        mode === "sequential"
+                          ? "bg-stone-950 text-white shadow-sm"
+                          : "text-stone-600 hover:bg-stone-50"
+                      }`}
+                    >
+                      {t("sequentialReviewChain")}
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setBuilderExperience("simple")}
-                    className={`rounded px-3 py-1.5 text-xs font-semibold ${
-                      builderExperience === "simple"
-                        ? "bg-white text-stone-950 shadow-sm"
-                        : "text-stone-600"
-                    }`}
+                    onClick={copyOriginalInputText}
+                    disabled={!originalInput.trim()}
+                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {language === "ko" ? "간단 모드" : "Simple mode"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBuilderExperience("advanced")}
-                    className={`rounded px-3 py-1.5 text-xs font-semibold ${
-                      builderExperience === "advanced"
-                        ? "bg-white text-stone-950 shadow-sm"
-                        : "text-stone-600"
-                    }`}
-                  >
-                    {language === "ko" ? "고급 모드" : "Advanced mode"}
+                    {language === "ko" ? "질문 복사" : "Copy input"}
                   </button>
                 </div>
               </div>
@@ -4060,81 +3976,71 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               className="mt-4 w-full rounded-md border border-stone-300 bg-[#f7f6f3] px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
               placeholder={t("taskTextareaPlaceholder")}
             />
-            {builderExperience === "advanced" ? (
-              <>
-                <textarea
-                  value={additionalInstruction}
-                  onChange={(event) => setAdditionalInstruction(event.target.value)}
-                  rows={3}
-                  className="mt-3 w-full rounded-md border border-stone-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
-                  placeholder={t("additionalInstructionPlaceholder")}
-                />
+            <textarea
+              value={additionalInstruction}
+              onChange={(event) => setAdditionalInstruction(event.target.value)}
+              rows={3}
+              className="mt-3 w-full rounded-md border border-stone-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
+              placeholder={t("additionalInstructionPlaceholder")}
+            />
 
-                <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#f7f6f3] p-3">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-stone-900">
-                        {t("attachments")}
-                      </p>
-                      <p className="text-xs leading-5 text-stone-600">
-                        {t("attachmentsDescription")}
-                      </p>
-                    </div>
-                    <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
-                      <input
-                        type="file"
-                        multiple
-                        accept={ATTACHMENT_ACCEPT}
-                        onChange={(event) => {
-                          uploadFiles(event.target.files);
-                          event.currentTarget.value = "";
-                        }}
-                        className="sr-only"
-                      />
-                      {uploadingAttachments ? t("uploading") : t("attachFiles")}
-                    </label>
-                  </div>
-
-                  {attachments.length ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {attachments.map((attachment) => (
-                        <div
-                          key={attachment.id}
-                          className="flex min-w-0 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700"
-                        >
-                          <span className="rounded bg-stone-100 px-2 py-1 font-semibold text-stone-600">
-                            {attachmentKindLabel(attachment.kind, language)}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-stone-900">
-                              {attachment.name}
-                            </p>
-                            <p className="text-stone-500">
-                              {formatFileSize(attachment.sizeBytes, language)}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeAttachment(attachment.id)}
-                            className="rounded border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-500 hover:bg-stone-50"
-                          >
-                            {t("remove")}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-xs text-stone-500">{t("noAttachments")}</p>
-                  )}
+            <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#f7f6f3] p-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-stone-900">
+                    {t("attachments")}
+                  </p>
+                  <p className="text-xs leading-5 text-stone-600">
+                    {t("attachmentsDescription")}
+                  </p>
                 </div>
-              </>
-            ) : (
-              <div className="mt-3 rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-3 text-xs leading-5 text-stone-600">
-                {language === "ko"
-                  ? "간단 모드에서는 질문과 실행에 집중합니다. 추가 지시, 첨부, 반복 설정은 고급 모드에서 이어서 조정할 수 있습니다."
-                  : "Simple mode keeps the focus on your question and the run button. Add instructions, attachments, and repeat settings in advanced mode."}
+                <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+                  <input
+                    type="file"
+                    multiple
+                    accept={ATTACHMENT_ACCEPT}
+                    onChange={(event) => {
+                      uploadFiles(event.target.files);
+                      event.currentTarget.value = "";
+                    }}
+                    className="sr-only"
+                  />
+                  {uploadingAttachments ? t("uploading") : t("attachFiles")}
+                </label>
               </div>
-            )}
+
+              {attachments.length ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex min-w-0 items-center gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700"
+                    >
+                      <span className="rounded bg-stone-100 px-2 py-1 font-semibold text-stone-600">
+                        {attachmentKindLabel(attachment.kind, language)}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-stone-900">
+                          {attachment.name}
+                        </p>
+                        <p className="text-stone-500">
+                          {formatFileSize(attachment.sizeBytes, language)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(attachment.id)}
+                        className="rounded border border-stone-200 px-2 py-1 text-[11px] font-semibold text-stone-500 hover:bg-stone-50"
+                      >
+                        {t("remove")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-xs text-stone-500">{t("noAttachments")}</p>
+              )}
+            </div>
 
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
               <label className="flex flex-col gap-1 text-sm text-stone-600">
@@ -4143,7 +4049,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   value={outputStyle}
                   onChange={(event) => setOutputStyle(event.target.value)}
                   className="rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
-                  disabled={builderExperience !== "advanced"}
                 >
                   {outputStyles.map((style) => (
                     <option key={style} value={style}>
@@ -4319,11 +4224,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ) : null}
 
             {mode === "sequential" ? (
-              <div
-                className={`mt-4 space-y-3 rounded-lg border border-stone-200 bg-white p-3 ${
-                  builderExperience === "advanced" ? "" : "hidden"
-                }`}
-              >
+              <div className="mt-4 space-y-3 rounded-lg border border-stone-200 bg-white p-3">
                 <div>
                   <p className="text-sm font-semibold text-stone-900">
                     {builderText.repeatSettings}
@@ -4531,19 +4432,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
             ) : null}
 
-            {builderExperience === "simple" ? (
-              <div className="mt-4 rounded-lg border border-dashed border-stone-300 bg-white px-3 py-3 text-xs leading-5 text-stone-600">
-                {language === "ko"
-                  ? "간단 모드에서는 반복 설정과 조기 종료를 숨깁니다. 필요할 때 고급 모드로 전환해 상세 실행 계획을 조정하세요."
-                  : "Simple mode hides repeat settings and early stop controls. Switch to advanced mode when you want to tune the detailed execution plan."}
-              </div>
-            ) : null}
-
-            <div
-              className={`mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] ${
-                builderExperience === "advanced" ? "" : "hidden"
-              }`}
-            >
+            <div className="mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
               <input
                 value={presetName}
                 onChange={(event) => setPresetName(event.target.value)}

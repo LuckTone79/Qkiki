@@ -1,5 +1,3 @@
-export type BuilderExperience = "simple" | "advanced";
-
 type AttachmentLike = {
   id: string;
 };
@@ -32,30 +30,18 @@ type RunPayloadInput = {
   targets: TargetLike[];
   workflowSteps: WorkflowStepLike[];
   workflowControl: unknown;
-  builderExperience: BuilderExperience;
 };
 
 export function buildWorkbenchRunPayload(input: RunPayloadInput) {
-  const effectiveAdditionalInstruction =
-    input.builderExperience === "advanced" ? input.additionalInstruction : "";
-  const effectiveOutputStyle =
-    input.builderExperience === "advanced" ? input.outputStyle : "detailed";
-  const effectiveAttachmentIds =
-    input.builderExperience === "advanced"
-      ? input.attachments.map((attachment) => attachment.id)
-      : [];
-  const effectiveWorkflowControl =
-    input.builderExperience === "advanced" ? input.workflowControl : undefined;
-
   return {
     sessionId: input.sessionId,
     projectId: input.projectId,
     title: input.title,
     originalInput: input.originalInput,
-    additionalInstruction: effectiveAdditionalInstruction,
-    outputStyle: effectiveOutputStyle,
+    additionalInstruction: input.additionalInstruction,
+    outputStyle: input.outputStyle,
     outputLanguage: input.outputLanguage,
-    attachmentIds: effectiveAttachmentIds,
+    attachmentIds: input.attachments.map((attachment) => attachment.id),
     mode: input.mode,
     targets: input.mode === "parallel" ? input.targets : undefined,
     steps:
@@ -70,8 +56,6 @@ export function buildWorkbenchRunPayload(input: RunPayloadInput) {
             instructionTemplate: step.instructionTemplate,
           }))
         : undefined,
-    workflowControl:
-      input.mode === "sequential" ? effectiveWorkflowControl : undefined,
+    workflowControl: input.mode === "sequential" ? input.workflowControl : undefined,
   };
 }
-
