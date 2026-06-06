@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import type { ProviderName } from "@/lib/ai/types";
 import { prisma } from "@/lib/prisma";
+import { isProviderLeaseTransientError } from "@/lib/provider-lease-errors";
 
 const PROVIDER_LEASE_TTL_MS = 6 * 60 * 60 * 1000;
 const PROVIDER_WAIT_MS = 750;
@@ -19,6 +20,11 @@ type ProviderLeaseOwner = {
   ownerKind: string;
   ownerId: string;
 };
+
+function getPositiveIntegerEnv(name: string, fallback: number) {
+  const parsed = Number.parseInt(process.env[name] || "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 async function delay(ms: number, signal?: AbortSignal) {
   if (signal?.aborted) {
@@ -58,7 +64,7 @@ async function withSerializableRetries<T>(
         error instanceof Prisma.PrismaClientKnownRequestError
           ? error.code
           : null;
-      if (prismaCode !== "P2034") {
+      if (prismaCode !== "P2034" && !isProviderLeaseTransientError(error)) {
         throw error;
       }
       lastError = error;
@@ -93,6 +99,7 @@ async function tryAcquireProviderLease(input: {
       async (tx) => {
         await tx.providerLease.updateMany({
           where: {
+            providerName: input.provider,
             releasedAt: null,
             expiresAt: { lte: now },
           },
@@ -124,7 +131,17 @@ async function tryAcquireProviderLease(input: {
           },
         });
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        maxWait: getPositiveIntegerEnv(
+          "PROVIDER_LEASE_TRANSACTION_MAX_WAIT_MS",
+          10000,
+        ),
+        timeout: getPositiveIntegerEnv(
+          "PROVIDER_LEASE_TRANSACTION_TIMEOUT_MS",
+          10000,
+        ),
+      },
     ),
   );
 }

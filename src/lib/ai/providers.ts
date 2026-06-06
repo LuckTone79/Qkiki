@@ -12,6 +12,7 @@ import {
   acquireProviderLease,
   releaseProviderLease,
 } from "@/lib/provider-concurrency";
+import { isProviderLeaseTransientError } from "@/lib/provider-lease-errors";
 import { estimateCost } from "@/lib/ai/pricing";
 import {
   decryptSecretWithMetadata,
@@ -676,6 +677,19 @@ export async function callProvider(
         },
       });
     } catch (error) {
+      if (
+        !runtimeInput.abortSignal?.aborted &&
+        isProviderLeaseTransientError(error)
+      ) {
+        console.warn("[provider] lease acquisition transient failure", {
+          provider,
+          model: runtimeInput.model,
+          errorMessage:
+            error instanceof Error ? error.message : String(error ?? ""),
+        });
+        return executeProviderCall(runtimeConfig, runtimeInput);
+      }
+
       return {
         provider,
         model: runtimeInput.model,
