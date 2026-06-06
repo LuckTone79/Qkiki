@@ -13,6 +13,10 @@ import {
   releaseProviderLease,
 } from "@/lib/provider-concurrency";
 import { isProviderLeaseTransientError } from "@/lib/provider-lease-errors";
+import {
+  getProviderRetryDelayMs,
+  isRetryableProviderErrorMessage,
+} from "@/lib/provider-retry";
 import { estimateCost } from "@/lib/ai/pricing";
 import {
   decryptSecretWithMetadata,
@@ -139,22 +143,47 @@ function withCost(
   };
 }
 
-function providerError(provider: ProviderName, body: JsonRecord) {
+function providerError(
+  provider: ProviderName,
+  body: JsonRecord,
+  status?: number,
+) {
+  const statusPrefix =
+    typeof status === "number" && Number.isFinite(status) ? `[${status}] ` : "";
   const error = body.error;
 
   if (typeof error === "string") {
-    return `${provider}: ${error}`;
+    return `${provider}: ${statusPrefix}${error}`;
   }
 
-  if (error && typeof error === "object" && "message" in error) {
-    return `${provider}: ${String((error as { message: unknown }).message)}`;
+  if (error && typeof error === "object") {
+    const message =
+      "message" in error
+        ? String((error as { message: unknown }).message)
+        : "";
+    // Google/Gemini exposes a structured status such as RESOURCE_EXHAUSTED or
+    // UNAVAILABLE that the retry layer relies on; keep it in the message.
+    const providerStatus =
+      "status" in error ? String((error as { status: unknown }).status) : "";
+
+    if (message && providerStatus) {
+      return `${provider}: ${statusPrefix}${providerStatus}: ${message}`;
+    }
+
+    if (message) {
+      return `${provider}: ${statusPrefix}${message}`;
+    }
+
+    if (providerStatus) {
+      return `${provider}: ${statusPrefix}${providerStatus}`;
+    }
   }
 
   if ("message" in body) {
-    return `${provider}: ${String(body.message)}`;
+    return `${provider}: ${statusPrefix}${String(body.message)}`;
   }
 
-  return `${provider}: provider request failed`;
+  return `${provider}: ${statusPrefix}provider request failed`;
 }
 
 function buildPromptText(
@@ -277,7 +306,12 @@ function shouldRetryProviderCall(
     return false;
   }
 
-  if (!/timed? out/i.test(result.errorMessage)) {
+  const isTimeout = /timed? out/i.test(result.errorMessage);
+  const isTransientProviderError = isRetryableProviderErrorMessage(
+    result.errorMessage,
+  );
+
+  if (!isTimeout && !isTransientProviderError) {
     return false;
   }
 
@@ -731,13 +765,15 @@ export async function callProvider(
       break;
     }
 
-    console.warn("[provider] retrying timed out request", {
+    console.warn("[provider] retrying transient provider failure", {
       provider: normalizedInput.provider,
       model: normalizedInput.model,
       attemptNumber,
       errorMessage: primaryResult.errorMessage ?? null,
     });
-    await waitForRetryDelay(750);
+    await waitForRetryDelay(
+      getProviderRetryDelayMs(primaryResult.errorMessage ?? "", attemptNumber),
+    );
   }
 
   if (!primaryResult) {
@@ -818,7 +854,7 @@ async function callOpenAi(
   let body = await readJson(createResponse);
 
   if (!createResponse.ok) {
-    throw new Error(providerError("openai", body));
+    throw new Error(providerError("openai", body, createResponse.status));
   }
 
   const responseId = getText(body.id);
@@ -845,7 +881,7 @@ async function callOpenAi(
     body = await readJson(pollResponse);
 
     if (!pollResponse.ok) {
-      throw new Error(providerError("openai", body));
+      throw new Error(providerError("openai", body, pollResponse.status));
     }
 
     status = getOpenAiResponsesStatus(body);
@@ -910,7 +946,7 @@ async function callAnthropic(
     const body = await readJson(response);
 
     if (!response.ok) {
-      throw new Error(providerError("anthropic", body));
+      throw new Error(providerError("anthropic", body, response.status));
     }
 
     rawResponses.push(body);
@@ -1005,7 +1041,7 @@ async function callGoogle(
   const body = await readJson(response);
 
   if (!response.ok) {
-    throw new Error(providerError("google", body));
+    throw new Error(providerError("google", body, response.status));
   }
 
   const candidates = Array.isArray(body.candidates) ? body.candidates : [];
@@ -1059,7 +1095,7 @@ async function callXai(
   const body = await readJson(response);
 
   if (!response.ok) {
-    throw new Error(providerError("xai", body));
+    throw new Error(providerError("xai", body, response.status));
   }
 
   const choices = Array.isArray(body.choices) ? body.choices : [];
