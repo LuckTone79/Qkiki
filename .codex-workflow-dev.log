@@ -1,0 +1,39 @@
+
+> qkiki-workbench@0.1.0 dev
+> next dev --hostname 127.0.0.1 --port 3000
+
+▲ Next.js 16.2.3 (Turbopack)
+- Local:         http://127.0.0.1:3000
+- Network:       http://127.0.0.1:3000
+- Environments: .env
+✓ Ready in 2.3s
+Discovering workflow directives 1037ms
+Created steps bundle 115ms
+Created intermediate workflow bundle 21ms
+Creating webhook route
+Creating manifest...
+Created manifest with 5 steps, 1 workflow, and 0 classes 27ms
+
+Discovering workflow directives 48526ms
+Created steps bundle 1714ms
+Created intermediate workflow bundle 223ms
+Discovering workflow directives 6739ms
+Created steps bundle 1598ms
+Created intermediate workflow bundle 314ms
+Discovering workflow directives 6668ms
+Created steps bundle 805ms
+Created intermediate workflow bundle 282ms
+Discovering workflow directives 6160ms
+Created steps bundle 289ms
+Created intermediate workflow bundle 762ms
+Discovering workflow directives 9177ms
+Created steps bundle 976ms
+Created intermediate workflow bundle 191ms
+Discovering workflow directives 5401ms
+Created steps bundle 435ms
+Created intermediate workflow bundle 637ms
+Rebuilt steps bundle 626ms
+Rebuilt workflow bundle 730ms
+ GET /app/workbench 307 in 3.0s (next.js: 1590ms, application-code: 1370ms)
+ GET /sign-in 200 in 671ms (next.js: 196ms, application-code: 475ms)
+[?25h

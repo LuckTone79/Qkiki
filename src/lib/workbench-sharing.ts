@@ -1,5 +1,11 @@
 export type WorkbenchMobilePanel = "models" | "input" | "workflow" | "results";
 
+export const NEW_WORKBENCH_EVENT = "qkiki:new-workbench-request";
+
+export function buildNewWorkbenchPath() {
+  return "/app/workbench?new=1";
+}
+
 export function buildSharedSessionPath(token: string) {
   return `/shared/${encodeURIComponent(token)}`;
 }

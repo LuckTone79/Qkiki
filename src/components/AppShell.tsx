@@ -6,9 +6,10 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
 import { APP_VERSION } from "@/lib/version";
+import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
 
 const navItems = [
-  { href: "/app/workbench", key: "workbench", icon: "🧪" },
+  { href: buildNewWorkbenchPath(), key: "workbench", icon: "🧪" },
   { href: "/app/projects", key: "projects", icon: "🗂️" },
   { href: "/app/sessions", key: "sessions", icon: "📄" },
   { href: "/app/presets", key: "presets", icon: "⚡" },
@@ -53,6 +54,9 @@ export function AppShell({
   const recentSessionsLabel = language === "ko" ? "최근 작업" : "Recent work";
   const visibleRecentSessions = recentSessions.slice(0, 10);
   const hasMoreRecentSessions = recentSessions.length > 10;
+  const requestNewWorkbench = () => {
+    window.dispatchEvent(new Event(NEW_WORKBENCH_EVENT));
+  };
 
   return (
     <div className="min-h-screen bg-[#ffffff] text-stone-950">
@@ -70,7 +74,11 @@ export function AppShell({
             }`}
           >
             <div className="flex items-center justify-between gap-4 lg:block">
-              <Link href="/app/workbench" className="block">
+              <Link
+                href={buildNewWorkbenchPath()}
+                onClick={requestNewWorkbench}
+                className="block"
+              >
                 <p className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
                   <span aria-hidden="true">⬡</span> Qkiki
                 </p>
@@ -89,6 +97,7 @@ export function AppShell({
                   <Link
                     href={item.href}
                     prefetch={false}
+                    onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
                     className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
                     <span aria-hidden="true" className="text-[15px] leading-none opacity-80">
@@ -223,6 +232,7 @@ export function AppShell({
               key={item.href}
               href={item.href}
               prefetch={false}
+              onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
               className="flex min-w-16 flex-1 flex-col items-center gap-0.5 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >
               <span aria-hidden="true" className="text-base leading-none">

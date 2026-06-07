@@ -1,0 +1,60 @@
+⨯ Error [PrismaClientInitializationError]: 
+Invalid `{imported module ./src/lib/prisma.ts}["prisma"].trialAccess.findUnique()` invocation in
+C:\Users\LUCK2\OneDrive\문서\개발\프로그램\멀티AI\.next\dev\server\chunks\[root-of-the-server]__00akofr._.js:928:169
+
+  925     });
+  926 }
+  927 const ipHash = (0, {imported module ./src/lib/access-policy.ts}["hashIpAddress"])(ipAddress);
+→ 928 const existing = await {imported module ./src/lib/prisma.ts}["prisma"].trialAccess.findUnique(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:12
+   | 
+11 |   provider  = "postgresql"
+12 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src\app\api\trial\start\route.ts:58:45)
+    at <unknown> (-->  schema.prisma:12)
+    at async POST (src\app\api\trial\start\route.ts:58:20)
+  56 |
+  57 |   const ipHash = hashIpAddress(ipAddress);
+> 58 |   const existing = await prisma.trialAccess.findUnique({
+     |                                             ^
+  59 |     where: { ipHash },
+  60 |   });
+  61 | {
+  clientVersion: '6.19.3',
+  errorCode: undefined,
+  retryable: undefined
+}
+⨯ Error [PrismaClientInitializationError]: 
+Invalid `{imported module ./src/lib/prisma.ts}["prisma"].trialAccess.findUnique()` invocation in
+C:\Users\LUCK2\OneDrive\문서\개발\프로그램\멀티AI\.next\dev\server\chunks\[root-of-the-server]__00akofr._.js:928:169
+
+  925     });
+  926 }
+  927 const ipHash = (0, {imported module ./src/lib/access-policy.ts}["hashIpAddress"])(ipAddress);
+→ 928 const existing = await {imported module ./src/lib/prisma.ts}["prisma"].trialAccess.findUnique(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:12
+   | 
+11 |   provider  = "postgresql"
+12 |   url       = env("DATABASE_URL")
+   | 
+
+Validation Error Count: 1
+    at <unknown> (src\app\api\trial\start\route.ts:58:45)
+    at <unknown> (-->  schema.prisma:12)
+    at async POST (src\app\api\trial\start\route.ts:58:20)
+  56 |
+  57 |   const ipHash = hashIpAddress(ipAddress);
+> 58 |   const existing = await prisma.trialAccess.findUnique({
+     |                                             ^
+  59 |     where: { ipHash },
+  60 |   });
+  61 | {
+  clientVersion: '6.19.3',
+  errorCode: undefined,
+  retryable: undefined
+}

@@ -2,10 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildNewWorkbenchPath,
   buildSharedResultPath,
   buildSharedSessionPath,
   buildWorkbenchMobilePanels,
 } from "./workbench-sharing.ts";
+
+test("buildNewWorkbenchPath creates an explicit fresh workbench URL", () => {
+  assert.equal(buildNewWorkbenchPath(), "/app/workbench?new=1");
+});
 
 test("buildSharedSessionPath creates the public session URL", () => {
   assert.equal(buildSharedSessionPath("share_token"), "/shared/share_token");

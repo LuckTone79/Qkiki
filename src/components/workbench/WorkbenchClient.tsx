@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { LimitReachedModal } from "@/components/billing/LimitReachedModal";
@@ -47,7 +47,11 @@ import {
 } from "@/lib/local-cache";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
-import { buildResultDomId, buildWorkbenchMobilePanels } from "@/lib/workbench-sharing";
+import {
+  buildResultDomId,
+  buildWorkbenchMobilePanels,
+  NEW_WORKBENCH_EVENT,
+} from "@/lib/workbench-sharing";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import { buildSessionInputCopyNotice } from "@/lib/session-input-copy";
 import {
@@ -79,6 +83,8 @@ import {
   finalizeRepeatCountDraft,
   sanitizeRepeatCountDraftInput,
 } from "@/lib/repeat-count-input";
+import { nextProviderSelectionForEnabledChange } from "@/lib/workbench-provider-selection";
+import { resolveResultStartTarget } from "@/lib/workbench-result-scroll";
 
 type ProviderSelection = {
   enabled: boolean;
@@ -1110,6 +1116,7 @@ type WorkbenchClientProps = {
 
 export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = {}) {
   const { language, t } = useLanguage();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const builderText = workflowBuilderText[language];
   const uiText = workbenchUiText[language];
@@ -1138,6 +1145,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   );
   const [attachments, setAttachments] = useState<WorkbenchAttachment[]>([]);
   const [results, setResults] = useState<WorkbenchResult[]>([]);
+  const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [resultExpansionById, setResultExpansionById] = useState<Record<string, boolean>>(
     () => buildCollapsedResultExpansionMap([]),
   );
@@ -1924,10 +1932,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const loadId = params.get("session");
     const presetId = params.get("preset");
     const projectId = params.get("project");
+    const forceNew = params.get("new") === "1";
 
     loadProviders();
     loadUsageStatus();
     loadPresets(presetId);
+    if (forceNew) {
+      clearDraft();
+      restoreDraftOrDefaultState();
+      return;
+    }
     if (loadId) {
       loadSession(loadId);
     } else if (projectId) {
@@ -1984,6 +1998,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const loadId = searchParams.get("session");
     const presetId = searchParams.get("preset");
     const projectId = searchParams.get("project");
+    const forceNew = searchParams.get("new") === "1";
+
+    if (forceNew) {
+      clearDraft();
+      restoreDraftOrDefaultState();
+      return;
+    }
 
     if (presetId) {
       void loadPresets(presetId);
@@ -2004,6 +2025,18 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     // Keep the workbench in sync with sidebar and in-app query navigation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, searchParams]);
+
+  useEffect(() => {
+    const handleNewWorkbench = () => {
+      clearDraft();
+      restoreDraftOrDefaultState();
+    };
+
+    window.addEventListener(NEW_WORKBENCH_EVENT, handleNewWorkbench);
+    return () => window.removeEventListener(NEW_WORKBENCH_EVENT, handleNewWorkbench);
+    // Keep this listener aligned with localized defaults and provider normalization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, providers]);
 
   useEffect(() => {
     window.localStorage.setItem("qkiki-result-layout-v2", resultLayout);
@@ -2426,6 +2459,70 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       ),
     [effectiveFinalResultId, language, orderedResults, resultFilter, resultSearch, resultSort],
   );
+
+  const displayResultIds = useMemo(
+    () => displayResults.map((result) => result.id),
+    [displayResults],
+  );
+
+  useEffect(() => {
+    if (!displayResultIds.length) {
+      setActiveResultId(null);
+      return;
+    }
+
+    let frameId = 0;
+    const anchorTop = 96;
+
+    const pickActiveResult = () => {
+      frameId = 0;
+      let nextActiveId: string | null = null;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      const lowerBound = window.innerHeight * 0.82;
+
+      displayResultIds.forEach((resultId) => {
+        const element = document.getElementById(buildResultDomId(resultId));
+        if (!element) {
+          return;
+        }
+
+        const rect = element.getBoundingClientRect();
+        if (rect.bottom < anchorTop || rect.top > lowerBound) {
+          return;
+        }
+
+        const distance =
+          rect.top <= anchorTop && rect.bottom >= anchorTop
+            ? 0
+            : Math.abs(rect.top - anchorTop);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          nextActiveId = resultId;
+        }
+      });
+
+      setActiveResultId((current) => (current === nextActiveId ? current : nextActiveId));
+    };
+
+    const schedulePick = () => {
+      if (frameId) {
+        return;
+      }
+      frameId = window.requestAnimationFrame(pickActiveResult);
+    };
+
+    schedulePick();
+    window.addEventListener("scroll", schedulePick, { passive: true });
+    window.addEventListener("resize", schedulePick);
+
+    return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener("scroll", schedulePick);
+      window.removeEventListener("resize", schedulePick);
+    };
+  }, [displayResultIds]);
 
   const { mainResults: mainDisplayResults, branchResults: branchDisplayResults } =
     useMemo(() => partitionResultsForWorkbench(displayResults), [displayResults]);
@@ -3180,6 +3277,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       executionSummary: data.executionSummary,
       streamError: data.streamError,
     });
+    router.refresh();
     const completionNotice =
       data.streamError || data.results?.some((result) => result.status === "failed")
         ? t("runCompletedPartial")
@@ -3514,6 +3612,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
+    router.refresh();
     setNotice(t("branchAdded"));
   }
 
@@ -3567,6 +3666,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         setStoppingStepIndexes(new Set<number>());
         setRunning(false);
       }
+      router.refresh();
       setNotice(t("rerunAdded"));
       return;
     }
@@ -3574,6 +3674,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const rerun = data.result!;
     setResults((current) => mergeResults(current, [rerun]));
     setActiveMobilePanel("results");
+    router.refresh();
     setNotice(t("rerunAdded"));
   }
 
@@ -3796,6 +3897,24 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       ? "block"
       : "hidden xl:block";
 
+  const resultStartTargetId = resolveResultStartTarget({
+    activeResultId,
+    visibleResultIds: displayResultIds,
+  });
+  const showResultScrollControls = displayResultIds.length > 0;
+
+  function jumpToCurrentResultStart() {
+    if (!resultStartTargetId) {
+      return;
+    }
+
+    jumpToResult(resultStartTargetId);
+  }
+
+  function jumpToProgressStart() {
+    focusProgressPanel();
+  }
+
   return (
     <div className="space-y-5">
       <LimitReachedModal
@@ -3971,25 +4090,29 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       enabled={selection.enabled}
                       selectedModels={selection.models}
                       onEnabledChange={(enabled) =>
-                        setSelections({
-                          ...selections,
-                          [provider.providerName]: {
-                            enabled,
-                            models:
-                              enabled && !selection.models.length
-                                ? [provider.defaultModel]
-                                : selection.models,
-                          },
+                        setSelections((current) => {
+                          const currentSelection = normalizeProviderSelection(
+                            current[provider.providerName],
+                            provider,
+                          );
+                          return {
+                            ...current,
+                            [provider.providerName]: nextProviderSelectionForEnabledChange(
+                              currentSelection,
+                              provider.defaultModel,
+                              enabled,
+                            ),
+                          };
                         })
                       }
                       onSelectedModelsChange={(models) =>
-                        setSelections({
-                          ...selections,
+                        setSelections((current) => ({
+                          ...current,
                           [provider.providerName]: {
                             enabled: models.length > 0,
                             models: dedupeModels(models),
                           },
-                        })
+                        }))
                       }
                     />
                   );
@@ -4691,49 +4814,60 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                           {entry.subtitle}
                         </p>
                       </div>
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
-                          entry.status === "completed"
-                            ? "bg-teal-100 text-teal-800"
-                            : entry.status === "failed"
-                              ? "bg-rose-100 text-rose-700"
-                              : entry.status === "canceled"
-                                ? "bg-rose-50 text-rose-700"
-                              : entry.status === "skipped"
-                                ? "bg-stone-200 text-stone-600"
-                                : entry.status === "active"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-stone-100 text-stone-600"
-                        }`}
-                      >
-                        {entry.status === "active" ? (
-                          <svg
-                            viewBox="0 0 16 16"
-                            aria-hidden="true"
-                            className="h-3.5 w-3.5 animate-[spin_1.2s_linear_infinite]"
-                            fill="currentColor"
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                        {linkedResultId ? (
+                          <button
+                            type="button"
+                            onClick={() => jumpToResult(linkedResultId)}
+                            className="rounded-md border border-teal-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-teal-800 hover:bg-teal-50"
                           >
-                            <path d="M4 2h8v2c0 1.63-1.03 3.09-2.56 4 1.53.91 2.56 2.37 2.56 4v2H4v-2c0-1.63 1.03-3.09 2.56-4C5.03 7.09 4 5.63 4 4V2Zm2 1v1c0 1.1.83 2.15 2 2.9 1.17-.75 2-1.8 2-2.9V3H6Zm0 10h4v-1c0-1.1-.83-2.15-2-2.9-1.17.75-2 1.8-2 2.9v1Z" />
-                          </svg>
+                            {language === "ko" ? "결과로 이동" : "Jump to result"}
+                          </button>
                         ) : null}
-                          {entry.status === "completed"
-                            ? t("statusCompleted")
-                            : entry.status === "failed"
-                            ? t("statusFailed")
-                            : entry.status === "canceled"
-                              ? language === "ko"
-                                ? "중지됨"
-                                : "Stopped"
-                            : entry.status === "active"
-                              ? t("statusRunning")
-                              : entry.status === "skipped"
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
+                            entry.status === "completed"
+                              ? "bg-teal-100 text-teal-800"
+                              : entry.status === "failed"
+                                ? "bg-rose-100 text-rose-700"
+                                : entry.status === "canceled"
+                                  ? "bg-rose-50 text-rose-700"
+                                : entry.status === "skipped"
+                                  ? "bg-stone-200 text-stone-600"
+                                  : entry.status === "active"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-stone-100 text-stone-600"
+                          }`}
+                        >
+                          {entry.status === "active" ? (
+                            <svg
+                              viewBox="0 0 16 16"
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5 animate-[spin_1.2s_linear_infinite]"
+                              fill="currentColor"
+                            >
+                              <path d="M4 2h8v2c0 1.63-1.03 3.09-2.56 4 1.53.91 2.56 2.37 2.56 4v2H4v-2c0-1.63 1.03-3.09 2.56-4C5.03 7.09 4 5.63 4 4V2Zm2 1v1c0 1.1.83 2.15 2 2.9 1.17-.75 2-1.8 2-2.9V3H6Zm0 10h4v-1c0-1.1-.83-2.15-2-2.9-1.17.75-2 1.8-2 2.9v1Z" />
+                            </svg>
+                          ) : null}
+                            {entry.status === "completed"
+                              ? t("statusCompleted")
+                              : entry.status === "failed"
+                              ? t("statusFailed")
+                              : entry.status === "canceled"
                                 ? language === "ko"
-                                  ? "건너뜀"
-                                  : "Skipped"
-                                : language === "ko"
-                                  ? "대기"
-                                  : "Queued"}
-                      </span>
+                                  ? "중지됨"
+                                  : "Stopped"
+                              : entry.status === "active"
+                                ? t("statusRunning")
+                                : entry.status === "skipped"
+                                  ? language === "ko"
+                                    ? "건너뜀"
+                                    : "Skipped"
+                                  : language === "ko"
+                                    ? "대기"
+                                    : "Queued"}
+                        </span>
+                      </div>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-stone-700">
                       {entry.detail ||
@@ -4756,15 +4890,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       </div>
                     ) : null}
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {linkedResultId ? (
-                        <button
-                          type="button"
-                          onClick={() => jumpToResult(linkedResultId)}
-                          className="rounded-md border border-teal-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-teal-800 hover:bg-teal-50"
-                        >
-                          {language === "ko" ? "이 결과로 이동" : "Jump to result"}
-                        </button>
-                      ) : null}
                       {mode === "sequential" &&
                       running &&
                       activeRunId &&
@@ -5309,6 +5434,71 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           />
         )}
       </section>
+
+      {showResultScrollControls ? (
+        <div className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] right-3 z-50 flex flex-col gap-2 lg:bottom-6 lg:right-6">
+          <button
+            type="button"
+            disabled={!resultStartTargetId}
+            aria-label={
+              language === "ko"
+                ? "현재 결과 시작점으로 가기"
+                : "Go to the start of the current result"
+            }
+            title={
+              language === "ko"
+                ? "현재 결과 시작점으로 가기"
+                : "Go to the start of the current result"
+            }
+            onClick={jumpToCurrentResultStart}
+            className="flex h-11 w-11 items-center justify-center rounded-md border border-stone-300 bg-white text-stone-800 shadow-lg shadow-stone-200/70 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10 15V5" />
+              <path d="M5 10 10 5l5 5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label={
+              language === "ko"
+                ? "AI 진행 상태로 가기"
+                : "Go to AI progress"
+            }
+            title={
+              language === "ko"
+                ? "AI 진행 상태로 가기"
+                : "Go to AI progress"
+            }
+            onClick={jumpToProgressStart}
+            className="flex h-11 w-11 items-center justify-center rounded-md border border-stone-300 bg-stone-950 text-white shadow-lg shadow-stone-300/70 hover:bg-stone-800"
+          >
+            <svg
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10 17V8" />
+              <path d="M5.5 12.5 10 8l4.5 4.5" />
+              <path d="M5.5 7.5 10 3l4.5 4.5" />
+            </svg>
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
