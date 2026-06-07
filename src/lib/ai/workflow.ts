@@ -17,6 +17,7 @@ import {
   ensureResultExecutionOrderColumn,
   ensureResultExecutionRunIdColumn,
 } from "@/lib/workbench-run-schema";
+import { shouldAllowConfiguredProviderFallback } from "@/lib/workbench-provider-fallback";
 import {
   ensureWorkflowControlJsonColumn,
   ensureWorkflowTemplateStepsJsonColumn,
@@ -923,6 +924,7 @@ export async function executeParallelRun(input: {
         model: target.model,
         requestType: "generate",
         attachments: runtimeAttachments,
+        allowFallback: shouldAllowConfiguredProviderFallback("parallel"),
         prompt: composePrompt({
           actionType: "generate",
           originalInput: input.session.originalInput,
@@ -1016,6 +1018,7 @@ export async function executeParallelRunIncremental(input: {
           model: target.model,
           requestType: "generate",
           attachments: runtimeAttachments,
+          allowFallback: shouldAllowConfiguredProviderFallback("parallel"),
           abortSignal: abortController.signal,
           canceledErrorMessage: RUN_STOP_MESSAGE,
           onStarted: async (startedResult) => {

@@ -32,6 +32,7 @@ export async function GET() {
         shortName: provider.shortName,
         models: provider.models,
         defaultModel,
+        fallbackProvider: config?.fallbackProvider ?? null,
         isEnabled,
         status: !isEnabled
           ? "disabled"

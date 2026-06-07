@@ -12,6 +12,7 @@ export type ProviderOption = {
   shortName: string;
   models: string[];
   defaultModel: string;
+  fallbackProvider: ProviderName | null;
   isEnabled: boolean;
   status: string;
 };
@@ -33,6 +34,9 @@ export function ProviderSelectorRow({
 }: ProviderSelectorRowProps) {
   const { language } = useLanguage();
   const isReady = provider.status === "ready";
+  const fallbackProviderLabel = provider.fallbackProvider
+    ? provider.fallbackProvider.toUpperCase()
+    : "";
   const statusMessage =
     isReady
       ? "Configured by administrator"
@@ -74,9 +78,13 @@ export function ProviderSelectorRow({
           </span>
         </div>
         <p className="mb-2 text-[11px] leading-5 text-stone-500">
-          {language === "ko"
-            ? "선택한 모델 그대로 실행하며, 자동 fallback 없이 결과를 보여줍니다."
-            : "Runs with the exact model you selected, without automatic fallback."}
+          {provider.fallbackProvider
+            ? language === "ko"
+              ? `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`
+              : `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`
+            : language === "ko"
+              ? "선택한 모델 그대로 실행합니다."
+              : "Runs with the exact model you selected."}
         </p>
         <div className="flex flex-wrap gap-2">
           {provider.models.map((option) => {

@@ -63,6 +63,12 @@ import {
   mergeResultExpansionMap,
   setAllResultsExpanded,
 } from "@/lib/workbench-result-expansion";
+import {
+  closeDetachedParallelComparisonPanel,
+  createParallelComparisonPanelState,
+  openDetachedParallelComparisonPanel,
+  toggleParallelComparisonPanelCollapsed,
+} from "@/lib/workbench-parallel-comparison-panel";
 import { buildWorkbenchRunPayload } from "@/lib/workbench-run-payload";
 import {
   buildResultBoardView,
@@ -480,6 +486,11 @@ const workbenchUiText = {
     compareFailed: "Could not generate the difference summary.",
     compareGeneratedWith: "Compared with",
     compareModels: "Compared models",
+    compareCollapse: "Collapse",
+    compareExpand: "Expand",
+    compareDetach: "Open separately",
+    compareCloseDetached: "Close separate view",
+    compareDetachedHint: "The separate comparison view is open.",
   },
   ko: {
     progressTitle: "AI 진행 상태",
@@ -519,6 +530,11 @@ const workbenchUiText = {
     compareFailed: "결과 차이 요약을 생성하지 못했습니다.",
     compareGeneratedWith: "비교 생성 모델",
     compareModels: "비교 대상 모델",
+    compareCollapse: "접기",
+    compareExpand: "펼치기",
+    compareDetach: "별도 보기",
+    compareCloseDetached: "별도 보기 닫기",
+    compareDetachedHint: "별도 보기 창이 열려 있습니다.",
   },
 } as const;
 
@@ -1155,6 +1171,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       signature: "",
       status: "idle",
     });
+  const [parallelComparisonPanel, setParallelComparisonPanel] = useState(() =>
+    createParallelComparisonPanelState(),
+  );
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const [sharingSession, setSharingSession] = useState(false);
   const [sessionShareCopied, setSessionShareCopied] = useState(false);
@@ -1171,6 +1190,29 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
   }, [parallelComparison]);
+
+  useEffect(() => {
+    if (!parallelComparisonPanel.detached) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setParallelComparisonPanel((current) =>
+          closeDetachedParallelComparisonPanel(current),
+        );
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [parallelComparisonPanel.detached]);
 
   function setCurrentRunId(runId: string | null) {
     activeRunIdRef.current = runId;
@@ -2509,6 +2551,47 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         new Date(left.updatedAt).getTime() - new Date(right.updatedAt).getTime(),
     );
   }, [mode, results]);
+
+  const showInlineParallelComparisonBody =
+    !parallelComparisonPanel.collapsed && !parallelComparisonPanel.detached;
+
+  function renderParallelComparisonSummaryBody() {
+    if (parallelComparison.status === "loading") {
+      return (
+        <p className="flex items-center gap-2 text-sm leading-6 text-stone-700">
+          <span
+            aria-hidden="true"
+            className="inline-block animate-[spin_1.2s_linear_infinite]"
+          >
+            ⏳
+          </span>
+          {uiText.compareLoading}
+        </p>
+      );
+    }
+
+    if (parallelComparison.status === "completed") {
+      return (
+        <p className="whitespace-pre-wrap text-sm leading-7 text-stone-800">
+          {parallelComparison.comparison.summary}
+        </p>
+      );
+    }
+
+    if (parallelComparison.status === "failed") {
+      return (
+        <p className="text-sm leading-6 text-rose-700">
+          {parallelComparison.error || uiText.compareFailed}
+        </p>
+      );
+    }
+
+    return (
+      <p className="text-sm leading-6 text-stone-500">
+        {uiText.compareEmpty}
+      </p>
+    );
+  }
 
   const resultStats = useMemo(
     () => ({
@@ -4770,16 +4853,48 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {uiText.compareDescription}
                 </p>
               </div>
-              {parallelComparison.status === "completed" ? (
-                <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
-                  {uiText.compareGeneratedWith}:{" "}
-                  {parallelComparison.comparison.provider}/
-                  {getModelDisplayName(
-                    parallelComparison.comparison.provider,
-                    parallelComparison.comparison.model,
-                  )}
-                </span>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                {parallelComparison.status === "completed" ? (
+                  <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
+                    {uiText.compareGeneratedWith}:{" "}
+                    {parallelComparison.comparison.provider}/
+                    {getModelDisplayName(
+                      parallelComparison.comparison.provider,
+                      parallelComparison.comparison.model,
+                    )}
+                  </span>
+                ) : null}
+                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setParallelComparisonPanel((current) =>
+                        toggleParallelComparisonPanelCollapsed(current),
+                      )
+                    }
+                    className="rounded px-3 py-1.5 text-xs font-semibold text-stone-700"
+                  >
+                    {parallelComparisonPanel.collapsed
+                      ? uiText.compareExpand
+                      : uiText.compareCollapse}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setParallelComparisonPanel((current) =>
+                        current.detached
+                          ? closeDetachedParallelComparisonPanel(current)
+                          : openDetachedParallelComparisonPanel(current),
+                      )
+                    }
+                    className="rounded px-3 py-1.5 text-xs font-semibold text-stone-700"
+                  >
+                    {parallelComparisonPanel.detached
+                      ? uiText.compareCloseDetached
+                      : uiText.compareDetach}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="mt-4">
@@ -4801,30 +4916,93 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
-              {parallelComparison.status === "loading" ? (
-                <p className="flex items-center gap-2 text-sm leading-6 text-stone-700">
-                  <span
-                    aria-hidden="true"
-                    className="inline-block animate-[spin_1.2s_linear_infinite]"
+            {parallelComparisonPanel.detached ? (
+              <p className="mt-4 text-xs font-medium text-stone-500">
+                {uiText.compareDetachedHint}
+              </p>
+            ) : null}
+
+            {showInlineParallelComparisonBody ? (
+              <div className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
+                {renderParallelComparisonSummaryBody()}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mode === "parallel" && parallelComparisonPanel.detached ? (
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center bg-stone-950/45 px-4 py-6 sm:px-6"
+            onClick={() =>
+              setParallelComparisonPanel((current) =>
+                closeDetachedParallelComparisonPanel(current),
+              )
+            }
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="parallel-comparison-detached-title"
+              className="flex max-h-[calc(100vh-3rem)] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 px-5 py-4">
+                <div>
+                  <h2
+                    id="parallel-comparison-detached-title"
+                    className="text-base font-semibold text-stone-950"
                   >
-                    ⏳
-                  </span>
-                  {uiText.compareLoading}
-                </p>
-              ) : parallelComparison.status === "completed" ? (
-                <p className="whitespace-pre-wrap text-sm leading-7 text-stone-800">
-                  {parallelComparison.comparison.summary}
-                </p>
-              ) : parallelComparison.status === "failed" ? (
-                <p className="text-sm leading-6 text-rose-700">
-                  {parallelComparison.error || uiText.compareFailed}
-                </p>
-              ) : (
-                <p className="text-sm leading-6 text-stone-500">
-                  {uiText.compareEmpty}
-                </p>
-              )}
+                    {uiText.compareTitle}
+                  </h2>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {uiText.compareDescription}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setParallelComparisonPanel((current) =>
+                      closeDetachedParallelComparisonPanel(current),
+                    )
+                  }
+                  className="rounded-md border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-700"
+                >
+                  {uiText.compareCloseDetached}
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 py-4">
+                <div className="flex flex-col gap-4">
+                  {parallelComparison.status === "completed" ? (
+                    <span className="w-fit rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
+                      {uiText.compareGeneratedWith}:{" "}
+                      {parallelComparison.comparison.provider}/
+                      {getModelDisplayName(
+                        parallelComparison.comparison.provider,
+                        parallelComparison.comparison.model,
+                      )}
+                    </span>
+                  ) : null}
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-stone-500">
+                      {uiText.compareModels}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {parallelComparisonCandidates.map((result) => (
+                        <span
+                          key={`detached-${result.id}`}
+                          className="rounded-full border border-stone-200 bg-[#ffffff] px-3 py-1 text-xs font-medium text-stone-700"
+                        >
+                          {result.provider}/
+                          {getModelDisplayName(result.provider, result.model)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-5">
+                    {renderParallelComparisonSummaryBody()}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}
