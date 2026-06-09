@@ -10,8 +10,13 @@ const ANTHROPIC_LEGACY_MODEL_MAP: Record<string, string> = {
 };
 
 const GOOGLE_LEGACY_MODEL_MAP: Record<string, string> = {
-  "gemini-3.1-pro-preview": "gemini-3-pro-preview",
-  "gemini-3.1-pro": "gemini-3-pro-preview",
+  // gemini-3-pro-preview was retired by Google and now returns HTTP 404
+  // NOT_FOUND ("no longer available"). Heal any saved sessions/presets that
+  // still reference it (or its aliases) so the pro tier resolves to an
+  // available model instead of failing the run.
+  "gemini-3-pro-preview": "gemini-3.1-pro-preview",
+  "gemini-3-pro": "gemini-3.1-pro-preview",
+  "gemini-3.1-pro": "gemini-3.1-pro-preview",
   "gemini-3.5-flash": "gemini-3-flash-preview",
   "gemini-3-flash-preview": "gemini-3-flash-preview",
   "gemini-3.1-flash-lite": "gemini-2.5-flash-lite",
@@ -66,7 +71,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gemini-3-flash-preview",
       "gemini-2.5-flash-lite",
       "gemini-2.5-flash",
-      "gemini-3-pro-preview",
+      "gemini-3.1-pro-preview",
       "gemini-2.5-pro",
     ],
   },
