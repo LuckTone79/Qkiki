@@ -13,6 +13,8 @@ type ComposePromptInput = {
 
 const actionLabels: Record<ActionType, string> = {
   generate: "Generate the best possible answer to the user's task.",
+  brainstorm:
+    "Brainstorm divergently. Produce a wide spread of genuinely creative, unconventional ideas for the task instead of converging on the single obvious answer.",
   critique:
     "Critique the source answer. Identify weak reasoning, missing context, unclear wording, and practical improvements.",
   fact_check:
@@ -79,7 +81,15 @@ export function composePrompt(input: ComposePromptInput) {
   }
 
   if (input.sourceText?.trim()) {
-    parts.push("", "Source result to use:", input.sourceText.trim());
+    const sourceHeading =
+      input.actionType === "brainstorm"
+        ? "Ideas already on the table from other AI models (extend this living discussion, do not restate it):"
+        : "Source result to use:";
+    parts.push("", sourceHeading, input.sourceText.trim());
+  }
+
+  if (input.actionType === "brainstorm") {
+    parts.push("", ...buildBrainstormDirectives(Boolean(input.sourceText?.trim())));
   }
 
   if (input.instructionTemplate?.trim()) {
@@ -89,4 +99,27 @@ export function composePrompt(input: ComposePromptInput) {
   parts.push("", "Return only the useful response content.");
 
   return parts.join("\n");
+}
+
+function buildBrainstormDirectives(hasPriorIdeas: boolean) {
+  const lines = [
+    "Brainstorming rules:",
+    "- Think divergently: pull from unrelated fields, analogies, contrarian takes, and \"what if\" reframings. Do not stay narrowly inside the obvious framing of the topic.",
+    "- Bring YOUR distinct perspective as this specific model. Aim for ideas the other models are unlikely to have produced.",
+    "- Offer at least 5 distinct ideas. Give each a short bold title and a 1-2 sentence spark. Tag the boldest ones with [Wild card].",
+    "- Prioritize originality and breadth over polish; half-formed but novel beats safe but generic.",
+  ];
+
+  if (hasPriorIdeas) {
+    lines.push(
+      "- Treat the ideas above as an ongoing multi-model brainstorm. Apply \"yes, and\": build on the strongest ones, remix two ideas into a new one, and add angles nobody has raised yet.",
+      "- Do NOT summarize or merely rank the existing ideas, and do not repeat one already listed. Every item you add must be net-new or a genuine evolution.",
+    );
+  }
+
+  lines.push(
+    "- End with a short \"Threads worth pursuing\" note picking 1-2 directions with the most creative upside.",
+  );
+
+  return lines;
 }

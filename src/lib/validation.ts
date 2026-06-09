@@ -44,6 +44,7 @@ export const workflowStepSchema = z.object({
   orderIndex: z.number().int().min(1).max(50),
   actionType: z.enum([
     "generate",
+    "brainstorm",
     "critique",
     "fact_check",
     "improve",
@@ -103,6 +104,7 @@ export const branchRunSchema = z.object({
   parentResultId: z.string().min(1),
   outputLanguage: z.enum(["en", "ko", "ja", "zh", "hi"]).nullable().optional(),
   actionType: z.enum([
+    "brainstorm",
     "critique",
     "fact_check",
     "improve",

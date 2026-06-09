@@ -2,6 +2,7 @@ export type ProviderName = "openai" | "anthropic" | "google" | "xai";
 
 export type ActionType =
   | "generate"
+  | "brainstorm"
   | "critique"
   | "fact_check"
   | "improve"

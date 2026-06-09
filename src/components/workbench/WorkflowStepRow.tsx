@@ -26,6 +26,7 @@ type WorkflowStepRowProps = {
 
 const actionOptions: { value: ActionType; en: string; ko: string }[] = [
   { value: "generate", en: "Generate", ko: "\uc0dd\uc131" },
+  { value: "brainstorm", en: "Brainstorm", ko: "\ube0c\ub808\uc778\uc2a4\ud1a0\ubc0d" },
   { value: "critique", en: "Critique", ko: "\ube44\ud310" },
   { value: "fact_check", en: "Fact-check style review", ko: "\ud329\ud2b8\uccb4\ud06c\uc2dd \uac80\ud1a0" },
   { value: "improve", en: "Improve", ko: "\uac1c\uc120" },

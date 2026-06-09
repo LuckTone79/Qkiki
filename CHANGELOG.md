@@ -100,3 +100,12 @@
 - Included attachments in session restore flows, local draft restore, reruns, and branch executions.
 - Updated README with attachment behavior and local storage notes.
 - Verified Prisma schema sync, ESLint, production build, authenticated attachment upload API smoke test, and a Playwright workbench screenshot.
+
+## Patch 11 (v1.18.0-20260610)
+
+- Added a new "Brainstorm" (브레인스토밍) action type to the sequential review chain's action selector and to the per-result "review with model" composer.
+- Designed dedicated divergent-thinking logic in the prompt composer: brainstorm steps push for unconventional, model-distinct ideas and produce multiple diverse directions instead of converging on the obvious answer.
+- When a brainstorm step consumes prior results, it reframes them as an ongoing multi-model discussion — applying "yes, and", remixing ideas, and adding net-new angles rather than summarizing.
+- Wired the action type through types, Zod validation (chain + branch), action display labels, presets preview, and the guide reference list (EN/KO).
+- Added `src/lib/ai/prompt.test.mjs` covering brainstorm label, directive injection, prior-idea discussion mode, and isolation from other actions.
+- Verified with TypeScript typecheck, ESLint, the new prompt unit tests, and three review passes (correctness, prompt/UX quality, edge-cases/security).

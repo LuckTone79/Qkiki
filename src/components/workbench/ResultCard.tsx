@@ -75,6 +75,7 @@ type ResultCardProps = {
 };
 
 const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
+  { value: "brainstorm", en: "Brainstorm", ko: "브레인스토밍" },
   { value: "critique", en: "Critique", ko: "비판" },
   {
     value: "fact_check",

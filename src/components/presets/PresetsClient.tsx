@@ -17,6 +17,7 @@ type Preset = {
 function actionLabel(value: string, language: "en" | "ko") {
   const labels: Record<string, { en: string; ko: string }> = {
     generate: { en: "Generate", ko: "\uc0dd\uc131" },
+    brainstorm: { en: "Brainstorm", ko: "\ube0c\ub808\uc778\uc2a4\ud1a0\ubc0d" },
     critique: { en: "Critique", ko: "\ube44\ud310" },
     fact_check: {
       en: "Fact-check style review",

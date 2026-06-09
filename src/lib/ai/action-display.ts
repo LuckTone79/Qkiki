@@ -7,6 +7,7 @@ const ACTION_DISPLAY_LABELS: Record<
   Record<ActionDisplayLanguage, string>
 > = {
   generate: { en: "Generate", ko: "생성" },
+  brainstorm: { en: "Brainstorm", ko: "브레인스토밍" },
   critique: { en: "Critique", ko: "비판" },
   fact_check: { en: "Fact-check style review", ko: "팩트체크식 검토" },
   improve: { en: "Improve", ko: "개선" },
