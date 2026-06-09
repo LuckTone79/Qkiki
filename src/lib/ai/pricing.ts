@@ -18,7 +18,7 @@ const pricing: Record<string, Pricing> = {
   "anthropic:claude-haiku-4-5": { promptPerMillion: 1, completionPerMillion: 5 },
 
   // Google - Gemini family (2026 standard pricing)
-  "google:gemini-3-pro-preview": {
+  "google:gemini-3.1-pro-preview": {
     promptPerMillion: 2,
     completionPerMillion: 12,
   },

@@ -17,7 +17,7 @@ test("provider catalog keeps only current supported model tiers", () => {
     "gemini-3-flash-preview",
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
-    "gemini-3-pro-preview",
+    "gemini-3.1-pro-preview",
     "gemini-2.5-pro",
   ]);
 });
@@ -36,13 +36,15 @@ test("normalizeProviderModel upgrades legacy aliases to current supported models
     "claude-haiku-4-5",
   );
 
+  // gemini-3-pro-preview was retired by Google (HTTP 404); legacy aliases and
+  // the dead id itself must heal to an available pro model.
   assert.equal(
-    normalizeProviderModel("google", "gemini-3.1-pro-preview"),
-    "gemini-3-pro-preview",
+    normalizeProviderModel("google", "gemini-3-pro-preview"),
+    "gemini-3.1-pro-preview",
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-3.1-pro"),
-    "gemini-3-pro-preview",
+    "gemini-3.1-pro-preview",
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-3.5-flash"),
