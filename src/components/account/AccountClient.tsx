@@ -244,6 +244,25 @@ export function AccountClient({
         </form>
       </section>
 
+      <section className="max-w-xl rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold text-stone-950">
+          {language === "ko" ? "피드백 게시판" : "Feedback board"}
+        </h2>
+        <p className="mt-1 text-sm text-stone-600">
+          {language === "ko"
+            ? "불편 사항이나 개선 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있으며, 캡처 이미지도 첨부할 수 있습니다."
+            : "Report problems or suggest improvements. Only you and the Qkiki team can see your posts, and you can attach screenshots."}
+        </p>
+        <div className="mt-4">
+          <Link
+            href="/app/account/feedback"
+            className="inline-flex items-center gap-1 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+          >
+            {language === "ko" ? "피드백 게시판 열기" : "Open feedback board"}
+          </Link>
+        </div>
+      </section>
+
       {usage ? <UsageStatus usage={usage} /> : null}
     </div>
   );

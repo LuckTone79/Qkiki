@@ -109,3 +109,15 @@
 - Wired the action type through types, Zod validation (chain + branch), action display labels, presets preview, and the guide reference list (EN/KO).
 - Added `src/lib/ai/prompt.test.mjs` covering brainstorm label, directive injection, prior-idea discussion mode, and isolation from other actions.
 - Verified with TypeScript typecheck, ESLint, the new prompt unit tests, and three review passes (correctness, prompt/UX quality, edge-cases/security).
+
+## Patch 12 (v1.19.0-20260609)
+
+- Added a user feedback board reachable from the Account page so users can report problems and suggestions.
+- Feedback posts are private: only the author and admins can read them. The author endpoints are scoped by `userId`, and image serving is authorized for the author (user session) or any admin (admin session).
+- Added rich-body support: users can paste captured screenshots directly into the body (Ctrl/⌘+V) or attach image files (PNG/JPEG/WebP/GIF, up to 10MB each, 10 per post). Pasted images are uploaded and embedded as inline references.
+- Added a safe body renderer that only renders images pointing at our own attachment endpoint and never injects raw HTML.
+- Added a two-way conversation thread: users and the Qkiki team can reply back and forth, with unread badges for new replies (author side) and a new-submission queue badge (admin side).
+- Added an admin Feedback console at `/admin/feedback` (and `/admin/feedback/[id]`) to view all submissions, search/filter by status, change status (Open / In progress / Resolved / Closed), and reply to users.
+- Added admin audit logging for feedback views, status changes, and replies (`FEEDBACK_VIEW`, `FEEDBACK_STATUS_CHANGE`, `FEEDBACK_REPLY`).
+- Added Prisma models `FeedbackPost`, `FeedbackComment`, `FeedbackAttachment` with enums `FeedbackCategory` and `FeedbackStatus`, plus a hand-written migration.
+- Verified with `prisma generate`, TypeScript typecheck, ESLint, and a clean production build.
