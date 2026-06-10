@@ -27,7 +27,44 @@ export async function GET(
       return NextResponse.json({ error: "Project not found." }, { status: 404 });
     }
 
-    return NextResponse.json({ project });
+    const items = await prisma.projectItem.findMany({
+      where: { projectId: project.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        session: { select: { id: true, title: true, mode: true } },
+        result: {
+          select: {
+            id: true,
+            provider: true,
+            model: true,
+            status: true,
+            outputText: true,
+          },
+        },
+      },
+    });
+
+    const shapedItems = items.map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      title: item.title,
+      note: item.note,
+      createdAt: item.createdAt.toISOString(),
+      session: item.session
+        ? { id: item.session.id, title: item.session.title, mode: item.session.mode }
+        : null,
+      result: item.result
+        ? {
+            id: item.result.id,
+            provider: item.result.provider,
+            model: item.result.model,
+            status: item.result.status,
+            snippet: (item.result.outputText ?? "").slice(0, 400),
+          }
+        : null,
+    }));
+
+    return NextResponse.json({ project: { ...project, items: shapedItems } });
   } catch (error) {
     return apiErrorResponse(error);
   }

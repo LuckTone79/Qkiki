@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
+import { AddToProjectButton } from "@/components/projects/AddToProjectButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
@@ -52,6 +53,7 @@ export type WorkbenchResult = {
 
 type ResultCardProps = {
   result: WorkbenchResult;
+  sessionId?: string | null;
   depth: number;
   compact?: boolean;
   expanded: boolean;
@@ -153,6 +155,7 @@ function getExecutionSourceLabel(
 
 export function ResultCard({
   result,
+  sessionId,
   depth,
   compact = false,
   expanded,
@@ -406,6 +409,17 @@ export function ResultCard({
           >
             {t("deleteBranch")}
           </button>
+          {sessionId ? (
+            <AddToProjectButton
+              payload={{
+                kind: "RESULT",
+                sessionId,
+                resultId: result.id,
+                title: `${actionLabel || (language === "ko" ? "결과" : "Result")} · ${result.provider}/${getModelDisplayName(result.provider, result.model)}`,
+              }}
+              className="min-h-10 rounded-md border border-indigo-300 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-50"
+            />
+          ) : null}
         </div>
       )}
 
