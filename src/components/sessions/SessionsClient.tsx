@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
+import { AddToProjectButton } from "@/components/projects/AddToProjectButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import { buildSessionInputCopyNotice } from "@/lib/session-input-copy";
@@ -249,6 +250,14 @@ export function SessionsClient() {
                   >
                     {t("duplicate")}
                   </button>
+                  <AddToProjectButton
+                    payload={{
+                      kind: "SESSION",
+                      sessionId: session.id,
+                      title: session.title,
+                    }}
+                    className="rounded-md border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-50"
+                  />
                   <button
                     type="button"
                     onClick={() => deleteSession(session.id)}

@@ -5345,6 +5345,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 <div key={result.id} className="min-w-0">
                   <ResultCard
                     result={result}
+                    sessionId={sessionId}
                     depth={resultDepths.get(result.id) ?? 0}
                     compact={resultLayout === "single"}
                     expanded={resultExpansionById[result.id] ?? false}
@@ -5399,6 +5400,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       <div key={result.id} className="min-w-0">
                         <ResultCard
                           result={result}
+                          sessionId={sessionId}
                           depth={Math.max((resultDepths.get(result.id) ?? 1) - 1, 0)}
                           compact={resultLayout === "single"}
                           expanded={resultExpansionById[result.id] ?? false}

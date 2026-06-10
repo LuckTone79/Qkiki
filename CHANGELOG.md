@@ -152,3 +152,13 @@
 - Added a `ParallelComparison` Prisma model (unique per session + result-set signature) with a hand-written migration.
 - The compare API now returns the saved comparison without invoking the model when one exists, and supports `refresh: true` to force a regeneration. When the set of results changes, a new comparison is generated and saved automatically.
 - Verified with `prisma generate`, TypeScript typecheck, ESLint, and a clean production build.
+
+## Patch 18 (v1.21.0-20260610)
+
+- Added the ability to collect conversations and individual results into a project without moving them out of their session.
+  - From the Sessions list, a whole conversation can be added to a project ("프로젝트에 추가").
+  - In the workbench, each result card can add just that single dialogue/step (e.g. one step of a sequential review chain) to a project; the whole chain can still be added via the Sessions list.
+  - Items are registered additionally — the original conversation/result stays in the session unchanged.
+- Project detail now shows a "추가된 대화/결과" (Collected items) section listing added conversations and single results (with a snippet and source session), each openable or removable. Removing an item only unregisters it from the project; the source is untouched.
+- Added a `ProjectItem` model (SESSION/RESULT) with a hand-written migration, project item APIs (add/remove), and a reusable "Add to project" picker. Duplicate additions are prevented.
+- Verified with `prisma generate`, TypeScript typecheck, ESLint, and a clean production build.

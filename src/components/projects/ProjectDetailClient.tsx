@@ -21,6 +21,21 @@ type ProjectDetail = {
     updatedAt: string;
     _count: { results: number; workflowSteps: number };
   }>;
+  items: Array<{
+    id: string;
+    kind: "SESSION" | "RESULT";
+    title: string;
+    note: string | null;
+    createdAt: string;
+    session: { id: string; title: string; mode: string } | null;
+    result: {
+      id: string;
+      provider: string;
+      model: string;
+      status: string;
+      snippet: string;
+    } | null;
+  }>;
 };
 
 function formatDate(value: string, language: "en" | "ko") {
@@ -113,6 +128,30 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
     setNotice(t("projectContextSaved"));
     await loadProject();
+  }
+
+  async function removeItem(itemId: string) {
+    if (
+      !window.confirm(
+        language === "ko"
+          ? "이 항목을 프로젝트에서 제거할까요? 원본 대화/결과는 세션에 그대로 남습니다."
+          : "Remove this item from the project? The original stays in your session.",
+      )
+    ) {
+      return;
+    }
+
+    const response = await fetch(
+      `/api/projects/${projectId}/items/${itemId}`,
+      { method: "DELETE" },
+    );
+    if (response.ok) {
+      setProject((current) =>
+        current
+          ? { ...current, items: current.items.filter((item) => item.id !== itemId) }
+          : current,
+      );
+    }
   }
 
   async function deleteProject() {
@@ -245,6 +284,86 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         </form>
 
         <section className="space-y-3">
+          <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+            <h2 className="text-base font-semibold text-stone-950">
+              {language === "ko" ? "추가된 대화/결과" : "Collected items"}
+            </h2>
+            <p className="mt-1 text-sm text-stone-600">
+              {language === "ko"
+                ? `세션에서 추가한 대화와 개별 결과 ${project.items.length}개. 원본은 세션에 그대로 남아 있습니다.`
+                : `${project.items.length} conversations and individual results added from your sessions. Originals stay in their sessions.`}
+            </p>
+          </div>
+
+          {project.items.length ? (
+            <div className="grid gap-3">
+              {project.items.map((item) => (
+                <article
+                  key={item.id}
+                  className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`rounded-md border px-2 py-1 text-xs font-semibold ${
+                            item.kind === "RESULT"
+                              ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                              : "border-teal-200 bg-teal-50 text-teal-800"
+                          }`}
+                        >
+                          {item.kind === "RESULT"
+                            ? language === "ko"
+                              ? "단일 결과"
+                              : "Single result"
+                            : language === "ko"
+                              ? "대화 전체"
+                              : "Full conversation"}
+                        </span>
+                        <h3 className="truncate text-base font-semibold text-stone-950">
+                          {item.title}
+                        </h3>
+                      </div>
+                      {item.kind === "RESULT" && item.result ? (
+                        <>
+                          <p className="mt-1 text-xs text-stone-500">
+                            {item.result.provider} / {item.result.model}
+                          </p>
+                          <p className="mt-2 line-clamp-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-stone-600">
+                            {item.result.snippet}
+                          </p>
+                        </>
+                      ) : null}
+                      {item.session ? (
+                        <p className="mt-2 text-xs text-stone-500">
+                          {language === "ko" ? "출처 세션" : "From session"}:{" "}
+                          {item.session.title}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-none flex-wrap gap-2">
+                      {item.session ? (
+                        <Link
+                          href={`/app/workbench?session=${item.session.id}`}
+                          className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
+                        >
+                          {t("open")}
+                        </Link>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => removeItem(item.id)}
+                        className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                      >
+                        {language === "ko" ? "제거" : "Remove"}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+
           <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
             <h2 className="text-base font-semibold text-stone-950">
               {t("conversationWindows")}
