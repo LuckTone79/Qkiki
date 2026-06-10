@@ -145,3 +145,10 @@
 
 - Made the mobile bottom navigation fit all items on one screen without horizontal scrolling. With 7 entries (workbench, projects, sessions, presets, guide, account, feedback) the bar previously overflowed and required scrolling to reach Account/Feedback.
 - Removed the per-item minimum width and max-width cap, tightened spacing/padding, reduced label size, and let items share the full width evenly (with truncation as a safety net on very narrow devices).
+
+## Patch 17 (v1.20.0-20260610)
+
+- Cached the parallel comparison ("AI 결과 차이 비교") so it is generated once and reused. Previously the comparison model re-ran every time the workbench/panel was opened; now the summary is saved per session keyed by the exact set of compared results, and re-opening loads the stored summary instead of re-comparing (no extra model cost/latency).
+- Added a `ParallelComparison` Prisma model (unique per session + result-set signature) with a hand-written migration.
+- The compare API now returns the saved comparison without invoking the model when one exists, and supports `refresh: true` to force a regeneration. When the set of results changes, a new comparison is generated and saved automatically.
+- Verified with `prisma generate`, TypeScript typecheck, ESLint, and a clean production build.

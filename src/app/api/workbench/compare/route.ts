@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
-import { generateParallelComparisonSummary } from "@/lib/ai/workflow";
+import {
+  findSavedParallelComparison,
+  generateParallelComparisonSummary,
+} from "@/lib/ai/workflow";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 
 export async function POST(request: Request) {
@@ -9,6 +12,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       sessionId?: string;
       resultIds?: string[];
+      refresh?: boolean;
     };
 
     if (!body.sessionId) {
@@ -16,6 +20,21 @@ export async function POST(request: Request) {
         { error: "Session id is required." },
         { status: 400 },
       );
+    }
+
+    const resultIds = Array.isArray(body.resultIds) ? body.resultIds : undefined;
+
+    // Reuse a previously generated comparison for this exact set of results so
+    // re-opening the workbench loads the saved summary instead of re-comparing.
+    if (!body.refresh) {
+      const cached = await findSavedParallelComparison({
+        userId: user.id,
+        sessionId: body.sessionId,
+        resultIds,
+      });
+      if (cached) {
+        return NextResponse.json({ comparison: cached, cached: true });
+      }
     }
 
     const providerError = await assertProvidersReadyForRun(["openai"], user.id);
@@ -26,10 +45,10 @@ export async function POST(request: Request) {
     const comparison = await generateParallelComparisonSummary({
       userId: user.id,
       sessionId: body.sessionId,
-      resultIds: Array.isArray(body.resultIds) ? body.resultIds : undefined,
+      resultIds,
     });
 
-    return NextResponse.json({ comparison });
+    return NextResponse.json({ comparison, cached: false });
   } catch (error) {
     return apiErrorResponse(error);
   }
