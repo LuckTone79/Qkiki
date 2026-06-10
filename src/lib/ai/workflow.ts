@@ -528,11 +528,68 @@ function buildParallelComparisonPrompt(input: {
   ].join("\n");
 }
 
+export type ParallelComparisonSummaryResult = {
+  summary: string;
+  provider: ProviderName;
+  model: string;
+  generatedAt: string;
+  comparedResultIds: string[];
+};
+
+/**
+ * Builds a stable cache key for a comparison from the result IDs it covers.
+ * Order-independent so the same set of results always maps to the same key.
+ */
+export function buildParallelComparisonSignature(resultIds: string[]) {
+  return Array.from(new Set(resultIds.filter(Boolean)))
+    .sort()
+    .join("|");
+}
+
+/**
+ * Returns a previously saved comparison for this exact set of results, or null
+ * if none has been generated yet. Used so re-opening the workbench loads the
+ * stored summary instead of re-running the comparison model every time.
+ */
+export async function findSavedParallelComparison(input: {
+  userId: string;
+  sessionId: string;
+  resultIds?: string[];
+}): Promise<ParallelComparisonSummaryResult | null> {
+  const signature = buildParallelComparisonSignature(input.resultIds ?? []);
+  if (!signature) {
+    return null;
+  }
+
+  const session = await prisma.workbenchSession.findFirst({
+    where: { id: input.sessionId, userId: input.userId },
+    select: { id: true },
+  });
+  if (!session) {
+    return null;
+  }
+
+  const saved = await prisma.parallelComparison.findUnique({
+    where: { sessionId_signature: { sessionId: session.id, signature } },
+  });
+  if (!saved) {
+    return null;
+  }
+
+  return {
+    summary: saved.summary,
+    provider: saved.provider as ProviderName,
+    model: saved.model,
+    generatedAt: saved.createdAt.toISOString(),
+    comparedResultIds: saved.comparedResultIds,
+  };
+}
+
 export async function generateParallelComparisonSummary(input: {
   userId: string;
   sessionId: string;
   resultIds?: string[];
-}) {
+}): Promise<ParallelComparisonSummaryResult> {
   const { provider, model } = getParallelComparisonSummaryTarget();
   const session = await prisma.workbenchSession.findFirst({
     where: {
@@ -622,12 +679,35 @@ export async function generateParallelComparisonSummary(input: {
     );
   }
 
+  const comparedResultIds = comparableResults.map((result) => result.id);
+  const signature = buildParallelComparisonSignature(comparedResultIds);
+
+  // Persist so the next time this exact set of results is viewed we can load
+  // the saved summary instead of re-running the comparison model.
+  const saved = await prisma.parallelComparison.upsert({
+    where: { sessionId_signature: { sessionId: session.id, signature } },
+    create: {
+      sessionId: session.id,
+      signature,
+      summary: providerResult.outputText,
+      provider: providerResult.provider,
+      model: providerResult.model,
+      comparedResultIds,
+    },
+    update: {
+      summary: providerResult.outputText,
+      provider: providerResult.provider,
+      model: providerResult.model,
+      comparedResultIds,
+    },
+  });
+
   return {
-    summary: providerResult.outputText,
-    provider: providerResult.provider,
-    model: providerResult.model,
-    generatedAt: new Date().toISOString(),
-    comparedResultIds: comparableResults.map((result) => result.id),
+    summary: saved.summary,
+    provider: saved.provider as ProviderName,
+    model: saved.model,
+    generatedAt: saved.createdAt.toISOString(),
+    comparedResultIds: saved.comparedResultIds,
   };
 }
 
