@@ -162,3 +162,9 @@
 - Project detail now shows a "추가된 대화/결과" (Collected items) section listing added conversations and single results (with a snippet and source session), each openable or removable. Removing an item only unregisters it from the project; the source is untouched.
 - Added a `ProjectItem` model (SESSION/RESULT) with a hand-written migration, project item APIs (add/remove), and a reusable "Add to project" picker. Duplicate additions are prevented.
 - Verified with `prisma generate`, TypeScript typecheck, ESLint, and a clean production build.
+
+## Patch 19 (v1.21.1-20260610)
+
+- Reworked the "Add to project" picker into a centered modal so it is no longer clipped by the session card / bottom nav on mobile.
+- Added a "새 프로젝트로 추가" (Add to a new project) option in the picker, pre-filling the new project name with the conversation/result title being added. It creates the project and registers the item in one step.
+- Optimized the project detail page for mobile: collected items no longer overflow/clip (titles and source labels wrap), action buttons stretch to full width on small screens, and on mobile the collected items/sessions appear before the settings form.
