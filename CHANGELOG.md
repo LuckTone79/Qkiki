@@ -140,3 +140,8 @@
 
 - Added a "가이드"/"Guide" (📘) navigation item between Presets and Account, linking to the existing `/guide` page, in both the desktop sidebar and the mobile bottom navigation.
 - Added the `guide` i18n key (EN/KO).
+
+## Patch 16 (v1.19.4-20260609)
+
+- Made the mobile bottom navigation fit all items on one screen without horizontal scrolling. With 7 entries (workbench, projects, sessions, presets, guide, account, feedback) the bar previously overflowed and required scrolling to reach Account/Feedback.
+- Removed the per-item minimum width and max-width cap, tightened spacing/padding, reduced label size, and let items share the full width evenly (with truncation as a safety net on very narrow devices).
