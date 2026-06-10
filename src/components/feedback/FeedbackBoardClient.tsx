@@ -34,7 +34,6 @@ export function FeedbackBoardClient() {
   const { language } = useLanguage();
   const router = useRouter();
   const ko = language === "ko";
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [posts, setPosts] = useState<FeedbackListItem[]>([]);
@@ -64,23 +63,6 @@ export function FeedbackBoardClient() {
   useEffect(() => {
     loadPosts();
   }, []);
-
-  function insertAtCursor(text: string) {
-    const textarea = bodyRef.current;
-    if (!textarea) {
-      setBody((current) => `${current}${text}`);
-      return;
-    }
-    const start = textarea.selectionStart ?? body.length;
-    const end = textarea.selectionEnd ?? body.length;
-    const next = `${body.slice(0, start)}${text}${body.slice(end)}`;
-    setBody(next);
-    requestAnimationFrame(() => {
-      const cursor = start + text.length;
-      textarea.focus();
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  }
 
   async function uploadImage(file: File) {
     if (attachments.length >= MAX_PENDING) {
@@ -129,10 +111,7 @@ export function FeedbackBoardClient() {
     for (const item of imageItems) {
       const file = item.getAsFile();
       if (!file) continue;
-      const uploaded = await uploadImage(file);
-      if (uploaded) {
-        insertAtCursor(`\n![${uploaded.name}](${uploaded.url})\n`);
-      }
+      await uploadImage(file);
     }
   }
 
@@ -140,11 +119,15 @@ export function FeedbackBoardClient() {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
     for (const file of files) {
-      const uploaded = await uploadImage(file);
-      if (uploaded) {
-        insertAtCursor(`\n![${uploaded.name}](${uploaded.url})\n`);
-      }
+      await uploadImage(file);
     }
+  }
+
+  async function removeAttachment(id: string) {
+    setAttachments((current) => current.filter((item) => item.id !== id));
+    await fetch(`/api/feedback/attachments/${id}`, { method: "DELETE" }).catch(
+      () => {},
+    );
   }
 
   function resetForm() {
@@ -283,7 +266,6 @@ export function FeedbackBoardClient() {
                 {ko ? "내용" : "Details"}
               </span>
               <textarea
-                ref={bodyRef}
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
                 onPaste={handlePaste}
@@ -291,8 +273,8 @@ export function FeedbackBoardClient() {
                 className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm leading-relaxed outline-none focus:border-teal-600"
                 placeholder={
                   ko
-                    ? "무엇이 불편했는지 자세히 알려주세요. 캡처한 이미지를 이 영역에 바로 붙여넣을 수 있습니다 (Ctrl/⌘+V)."
-                    : "Describe the issue. You can paste a screenshot directly here (Ctrl/⌘+V)."
+                    ? "무엇이 불편했는지 자세히 알려주세요. 캡처한 이미지를 이 영역에 바로 붙여넣으면(Ctrl/⌘+V) 아래에 미리보기로 첨부됩니다."
+                    : "Describe the issue. Paste a screenshot here (Ctrl/⌘+V) and it will be attached as a preview below."
                 }
               />
             </label>
@@ -328,16 +310,32 @@ export function FeedbackBoardClient() {
             </div>
 
             {attachments.length ? (
-              <div className="flex flex-wrap gap-2">
-                {attachments.map((item) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={item.id}
-                    src={item.url}
-                    alt={item.name}
-                    className="h-16 w-16 rounded-md border border-stone-200 object-cover"
-                  />
-                ))}
+              <div>
+                <p className="mb-2 text-xs font-medium text-stone-500">
+                  {ko
+                    ? `첨부 이미지 ${attachments.length}장`
+                    : `${attachments.length} attached image${attachments.length > 1 ? "s" : ""}`}
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  {attachments.map((item) => (
+                    <div key={item.id} className="group relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={item.url}
+                        alt={item.name}
+                        className="h-24 w-24 rounded-md border border-stone-200 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(item.id)}
+                        aria-label={ko ? "이미지 삭제" : "Remove image"}
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-sm font-semibold text-stone-600 shadow-sm hover:bg-rose-50 hover:text-rose-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : null}
 
