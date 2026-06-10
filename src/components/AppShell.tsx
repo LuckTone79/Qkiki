@@ -226,21 +226,21 @@ export function AppShell({
 
       <nav
         aria-label={t("mobileNavigation")}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden"
       >
-        <div className="mx-auto flex max-w-[560px] gap-1 overflow-x-auto">
+        <div className="flex w-full gap-0.5">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               prefetch={false}
               onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
-              className="flex min-w-16 flex-1 flex-col items-center gap-0.5 rounded-md px-2 py-1.5 text-center text-[11px] font-semibold text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
+              className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-0.5 py-1.5 text-center text-[10px] font-semibold leading-tight tracking-tight text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >
               <span aria-hidden="true" className="text-base leading-none">
                 {item.icon}
               </span>
-              {t(item.key)}
+              <span className="block w-full truncate">{t(item.key)}</span>
             </Link>
           ))}
         </div>
