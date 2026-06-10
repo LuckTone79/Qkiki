@@ -121,3 +121,10 @@
 - Added admin audit logging for feedback views, status changes, and replies (`FEEDBACK_VIEW`, `FEEDBACK_STATUS_CHANGE`, `FEEDBACK_REPLY`).
 - Added Prisma models `FeedbackPost`, `FeedbackComment`, `FeedbackAttachment` with enums `FeedbackCategory` and `FeedbackStatus`, plus a hand-written migration.
 - Verified with `prisma generate`, TypeScript typecheck, ESLint, and a clean production build.
+
+## Patch 13 (v1.19.1-20260609)
+
+- Surfaced the feedback board as a top-level navigation item ("피드백"/"Feedback", 💬) in both the desktop sidebar and the mobile bottom navigation, so it is reachable in one tap from anywhere in the app (previously only via a card inside the Account page).
+- Added the `feedback` i18n key (EN/KO) used by the navigation label.
+- Kept the existing entry point on the Account page.
+- Verified with TypeScript typecheck, ESLint, and a clean production build.

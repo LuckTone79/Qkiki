@@ -14,6 +14,7 @@ const navItems = [
   { href: "/app/sessions", key: "sessions", icon: "📄" },
   { href: "/app/presets", key: "presets", icon: "⚡" },
   { href: "/app/account", key: "account", icon: "👤" },
+  { href: "/app/account/feedback", key: "feedback", icon: "💬" },
 ] as const;
 
 export function AppShell({
