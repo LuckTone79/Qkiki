@@ -135,3 +135,8 @@
 - Added a DELETE endpoint for pending (not-yet-posted) feedback images so removing a thumbnail also cleans it up server-side.
 - The feedback post detail (author view) now renders attached images as an inline image gallery, matching the admin view.
 - Verified with TypeScript typecheck, ESLint, and a clean production build.
+
+## Patch 15 (v1.19.3-20260609)
+
+- Added a "가이드"/"Guide" (📘) navigation item between Presets and Account, linking to the existing `/guide` page, in both the desktop sidebar and the mobile bottom navigation.
+- Added the `guide` i18n key (EN/KO).

@@ -14,6 +14,7 @@ const dictionaries = {
   en: {
     account: "Account",
     feedback: "Feedback",
+    guide: "Guide",
     accountDescription:
       "This account owns your provider settings, sessions, workflow steps, results, and presets.",
     accountTitle: "Basic account settings",
@@ -268,6 +269,7 @@ const dictionaries = {
   ko: {
     account: "\uacc4\uc815",
     feedback: "\ud53c\ub4dc\ubc31",
+    guide: "\uac00\uc774\ub4dc",
     accountDescription:
       "\uc774 \uacc4\uc815\uc740 \uacf5\uae09\uc790 \uc124\uc815, \uc138\uc158, \uc6cc\ud06c\ud50c\ub85c\uc6b0 \ub2e8\uacc4, \uacb0\uacfc, \ud504\ub9ac\uc14b\uc744 \uc18c\uc720\ud569\ub2c8\ub2e4.",
     accountTitle: "\uae30\ubcf8 \uacc4\uc815 \uc124\uc815",
