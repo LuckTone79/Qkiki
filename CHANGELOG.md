@@ -128,3 +128,10 @@
 - Added the `feedback` i18n key (EN/KO) used by the navigation label.
 - Kept the existing entry point on the Account page.
 - Verified with TypeScript typecheck, ESLint, and a clean production build.
+
+## Patch 14 (v1.19.2-20260609)
+
+- Fixed feedback image attachments showing as raw markdown text in the composer. Pasted/attached images are no longer injected into the body textarea as `![](...)` code; instead they appear as a thumbnail preview gallery below the editor, each with a remove (×) button.
+- Added a DELETE endpoint for pending (not-yet-posted) feedback images so removing a thumbnail also cleans it up server-side.
+- The feedback post detail (author view) now renders attached images as an inline image gallery, matching the admin view.
+- Verified with TypeScript typecheck, ESLint, and a clean production build.
