@@ -5,6 +5,7 @@ import {
 } from "@/components/feedback/FeedbackThreadClient";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { toFeedbackAttachmentMeta } from "@/lib/feedback";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function FeedbackThreadPage({
   const post = await prisma.feedbackPost.findFirst({
     where: { id, userId: user.id },
     include: {
+      attachments: { orderBy: { createdAt: "asc" } },
       comments: {
         orderBy: { createdAt: "asc" },
         include: { author: { select: { name: true, email: true } } },
@@ -44,6 +46,10 @@ export default async function FeedbackThreadPage({
     category: post.category,
     status: post.status,
     createdAt: post.createdAt.toISOString(),
+    attachments: post.attachments.map((attachment) => {
+      const meta = toFeedbackAttachmentMeta(attachment);
+      return { id: meta.id, name: meta.name, url: meta.url };
+    }),
     comments: post.comments.map((comment) => ({
       id: comment.id,
       body: comment.body,

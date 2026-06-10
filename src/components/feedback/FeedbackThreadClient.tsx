@@ -29,6 +29,7 @@ export type FeedbackThreadData = {
   category: FeedbackCategoryValue;
   status: FeedbackStatusValue;
   createdAt: string;
+  attachments: Array<{ id: string; name: string; url: string }>;
   comments: Comment[];
 };
 
@@ -138,6 +139,31 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
         <div className="mt-4 border-t border-stone-100 pt-4">
           <FeedbackBody body={post.body} />
         </div>
+
+        {post.attachments.length ? (
+          <div className="mt-4 border-t border-stone-100 pt-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
+              {ko ? "첨부 이미지" : "Attachments"}
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {post.attachments.map((attachment) => (
+                <a
+                  key={attachment.id}
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={attachment.url}
+                    alt={attachment.name}
+                    className="max-h-72 max-w-full rounded-md border border-stone-200"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </article>
 
       <section className="space-y-3">
