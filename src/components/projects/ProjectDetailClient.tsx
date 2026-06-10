@@ -221,7 +221,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <div className="grid gap-5 xl:grid-cols-[420px_1fr]">
         <form
           onSubmit={saveProject}
-          className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+          className="order-2 rounded-lg border border-stone-200 bg-white p-4 shadow-sm xl:order-1"
         >
           <h2 className="text-base font-semibold text-stone-950">
             {detailText.settingsTitle}
@@ -283,7 +283,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           </div>
         </form>
 
-        <section className="space-y-3">
+        <section className="order-1 space-y-3 xl:order-2">
           <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
             <h2 className="text-base font-semibold text-stone-950">
               {language === "ko" ? "추가된 대화/결과" : "Collected items"}
@@ -303,10 +303,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
-                          className={`rounded-md border px-2 py-1 text-xs font-semibold ${
+                          className={`flex-none rounded-md border px-2 py-1 text-xs font-semibold ${
                             item.kind === "RESULT"
                               ? "border-indigo-200 bg-indigo-50 text-indigo-800"
                               : "border-teal-200 bg-teal-50 text-teal-800"
@@ -320,22 +320,22 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                               ? "대화 전체"
                               : "Full conversation"}
                         </span>
-                        <h3 className="truncate text-base font-semibold text-stone-950">
-                          {item.title}
-                        </h3>
                       </div>
+                      <h3 className="mt-2 line-clamp-2 break-words text-base font-semibold text-stone-950">
+                        {item.title}
+                      </h3>
                       {item.kind === "RESULT" && item.result ? (
                         <>
-                          <p className="mt-1 text-xs text-stone-500">
+                          <p className="mt-1 break-words text-xs text-stone-500">
                             {item.result.provider} / {item.result.model}
                           </p>
-                          <p className="mt-2 line-clamp-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-stone-600">
+                          <p className="mt-2 line-clamp-3 break-words whitespace-pre-wrap text-sm leading-6 text-stone-600">
                             {item.result.snippet}
                           </p>
                         </>
                       ) : null}
                       {item.session ? (
-                        <p className="mt-2 text-xs text-stone-500">
+                        <p className="mt-2 break-words text-xs text-stone-500">
                           {language === "ko" ? "출처 세션" : "From session"}:{" "}
                           {item.session.title}
                         </p>
@@ -345,7 +345,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                       {item.session ? (
                         <Link
                           href={`/app/workbench?session=${item.session.id}`}
-                          className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
+                          className="flex-1 rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800 lg:flex-none"
                         >
                           {t("open")}
                         </Link>
@@ -353,7 +353,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                        className="flex-1 rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 lg:flex-none"
                       >
                         {language === "ko" ? "제거" : "Remove"}
                       </button>
