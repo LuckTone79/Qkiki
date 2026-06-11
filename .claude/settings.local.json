@@ -7,7 +7,8 @@
       "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_teams",
       "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_projects",
       "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__list_deployments",
-      "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__get_project"
+      "mcp__b72ac0ec-3824-425c-b606-6abd04741cef__get_project",
+      "mcp__1cd92b31-593a-4871-9cda-2bb0189df4b5__execute_sql"
     ]
   }
 }
