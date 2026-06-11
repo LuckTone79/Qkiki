@@ -3,7 +3,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { getAllSessionRuntimeAttachments, type RuntimeAttachment } from "@/lib/attachments";
-import { composePrompt } from "@/lib/ai/prompt";
+import { composePrompt, getSourceHeading } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
 import { normalizeRepeatBlocks, MAX_REPEAT_BLOCKS, MAX_TOTAL_SEQUENTIAL_STEPS } from "@/lib/ai/workflow-control";
 import { AI_ERROR_CODES, AI_ERROR_POLICY, computeRetryDelayMs, normalizeAiError } from "@/lib/ai/error-policy";
@@ -497,6 +497,7 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
 
   const sourceTextSnapshot = await resolveStepSource(step);
   const attachmentContext = buildAttachmentContext(attachments);
+  const hasPriorIdeas = Boolean(sourceTextSnapshot?.trim());
   const basePrompt = composePrompt({
     actionType: step.actionType as WorkflowStepInput["actionType"],
     originalInput: step.executionRun.session?.originalInput ?? "",
@@ -504,7 +505,11 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
     projectContext: null,
     outputStyle: step.executionRun.session?.outputStyle ?? null,
     outputLanguage: step.executionRun.session?.outputLanguage ?? null,
+    // The prior results are delivered as a separate, budget-managed block
+    // below, so pass the hint instead of inlining them here. This keeps the
+    // brainstorm "yes, and" discussion directives alive in the queued runner.
     sourceText: null,
+    hasPriorIdeas,
     instructionTemplate: step.instructionTemplate ?? null,
   });
 
@@ -518,9 +523,11 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
               key: "source",
               priority: promptSourcePriority(step.sourceMode),
               text:
-                step.sourceMode === "all_results"
-                  ? `Completed prior results:\n${sourceTextSnapshot}`
-                  : `Source result to use:\n${sourceTextSnapshot}`,
+                step.actionType === "brainstorm"
+                  ? `${getSourceHeading("brainstorm")}\n${sourceTextSnapshot}`
+                  : step.sourceMode === "all_results"
+                    ? `Completed prior results:\n${sourceTextSnapshot}`
+                    : `Source result to use:\n${sourceTextSnapshot}`,
             },
           ]
         : []),

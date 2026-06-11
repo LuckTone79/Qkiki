@@ -5,6 +5,10 @@ import Link from "next/link";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
+import {
+  readBrowserStorageValue,
+  writeBrowserStorageValue,
+} from "@/lib/browser-storage";
 import { APP_VERSION } from "@/lib/version";
 import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
 
@@ -33,12 +37,12 @@ export function AppShell({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("qkiki-sidebar-collapsed");
+    const stored = readBrowserStorageValue("qkiki-sidebar-collapsed");
     setSidebarCollapsed(stored === "true");
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(
+    writeBrowserStorageValue(
       "qkiki-sidebar-collapsed",
       sidebarCollapsed ? "true" : "false",
     );

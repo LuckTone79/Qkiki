@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { composePrompt, getActionLabel } from "./prompt.ts";
+import { composePrompt, getActionLabel, getSourceHeading } from "./prompt.ts";
 
 test("brainstorm action exposes a divergent label", () => {
   const label = getActionLabel("brainstorm");
@@ -50,4 +50,25 @@ test("brainstorm prompt without source omits discussion-extension rules", () => 
   });
 
   assert.doesNotMatch(prompt, /remix two ideas into a new one/);
+});
+
+test("hasPriorIdeas hint enables discussion mode when source is delivered separately", () => {
+  // The v2 queued runner appends prior results as a separate budget-managed
+  // block and passes sourceText:null, so the directives must still switch into
+  // multi-model discussion mode via the hint alone.
+  const prompt = composePrompt({
+    actionType: "brainstorm",
+    originalInput: "Plan a community event",
+    sourceText: null,
+    hasPriorIdeas: true,
+  });
+
+  assert.match(prompt, /yes, and/i);
+  assert.match(prompt, /net-new or a genuine evolution/i);
+  assert.ok(prompt.includes("remix two ideas into a new one"));
+});
+
+test("getSourceHeading frames brainstorm prior results as a living discussion", () => {
+  assert.match(getSourceHeading("brainstorm"), /extend this living discussion/i);
+  assert.match(getSourceHeading("improve"), /Source result to use/i);
 });

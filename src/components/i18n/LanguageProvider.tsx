@@ -7,6 +7,10 @@ import {
   useMemo,
   useState,
 } from "react";
+import {
+  readBrowserStorageValue,
+  writeBrowserStorageValue,
+} from "@/lib/browser-storage";
 
 export type AppLanguage = "en" | "ko";
 
@@ -537,7 +541,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>("en");
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("qkiki-language");
+    const stored = readBrowserStorageValue("qkiki-language");
     const nextLanguage = stored === "ko" ? "ko" : "en";
     setLanguageState(nextLanguage);
     document.documentElement.lang = nextLanguage;
@@ -545,7 +549,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   function setLanguage(nextLanguage: AppLanguage) {
     setLanguageState(nextLanguage);
-    window.localStorage.setItem("qkiki-language", nextLanguage);
+    writeBrowserStorageValue("qkiki-language", nextLanguage);
     document.documentElement.lang = nextLanguage;
   }
 

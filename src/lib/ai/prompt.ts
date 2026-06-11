@@ -9,6 +9,13 @@ type ComposePromptInput = {
   outputLanguage?: string | null;
   sourceText?: string | null;
   instructionTemplate?: string | null;
+  /**
+   * Set when prior results are delivered to the model in a separate prompt
+   * block (e.g. the v2 queued runner appends them for token budgeting) rather
+   * than inline via `sourceText`. Without this hint a brainstorm step would
+   * lose its multi-model "yes, and" discussion directives.
+   */
+  hasPriorIdeas?: boolean;
 };
 
 const actionLabels: Record<ActionType, string> = {
@@ -33,6 +40,18 @@ const actionLabels: Record<ActionType, string> = {
 
 export function getActionLabel(actionType: ActionType) {
   return actionLabels[actionType];
+}
+
+/**
+ * Heading used to introduce the source/prior-results block. Brainstorm steps
+ * frame it as a living multi-model discussion to extend; other actions treat
+ * it as a single source to work from. Exported so runners that deliver the
+ * source as a separate prompt block stay consistent with `composePrompt`.
+ */
+export function getSourceHeading(actionType: ActionType) {
+  return actionType === "brainstorm"
+    ? "Ideas already on the table from other AI models (extend this living discussion, do not restate it):"
+    : "Source result to use:";
 }
 
 const outputLanguageNames: Record<string, string> = {
@@ -81,15 +100,13 @@ export function composePrompt(input: ComposePromptInput) {
   }
 
   if (input.sourceText?.trim()) {
-    const sourceHeading =
-      input.actionType === "brainstorm"
-        ? "Ideas already on the table from other AI models (extend this living discussion, do not restate it):"
-        : "Source result to use:";
-    parts.push("", sourceHeading, input.sourceText.trim());
+    parts.push("", getSourceHeading(input.actionType), input.sourceText.trim());
   }
 
   if (input.actionType === "brainstorm") {
-    parts.push("", ...buildBrainstormDirectives(Boolean(input.sourceText?.trim())));
+    const hasPriorIdeas =
+      Boolean(input.sourceText?.trim()) || Boolean(input.hasPriorIdeas);
+    parts.push("", ...buildBrainstormDirectives(hasPriorIdeas));
   }
 
   if (input.instructionTemplate?.trim()) {

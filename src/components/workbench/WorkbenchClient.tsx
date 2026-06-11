@@ -45,6 +45,10 @@ import {
   writeSessionCache,
   readSessionCache,
 } from "@/lib/local-cache";
+import {
+  readBrowserStorageValue,
+  writeBrowserStorageValue,
+} from "@/lib/browser-storage";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
 import {
@@ -1984,7 +1988,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, []);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("qkiki-result-layout-v2");
+    const stored = readBrowserStorageValue("qkiki-result-layout-v2");
     if (stored === "double" || stored === "single") {
       setResultLayout(stored);
     }
@@ -2040,7 +2044,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, [language, providers]);
 
   useEffect(() => {
-    window.localStorage.setItem("qkiki-result-layout-v2", resultLayout);
+    writeBrowserStorageValue("qkiki-result-layout-v2", resultLayout);
   }, [resultLayout]);
 
   useEffect(() => {
@@ -4368,6 +4372,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   resultOptions={resultLabels}
                   onChange={updateStep}
                   onDelete={() => deleteStep(step.uid)}
+                  insideRepeatBlock={normalizedWorkflowControl.repeatBlocks.some(
+                    (repeatBlock) =>
+                      step.orderIndex >= repeatBlock.startStep &&
+                      step.orderIndex <= repeatBlock.endStep,
+                  )}
                 />
               ))}
             </div>

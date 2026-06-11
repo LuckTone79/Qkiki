@@ -168,3 +168,16 @@
 - Reworked the "Add to project" picker into a centered modal so it is no longer clipped by the session card / bottom nav on mobile.
 - Added a "새 프로젝트로 추가" (Add to a new project) option in the picker, pre-filling the new project name with the conversation/result title being added. It creates the project and registers the item in one step.
 - Optimized the project detail page for mobile: collected items no longer overflow/clip (titles and source labels wrap), action buttons stretch to full width on small screens, and on mobile the collected items/sessions appear before the settings form.
+
+## Patch 20 (v1.21.2-20260611)
+
+- Reduced parallel-run page lockups caused by database connection starvation and transaction contention.
+- Reworked provider lease acquisition, connection-limit defaults, parallel cancellation checks, and stream reconnect backoff so the workbench remains responsive while a parallel run is active.
+- Added targeted regression coverage for Prisma URL normalization, stream backoff, and provider concurrency behavior.
+
+## Patch 21 (v1.21.3-20260611)
+
+- Fixed the brainstorm discussion path in the queued sequential runner so prior-result directives are preserved even when source text is injected through a separate prompt block.
+- Added a one-click workflow auto-correction for repeat blocks that were regenerating from the original input instead of building on prior results.
+- Hardened browser storage access for Microsoft Edge and other blocked-storage environments: sidebar state, language preference, and result-layout preference now fail closed instead of crashing the workbench when `localStorage` throws a `SecurityError`.
+- Added `src/lib/browser-storage.ts` plus regression tests covering blocked-storage behavior.

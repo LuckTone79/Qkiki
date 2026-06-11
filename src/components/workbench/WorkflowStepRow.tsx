@@ -22,6 +22,8 @@ type WorkflowStepRowProps = {
   resultOptions: { id: string; label: string }[];
   onChange: (step: WorkflowStepState) => void;
   onDelete: () => void;
+  /** True when this step falls inside a configured repeat block. */
+  insideRepeatBlock?: boolean;
 };
 
 const actionOptions: { value: ActionType; en: string; ko: string }[] = [
@@ -48,11 +50,20 @@ export function WorkflowStepRow({
   resultOptions,
   onChange,
   onDelete,
+  insideRepeatBlock = false,
 }: WorkflowStepRowProps) {
   const { language, t } = useLanguage();
   const currentProvider = providers.find(
     (provider) => provider.providerName === step.targetProvider,
   );
+
+  // A "generate" step reading the original input regenerates from scratch every
+  // iteration, so inside a repeat block it never builds on prior results — the
+  // model just restates the same idea. Offer a one-click correction.
+  const showBuildupHint =
+    insideRepeatBlock &&
+    step.actionType === "generate" &&
+    step.sourceMode === "original";
 
   return (
     <div className="rounded-lg border border-stone-200 bg-white p-3 sm:p-4">
@@ -180,6 +191,32 @@ export function WorkflowStepRow({
           placeholder={t("stepInstructionPlaceholder")}
         />
       </label>
+
+      {showBuildupHint ? (
+        <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-amber-800">
+            {language === "ko"
+              ? "이 단계는 반복 구간 안에 있지만 '생성 / 원본 입력'이라 매 회차 같은 답을 새로 만들고 이전 결과 위에 쌓지 않습니다."
+              : "This step is inside a repeat block but is set to Generate / Original input, so it regenerates the same answer each cycle instead of building on prior results."}
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              onChange({
+                ...step,
+                actionType: "brainstorm",
+                sourceMode: "all_results",
+                sourceResultId: null,
+              })
+            }
+            className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+          >
+            {language === "ko"
+              ? "브레인스토밍 + 이전 결과로 바꾸기"
+              : "Switch to Brainstorm + prior results"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
