@@ -74,6 +74,7 @@ import {
   toggleParallelComparisonPanelCollapsed,
 } from "@/lib/workbench-parallel-comparison-panel";
 import { buildWorkbenchRunPayload } from "@/lib/workbench-run-payload";
+import { getRunStreamRetryDelayMs } from "@/lib/run-stream-backoff";
 import {
   buildResultBoardView,
   type ResultBoardFilter,
@@ -2870,6 +2871,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const streamAbortController = new AbortController();
     streamAbortControllerRef.current = streamAbortController;
     let cursor = 0;
+    let reconnectAttempts = 0;
     let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null =
       null;
     let streamError = "";
@@ -3086,7 +3088,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         }
 
         if (response.status === 409 && errorPayload.status === "queued") {
-          await new Promise((resolve) => window.setTimeout(resolve, 350));
+          await new Promise((resolve) =>
+            window.setTimeout(
+              resolve,
+              getRunStreamRetryDelayMs(reconnectAttempts),
+            ),
+          );
+          reconnectAttempts += 1;
           continue;
         }
 
@@ -3120,6 +3128,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           if (event) {
             handleEvent(event);
             cursor += 1;
+            reconnectAttempts = 0;
           }
         }
 
@@ -3171,7 +3180,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           status.status,
         )
       ) {
-        await new Promise((resolve) => window.setTimeout(resolve, 350));
+        await new Promise((resolve) =>
+          window.setTimeout(
+            resolve,
+            getRunStreamRetryDelayMs(reconnectAttempts),
+          ),
+        );
+        reconnectAttempts += 1;
         continue;
       }
 

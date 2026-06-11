@@ -1,9 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { resolveDatabaseUrl } from "@/lib/auth-config";
+import { applyConnectionPoolDefaults } from "@/lib/prisma-url";
 
 const resolvedDatabaseUrl = resolveDatabaseUrl();
 if (resolvedDatabaseUrl) {
-  process.env.DATABASE_URL = resolvedDatabaseUrl;
+  process.env.DATABASE_URL = applyConnectionPoolDefaults(resolvedDatabaseUrl);
 }
 
 const globalForPrisma = globalThis as unknown as {
