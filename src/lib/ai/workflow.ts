@@ -1060,26 +1060,32 @@ export async function executeParallelRunIncremental(input: {
   const runtimeAttachments = await hydrateRuntimeAttachments(attachmentRecords);
   const branchKey = `parallel-${Date.now()}`;
 
-  const settledResults = await Promise.allSettled(
-    input.targets.map(async (target, index) => {
-      if (await input.callbacks?.shouldStop?.()) {
-        throw createAbortError(RUN_STOP_MESSAGE);
-      }
+  // All parallel targets share one cancellation poller: shouldStop is
+  // run-level, so per-target pollers only multiplied the same database query
+  // by the number of targets.
+  const abortController = createPolledAbortController({
+    message: RUN_STOP_MESSAGE,
+    shouldAbort: async () => Boolean(await input.callbacks?.shouldStop?.()),
+  });
 
-      await input.callbacks?.onStepStart?.({
-        index,
-        title: `${target.provider} / ${target.model}`,
-        subtitle: `Parallel run ${index + 1}`,
-        detail: "Preparing the prompt and context.",
-      });
+  let settledResults: PromiseSettledResult<
+    Awaited<ReturnType<typeof executeAndPersistResult>>
+  >[];
+  try {
+    settledResults = await Promise.allSettled(
+      input.targets.map(async (target, index) => {
+        if (await input.callbacks?.shouldStop?.()) {
+          throw createAbortError(RUN_STOP_MESSAGE);
+        }
 
-      const abortController = createPolledAbortController({
-        message: RUN_STOP_MESSAGE,
-        shouldAbort: async () => Boolean(await input.callbacks?.shouldStop?.()),
-      });
-      let result: Awaited<ReturnType<typeof executeAndPersistResult>>;
-      try {
-        result = await executeAndPersistResult({
+        await input.callbacks?.onStepStart?.({
+          index,
+          title: `${target.provider} / ${target.model}`,
+          subtitle: `Parallel run ${index + 1}`,
+          detail: "Preparing the prompt and context.",
+        });
+
+        const result = await executeAndPersistResult({
           userId: input.userId,
           sessionId: session.id,
           executionRunId: input.executionRunId ?? null,
@@ -1116,14 +1122,14 @@ export async function executeParallelRunIncremental(input: {
             outputLanguage: input.session.outputLanguage,
           }),
         });
-      } finally {
-        abortController.cleanup();
-      }
 
-      await input.callbacks?.onResult?.({ index, result });
-      return result;
-    }),
-  );
+        await input.callbacks?.onResult?.({ index, result });
+        return result;
+      }),
+    );
+  } finally {
+    abortController.cleanup();
+  }
   const results = settledResults
     .filter(
       (item): item is PromiseFulfilledResult<

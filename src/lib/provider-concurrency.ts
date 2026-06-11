@@ -1,13 +1,14 @@
 import "server-only";
 
 import crypto from "node:crypto";
-import { Prisma } from "@prisma/client";
 import type { ProviderName } from "@/lib/ai/types";
 import { prisma } from "@/lib/prisma";
-import { isProviderLeaseTransientError } from "@/lib/provider-lease-errors";
 
 const PROVIDER_LEASE_TTL_MS = 6 * 60 * 60 * 1000;
 const PROVIDER_WAIT_MS = 750;
+// Expired-lease cleanup is hygiene only (expired leases never count toward the
+// limit), so run it on a small fraction of acquisitions instead of every call.
+const LEASE_CLEANUP_PROBABILITY = 0.05;
 
 const DEFAULT_PROVIDER_LIMITS: Record<ProviderName, number> = {
   openai: 40,
@@ -20,11 +21,6 @@ type ProviderLeaseOwner = {
   ownerKind: string;
   ownerId: string;
 };
-
-function getPositiveIntegerEnv(name: string, fallback: number) {
-  const parsed = Number.parseInt(process.env[name] || "", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
 
 async function delay(ms: number, signal?: AbortSignal) {
   if (signal?.aborted) {
@@ -49,32 +45,6 @@ async function delay(ms: number, signal?: AbortSignal) {
   });
 }
 
-async function withSerializableRetries<T>(
-  callback: () => Promise<T>,
-  retries = 3,
-): Promise<T> {
-  let attempt = 0;
-  let lastError: unknown;
-
-  while (attempt < retries) {
-    try {
-      return await callback();
-    } catch (error) {
-      const prismaCode =
-        error instanceof Prisma.PrismaClientKnownRequestError
-          ? error.code
-          : null;
-      if (prismaCode !== "P2034" && !isProviderLeaseTransientError(error)) {
-        throw error;
-      }
-      lastError = error;
-      attempt += 1;
-    }
-  }
-
-  throw lastError ?? new Error("The transaction could not be completed.");
-}
-
 function getProviderLimit(provider: ProviderName) {
   const envKey = `PROVIDER_CONCURRENCY_${provider.toUpperCase()}`;
   const envValue = process.env[envKey]?.trim();
@@ -85,65 +55,57 @@ function getProviderLimit(provider: ProviderName) {
   return DEFAULT_PROVIDER_LIMITS[provider];
 }
 
+async function cleanupExpiredLeases(provider: ProviderName) {
+  await prisma.providerLease
+    .updateMany({
+      where: {
+        providerName: provider,
+        releasedAt: null,
+        expiresAt: { lte: new Date() },
+      },
+      data: {
+        releasedAt: new Date(),
+      },
+    })
+    .catch(() => undefined);
+}
+
+// Acquires a lease with a single atomic statement instead of a serializable
+// interactive transaction. Parallel runs fire several acquisitions at once,
+// and interactive transactions held a pooled connection for the whole
+// count+insert round trip — under load this starved the connection pool and
+// surfaced as "Unable to start a transaction in the given time" while user
+// requests (including page renders) queued behind it. A single INSERT..SELECT
+// holds a connection only for one statement. Concurrent acquisitions may
+// overshoot the limit by a request or two, which is acceptable for a rate
+// limiter.
 async function tryAcquireProviderLease(input: {
   provider: ProviderName;
   model: string;
   owner: ProviderLeaseOwner;
 }) {
-  const now = new Date();
   const limit = getProviderLimit(input.provider);
-  const expiresAt = new Date(now.getTime() + PROVIDER_LEASE_TTL_MS);
+  const expiresAt = new Date(Date.now() + PROVIDER_LEASE_TTL_MS);
+  const id = crypto.randomUUID();
+  const leaseKey = crypto.randomUUID();
 
-  return withSerializableRetries(() =>
-    prisma.$transaction(
-      async (tx) => {
-        await tx.providerLease.updateMany({
-          where: {
-            providerName: input.provider,
-            releasedAt: null,
-            expiresAt: { lte: now },
-          },
-          data: {
-            releasedAt: now,
-          },
-        });
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    INSERT INTO "ProviderLease"
+      ("id", "providerName", "leaseKey", "ownerKind", "ownerId", "model", "expiresAt", "createdAt", "updatedAt")
+    SELECT
+      ${id}, ${input.provider}, ${leaseKey}, ${input.owner.ownerKind},
+      ${input.owner.ownerId}, ${input.model}, ${expiresAt}, now(), now()
+    WHERE (
+      SELECT count(*)
+      FROM "ProviderLease"
+      WHERE "providerName" = ${input.provider}
+        AND "releasedAt" IS NULL
+        AND "expiresAt" > now()
+    ) < ${limit}
+    RETURNING "id"
+  `;
 
-        const activeCount = await tx.providerLease.count({
-          where: {
-            providerName: input.provider,
-            releasedAt: null,
-            expiresAt: { gt: now },
-          },
-        });
-
-        if (activeCount >= limit) {
-          return null;
-        }
-
-        return tx.providerLease.create({
-          data: {
-            providerName: input.provider,
-            leaseKey: crypto.randomUUID(),
-            ownerKind: input.owner.ownerKind,
-            ownerId: input.owner.ownerId,
-            model: input.model,
-            expiresAt,
-          },
-        });
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        maxWait: getPositiveIntegerEnv(
-          "PROVIDER_LEASE_TRANSACTION_MAX_WAIT_MS",
-          10000,
-        ),
-        timeout: getPositiveIntegerEnv(
-          "PROVIDER_LEASE_TRANSACTION_TIMEOUT_MS",
-          10000,
-        ),
-      },
-    ),
-  );
+  return rows[0] ?? null;
 }
 
 export async function acquireProviderLease(input: {
@@ -152,6 +114,10 @@ export async function acquireProviderLease(input: {
   owner: ProviderLeaseOwner;
   abortSignal?: AbortSignal;
 }) {
+  if (Math.random() < LEASE_CLEANUP_PROBABILITY) {
+    await cleanupExpiredLeases(input.provider);
+  }
+
   while (true) {
     if (input.abortSignal?.aborted) {
       throw input.abortSignal.reason ?? new Error("The operation was aborted.");
