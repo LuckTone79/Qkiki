@@ -18,6 +18,7 @@ import {
   isRetryableProviderErrorMessage,
 } from "@/lib/provider-retry";
 import { estimateCost } from "@/lib/ai/pricing";
+import { buildProviderWebSearchTools } from "@/lib/ai/provider-web-search";
 import {
   decryptSecretWithMetadata,
   encryptSecret,
@@ -836,6 +837,9 @@ async function callOpenAi(
   signal: AbortSignal,
 ) {
   const reasoningEffort = getOpenAiReasoningEffort(input.model);
+  const webSearchTools = input.enableWebSearch
+    ? buildProviderWebSearchTools("openai")
+    : [];
   const createResponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     signal,
@@ -848,6 +852,7 @@ async function callOpenAi(
       input: buildOpenAiResponsesInput(input),
       background: false,
       store: false,
+      ...(webSearchTools.length ? { tools: webSearchTools } : {}),
       ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
     }),
   });
@@ -923,6 +928,9 @@ async function callAnthropic(
   const outputParts: string[] = [];
   let promptTokens = 0;
   let completionTokens = 0;
+  const webSearchTools = input.enableWebSearch
+    ? buildProviderWebSearchTools("anthropic")
+    : [];
 
   for (
     let continuationIndex = 0;
@@ -941,6 +949,7 @@ async function callAnthropic(
         model: normalizeAnthropicModel(input.model),
         max_tokens: ANTHROPIC_MAX_TOKENS,
         messages,
+        ...(webSearchTools.length ? { tools: webSearchTools } : {}),
       }),
     });
     const body = await readJson(response);
@@ -1029,6 +1038,9 @@ async function callGoogle(
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     input.model,
   )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const webSearchTools = input.enableWebSearch
+    ? buildProviderWebSearchTools("google")
+    : [];
   const response = await fetch(url, {
     method: "POST",
     signal,
@@ -1036,6 +1048,7 @@ async function callGoogle(
     body: JSON.stringify({
       contents: [{ role: "user", parts: buildGoogleParts(input) }],
       generationConfig: { temperature: 0.4 },
+      ...(webSearchTools.length ? { tools: webSearchTools } : {}),
     }),
   });
   const body = await readJson(response);
@@ -1079,6 +1092,10 @@ async function callXai(
   startedAt: number,
   signal: AbortSignal,
 ) {
+  if (input.enableWebSearch && !getImageAttachments(input.attachments).length) {
+    return callXaiResponses(apiKey, input, startedAt, signal);
+  }
+
   const response = await fetch("https://api.x.ai/v1/chat/completions", {
     method: "POST",
     signal,
@@ -1112,6 +1129,55 @@ async function callXai(
     usage: normalizeUsage({
       promptTokens: usageBody?.prompt_tokens,
       completionTokens: usageBody?.completion_tokens,
+      totalTokens: usageBody?.total_tokens,
+    }),
+    latencyMs: Date.now() - startedAt,
+    status: "completed",
+  });
+}
+
+async function callXaiResponses(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  const response = await fetch("https://api.x.ai/v1/responses", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      input: [
+        {
+          role: "user",
+          content: buildPromptText(input.prompt, input.attachments),
+        },
+      ],
+      tools: buildProviderWebSearchTools("xai"),
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("xai", body, response.status));
+  }
+
+  const outputText = extractOpenAiResponsesText(body);
+  const usageBody = body.usage as JsonRecord | undefined;
+
+  return withCost({
+    provider: "xai",
+    model: input.model,
+    outputText,
+    rawResponse: body,
+    usage: normalizeUsage({
+      promptTokens: usageBody?.prompt_tokens ?? usageBody?.input_tokens,
+      completionTokens:
+        usageBody?.completion_tokens ?? usageBody?.output_tokens,
       totalTokens: usageBody?.total_tokens,
     }),
     latencyMs: Date.now() - startedAt,

@@ -10,6 +10,7 @@ import {
 } from "@/lib/attachments";
 import { composePrompt } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
+import { shouldEnableProviderWebSearch } from "@/lib/ai/provider-web-search";
 import { getParallelComparisonSummaryTarget } from "@/lib/ai/summary-model";
 import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
 import { encryptTextContent } from "@/lib/secret-crypto";
@@ -894,6 +895,10 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
     prompt: input.prompt,
     attachments: toProviderAttachments(input.attachments),
     allowFallback: input.allowFallback ?? false,
+    enableWebSearch: shouldEnableProviderWebSearch({
+      requestType: input.requestType,
+      prompt: input.prompt,
+    }),
     abortSignal: input.abortSignal,
     concurrencyOwner: {
       ownerKind: "result",

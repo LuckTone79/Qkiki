@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { composePrompt, getActionLabel, getSourceHeading } from "./prompt.ts";
+import {
+  composePrompt,
+  getActionLabel,
+  getSourceHeading,
+  shouldPreferWebSearch,
+} from "./prompt.ts";
 
 test("brainstorm action exposes a divergent label", () => {
   const label = getActionLabel("brainstorm");
@@ -71,4 +76,64 @@ test("hasPriorIdeas hint enables discussion mode when source is delivered separa
 test("getSourceHeading frames brainstorm prior results as a living discussion", () => {
   assert.match(getSourceHeading("brainstorm"), /extend this living discussion/i);
   assert.match(getSourceHeading("improve"), /Source result to use/i);
+});
+
+test("prompt always includes the current timestamp context", () => {
+  const prompt = composePrompt({
+    actionType: "generate",
+    originalInput: "오늘 경기 일정을 정리해줘",
+    currentDate: new Date("2026-06-12T01:30:00.000Z"),
+  });
+
+  assert.match(prompt, /Current time context:/);
+  assert.match(prompt, /2026-06-12T01:30:00.000Z/);
+  assert.match(prompt, /Resolve relative dates/i);
+});
+
+test("freshness-sensitive prompts prefer web search and source-grounded answers", () => {
+  const prompt = composePrompt({
+    actionType: "generate",
+    originalInput: "2026년 6월 12일 월드컵 한국 대 체코 경기 승률을 숫자로 알려줘",
+    currentDate: new Date("2026-06-12T01:30:00.000Z"),
+  });
+
+  assert.match(prompt, /Freshness and web research rules:/);
+  assert.match(prompt, /use web search, grounding, browsing, or live-search tools/i);
+  assert.match(prompt, /cite or name the sources/i);
+});
+
+test("fact-check prompts require the model's own assessment", () => {
+  const prompt = composePrompt({
+    actionType: "fact_check",
+    originalInput: "검토해줘",
+    sourceText: "이전 답변",
+  });
+
+  assert.match(prompt, /Fact-check review requirements:/);
+  assert.match(prompt, /Your own assessment/i);
+  assert.doesNotMatch(prompt, /Do not claim live web verification/);
+});
+
+test("freshness policy detects current factual questions and fact-check reviews", () => {
+  assert.equal(
+    shouldPreferWebSearch({
+      actionType: "generate",
+      originalInput: "오늘 환율과 최신 뉴스 알려줘",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldPreferWebSearch({
+      actionType: "fact_check",
+      originalInput: "이 답변을 검토해줘",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldPreferWebSearch({
+      actionType: "brainstorm",
+      originalInput: "새로운 앱 이름을 브레인스토밍해줘",
+    }),
+    false,
+  );
 });

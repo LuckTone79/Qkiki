@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { getAllSessionRuntimeAttachments, type RuntimeAttachment } from "@/lib/attachments";
 import { composePrompt, getSourceHeading } from "@/lib/ai/prompt";
 import { callProvider } from "@/lib/ai/providers";
+import { shouldEnableProviderWebSearch } from "@/lib/ai/provider-web-search";
 import { normalizeRepeatBlocks, MAX_REPEAT_BLOCKS, MAX_TOTAL_SEQUENTIAL_STEPS } from "@/lib/ai/workflow-control";
 import { AI_ERROR_CODES, AI_ERROR_POLICY, computeRetryDelayMs, normalizeAiError } from "@/lib/ai/error-policy";
 import { fitPromptBlocksToBudget, limitAllResultsTexts, previewText } from "@/lib/ai/token-budget";
@@ -1364,6 +1365,10 @@ export async function executeSingleRunStep(input: {
       attachments: promptData.attachmentsForProvider,
       allowFallback: false,
       disableInternalRetries: true,
+      enableWebSearch: shouldEnableProviderWebSearch({
+        requestType: step.actionType as WorkflowStepInput["actionType"],
+        prompt: step.promptSnapshot ?? promptData.promptSnapshot,
+      }),
       timeoutSecondsOverride: getProviderTimeoutOverrideSeconds(step),
       abortSignal: abortMonitor.signal,
       concurrencyOwner: {

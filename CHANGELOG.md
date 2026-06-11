@@ -181,3 +181,10 @@
 - Added a one-click workflow auto-correction for repeat blocks that were regenerating from the original input instead of building on prior results.
 - Hardened browser storage access for Microsoft Edge and other blocked-storage environments: sidebar state, language preference, and result-layout preference now fail closed instead of crashing the workbench when `localStorage` throws a `SecurityError`.
 - Added `src/lib/browser-storage.ts` plus regression tests covering blocked-storage behavior.
+
+## Patch 22 (v1.22.1-20260612)
+
+- Added current timestamp context to every workbench model prompt so relative dates and "latest/current" tasks resolve against the run time.
+- Added freshness and web-research directives for current factual tasks, plus fact-check requirements that include the model's own independent assessment.
+- Enabled provider web-search/grounding tools for OpenAI Responses, Anthropic Messages, Gemini Google Search grounding, and xAI Responses when the prompt calls for fresh verification.
+- Added regression tests for prompt freshness rules and provider web-search tool configuration.
