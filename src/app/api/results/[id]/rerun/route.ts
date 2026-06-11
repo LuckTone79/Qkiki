@@ -18,6 +18,7 @@ import {
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import { prisma } from "@/lib/prisma";
 import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
+import { estimateTargetFanoutCredits, estimateWorkbenchRunCredits } from "@/lib/credits";
 import {
   releaseUsageReservation,
   requireUsageAccess,
@@ -41,12 +42,6 @@ export async function POST(
   try {
     const user = await requireApiGenerationUser();
     userId = user.id;
-    const usageContext = user.isTrial
-      ? null
-      : await requireUsageAccess({
-          userId: user.id,
-          inputCharCount: 0,
-        });
     const { id } = await context.params;
     await ensureResultExecutionRunIdColumn();
     const result = await prisma.result.findFirst({
@@ -126,6 +121,28 @@ export async function POST(
         );
       }
 
+      const creditEstimate = estimateWorkbenchRunCredits({
+        mode: "sequential",
+        originalInput: parentRun.session.originalInput,
+        additionalInstruction: parentRun.session.additionalInstruction,
+        steps: parentRun.steps.map((step) => ({
+          orderIndex: step.orderIndex,
+          actionType: step.actionType,
+          targetProvider: step.targetProvider,
+          targetModel: step.targetModel,
+          sourceMode: step.sourceMode,
+          sourceResultId: step.sourceResultId,
+          instructionTemplate: step.instructionTemplate,
+        })),
+      });
+      const usageContext = user.isTrial
+        ? null
+        : await requireUsageAccess({
+            userId: user.id,
+            inputCharCount: parentRun.inputCharCount,
+            estimatedCredits: creditEstimate.estimatedCredits,
+          });
+
       reservedUsage = user.isTrial
         ? null
         : await reserveUsage({
@@ -133,6 +150,11 @@ export async function POST(
             requestType: "sequential",
             inputCharCount: parentRun.inputCharCount,
             reservationKey: `rerun-branch:${crypto.randomUUID()}`,
+            estimatedCredits: creditEstimate.estimatedCredits,
+            estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+            maxApprovedCredits: creditEstimate.estimatedCredits,
+            pricingVersion: creditEstimate.pricingVersion,
+            quote: creditEstimate,
             context: usageContext ?? undefined,
           });
 
@@ -223,18 +245,37 @@ export async function POST(
         runId: signedRunId,
         executionRunId: branchRun.id,
         status: "queued",
+        creditEstimate,
         statusUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}`,
         streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
       });
     }
+
+    const creditEstimate = estimateTargetFanoutCredits({
+      actionType: "rerun",
+      inputText: result.promptSnapshot,
+      targets: [{ provider: result.provider, model: result.model }],
+    });
+    const usageContext = user.isTrial
+      ? null
+      : await requireUsageAccess({
+          userId: user.id,
+          inputCharCount: result.promptSnapshot.length,
+          estimatedCredits: creditEstimate.estimatedCredits,
+        });
 
     reservedUsage = user.isTrial
       ? null
       : await reserveUsage({
           userId: user.id,
           requestType: "rerun",
-          inputCharCount: 0,
+          inputCharCount: result.promptSnapshot.length,
           reservationKey: `rerun:${crypto.randomUUID()}`,
+          estimatedCredits: creditEstimate.estimatedCredits,
+          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+          maxApprovedCredits: creditEstimate.estimatedCredits,
+          pricingVersion: creditEstimate.pricingVersion,
+          quote: creditEstimate,
           context: usageContext ?? undefined,
         });
 
@@ -261,13 +302,13 @@ export async function POST(
           userId: user.id,
           requestType: "rerun",
           selectedModels: [`${rerun.provider}/${rerun.model}`],
-          inputCharCount: 0,
+          inputCharCount: result.promptSnapshot.length,
           inputTokenCount: rerun.tokenUsagePrompt ?? 0,
           outputTokenCount: rerun.tokenUsageCompletion ?? 0,
           estimatedCostUsd: rerun.estimatedCost ?? 0,
         });
 
-    return NextResponse.json({ result: rerun, usage });
+    return NextResponse.json({ result: rerun, usage, creditEstimate });
   } catch (error) {
     if (reservedUsage && userId && !executionFinished && !branchRunId) {
       await releaseUsageReservation({

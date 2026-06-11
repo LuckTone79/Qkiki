@@ -3,12 +3,15 @@ import "server-only";
 import { BillingType, PlanType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/access-policy";
+import { CREDIT_PRICING_VERSION, costUsdToCredits } from "@/lib/credits";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const RESERVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const FREE_POLICY = {
   dailyLimit: 10,
+  monthlyCreditLimit: 50,
+  dailyCreditLimit: 25,
   inputCharLimit: 3000,
   resultSaveLimit: 10,
   shareDailyLimit: 3,
@@ -17,6 +20,8 @@ const FREE_POLICY = {
 
 const BOOST_POLICY = {
   dailyLimit: 30,
+  monthlyCreditLimit: 250,
+  dailyCreditLimit: 80,
   inputCharLimit: 5000,
   resultSaveLimit: 50,
   shareDailyLimit: 10,
@@ -25,6 +30,8 @@ const BOOST_POLICY = {
 
 const STARTER_POLICY = {
   dailyLimit: 100,
+  monthlyCreditLimit: 1800,
+  dailyCreditLimit: 300,
   inputCharLimit: 20000,
   resultSaveLimit: 200,
   shareDailyLimit: 30,
@@ -33,6 +40,8 @@ const STARTER_POLICY = {
 
 const PRO_POLICY = {
   dailyLimit: 300,
+  monthlyCreditLimit: 6000,
+  dailyCreditLimit: 1000,
   inputCharLimit: 100000,
   resultSaveLimit: 1000,
   shareDailyLimit: 100,
@@ -41,6 +50,8 @@ const PRO_POLICY = {
 
 const TEAM_POLICY = {
   dailyLimit: 600,
+  monthlyCreditLimit: 20000,
+  dailyCreditLimit: 3500,
   inputCharLimit: 100000,
   resultSaveLimit: 5000,
   shareDailyLimit: 300,
@@ -69,6 +80,22 @@ export type UsageStatusSummary = {
   isUnlimitedDaily: boolean;
   dailyUsed: number;
   remaining: number;
+  monthlyCreditLimit: number;
+  monthlyCreditsUsed: number;
+  monthlyCreditsRemaining: number;
+  dailyCreditLimit: number;
+  dailyCreditsUsed: number;
+  dailyCreditsRemaining: number;
+  paidCredits: number;
+  bonusCredits: number;
+  couponCreditBalance: number;
+  couponCreditEndsAt: string | null;
+  couponCreditActive: boolean;
+  walletCreditsAvailable: number;
+  planCreditsAvailable: number;
+  totalCreditsAvailable: number;
+  totalDailyCreditsAvailable: number;
+  isCreditLimitReached: boolean;
   inputCharLimit: number;
   resultSaveLimit: number;
   shareDailyLimit: number;
@@ -80,9 +107,38 @@ export type UsageStatusSummary = {
 
 export type ResolvedUsagePolicy = Omit<
   UsageStatusSummary,
-  "dailyUsed" | "remaining" | "warningThresholdReached" | "isLimitReached" | "resetAt"
+  | "dailyUsed"
+  | "remaining"
+  | "monthlyCreditsUsed"
+  | "monthlyCreditsRemaining"
+  | "dailyCreditsUsed"
+  | "dailyCreditsRemaining"
+  | "paidCredits"
+  | "bonusCredits"
+  | "couponCreditBalance"
+  | "couponCreditEndsAt"
+  | "couponCreditActive"
+  | "walletCreditsAvailable"
+  | "planCreditsAvailable"
+  | "totalCreditsAvailable"
+  | "totalDailyCreditsAvailable"
+  | "isCreditLimitReached"
+  | "warningThresholdReached"
+  | "isLimitReached"
+  | "resetAt"
 > & {
   resetAt: Date;
+};
+
+type CreditUsageSnapshot = {
+  monthlyCreditsUsed: number;
+  dailyCreditsUsed: number;
+  pendingReservedCredits: number;
+  paidCredits: number;
+  bonusCredits: number;
+  couponCreditBalance: number;
+  couponCreditEndsAt: Date | null;
+  couponCreditActive: boolean;
 };
 
 export type UsageCheckContext = {
@@ -92,6 +148,7 @@ export type UsageCheckContext = {
     dailyRequestLimit: number;
     dailyRequestUsed: number;
     pendingReservedRequests: number;
+    credit: CreditUsageSnapshot;
   };
 };
 
@@ -121,6 +178,15 @@ export class UsageInputLimitError extends Error {
   }
 }
 
+export class UsageCreditLimitReachedError extends Error {
+  summary: UsageStatusSummary;
+
+  constructor(summary: UsageStatusSummary) {
+    super("Not enough credits are available for this request.");
+    this.summary = summary;
+  }
+}
+
 function getKstDateInfo(now = new Date()) {
   const shifted = new Date(now.getTime() + KST_OFFSET_MS);
   const year = shifted.getUTCFullYear();
@@ -129,6 +195,20 @@ function getKstDateInfo(now = new Date()) {
   const usageDate = new Date(Date.UTC(year, month, day));
   const resetAt = new Date(Date.UTC(year, month, day + 1) - KST_OFFSET_MS);
   return { usageDate, resetAt };
+}
+
+function getKstPeriodBounds(now = new Date()) {
+  const shifted = new Date(now.getTime() + KST_OFFSET_MS);
+  const year = shifted.getUTCFullYear();
+  const month = shifted.getUTCMonth();
+  const day = shifted.getUTCDate();
+
+  const dayStartAt = new Date(Date.UTC(year, month, day) - KST_OFFSET_MS);
+  const dayEndAt = new Date(Date.UTC(year, month, day + 1) - KST_OFFSET_MS);
+  const monthStartAt = new Date(Date.UTC(year, month, 1) - KST_OFFSET_MS);
+  const monthEndAt = new Date(Date.UTC(year, month + 1, 1) - KST_OFFSET_MS);
+
+  return { dayStartAt, dayEndAt, monthStartAt, monthEndAt };
 }
 
 function decimal(value: number) {
@@ -193,6 +273,8 @@ async function getUserUsageProfile(userId: string) {
         couponDailyLimit: true,
         couponLimitEndsAt: true,
         couponLimitIsLifetime: true,
+        couponCreditBalance: true,
+        couponCreditEndsAt: true,
       },
     }),
   ]);
@@ -338,25 +420,145 @@ async function countPendingReservedRequests(input: { usageLimitId: string }) {
     },
     _sum: {
       reservedRequestCount: true,
+      reservedCreditCount: true,
     },
   });
+}
+
+async function getCreditUsageSnapshot(input: {
+  userId: string;
+  usageLimitId: string;
+  userSubscription:
+    | {
+        couponCreditBalance: number;
+        couponCreditEndsAt: Date | null;
+      }
+    | null
+    | undefined;
+  now?: Date;
+}): Promise<CreditUsageSnapshot> {
+  const now = input.now ?? new Date();
+  const { dayStartAt, dayEndAt, monthStartAt, monthEndAt } =
+    getKstPeriodBounds(now);
+
+  const [dailyUsage, monthlyUsage, pending, wallet] = await Promise.all([
+    prisma.usageLog.aggregate({
+      where: {
+        userId: input.userId,
+        createdAt: {
+          gte: dayStartAt,
+          lt: dayEndAt,
+        },
+      },
+      _sum: {
+        creditsUsed: true,
+      },
+    }),
+    prisma.usageLog.aggregate({
+      where: {
+        userId: input.userId,
+        createdAt: {
+          gte: monthStartAt,
+          lt: monthEndAt,
+        },
+      },
+      _sum: {
+        creditsUsed: true,
+      },
+    }),
+    countPendingReservedRequests({ usageLimitId: input.usageLimitId }),
+    prisma.creditWallet.findUnique({
+      where: { userId: input.userId },
+      select: {
+        paidCredits: true,
+        bonusCredits: true,
+      },
+    }),
+  ]);
+
+  const couponCreditActive = Boolean(
+    input.userSubscription?.couponCreditEndsAt &&
+      input.userSubscription.couponCreditEndsAt.getTime() > now.getTime() &&
+      input.userSubscription.couponCreditBalance > 0,
+  );
+
+  return {
+    monthlyCreditsUsed:
+      (monthlyUsage._sum.creditsUsed ?? 0) +
+      (pending._sum.reservedCreditCount ?? 0),
+    dailyCreditsUsed:
+      (dailyUsage._sum.creditsUsed ?? 0) +
+      (pending._sum.reservedCreditCount ?? 0),
+    pendingReservedCredits: pending._sum.reservedCreditCount ?? 0,
+    paidCredits: wallet?.paidCredits ?? 0,
+    bonusCredits: wallet?.bonusCredits ?? 0,
+    couponCreditBalance: couponCreditActive
+      ? input.userSubscription?.couponCreditBalance ?? 0
+      : 0,
+    couponCreditEndsAt: couponCreditActive
+      ? input.userSubscription?.couponCreditEndsAt ?? null
+      : null,
+    couponCreditActive,
+  };
 }
 
 function toSummary(
   policy: ResolvedUsagePolicy,
   dailyUsedCommitted: number,
   pendingReserved = 0,
+  credit: CreditUsageSnapshot = {
+    monthlyCreditsUsed: 0,
+    dailyCreditsUsed: 0,
+    pendingReservedCredits: 0,
+    paidCredits: 0,
+    bonusCredits: 0,
+    couponCreditBalance: 0,
+    couponCreditEndsAt: null,
+    couponCreditActive: false,
+  },
 ): UsageStatusSummary {
   const dailyUsed = dailyUsedCommitted + pendingReserved;
   const remaining = Math.max(0, policy.dailyLimit - dailyUsed);
+  const monthlyCreditsRemaining = Math.max(
+    0,
+    policy.monthlyCreditLimit - credit.monthlyCreditsUsed,
+  );
+  const dailyCreditsRemaining = Math.max(
+    0,
+    policy.dailyCreditLimit - credit.dailyCreditsUsed,
+  );
+  const walletCreditsAvailable = credit.paidCredits + credit.bonusCredits;
+  const planCreditsAvailable = monthlyCreditsRemaining;
+  const totalCreditsAvailable =
+    planCreditsAvailable + credit.couponCreditBalance + walletCreditsAvailable;
+  const totalDailyCreditsAvailable =
+    dailyCreditsRemaining + credit.couponCreditBalance + walletCreditsAvailable;
 
   return {
     ...policy,
     resetAt: policy.resetAt.toISOString(),
     dailyUsed,
     remaining,
+    monthlyCreditsUsed: credit.monthlyCreditsUsed,
+    monthlyCreditsRemaining,
+    dailyCreditsUsed: credit.dailyCreditsUsed,
+    dailyCreditsRemaining,
+    paidCredits: credit.paidCredits,
+    bonusCredits: credit.bonusCredits,
+    couponCreditBalance: credit.couponCreditBalance,
+    couponCreditEndsAt: credit.couponCreditEndsAt?.toISOString() ?? null,
+    couponCreditActive: credit.couponCreditActive,
+    walletCreditsAvailable,
+    planCreditsAvailable,
+    totalCreditsAvailable,
+    totalDailyCreditsAvailable,
+    isCreditLimitReached:
+      totalCreditsAvailable <= 0 || totalDailyCreditsAvailable <= 0,
     warningThresholdReached:
-      policy.dailyLimit > 0 ? dailyUsed / policy.dailyLimit >= 0.8 : false,
+      (policy.dailyLimit > 0 ? dailyUsed / policy.dailyLimit >= 0.8 : false) ||
+      (policy.monthlyCreditLimit > 0
+        ? credit.monthlyCreditsUsed / policy.monthlyCreditLimit >= 0.8
+        : false),
     isLimitReached: dailyUsed >= policy.dailyLimit,
   };
 }
@@ -375,16 +577,23 @@ export async function getUsageStatus(userId: string) {
   });
   const usage = await getOrCreateUsageRecord(userId, policy);
   const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
+  const credit = await getCreditUsageSnapshot({
+    userId,
+    usageLimitId: usage.id,
+    userSubscription,
+  });
   return toSummary(
     policy,
     usage.dailyRequestUsed,
     pending._sum.reservedRequestCount ?? 0,
+    credit,
   );
 }
 
 export async function requireUsageAccess(input: {
   userId: string;
   inputCharCount: number;
+  estimatedCredits?: number;
 }) {
   const { user, userSubscription } = await getUserUsageProfile(input.userId);
   const policy = resolvePolicy({
@@ -399,11 +608,17 @@ export async function requireUsageAccess(input: {
   });
   const usage = await getOrCreateUsageRecord(input.userId, policy);
   const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
+  const credit = await getCreditUsageSnapshot({
+    userId: input.userId,
+    usageLimitId: usage.id,
+    userSubscription,
+  });
   const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
   const summary = toSummary(
     policy,
     usage.dailyRequestUsed,
     pendingReservedRequests,
+    credit,
   );
 
   if (summary.isLimitReached) {
@@ -414,6 +629,14 @@ export async function requireUsageAccess(input: {
     throw new UsageInputLimitError(summary);
   }
 
+  if (
+    input.estimatedCredits &&
+    (input.estimatedCredits > summary.totalCreditsAvailable ||
+      input.estimatedCredits > summary.totalDailyCreditsAvailable)
+  ) {
+    throw new UsageCreditLimitReachedError(summary);
+  }
+
   return {
     policy,
     usage: {
@@ -421,6 +644,7 @@ export async function requireUsageAccess(input: {
       dailyRequestLimit: usage.dailyRequestLimit,
       dailyRequestUsed: usage.dailyRequestUsed,
       pendingReservedRequests,
+      credit,
     },
   } satisfies UsageCheckContext;
 }
@@ -430,6 +654,11 @@ export async function reserveUsage(input: {
   requestType: string;
   inputCharCount: number;
   reservationKey: string;
+  estimatedCredits?: number;
+  estimatedCostUsd?: number;
+  maxApprovedCredits?: number;
+  pricingVersion?: string;
+  quote?: unknown;
   context?: UsageCheckContext;
 }) {
   const context =
@@ -437,16 +666,26 @@ export async function reserveUsage(input: {
     (await requireUsageAccess({
       userId: input.userId,
       inputCharCount: input.inputCharCount,
+      estimatedCredits: input.estimatedCredits,
     }));
 
   const summary = toSummary(
     context.policy,
     context.usage.dailyRequestUsed,
     context.usage.pendingReservedRequests,
+    context.usage.credit,
   );
 
   if (summary.isLimitReached) {
     throw new UsageLimitReachedError(summary);
+  }
+
+  if (
+    input.estimatedCredits &&
+    (input.estimatedCredits > summary.totalCreditsAvailable ||
+      input.estimatedCredits > summary.totalDailyCreditsAvailable)
+  ) {
+    throw new UsageCreditLimitReachedError(summary);
   }
 
   return withSerializableRetries(() =>
@@ -475,17 +714,39 @@ export async function reserveUsage(input: {
           },
           _sum: {
             reservedRequestCount: true,
+            reservedCreditCount: true,
           },
         });
         const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
+        const effectiveCredit = {
+          ...context.usage.credit,
+          monthlyCreditsUsed:
+            context.usage.credit.monthlyCreditsUsed -
+            context.usage.credit.pendingReservedCredits +
+            (pending._sum.reservedCreditCount ?? 0),
+          dailyCreditsUsed:
+            context.usage.credit.dailyCreditsUsed -
+            context.usage.credit.pendingReservedCredits +
+            (pending._sum.reservedCreditCount ?? 0),
+          pendingReservedCredits: pending._sum.reservedCreditCount ?? 0,
+        };
         const effectiveSummary = toSummary(
           context.policy,
           usage.dailyRequestUsed,
           pendingReservedRequests,
+          effectiveCredit,
         );
 
         if (effectiveSummary.isLimitReached) {
           throw new UsageLimitReachedError(effectiveSummary);
+        }
+
+        if (
+          input.estimatedCredits &&
+          (input.estimatedCredits > effectiveSummary.totalCreditsAvailable ||
+            input.estimatedCredits > effectiveSummary.totalDailyCreditsAvailable)
+        ) {
+          throw new UsageCreditLimitReachedError(effectiveSummary);
         }
 
         return tx.usageReservation.create({
@@ -496,6 +757,13 @@ export async function reserveUsage(input: {
             requestType: input.requestType,
             inputCharCount: input.inputCharCount,
             reservedRequestCount: 1,
+            reservedCreditCount: input.estimatedCredits ?? 0,
+            estimatedCostUsd: decimal(input.estimatedCostUsd ?? 0),
+            maxApprovedCredits:
+              input.maxApprovedCredits ?? input.estimatedCredits ?? 0,
+            pricingVersion: input.pricingVersion ?? CREDIT_PRICING_VERSION,
+            quoteJson:
+              input.quote === undefined ? null : JSON.stringify(input.quote),
             status: "reserved",
             expiresAt: new Date(Date.now() + RESERVATION_TTL_MS),
           },
@@ -504,6 +772,98 @@ export async function reserveUsage(input: {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     ),
   );
+}
+
+async function applyCreditCharge(
+  tx: Prisma.TransactionClient,
+  input: {
+    userId: string;
+    policy: ResolvedUsagePolicy;
+    creditsUsed: number;
+    now: Date;
+  },
+) {
+  let remaining = Math.max(0, input.creditsUsed);
+  if (remaining <= 0) {
+    return;
+  }
+
+  const subscription = await tx.userSubscription.findUnique({
+    where: { userId: input.userId },
+    select: {
+      couponCreditBalance: true,
+      couponCreditEndsAt: true,
+    },
+  });
+
+  if (
+    subscription?.couponCreditEndsAt &&
+    subscription.couponCreditEndsAt.getTime() > input.now.getTime() &&
+    subscription.couponCreditBalance > 0
+  ) {
+    const couponCharge = Math.min(remaining, subscription.couponCreditBalance);
+    remaining -= couponCharge;
+
+    await tx.userSubscription.update({
+      where: { userId: input.userId },
+      data: {
+        couponCreditBalance: { decrement: couponCharge },
+      },
+    });
+  }
+
+  const { monthStartAt, monthEndAt } = getKstPeriodBounds(input.now);
+  const monthlyUsage = await tx.usageLog.aggregate({
+    where: {
+      userId: input.userId,
+      createdAt: {
+        gte: monthStartAt,
+        lt: monthEndAt,
+      },
+    },
+    _sum: {
+      creditsUsed: true,
+    },
+  });
+  const monthlyCreditsUsed = monthlyUsage._sum.creditsUsed ?? 0;
+  const monthlyPlanRemaining = Math.max(
+    0,
+    input.policy.monthlyCreditLimit - monthlyCreditsUsed,
+  );
+  remaining = Math.max(0, remaining - monthlyPlanRemaining);
+
+  if (remaining <= 0) {
+    return;
+  }
+
+  const wallet = await tx.creditWallet.findUnique({
+    where: { userId: input.userId },
+    select: {
+      paidCredits: true,
+      bonusCredits: true,
+    },
+  });
+
+  if (!wallet) {
+    throw new Error("Not enough credits are available for this request.");
+  }
+
+  const bonusCharge = Math.min(remaining, wallet.bonusCredits);
+  const paidCharge = Math.min(remaining - bonusCharge, wallet.paidCredits);
+  const walletCharge = bonusCharge + paidCharge;
+
+  if (walletCharge < remaining) {
+    throw new Error("Not enough credits are available for this request.");
+  }
+
+  await tx.creditWallet.update({
+    where: { userId: input.userId },
+    data: {
+      bonusCredits: { decrement: bonusCharge },
+      paidCredits: { decrement: paidCharge },
+      totalUsedCredits: { increment: walletCharge },
+    },
+  });
 }
 
 export async function settleUsageReservation(input: {
@@ -562,6 +922,28 @@ export async function settleUsageReservation(input: {
           return reservation;
         }
 
+        const actualCostUsd =
+          input.estimatedCostUsd > 0
+            ? input.estimatedCostUsd
+            : Number(reservation.estimatedCostUsd);
+        const computedCredits =
+          input.creditsUsed ?? costUsdToCredits(actualCostUsd);
+        const approvedCredits =
+          reservation.maxApprovedCredits ||
+          reservation.reservedCreditCount ||
+          computedCredits;
+        const creditsUsed = Math.max(
+          0,
+          Math.min(computedCredits || approvedCredits, approvedCredits),
+        );
+
+        await applyCreditCharge(tx, {
+          userId: input.userId,
+          policy,
+          creditsUsed,
+          now: new Date(),
+        });
+
         await tx.usageLimit.update({
           where: { id: reservation.usageLimitId },
           data: {
@@ -583,8 +965,8 @@ export async function settleUsageReservation(input: {
             inputTokenCount: input.inputTokenCount,
             outputTokenCount: input.outputTokenCount,
             requestCountCharged: reservation.reservedRequestCount,
-            estimatedCostUsd: decimal(input.estimatedCostUsd),
-            creditsUsed: input.creditsUsed ?? 0,
+            estimatedCostUsd: decimal(actualCostUsd),
+            creditsUsed,
           },
         });
 
@@ -593,6 +975,7 @@ export async function settleUsageReservation(input: {
           data: {
             status: "settled",
             settledAt: new Date(),
+            settledCreditCount: creditsUsed,
           },
         });
 
@@ -664,6 +1047,15 @@ export async function recordUsageSuccess(input: {
     }));
 
   const updatedUsage = await prisma.$transaction(async (tx) => {
+    const creditsUsed = input.creditsUsed ?? costUsdToCredits(input.estimatedCostUsd);
+
+    await applyCreditCharge(tx, {
+      userId: input.userId,
+      policy: context.policy,
+      creditsUsed,
+      now: new Date(),
+    });
+
     const usage = await tx.usageLimit.update({
       where: { id: context.usage.id },
       data: {
@@ -686,7 +1078,7 @@ export async function recordUsageSuccess(input: {
         outputTokenCount: input.outputTokenCount,
         requestCountCharged: 1,
         estimatedCostUsd: decimal(input.estimatedCostUsd),
-        creditsUsed: input.creditsUsed ?? 0,
+        creditsUsed,
       },
     });
 

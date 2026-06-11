@@ -78,6 +78,7 @@ import {
   toggleParallelComparisonPanelCollapsed,
 } from "@/lib/workbench-parallel-comparison-panel";
 import { buildWorkbenchRunPayload } from "@/lib/workbench-run-payload";
+import { estimateWorkbenchRunCredits } from "@/lib/credits";
 import { getRunStreamRetryDelayMs } from "@/lib/run-stream-backoff";
 import {
   buildResultBoardView,
@@ -2319,6 +2320,30 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const exceedsSequentialLimit =
     estimatedSequentialExecutions > MAX_TOTAL_SEQUENTIAL_STEPS;
 
+  const runCreditEstimate = useMemo(
+    () =>
+      estimateWorkbenchRunCredits({
+        mode,
+        originalInput,
+        additionalInstruction,
+        targets: selectedTargets,
+        steps: workflowSteps,
+        workflowControl: workflowControlToInput(normalizedWorkflowControl),
+      }),
+    [
+      additionalInstruction,
+      mode,
+      normalizedWorkflowControl,
+      originalInput,
+      selectedTargets,
+      workflowSteps,
+    ],
+  );
+  const numberLocale = language === "ko" ? "ko-KR" : "en-US";
+  const projectedCreditsAfterRun = usage
+    ? Math.max(0, usage.totalCreditsAvailable - runCreditEstimate.estimatedCredits)
+    : null;
+
   function addRepeatBlock() {
     setWorkflowControl((current) => {
       if (current.repeatBlocks.length >= MAX_REPEAT_BLOCKS) {
@@ -3995,6 +4020,50 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               : "Parallel compare sends the same task to multiple models so you can compare the cards right away."}
           </p>
         )}
+      </div>
+
+      <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+              {language === "ko" ? "예상 크레딧" : "Estimated credits"}
+            </p>
+            <p className="mt-2 text-lg font-semibold text-teal-950">
+              {runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}{" "}
+              {language === "ko" ? "크레딧" : "credits"}
+            </p>
+          </div>
+          <div className="grid gap-2 text-sm sm:grid-cols-3">
+            <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
+              <p className="text-xs text-teal-700">
+                {language === "ko" ? "예상 호출" : "Calls"}
+              </p>
+              <p className="mt-1 font-semibold text-teal-950">
+                {runCreditEstimate.plannedCallCount.toLocaleString(numberLocale)}
+              </p>
+            </div>
+            <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
+              <p className="text-xs text-teal-700">
+                {language === "ko" ? "보유 크레딧" : "Available"}
+              </p>
+              <p className="mt-1 font-semibold text-teal-950">
+                {usage
+                  ? usage.totalCreditsAvailable.toLocaleString(numberLocale)
+                  : "-"}
+              </p>
+            </div>
+            <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
+              <p className="text-xs text-teal-700">
+                {language === "ko" ? "실행 후" : "After run"}
+              </p>
+              <p className="mt-1 font-semibold text-teal-950">
+                {projectedCreditsAfterRun == null
+                  ? "-"
+                  : projectedCreditsAfterRun.toLocaleString(numberLocale)}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {project ? (

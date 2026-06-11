@@ -3,14 +3,18 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
+type CouponTypeValue =
+  | "MONTHLY_FREE_30D"
+  | "MONTHLY_FREE_30D_DAILY_50"
+  | "LIFETIME_FREE"
+  | "LIFETIME_FREE_DAILY_50"
+  | "WEEKLY_CREDIT";
+
 type CouponItem = {
   id: string;
   code: string;
-  type:
-    | "MONTHLY_FREE_30D"
-    | "MONTHLY_FREE_30D_DAILY_50"
-    | "LIFETIME_FREE"
-    | "LIFETIME_FREE_DAILY_50";
+  type: CouponTypeValue;
+  creditAmount: number | null;
   isActive: boolean;
   redeemedAt: string | null;
   createdAt: string;
@@ -32,6 +36,8 @@ type CouponItem = {
     grantStartAt: string | null;
     grantEndAt: string | null;
     grantIsLifetime: boolean;
+    creditAmount: number | null;
+    creditExpiresAt: string | null;
     createdAt: string;
   } | null;
 };
@@ -40,13 +46,15 @@ const couponText = {
   en: {
     title: "Coupons",
     description:
-      "Create one-time coupons for monthly free (30 days) or lifetime free plans.",
+      "Create one-time coupons for request-count grants or one-week credit grants.",
     createSectionTitle: "Create coupon",
     type: "Type",
     customCode: "Custom code (optional)",
     customCodePlaceholder: "auto-generate if empty",
     note: "Note",
     notePlaceholder: "internal memo",
+    creditAmount: "Credit amount",
+    creditAmountPlaceholder: "credits granted for 7 days",
     createCoupon: "Create coupon",
     creating: "Creating...",
     searchEmpty: "-",
@@ -81,11 +89,13 @@ const couponText = {
     monthly50Type: "monthly_free_30d (daily 50)",
     lifetimeType: "lifetime_free (daily unlimited)",
     lifetime50Type: "lifetime_free (daily 50)",
+    weeklyCreditType: "weekly credit coupon",
+    creditUnit: "credits",
   },
   ko: {
     title: "\uCFE0\uD3F0",
     description:
-      "30\uC77C \uBB34\uB8CC \uD50C\uB79C\uACFC \uD3C9\uC0DD \uBB34\uB8CC \uD50C\uB79C \uC6A9\uC77C\uD68C\uC6A9 \uCFE0\uD3F0\uC744 \uC0DD\uC131\uD569\uB2C8\uB2E4.",
+      "횟수 차감 쿠폰과 7일 크레딧 쿠폰을 발행합니다.",
     createSectionTitle: "\uCFE0\uD3F0 \uC0DD\uC131",
     type: "\uC720\uD615",
     customCode: "\uC9C1\uC811 \uCF54\uB4DC (\uC120\uD0DD)",
@@ -93,6 +103,8 @@ const couponText = {
       "\uBE44\uC6CC\uB450\uBA74 \uC790\uB3D9 \uC0DD\uC131\uB429\uB2C8\uB2E4",
     note: "\uBA54\uBAA8",
     notePlaceholder: "\uB0B4\uBD80 \uBA54\uBAA8",
+    creditAmount: "크레딧 수량",
+    creditAmountPlaceholder: "7일 동안 지급할 크레딧",
     createCoupon: "\uCFE0\uD3F0 \uC0DD\uC131",
     creating: "\uC0DD\uC131 \uC911...",
     searchEmpty: "-",
@@ -129,6 +141,8 @@ const couponText = {
     monthly50Type: "30일 무료 쿠폰 (일일 50회)",
     lifetimeType: "평생 무료 쿠폰 (일일 무제한)",
     lifetime50Type: "평생 무료 쿠폰 (일일 50회)",
+    weeklyCreditType: "7일 크레딧 쿠폰",
+    creditUnit: "크레딧",
   },
 } as const;
 
@@ -149,16 +163,10 @@ export function AdminCouponsClient() {
   const { language } = useLanguage();
   const t = couponText[language];
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [type, setType] = useState<
-    | "MONTHLY_FREE_30D"
-    | "MONTHLY_FREE_30D_DAILY_50"
-    | "LIFETIME_FREE"
-    | "LIFETIME_FREE_DAILY_50"
-  >(
-    "MONTHLY_FREE_30D",
-  );
+  const [type, setType] = useState<CouponTypeValue>("MONTHLY_FREE_30D");
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
+  const [creditAmount, setCreditAmount] = useState("500");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -193,6 +201,8 @@ export function AdminCouponsClient() {
         type,
         code,
         note,
+        creditAmount:
+          type === "WEEKLY_CREDIT" ? Number.parseInt(creditAmount, 10) : undefined,
       }),
     });
 
@@ -310,6 +320,14 @@ export function AdminCouponsClient() {
     return t.statusUsed;
   }
 
+  function typeLabel(couponType: CouponTypeValue) {
+    if (couponType === "MONTHLY_FREE_30D") return t.monthlyType;
+    if (couponType === "MONTHLY_FREE_30D_DAILY_50") return t.monthly50Type;
+    if (couponType === "LIFETIME_FREE") return t.lifetimeType;
+    if (couponType === "LIFETIME_FREE_DAILY_50") return t.lifetime50Type;
+    return t.weeklyCreditType;
+  }
+
   return (
     <div className="space-y-5">
       <header>
@@ -354,21 +372,14 @@ export function AdminCouponsClient() {
             <span className="text-sm font-medium text-slate-700">{t.type}</span>
             <select
               value={type}
-              onChange={(event) =>
-                setType(
-                  event.target.value as
-                    | "MONTHLY_FREE_30D"
-                    | "MONTHLY_FREE_30D_DAILY_50"
-                    | "LIFETIME_FREE"
-                    | "LIFETIME_FREE_DAILY_50",
-                )
-              }
+              onChange={(event) => setType(event.target.value as CouponTypeValue)}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
             >
               <option value="MONTHLY_FREE_30D">{t.monthlyType}</option>
               <option value="MONTHLY_FREE_30D_DAILY_50">{t.monthly50Type}</option>
               <option value="LIFETIME_FREE">{t.lifetimeType}</option>
               <option value="LIFETIME_FREE_DAILY_50">{t.lifetime50Type}</option>
+              <option value="WEEKLY_CREDIT">{t.weeklyCreditType}</option>
             </select>
           </label>
 
@@ -382,7 +393,24 @@ export function AdminCouponsClient() {
             />
           </label>
 
-          <label className="block md:col-span-2">
+          {type === "WEEKLY_CREDIT" ? (
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">
+                {t.creditAmount}
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={100000}
+                value={creditAmount}
+                onChange={(event) => setCreditAmount(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
+                placeholder={t.creditAmountPlaceholder}
+              />
+            </label>
+          ) : null}
+
+          <label className={`block ${type === "WEEKLY_CREDIT" ? "" : "md:col-span-2"}`}>
             <span className="text-sm font-medium text-slate-700">{t.note}</span>
             <input
               value={note}
@@ -415,7 +443,12 @@ export function AdminCouponsClient() {
                 <p className="truncate font-mono text-sm font-semibold text-slate-950">
                   {coupon.code}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">{coupon.type}</p>
+                <p className="mt-1 text-xs text-slate-500">{typeLabel(coupon.type)}</p>
+                {coupon.creditAmount ? (
+                  <p className="mt-1 text-xs font-medium text-slate-700">
+                    {coupon.creditAmount.toLocaleString(locale)} {t.creditUnit}
+                  </p>
+                ) : null}
               </div>
               <span
                 className={`shrink-0 rounded px-2 py-1 text-xs font-semibold ${statusClass(coupon.usageStatus)}`}
@@ -438,7 +471,11 @@ export function AdminCouponsClient() {
                 {t.endsAt}:{" "}
                 {coupon.appliedRedemption?.grantIsLifetime
                   ? t.lifetime
-                  : formatDate(coupon.appliedRedemption?.grantEndAt ?? null)}
+                  : formatDate(
+                      coupon.appliedRedemption?.creditExpiresAt ??
+                        coupon.appliedRedemption?.grantEndAt ??
+                        null,
+                    )}
               </p>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -499,7 +536,14 @@ export function AdminCouponsClient() {
                     </button>
                   </div>
                 </td>
-                <td className="px-3 py-3 text-slate-700">{coupon.type}</td>
+                <td className="px-3 py-3 text-slate-700">
+                  <div>{typeLabel(coupon.type)}</div>
+                  {coupon.creditAmount ? (
+                    <div className="mt-1 text-xs font-medium text-slate-500">
+                      {coupon.creditAmount.toLocaleString(locale)} {t.creditUnit}
+                    </div>
+                  ) : null}
+                </td>
                 <td className="px-3 py-3">
                   <span
                     className={`rounded px-2 py-1 text-xs font-semibold ${statusClass(coupon.usageStatus)}`}
@@ -519,7 +563,11 @@ export function AdminCouponsClient() {
                 <td className="px-3 py-3 text-slate-600">
                   {coupon.appliedRedemption?.grantIsLifetime
                     ? t.lifetime
-                    : formatDate(coupon.appliedRedemption?.grantEndAt ?? null)}
+                    : formatDate(
+                        coupon.appliedRedemption?.creditExpiresAt ??
+                          coupon.appliedRedemption?.grantEndAt ??
+                          null,
+                      )}
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex flex-wrap items-center gap-2">

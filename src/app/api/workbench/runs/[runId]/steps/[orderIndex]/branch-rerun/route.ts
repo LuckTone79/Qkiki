@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
 import { createSignedRunToken, failExecutionRun, readSignedRunToken } from "@/lib/execution-runs";
+import { estimateWorkbenchRunCredits } from "@/lib/credits";
 import { prisma } from "@/lib/prisma";
 import {
   enqueueExecutionRunStep,
@@ -85,15 +86,36 @@ export async function POST(_request: Request, { params }: RouteContext) {
       );
     }
 
+    const creditEstimate = estimateWorkbenchRunCredits({
+      mode: "sequential",
+      originalInput: parentRun.session.originalInput,
+      additionalInstruction: parentRun.session.additionalInstruction,
+      steps: parentRun.steps.map((step) => ({
+        orderIndex: step.orderIndex,
+        actionType: step.actionType,
+        targetProvider: step.targetProvider,
+        targetModel: step.targetModel,
+        sourceMode: step.sourceMode,
+        sourceResultId: step.sourceResultId,
+        instructionTemplate: step.instructionTemplate,
+      })),
+    });
+
     const usageContext = await requireUsageAccess({
       userId: user.id,
       inputCharCount: parentRun.inputCharCount,
+      estimatedCredits: creditEstimate.estimatedCredits,
     });
     const reservation = await reserveUsage({
       userId: user.id,
       requestType: "sequential",
       inputCharCount: parentRun.inputCharCount,
       reservationKey: `branch-rerun:${crypto.randomUUID()}`,
+      estimatedCredits: creditEstimate.estimatedCredits,
+      estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+      maxApprovedCredits: creditEstimate.estimatedCredits,
+      pricingVersion: creditEstimate.pricingVersion,
+      quote: creditEstimate,
       context: usageContext,
     });
     reservationId = reservation.id;
@@ -192,6 +214,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
       runId: signedRunId,
       executionRunId: branchRun.id,
       status: "queued",
+      creditEstimate,
       statusUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}`,
       streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
     });

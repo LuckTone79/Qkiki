@@ -13,6 +13,7 @@ import {
   reserveUsage,
   settleUsageReservation,
 } from "@/lib/usage-policy";
+import { estimateTargetFanoutCredits } from "@/lib/credits";
 import { branchRunSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
@@ -37,11 +38,18 @@ export async function POST(request: Request) {
       );
     }
 
+    const creditEstimate = estimateTargetFanoutCredits({
+      actionType: parsed.data.actionType,
+      inputText: parsed.data.instruction,
+      targets: parsed.data.targets,
+    });
+
     const usageContext = user.isTrial
       ? null
       : await requireUsageAccess({
           userId: user.id,
           inputCharCount: parsed.data.instruction.length,
+          estimatedCredits: creditEstimate.estimatedCredits,
         });
 
     const providerError = await assertProvidersReadyForRun(
@@ -63,6 +71,11 @@ export async function POST(request: Request) {
           requestType: parsed.data.actionType,
           inputCharCount: parsed.data.instruction.length,
           reservationKey: `branch:${crypto.randomUUID()}`,
+          estimatedCredits: creditEstimate.estimatedCredits,
+          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+          maxApprovedCredits: creditEstimate.estimatedCredits,
+          pricingVersion: creditEstimate.pricingVersion,
+          quote: creditEstimate,
           context: usageContext ?? undefined,
         });
 
@@ -103,7 +116,7 @@ export async function POST(request: Request) {
           ),
         });
 
-    return NextResponse.json({ ...result, usage });
+    return NextResponse.json({ ...result, usage, creditEstimate });
   } catch (error) {
     if (reservedUsage && userId && !executionFinished) {
       await releaseUsageReservation({

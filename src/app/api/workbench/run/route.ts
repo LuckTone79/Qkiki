@@ -31,6 +31,7 @@ import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import { selectWorkbenchRunnerVersion } from "@/lib/workbench-runner-version";
 import { syncWorkflowTemplateSteps } from "@/lib/workflow-templates";
+import { estimateWorkbenchRunCredits } from "@/lib/credits";
 import type { ProviderName } from "@/lib/ai/types";
 import { upsertWorkbenchSession } from "@/lib/ai/workflow";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
@@ -58,12 +59,21 @@ export async function POST(request: Request) {
 
     await ensureWorkbenchRunSchema();
     await closeStaleWorkbenchRuns({ userId: user.id });
+    const creditEstimate = estimateWorkbenchRunCredits({
+      mode: parsed.data.mode,
+      originalInput: parsed.data.originalInput,
+      additionalInstruction: parsed.data.additionalInstruction,
+      targets: parsed.data.targets,
+      steps: parsed.data.steps,
+      workflowControl: parsed.data.workflowControl,
+    });
 
     const usageContext = user.isTrial
       ? null
       : await requireUsageAccess({
           userId: user.id,
           inputCharCount,
+          estimatedCredits: creditEstimate.estimatedCredits,
         });
 
     if (parsed.data.mode === "parallel") {
@@ -130,8 +140,13 @@ export async function POST(request: Request) {
           requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
           inputCharCount,
           reservationKey: `run:${crypto.randomUUID()}`,
+          estimatedCredits: creditEstimate.estimatedCredits,
+          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+          maxApprovedCredits: creditEstimate.estimatedCredits,
+          pricingVersion: creditEstimate.pricingVersion,
+          quote: creditEstimate,
           context: usageContext ?? undefined,
-    });
+        });
     reservationId = reservation?.id ?? null;
 
     if (parsed.data.mode === "sequential" && runnerVersion === "v2") {
@@ -292,6 +307,7 @@ export async function POST(request: Request) {
         runId: signedRunId,
         status: "queued",
         plannedTotal,
+        creditEstimate,
         runnerVersion: "v2",
         streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
         statusUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}`,
@@ -357,6 +373,7 @@ export async function POST(request: Request) {
       runId: signedRunId,
       status: "queued",
       plannedTotal,
+      creditEstimate,
       streamUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}/stream`,
       statusUrl: `/api/workbench/runs/${encodeURIComponent(signedRunId)}`,
     });

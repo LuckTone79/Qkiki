@@ -135,9 +135,23 @@ export const couponCreateSchema = z.object({
     "MONTHLY_FREE_30D_DAILY_50",
     "LIFETIME_FREE",
     "LIFETIME_FREE_DAILY_50",
+    "WEEKLY_CREDIT",
   ]),
   code: z.string().trim().max(64).optional(),
   note: z.string().trim().max(500).optional(),
+  creditAmount: z.number().int().min(1).max(100000).optional(),
+}).superRefine((value, ctx) => {
+  if (value.type !== "WEEKLY_CREDIT") {
+    return;
+  }
+
+  if (!value.creditAmount) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["creditAmount"],
+      message: "Credit amount is required for weekly credit coupons.",
+    });
+  }
 });
 
 export const couponRedeemSchema = z.object({

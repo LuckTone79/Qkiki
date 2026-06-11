@@ -30,6 +30,7 @@ enum CouponType {
   MONTHLY_FREE_30D_DAILY_50
   LIFETIME_FREE
   LIFETIME_FREE_DAILY_50
+  WEEKLY_CREDIT
 }
 
 enum CouponRedemptionResult {
@@ -47,6 +48,7 @@ enum SubscriptionEventType {
 enum SubscriptionType {
   MONTHLY_FREE_30D
   LIFETIME_FREE
+  WEEKLY_CREDIT_7D
   MANUAL
 }
 
@@ -594,6 +596,7 @@ model Coupon {
   id               String     @id @default(cuid())
   code             String     @unique
   type             CouponType
+  creditAmount     Int?
   isActive         Boolean    @default(true)
   createdByAdminId String
   redeemedByUserId String?
@@ -620,6 +623,8 @@ model CouponRedemption {
   grantStartAt    DateTime?
   grantEndAt      DateTime?
   grantIsLifetime Boolean                @default(false)
+  creditAmount    Int?
+  creditExpiresAt DateTime?
   createdAt       DateTime               @default(now())
 
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
@@ -638,6 +643,8 @@ model UserSubscription {
   couponDailyLimit      Int?
   couponLimitEndsAt     DateTime?
   couponLimitIsLifetime Boolean   @default(false)
+  couponCreditBalance   Int       @default(0)
+  couponCreditEndsAt    DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -670,6 +677,12 @@ model UsageReservation {
   usageLimitId         String
   requestType          String
   reservedRequestCount Int       @default(1)
+  reservedCreditCount  Int       @default(0)
+  settledCreditCount   Int       @default(0)
+  estimatedCostUsd     Decimal   @default(0) @db.Decimal(10, 6)
+  maxApprovedCredits   Int       @default(0)
+  pricingVersion       String?
+  quoteJson            String?
   inputCharCount       Int       @default(0)
   status               String    @default("reserved")
   expiresAt            DateTime

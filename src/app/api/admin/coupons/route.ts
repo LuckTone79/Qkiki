@@ -49,6 +49,8 @@ export async function GET() {
             grantStartAt: true,
             grantEndAt: true,
             grantIsLifetime: true,
+            creditAmount: true,
+            creditExpiresAt: true,
             createdAt: true,
           },
         },
@@ -106,6 +108,10 @@ export async function POST(request: Request) {
       data: {
         code,
         type,
+        creditAmount:
+          type === CouponType.WEEKLY_CREDIT
+            ? parsed.data.creditAmount ?? null
+            : null,
         note: parsed.data.note || null,
         createdByAdminId: admin.id,
       },
@@ -119,6 +125,7 @@ export async function POST(request: Request) {
       detail: {
         code: coupon.code,
         type: coupon.type,
+        creditAmount: coupon.creditAmount,
       },
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,

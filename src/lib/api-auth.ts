@@ -12,6 +12,7 @@ import {
   ActiveSessionRunExistsError,
 } from "@/lib/execution-runs";
 import {
+  UsageCreditLimitReachedError,
   UsageInputLimitError,
   UsageLimitReachedError,
 } from "@/lib/usage-policy";
@@ -113,6 +114,16 @@ export function apiErrorResponse(error: unknown) {
       {
         error: error.message,
         code: "LIMIT_REACHED",
+        usage: error.summary,
+      },
+      { status: 403 },
+    );
+  }
+  if (error instanceof UsageCreditLimitReachedError) {
+    return NextResponse.json(
+      {
+        error: error.message,
+        code: "CREDIT_LIMIT_REACHED",
         usage: error.summary,
       },
       { status: 403 },

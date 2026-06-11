@@ -11,6 +11,7 @@ import {
 import { prisma } from "@/lib/prisma";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const COUPON_DEACTIVATED_NOTE = "coupon_deactivated_by_admin";
 const COUPON_DELETED_NOTE = "coupon_deleted_by_admin";
 
@@ -27,12 +28,17 @@ function addThirtyDays(date: Date) {
   return new Date(date.getTime() + THIRTY_DAYS_MS);
 }
 
+function addSevenDays(date: Date) {
+  return new Date(date.getTime() + SEVEN_DAYS_MS);
+}
+
 export function generateCouponCode(type: CouponType) {
   const prefixMap: Record<CouponType, string> = {
     MONTHLY_FREE_30D: "M30",
     MONTHLY_FREE_30D_DAILY_50: "M30-50",
     LIFETIME_FREE: "LIFE",
     LIFETIME_FREE_DAILY_50: "LIFE-50",
+    WEEKLY_CREDIT: "CR7",
   };
   const prefix = prefixMap[type];
   const random = cryptoRandom(10);
@@ -77,6 +83,8 @@ export async function getUserSubscriptionState(userId: string) {
   return {
     isLifetime: subscription?.isLifetime ?? false,
     planEndsAt: subscription?.planEndsAt ?? null,
+    couponCreditBalance: subscription?.couponCreditBalance ?? 0,
+    couponCreditEndsAt: subscription?.couponCreditEndsAt ?? null,
     couponStatus:
       lastCouponAdminEvent?.note === COUPON_DEACTIVATED_NOTE ||
       lastCouponAdminEvent?.note === COUPON_DELETED_NOTE
@@ -88,6 +96,10 @@ export async function getUserSubscriptionState(userId: string) {
 function mapCouponTypeToSubscriptionType(type: CouponType) {
   if (type === CouponType.MONTHLY_FREE_30D || type === CouponType.MONTHLY_FREE_30D_DAILY_50) {
     return SubscriptionType.MONTHLY_FREE_30D;
+  }
+
+  if (type === CouponType.WEEKLY_CREDIT) {
+    return SubscriptionType.WEEKLY_CREDIT_7D;
   }
 
   return SubscriptionType.LIFETIME_FREE;
@@ -104,6 +116,30 @@ export async function revokeCouponGrantForUserByAdmin(
 ) {
   const now = new Date();
   const note = input.reason === "delete" ? COUPON_DELETED_NOTE : COUPON_DEACTIVATED_NOTE;
+
+  if (input.couponType === CouponType.WEEKLY_CREDIT) {
+    await tx.userSubscription.updateMany({
+      where: { userId: input.userId },
+      data: {
+        couponCreditBalance: 0,
+        couponCreditEndsAt: null,
+      },
+    });
+
+    await tx.subscriptionLedger.create({
+      data: {
+        userId: input.userId,
+        couponId: input.couponId,
+        eventType: SubscriptionEventType.COUPON_REDEMPTION,
+        subscriptionType: SubscriptionType.WEEKLY_CREDIT_7D,
+        startAt: now,
+        endAt: now,
+        isLifetime: false,
+        note,
+      },
+    });
+    return;
+  }
 
   await tx.userSubscription.updateMany({
     where: { userId: input.userId },
@@ -205,6 +241,58 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
     let grantStartAt: Date | null = null;
     let grantEndAt: Date | null = null;
     let grantIsLifetime = false;
+    let creditAmount: number | null = null;
+    let creditExpiresAt: Date | null = null;
+
+    if (coupon.type === CouponType.WEEKLY_CREDIT) {
+      const amount = coupon.creditAmount ?? 0;
+      if (amount < 1) {
+        throw new CouponRedeemError("Credit coupon amount is invalid.", 409);
+      }
+
+      const activeExistingCredits =
+        current?.couponCreditEndsAt &&
+        current.couponCreditEndsAt.getTime() > now.getTime()
+          ? current.couponCreditBalance
+          : 0;
+      const nextEnd = addSevenDays(now);
+      const mergedEnd =
+        current?.couponCreditEndsAt &&
+        current.couponCreditEndsAt.getTime() > nextEnd.getTime()
+          ? current.couponCreditEndsAt
+          : nextEnd;
+
+      await tx.userSubscription.upsert({
+        where: { userId: input.userId },
+        update: {
+          couponCreditBalance: activeExistingCredits + amount,
+          couponCreditEndsAt: mergedEnd,
+        },
+        create: {
+          userId: input.userId,
+          couponCreditBalance: amount,
+          couponCreditEndsAt: nextEnd,
+        },
+      });
+
+      await tx.subscriptionLedger.create({
+        data: {
+          userId: input.userId,
+          couponId: coupon.id,
+          eventType: SubscriptionEventType.COUPON_REDEMPTION,
+          subscriptionType: SubscriptionType.WEEKLY_CREDIT_7D,
+          startAt: now,
+          endAt: mergedEnd,
+          isLifetime: false,
+          note: `weekly_credit_${amount}`,
+        },
+      });
+
+      grantStartAt = now;
+      grantEndAt = mergedEnd;
+      creditAmount = amount;
+      creditExpiresAt = mergedEnd;
+    }
 
     if (
       coupon.type === CouponType.MONTHLY_FREE_30D ||
@@ -324,6 +412,8 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
         grantStartAt,
         grantEndAt,
         grantIsLifetime,
+        creditAmount,
+        creditExpiresAt,
       },
     });
 
@@ -340,6 +430,8 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
       subscription: {
         isLifetime: updated?.isLifetime ?? false,
         planEndsAt: updated?.planEndsAt ?? null,
+        couponCreditBalance: updated?.couponCreditBalance ?? 0,
+        couponCreditEndsAt: updated?.couponCreditEndsAt ?? null,
       },
     };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

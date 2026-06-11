@@ -27,15 +27,23 @@ export function LimitReachedModal({
 
   const title =
     language === "ko"
-      ? usage.isBoostActive
+      ? usage.isCreditLimitReached && !usage.isLimitReached
+        ? "사용 가능한 크레딧을 모두 사용했어요."
+        : usage.isBoostActive
         ? "오늘의 Boost 사용량을 모두 사용했어요."
         : "오늘의 무료 사용량을 모두 사용했어요."
-      : "You've used all of today's available runs.";
+      : usage.isCreditLimitReached && !usage.isLimitReached
+        ? "You've used your available credits."
+        : "You've used all of today's available runs.";
 
   const description =
     language === "ko"
-      ? `내일 다시 ${limitLabel}회가 충전됩니다.`
-      : `${limitLabel} uses will refresh tomorrow.`;
+      ? usage.isCreditLimitReached && !usage.isLimitReached
+        ? `현재 남은 크레딧은 ${usage.totalCreditsAvailable.toLocaleString("ko-KR")}입니다.`
+        : `내일 다시 ${limitLabel}회가 충전됩니다.`
+      : usage.isCreditLimitReached && !usage.isLimitReached
+        ? `You currently have ${usage.totalCreditsAvailable.toLocaleString("en-US")} credits left.`
+        : `${limitLabel} uses will refresh tomorrow.`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4">

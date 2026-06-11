@@ -184,6 +184,13 @@ export function deserializeUsageCheckContext(
     usage: {
       ...context.usage,
       pendingReservedRequests: context.usage.pendingReservedRequests ?? 0,
+      credit: {
+        ...context.usage.credit,
+        couponCreditEndsAt:
+          typeof context.usage.credit.couponCreditEndsAt === "string"
+            ? new Date(context.usage.credit.couponCreditEndsAt)
+            : context.usage.credit.couponCreditEndsAt,
+      },
     },
   };
 }

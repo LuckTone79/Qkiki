@@ -534,6 +534,9 @@ export type ParallelComparisonSummaryResult = {
   model: string;
   generatedAt: string;
   comparedResultIds: string[];
+  inputTokenCount?: number;
+  outputTokenCount?: number;
+  estimatedCostUsd?: number;
 };
 
 /**
@@ -708,6 +711,9 @@ export async function generateParallelComparisonSummary(input: {
     model: saved.model,
     generatedAt: saved.createdAt.toISOString(),
     comparedResultIds: saved.comparedResultIds,
+    inputTokenCount: providerResult.usage?.promptTokens ?? 0,
+    outputTokenCount: providerResult.usage?.completionTokens ?? 0,
+    estimatedCostUsd: providerResult.estimatedCost ?? 0,
   };
 }
 
