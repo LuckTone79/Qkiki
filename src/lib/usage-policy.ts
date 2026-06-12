@@ -3,60 +3,17 @@ import "server-only";
 import { BillingType, PlanType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/access-policy";
+import { QKIKI_PLAN_LIMITS } from "@/lib/billing-plans";
 import { CREDIT_PRICING_VERSION, costUsdToCredits } from "@/lib/credits";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const RESERVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-const FREE_POLICY = {
-  dailyLimit: 10,
-  monthlyCreditLimit: 50,
-  dailyCreditLimit: 25,
-  inputCharLimit: 3000,
-  resultSaveLimit: 10,
-  shareDailyLimit: 3,
-  advancedReasoningDailyLimit: 1,
-};
-
-const BOOST_POLICY = {
-  dailyLimit: 30,
-  monthlyCreditLimit: 250,
-  dailyCreditLimit: 80,
-  inputCharLimit: 5000,
-  resultSaveLimit: 50,
-  shareDailyLimit: 10,
-  advancedReasoningDailyLimit: 3,
-};
-
-const STARTER_POLICY = {
-  dailyLimit: 100,
-  monthlyCreditLimit: 1800,
-  dailyCreditLimit: 300,
-  inputCharLimit: 20000,
-  resultSaveLimit: 200,
-  shareDailyLimit: 30,
-  advancedReasoningDailyLimit: 10,
-};
-
-const PRO_POLICY = {
-  dailyLimit: 300,
-  monthlyCreditLimit: 6000,
-  dailyCreditLimit: 1000,
-  inputCharLimit: 100000,
-  resultSaveLimit: 1000,
-  shareDailyLimit: 100,
-  advancedReasoningDailyLimit: 50,
-};
-
-const TEAM_POLICY = {
-  dailyLimit: 600,
-  monthlyCreditLimit: 20000,
-  dailyCreditLimit: 3500,
-  inputCharLimit: 100000,
-  resultSaveLimit: 5000,
-  shareDailyLimit: 300,
-  advancedReasoningDailyLimit: 200,
-};
+const FREE_POLICY = QKIKI_PLAN_LIMITS.free;
+const BOOST_POLICY = QKIKI_PLAN_LIMITS.boost;
+const STARTER_POLICY = QKIKI_PLAN_LIMITS.starter;
+const PRO_POLICY = QKIKI_PLAN_LIMITS.pro;
+const TEAM_POLICY = QKIKI_PLAN_LIMITS.team;
 
 const UNLIMITED_DAILY_LIMIT = 1_000_000_000;
 
