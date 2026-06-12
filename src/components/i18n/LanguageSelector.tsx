@@ -5,7 +5,11 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 export function LanguageSelector() {
   const { language, setLanguage, t } = useLanguage();
-  usePathname();
+  const pathname = usePathname();
+
+  if (pathname === "/guide/global-monetization") {
+    return null;
+  }
 
   return (
     <label className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 z-50 flex items-center gap-2 rounded-md border border-stone-200 bg-white/95 px-2.5 py-2 text-[11px] font-medium text-stone-600 backdrop-blur sm:bottom-auto sm:right-4 sm:top-4 sm:px-3 sm:text-xs">
