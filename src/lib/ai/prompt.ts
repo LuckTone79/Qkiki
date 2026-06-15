@@ -37,6 +37,29 @@ export function getActionLabel(actionType: ActionType) {
   return actionLabels[actionType];
 }
 
+/**
+ * Builds a clean prompt for image-generation models. Unlike composePrompt, this
+ * sends the visual description directly without the orchestration boilerplate,
+ * since image APIs expect a plain description of the image to create.
+ */
+export function composeImagePrompt(input: {
+  originalInput: string;
+  additionalInstruction?: string | null;
+  outputStyle?: string | null;
+}) {
+  const parts = [input.originalInput.trim()];
+
+  if (input.additionalInstruction?.trim()) {
+    parts.push(input.additionalInstruction.trim());
+  }
+
+  if (input.outputStyle?.trim()) {
+    parts.push(`Style: ${input.outputStyle.trim()}`);
+  }
+
+  return parts.filter(Boolean).join("\n\n");
+}
+
 const outputLanguageNames: Record<string, string> = {
   en: "English",
   ko: "Korean",

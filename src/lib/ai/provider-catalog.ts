@@ -30,6 +30,9 @@ export type ProviderCatalogItem = {
   defaultModel: string;
   defaultTimeoutSeconds: number;
   models: string[];
+  // Image generation models for this provider. Empty when the provider has no
+  // image generator (Anthropic / Claude currently has none).
+  imageModels: string[];
 };
 
 export const PROVIDERS: ProviderCatalogItem[] = [
@@ -46,6 +49,10 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gpt-5.4",
       "gpt-5.4-nano",
     ],
+    imageModels: [
+      "gpt-image-1",
+      "gpt-image-2",
+    ],
   },
   {
     name: "anthropic",
@@ -59,6 +66,8 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "claude-haiku-4-5",
       "claude-opus-4-8",
     ],
+    // Claude has no image generation model.
+    imageModels: [],
   },
   {
     name: "google",
@@ -74,6 +83,9 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gemini-3.1-pro-preview",
       "gemini-2.5-pro",
     ],
+    imageModels: [
+      "imagen-4.0-generate-001",
+    ],
   },
   {
     name: "xai",
@@ -88,8 +100,22 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "grok-4.20-multi-agent",
       "grok-4.20-reasoning",
     ],
+    imageModels: [
+      "grok-2-image-1212",
+    ],
   },
 ];
+
+/** Returns true when the model is an image-generation model for the provider. */
+export function isImageModel(provider: ProviderName, model: string) {
+  const item = PROVIDERS.find((entry) => entry.name === provider);
+  return Boolean(item?.imageModels.includes(model));
+}
+
+/** Lists all image-generation models for a provider (empty if none). */
+export function getImageModels(provider: ProviderName) {
+  return PROVIDERS.find((entry) => entry.name === provider)?.imageModels ?? [];
+}
 
 export function getProviderCatalog(provider: ProviderName) {
   const item = PROVIDERS.find((entry) => entry.name === provider);

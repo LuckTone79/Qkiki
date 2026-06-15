@@ -1136,6 +1136,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     defaultOutputLanguageForAppLanguage(language),
   );
   const [mode, setMode] = useState<"parallel" | "sequential">("parallel");
+  // Image generation reuses the parallel run path but restricts the model
+  // picker to image-capable models. It is a UI toggle, not a separate run mode.
+  const [imageMode, setImageMode] = useState(false);
   const [workflowSteps, setWorkflowSteps] =
     useState<WorkflowStepState[]>(() => initialSteps(language));
   const [workflowControl, setWorkflowControl] = useState<WorkflowControlState>(
@@ -2261,8 +2264,28 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     [results],
   );
 
+  // In image mode each provider only offers its image models; providers without
+  // an image generator (e.g. Claude) are hidden from the picker entirely.
+  const effectiveProviders = useMemo<ProviderOption[]>(() => {
+    if (!imageMode) {
+      return providers;
+    }
+
+    return providers
+      .map((provider) => {
+        const imageModels = provider.imageModels ?? [];
+        return {
+          ...provider,
+          models: imageModels,
+          // Enabling a provider should default to its first image model.
+          defaultModel: imageModels[0] ?? provider.defaultModel,
+        };
+      })
+      .filter((provider) => provider.models.length > 0);
+  }, [providers, imageMode]);
+
   const selectedTargets = useMemo<TargetModelInput[]>(() => {
-    return providers.flatMap((provider) => {
+    return effectiveProviders.flatMap((provider) => {
       const selection = normalizeProviderSelection(
         selections[provider.providerName],
         provider,
@@ -2277,7 +2300,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         model,
       }));
     });
-  }, [providers, selections]);
+  }, [effectiveProviders, selections]);
 
   const normalizedWorkflowControl = useMemo(
     () => normalizeWorkflowControlState(workflowControl, workflowSteps.length),
@@ -4086,13 +4109,21 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
             <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
               <h2 className="text-sm font-semibold text-stone-950">
-                {t("modelSelection")}
+                {imageMode
+                  ? language === "ko"
+                    ? "이미지 생성 모델"
+                    : "Image generation models"
+                  : t("modelSelection")}
               </h2>
               <p className="mt-1 text-xs leading-5 text-stone-600">
-                {t("enableProviderShort")}
+                {imageMode
+                  ? language === "ko"
+                    ? "이미지 생성이 가능한 모델만 표시됩니다. 선택한 모델이 입력한 설명으로 이미지를 생성합니다."
+                    : "Only image-capable models are shown. Selected models generate an image from your description."
+                  : t("enableProviderShort")}
               </p>
               <div className="mt-4 space-y-3">
-                {providers.map((provider) => {
+                {effectiveProviders.map((provider) => {
                   const selection = normalizeProviderSelection(
                     selections[provider.providerName],
                     provider,
@@ -4157,9 +4188,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   <div className="inline-flex rounded-md border border-stone-200 bg-white p-1">
                     <button
                       type="button"
-                      onClick={() => setMode("parallel")}
+                      onClick={() => {
+                        setImageMode(false);
+                        setMode("parallel");
+                      }}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
-                        mode === "parallel"
+                        mode === "parallel" && !imageMode
                           ? "bg-stone-950 text-white shadow-sm"
                           : "text-stone-600 hover:bg-stone-50"
                       }`}
@@ -4168,14 +4202,31 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     </button>
                     <button
                       type="button"
-                      onClick={() => setMode("sequential")}
+                      onClick={() => {
+                        setImageMode(false);
+                        setMode("sequential");
+                      }}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
-                        mode === "sequential"
+                        mode === "sequential" && !imageMode
                           ? "bg-stone-950 text-white shadow-sm"
                           : "text-stone-600 hover:bg-stone-50"
                       }`}
                     >
                       {t("sequentialReviewChain")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageMode(true);
+                        setMode("parallel");
+                      }}
+                      className={`rounded px-3 py-2 text-sm font-semibold ${
+                        imageMode
+                          ? "bg-stone-950 text-white shadow-sm"
+                          : "text-stone-600 hover:bg-stone-50"
+                      }`}
+                    >
+                      {language === "ko" ? "이미지 생성" : "Image generation"}
                     </button>
                   </div>
                   <button

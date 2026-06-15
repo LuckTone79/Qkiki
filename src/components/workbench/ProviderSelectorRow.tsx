@@ -11,6 +11,7 @@ export type ProviderOption = {
   displayName: string;
   shortName: string;
   models: string[];
+  imageModels?: string[];
   defaultModel: string;
   fallbackProvider: ProviderName | null;
   isEnabled: boolean;

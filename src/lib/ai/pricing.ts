@@ -55,6 +55,28 @@ const pricing: Record<string, Pricing> = {
   },
 };
 
+// Flat per-image price (USD) for image-generation models. Image APIs bill per
+// generated image rather than per token, so these are charged separately.
+const imagePricing: Record<string, number> = {
+  "openai:gpt-image-1": 0.04,
+  "openai:gpt-image-2": 0.04,
+  "google:imagen-4.0-generate-001": 0.04,
+  "xai:grok-2-image-1212": 0.07,
+};
+
+export function estimateImageCost(input: {
+  provider: ProviderName;
+  model: string;
+  imageCount?: number;
+}) {
+  const perImage = imagePricing[`${input.provider}:${input.model}`];
+  if (perImage === undefined) {
+    return undefined;
+  }
+
+  return perImage * Math.max(1, input.imageCount ?? 1);
+}
+
 export function estimateCost(input: {
   provider: ProviderName;
   model: string;

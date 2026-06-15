@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getImageModels,
   getProviderCatalog,
+  isImageModel,
   normalizeProviderModel,
 } from "./provider-catalog.ts";
 
@@ -58,4 +60,21 @@ test("normalizeProviderModel upgrades legacy aliases to current supported models
     normalizeProviderModel("google", "gemini-3.1-flash-lite"),
     "gemini-2.5-flash-lite",
   );
+});
+
+test("image model catalog exposes generators per provider (none for Claude)", () => {
+  assert.deepEqual(getImageModels("openai"), ["gpt-image-1", "gpt-image-2"]);
+  assert.deepEqual(getImageModels("google"), ["imagen-4.0-generate-001"]);
+  assert.deepEqual(getImageModels("xai"), ["grok-2-image-1212"]);
+  // Claude / Anthropic has no image generation model.
+  assert.deepEqual(getImageModels("anthropic"), []);
+});
+
+test("isImageModel only matches image generators", () => {
+  assert.equal(isImageModel("openai", "gpt-image-1"), true);
+  assert.equal(isImageModel("openai", "gpt-image-2"), true);
+  assert.equal(isImageModel("xai", "grok-2-image-1212"), true);
+  // Text models and unknown ids are not image models.
+  assert.equal(isImageModel("openai", "gpt-5.5"), false);
+  assert.equal(isImageModel("anthropic", "gpt-image-1"), false);
 });

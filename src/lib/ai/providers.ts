@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import {
   getProviderCatalog,
+  isImageModel,
   isProviderName,
   normalizeProviderModel,
   resolveProviderTimeoutSeconds,
@@ -17,7 +18,7 @@ import {
   getProviderRetryDelayMs,
   isRetryableProviderErrorMessage,
 } from "@/lib/provider-retry";
-import { estimateCost } from "@/lib/ai/pricing";
+import { estimateCost, estimateImageCost } from "@/lib/ai/pricing";
 import {
   decryptSecretWithMetadata,
   encryptSecret,
@@ -645,6 +646,30 @@ async function executeProviderCall(
     const signal = controller.signal;
 
     try {
+      if (isImageModel(input.provider, input.model)) {
+        if (input.provider === "openai") {
+          return await callOpenAiImage(apiKey, input, startedAt, signal);
+        }
+
+        if (input.provider === "google") {
+          return await callGoogleImage(apiKey, input, startedAt, signal);
+        }
+
+        if (input.provider === "xai") {
+          return await callXaiImage(apiKey, input, startedAt, signal);
+        }
+
+        return {
+          provider: input.provider,
+          model: input.model,
+          outputText: "",
+          rawResponse: null,
+          latencyMs: Date.now() - startedAt,
+          status: "failed",
+          errorMessage: `${input.provider}: image generation is not supported for this provider.`,
+        };
+      }
+
       if (input.provider === "openai") {
         return await callOpenAi(apiKey, input, startedAt, signal);
       }
@@ -1116,5 +1141,158 @@ async function callXai(
     }),
     latencyMs: Date.now() - startedAt,
     status: "completed",
+  });
+}
+
+function buildImageResult(input: {
+  provider: ProviderName;
+  model: string;
+  base64: string;
+  mimeType: string;
+  startedAt: number;
+}): ProviderCallResult {
+  const estimatedCost = estimateImageCost({
+    provider: input.provider,
+    model: input.model,
+    imageCount: 1,
+  });
+
+  return {
+    provider: input.provider,
+    model: input.model,
+    // Store the image as a base64 data URL so it flows through the same result
+    // pipeline as text. The large binary is intentionally kept out of
+    // rawResponse to avoid doubling the stored payload size.
+    outputText: `data:${input.mimeType};base64,${input.base64}`,
+    rawResponse: { imageGenerated: true, provider: input.provider, model: input.model },
+    latencyMs: Date.now() - input.startedAt,
+    status: "completed",
+    estimatedCost,
+    costIsEstimated: estimatedCost !== undefined,
+  };
+}
+
+function firstImageData(value: unknown) {
+  return Array.isArray(value) ? (value[0] as JsonRecord | undefined) : undefined;
+}
+
+async function callOpenAiImage(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  const response = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      prompt: input.prompt,
+      n: 1,
+      size: "1024x1024",
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("openai", body, response.status));
+  }
+
+  const first = firstImageData(body.data);
+  const base64 = getText(first?.b64_json);
+  if (!base64) {
+    throw new Error("openai: image generation returned no image data.");
+  }
+
+  return buildImageResult({
+    provider: "openai",
+    model: input.model,
+    base64,
+    mimeType: "image/png",
+    startedAt,
+  });
+}
+
+async function callXaiImage(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  const response = await fetch("https://api.x.ai/v1/images/generations", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      prompt: input.prompt,
+      n: 1,
+      response_format: "b64_json",
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("xai", body, response.status));
+  }
+
+  const first = firstImageData(body.data);
+  const base64 = getText(first?.b64_json);
+  if (!base64) {
+    throw new Error("xai: image generation returned no image data.");
+  }
+
+  return buildImageResult({
+    provider: "xai",
+    model: input.model,
+    base64,
+    mimeType: "image/png",
+    startedAt,
+  });
+}
+
+async function callGoogleImage(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    input.model,
+  )}:predict?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      instances: [{ prompt: input.prompt }],
+      parameters: { sampleCount: 1 },
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("google", body, response.status));
+  }
+
+  const first = firstImageData(body.predictions);
+  const base64 = getText(first?.bytesBase64Encoded);
+  if (!base64) {
+    throw new Error("google: image generation returned no image data.");
+  }
+
+  return buildImageResult({
+    provider: "google",
+    model: input.model,
+    base64,
+    mimeType: getText(first?.mimeType) || "image/png",
+    startedAt,
   });
 }

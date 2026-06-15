@@ -5,6 +5,10 @@ const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "anthropic:claude-opus-4-8": "Opus 4.8",
   "anthropic:claude-sonnet-4-6": "Sonnet 4.6",
   "anthropic:claude-haiku-4-5": "Haiku 4.5",
+  "openai:gpt-image-1": "GPT Image 1",
+  "openai:gpt-image-2": "GPT Image 2",
+  "google:imagen-4.0-generate-001": "Imagen 4",
+  "xai:grok-2-image-1212": "Grok Image",
 };
 
 export function getModelDisplayName(

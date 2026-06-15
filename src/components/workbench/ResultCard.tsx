@@ -7,6 +7,7 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
+import { isImageDataUrl, imageOutputPlaceholder } from "@/lib/ai/image-output";
 import { buildResultDomId } from "@/lib/workbench-sharing";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import {
@@ -227,6 +228,16 @@ export function ResultCard({
     ].join(" / ");
   }, [language, result, t]);
 
+  const imageSrc = useMemo(
+    () =>
+      !isRunning &&
+      result.status === "completed" &&
+      isImageDataUrl(result.outputText)
+        ? result.outputText
+        : null,
+    [isRunning, result.outputText, result.status],
+  );
+
   const displayBody = useMemo(() => {
     if (isRunning) {
       return language === "ko"
@@ -238,8 +249,12 @@ export function ResultCard({
       return result.errorMessage || t("providerFailed");
     }
 
+    if (imageSrc) {
+      return imageOutputPlaceholder(language);
+    }
+
     return result.outputText || t("noOutputReturned");
-  }, [isRunning, language, result.errorMessage, result.outputText, result.status, t]);
+  }, [imageSrc, isRunning, language, result.errorMessage, result.outputText, result.status, t]);
 
   const collapsedPreview = useMemo(() => firstVisibleLine(displayBody), [displayBody]);
 
@@ -335,7 +350,16 @@ export function ResultCard({
         }`}
       >
         {expanded ? (
-          <p className="whitespace-pre-wrap">{displayBody}</p>
+          imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={imageSrc}
+              alt={language === "ko" ? "생성된 이미지" : "Generated image"}
+              className="max-h-[512px] w-full rounded-md object-contain"
+            />
+          ) : (
+            <p className="whitespace-pre-wrap">{displayBody}</p>
+          )
         ) : (
           <p className="truncate">{collapsedPreview}</p>
         )}

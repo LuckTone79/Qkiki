@@ -8,7 +8,9 @@ import {
   hydrateRuntimeAttachments,
   type RuntimeAttachment,
 } from "@/lib/attachments";
-import { composePrompt } from "@/lib/ai/prompt";
+import { composePrompt, composeImagePrompt } from "@/lib/ai/prompt";
+import { isImageModel } from "@/lib/ai/provider-catalog";
+import { isImageDataUrl, stripImageDataUrlForText } from "@/lib/ai/image-output";
 import { callProvider } from "@/lib/ai/providers";
 import { getParallelComparisonSummaryTarget } from "@/lib/ai/summary-model";
 import { expandWorkflowSteps } from "@/lib/ai/workflow-control";
@@ -338,6 +340,33 @@ export function buildExpandedSteps(
   }));
 }
 
+function composeParallelTargetPrompt(input: {
+  provider: ProviderName;
+  model: string;
+  originalInput: string;
+  additionalInstruction?: string | null;
+  projectContext?: string | null;
+  outputStyle?: string | null;
+  outputLanguage?: string | null;
+}) {
+  if (isImageModel(input.provider, input.model)) {
+    return composeImagePrompt({
+      originalInput: input.originalInput,
+      additionalInstruction: input.additionalInstruction,
+      outputStyle: input.outputStyle,
+    });
+  }
+
+  return composePrompt({
+    actionType: "generate",
+    originalInput: input.originalInput,
+    additionalInstruction: input.additionalInstruction,
+    projectContext: input.projectContext,
+    outputStyle: input.outputStyle,
+    outputLanguage: input.outputLanguage,
+  });
+}
+
 function getQualityDirective(threshold: number) {
   return [
     "Self-evaluate this response quality from 0 to 100.",
@@ -626,7 +655,9 @@ export async function generateParallelComparisonSummary(input: {
     (result) =>
       result.status === "completed" &&
       typeof result.outputText === "string" &&
-      result.outputText.trim().length > 0,
+      result.outputText.trim().length > 0 &&
+      // Image results are binary data URLs; they cannot be text-compared.
+      !isImageDataUrl(result.outputText),
   );
 
   if (comparableResults.length < 2) {
@@ -1005,8 +1036,9 @@ export async function executeParallelRun(input: {
         requestType: "generate",
         attachments: runtimeAttachments,
         allowFallback: shouldAllowConfiguredProviderFallback("parallel"),
-        prompt: composePrompt({
-          actionType: "generate",
+        prompt: composeParallelTargetPrompt({
+          provider: target.provider,
+          model: target.model,
           originalInput: input.session.originalInput,
           additionalInstruction: input.session.additionalInstruction,
           projectContext,
@@ -1113,8 +1145,9 @@ export async function executeParallelRunIncremental(input: {
               result: startedResult,
             });
           },
-          prompt: composePrompt({
-            actionType: "generate",
+          prompt: composeParallelTargetPrompt({
+            provider: target.provider,
+            model: target.model,
             originalInput: input.session.originalInput,
             additionalInstruction: input.session.additionalInstruction,
             projectContext,
@@ -1164,7 +1197,7 @@ export async function resolveSourceText(input: {
   await ensureResultExecutionRunIdColumn();
   if (input.sourceMode === "previous") {
     return truncatePromptContext(
-      input.previousResultText || "",
+      stripImageDataUrlForText(input.previousResultText) || "",
       MAX_SOURCE_TEXT_CHARS,
       "Source result",
     );
@@ -1179,7 +1212,7 @@ export async function resolveSourceText(input: {
       },
     });
     return truncatePromptContext(
-      result?.outputText || result?.errorMessage || "",
+      stripImageDataUrlForText(result?.outputText) || result?.errorMessage || "",
       MAX_SOURCE_TEXT_CHARS,
       "Source result",
     );
@@ -1213,7 +1246,7 @@ export async function resolveSourceText(input: {
         .map((result, index) =>
         [
           `Result ${index + 1} (${result.provider}/${result.model})`,
-          result.outputText ||
+          stripImageDataUrlForText(result.outputText) ||
             (result.status === "failed"
               ? `This result failed and produced no usable output: ${result.errorMessage || "unknown error"}`
               : result.errorMessage || ""),

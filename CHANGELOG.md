@@ -174,3 +174,10 @@
 - Added a new "Code review" (코드 리뷰) action type for the sequential review chain. It lets a later model review the code produced by an earlier model, find concrete issues (bugs, edge cases, security, performance, readability, missing tests), and return an improved version of the full code.
 - Built the review prompt so it does NOT force changes: when the code is already high quality and has nothing worth changing, the model returns it unchanged with a `NO_CHANGES:` note instead of inventing cosmetic edits. This matches a chain where the first step codes and later review steps only edit when there is a genuine improvement.
 - Exposed the action everywhere it is selectable: sequential workflow step builder, "review with another model" composer on result cards, preset previews, validation schemas, and the in-app guide.
+
+## Patch 21 (v1.23.0-20260615)
+
+- Added image generation. Each provider that offers an image model is now supported: OpenAI (`gpt-image-1`, `gpt-image-2`), Google (`imagen-4.0-generate-001`), and xAI (`grok-2-image-1212`). Claude/Anthropic has no image model and is excluded.
+- Added a dedicated "Image generation" (이미지 생성) toggle in the workbench. When on, the model picker shows only image-capable models and a run generates an image from your description. It reuses the parallel run path, so you can compare several image models side by side.
+- Image-capable models are routed to each provider's image endpoint inside the provider layer; the generated image is stored as a base64 data URL and rendered inline in the result card (workbench and shared views). Image data is kept out of text contexts (sequential source text, parallel comparison) so it never pollutes downstream prompts.
+- Added flat per-image cost estimates and display names for the new image models.

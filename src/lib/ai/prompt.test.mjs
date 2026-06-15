@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { composePrompt, getActionLabel } from "./prompt.ts";
+import { composePrompt, composeImagePrompt, getActionLabel } from "./prompt.ts";
 
 test("brainstorm action exposes a divergent label", () => {
   const label = getActionLabel("brainstorm");
@@ -82,4 +82,27 @@ test("non-code_review actions do not leak code review rules", () => {
 
   assert.doesNotMatch(prompt, /Code review rules:/);
   assert.doesNotMatch(prompt, /NO_CHANGES:/);
+});
+
+test("composeImagePrompt sends a clean description without orchestration boilerplate", () => {
+  const prompt = composeImagePrompt({
+    originalInput: "A red fox sleeping in a snowy forest at dawn",
+    additionalInstruction: "Cinematic lighting",
+    outputStyle: "Photorealistic",
+  });
+
+  assert.match(prompt, /red fox sleeping/);
+  assert.match(prompt, /Cinematic lighting/);
+  assert.match(prompt, /Style: Photorealistic/);
+  // No Qkiki orchestration boilerplate should reach the image model.
+  assert.doesNotMatch(prompt, /Qkiki Orchestration Workbench/);
+  assert.doesNotMatch(prompt, /Action:/);
+});
+
+test("composeImagePrompt omits optional fields when absent", () => {
+  const prompt = composeImagePrompt({
+    originalInput: "A minimalist logo of a mountain",
+  });
+
+  assert.equal(prompt, "A minimalist logo of a mountain");
 });
