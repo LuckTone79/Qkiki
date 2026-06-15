@@ -92,6 +92,7 @@ const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
     en: "Consistency review",
     ko: "일관성 검토",
   },
+  { value: "code_review", en: "Code review", ko: "코드 리뷰" },
 ];
 
 const providerOrder: ProviderName[] = ["openai", "anthropic", "google", "xai"];
