@@ -1,4 +1,4 @@
-export const CREDIT_PRICING_VERSION = "credit-v1-20260611";
+export const CREDIT_PRICING_VERSION = "credit-v2-image-20260615";
 export const CREDIT_FX_RATE_KRW_PER_USD = 1560;
 export const CREDIT_RISK_MULTIPLIER = 2.2;
 export const PROTECTED_KRW_PER_CREDIT = 10;
@@ -6,6 +6,13 @@ export const PROTECTED_KRW_PER_CREDIT = 10;
 export type ModelPricing = {
   promptPerMillion: number;
   completionPerMillion: number;
+};
+
+export type ImageGenerationPricing = {
+  perImageUsd: number;
+  pricingBasis: "per_image";
+  defaultImageCount: number;
+  reference: string;
 };
 
 export const MODEL_PRICING: Record<string, ModelPricing> = {
@@ -30,6 +37,69 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "xai:grok-4.20-non-reasoning": { promptPerMillion: 1.25, completionPerMillion: 2.5 },
 };
 
+export const IMAGE_GENERATION_PRICING: Record<string, ImageGenerationPricing> = {
+  "openai:gpt-image-1": {
+    perImageUsd: 0.042,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "medium 1024x1024 image output",
+  },
+  "openai:gpt-image-2": {
+    perImageUsd: 0.053,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "medium 1024x1024 image output",
+  },
+  "google:imagen-4.0-fast-generate-001": {
+    perImageUsd: 0.02,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Imagen 4 Fast generated image",
+  },
+  "google:imagen-4.0-generate-001": {
+    perImageUsd: 0.04,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Imagen 4 Standard generated image",
+  },
+  "google:imagen-4.0-ultra-generate-001": {
+    perImageUsd: 0.06,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Imagen 4 Ultra generated image",
+  },
+  "google:gemini-2.5-flash-image": {
+    perImageUsd: 0.039,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Gemini 2.5 Flash Image 1024x1024 output",
+  },
+  "google:gemini-3-pro-image": {
+    perImageUsd: 0.134,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Gemini 3 Pro Image 1K/2K output",
+  },
+  "xai:grok-imagine-image": {
+    perImageUsd: 0.02,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Grok Imagine Image 1K/2K output",
+  },
+  "xai:grok-imagine-image-quality": {
+    perImageUsd: 0.02,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "Grok Imagine Image quality output",
+  },
+  "xai:grok-2-image-1212": {
+    perImageUsd: 0.02,
+    pricingBasis: "per_image",
+    defaultImageCount: 1,
+    reference: "legacy xAI image-generation alias",
+  },
+};
+
 const FALLBACK_MODEL_PRICING: ModelPricing = {
   promptPerMillion: 1.25,
   completionPerMillion: 10,
@@ -45,6 +115,9 @@ export type CreditEstimateLine = {
   provider: string;
   model: string;
   actionType: string;
+  billingKind: "tokens" | "image";
+  unitCount?: number;
+  unitLabel?: "image";
   inputTokens: number;
   outputTokens: number;
   rawCostUsd: number;
@@ -100,6 +173,31 @@ export type WorkbenchCreditEstimateInput = {
 
 export function getModelPricing(provider: string, model: string) {
   return MODEL_PRICING[`${provider}:${model}`] ?? FALLBACK_MODEL_PRICING;
+}
+
+export function getImageGenerationPricing(provider: string, model: string) {
+  return IMAGE_GENERATION_PRICING[`${provider}:${model}`];
+}
+
+function normalizeImageCount(imageCount: number | undefined) {
+  if (!Number.isFinite(imageCount ?? 1)) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(imageCount ?? 1));
+}
+
+export function estimateImageGenerationCostUsd(input: {
+  provider: string;
+  model: string;
+  imageCount?: number;
+}) {
+  const pricing = getImageGenerationPricing(input.provider, input.model);
+  if (!pricing) {
+    return undefined;
+  }
+
+  return pricing.perImageUsd * normalizeImageCount(input.imageCount);
 }
 
 export function estimateTextTokens(text: string | null | undefined) {
@@ -165,6 +263,18 @@ export function estimateOutputTokensForAction(actionType: string) {
     return 1400;
   }
   return 1400;
+}
+
+function estimateOutputTokensForModel(input: {
+  provider: string;
+  model: string;
+  actionType: string;
+}) {
+  if (getImageGenerationPricing(input.provider, input.model)) {
+    return 0;
+  }
+
+  return estimateOutputTokensForAction(input.actionType);
 }
 
 function normalizeRepeatBlocks(workflowControl?: WorkflowControlLike) {
@@ -253,7 +363,29 @@ function estimateLine(input: {
   actionType: string;
   inputTokens: number;
   outputTokens: number;
+  imageCount?: number;
 }) {
+  const imageRawCostUsd = estimateImageGenerationCostUsd({
+    provider: input.provider,
+    model: input.model,
+    imageCount: input.imageCount,
+  });
+
+  if (imageRawCostUsd !== undefined) {
+    return {
+      provider: input.provider,
+      model: input.model,
+      actionType: input.actionType,
+      billingKind: "image",
+      unitCount: normalizeImageCount(input.imageCount),
+      unitLabel: "image",
+      inputTokens: input.inputTokens,
+      outputTokens: 0,
+      rawCostUsd: Number(imageRawCostUsd.toFixed(6)),
+      credits: costUsdToCredits(imageRawCostUsd),
+    } satisfies CreditEstimateLine;
+  }
+
   const rawCostUsd = estimateProviderCostUsd({
     provider: input.provider,
     model: input.model,
@@ -265,6 +397,7 @@ function estimateLine(input: {
     provider: input.provider,
     model: input.model,
     actionType: input.actionType,
+    billingKind: "tokens",
     inputTokens: input.inputTokens,
     outputTokens: input.outputTokens,
     rawCostUsd: Number(rawCostUsd.toFixed(6)),
@@ -286,7 +419,11 @@ export function estimateWorkbenchRunCredits(input: WorkbenchCreditEstimateInput)
           model: target.model,
           actionType: "parallel_review",
           inputTokens: baseInputTokens,
-          outputTokens: estimateOutputTokensForAction("generate"),
+          outputTokens: estimateOutputTokensForModel({
+            provider: target.provider,
+            model: target.model,
+            actionType: "generate",
+          }),
         }),
       ),
     );
@@ -303,7 +440,11 @@ export function estimateWorkbenchRunCredits(input: WorkbenchCreditEstimateInput)
         : step.sourceMode === "previous" || step.sourceMode === "selected_result"
           ? previousOutputTokens
           : 0;
-    const outputTokens = estimateOutputTokensForAction(step.actionType);
+    const outputTokens = estimateOutputTokensForModel({
+      provider: step.targetProvider,
+      model: step.targetModel,
+      actionType: step.actionType,
+    });
     const line = estimateLine({
       provider: step.targetProvider,
       model: step.targetModel,
@@ -336,7 +477,11 @@ export function estimateTargetFanoutCredits(input: {
         model: target.model,
         actionType: input.actionType,
         inputTokens: baseInputTokens,
-        outputTokens: estimateOutputTokensForAction(input.actionType),
+        outputTokens: estimateOutputTokensForModel({
+          provider: target.provider,
+          model: target.model,
+          actionType: input.actionType,
+        }),
       }),
     ),
   );

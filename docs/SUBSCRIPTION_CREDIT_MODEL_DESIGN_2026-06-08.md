@@ -16,6 +16,7 @@
 - 병렬 결과 차이 요약은 별도의 요약 모델 호출이 붙는다.
 - 긴 입력, 프로젝트 컨텍스트, 첨부파일, 이전 결과, `all_results` 소스 모드는 입력 토큰을 크게 키운다.
 - 출력 토큰은 보통 입력 토큰보다 비싸서, 응답이 길어질수록 비용 편차가 더 커진다.
+- 이미지 생성은 텍스트 토큰 산식과 분리해야 한다. 실제 공급자 과금이 이미지 출력 토큰 또는 이미지 1장 단위로 잡히기 때문에, 같은 프롬프트 길이라도 텍스트 응답보다 원가가 훨씬 커질 수 있다.
 
 안정적인 사업 구조는 다음이 맞다.
 
@@ -178,6 +179,36 @@ credits = ceil(raw_cost_usd * 343.2)
 왜냐하면 `1,560 * 2.2 / 10 = 343.2`이기 때문이다.
 
 이 값은 의도적으로 보수적이다. 실제 텔레메트리로 마진이 너무 높거나 낮다는 것이 증명되면, 제품 전체 구조를 바꾸지 말고 이 변환계수만 조정한다.
+
+### 이미지 생성 크레딧 산식
+
+이미지 생성 모델은 텍스트 모델처럼 `입력 토큰 + 출력 토큰`만으로 계산하지 않는다. 현재 시스템의 기본 단위는 **생성 이미지 1장**이며, 실행 전 견적과 실행 후 정산 모두 같은 이미지 단가표를 사용한다.
+
+```text
+image_raw_cost_usd = provider_image_price_usd_per_image * generated_image_count
+image_credits = ceil(image_raw_cost_usd * 1,560 * 2.2 / 10)
+```
+
+2026-06-15 적용 기준:
+
+| Provider | 모델 | 기준 원가 | 보호 크레딧 |
+|---|---|---:|---:|
+| OpenAI | `gpt-image-2` | $0.053 / image | 19 |
+| OpenAI | `gpt-image-1` | $0.042 / image | 15 |
+| Google | `imagen-4.0-generate-001` | $0.040 / image | 14 |
+| Google | `imagen-4.0-fast-generate-001` | $0.020 / image | 7 |
+| Google | `imagen-4.0-ultra-generate-001` | $0.060 / image | 21 |
+| Google | `gemini-2.5-flash-image` | $0.039 / image | 14 |
+| Google | `gemini-3-pro-image` | $0.134 / image | 46 |
+| xAI | `grok-imagine-image`, `grok-imagine-image-quality` | $0.020 / image | 7 |
+
+운영 원칙:
+
+- 이미지 모델은 `billingKind = image`로 기록하고, `unitCount`는 생성 이미지 수로 둔다.
+- 기본값은 이미지 1장이다. 향후 UI에서 `n`개 생성을 열면 `unitCount = n`으로 곱한다.
+- 이미지 생성 단계의 `outputTokens` 견적은 0으로 둔다. 텍스트 토큰 추정치와 이미지 출력 비용을 중복 차감하지 않기 위해서다.
+- OpenAI `gpt-image-2`는 해상도와 품질에 따라 실제 출력 토큰이 달라진다. 현재 기본값은 1024x1024 medium 기준이며, `high` 또는 2K/4K 옵션을 열 때는 별도 단가를 추가해야 한다.
+- 이미지 편집은 입력 이미지 과금이 붙을 수 있으므로, 처음에는 이미지 생성과 별도 액션으로 분리해 단가표를 운영한다.
 
 ## 5. 실행 예시
 

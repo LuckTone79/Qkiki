@@ -30,6 +30,7 @@ export type ProviderCatalogItem = {
   defaultModel: string;
   defaultTimeoutSeconds: number;
   models: string[];
+  imageModels: string[];
 };
 
 export const PROVIDERS: ProviderCatalogItem[] = [
@@ -46,6 +47,10 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gpt-5.4",
       "gpt-5.4-nano",
     ],
+    imageModels: [
+      "gpt-image-2",
+      "gpt-image-1",
+    ],
   },
   {
     name: "anthropic",
@@ -59,6 +64,7 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "claude-haiku-4-5",
       "claude-opus-4-8",
     ],
+    imageModels: [],
   },
   {
     name: "google",
@@ -74,6 +80,13 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gemini-3.1-pro-preview",
       "gemini-2.5-pro",
     ],
+    imageModels: [
+      "imagen-4.0-generate-001",
+      "imagen-4.0-fast-generate-001",
+      "imagen-4.0-ultra-generate-001",
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image",
+    ],
   },
   {
     name: "xai",
@@ -88,8 +101,23 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "grok-4.20-multi-agent",
       "grok-4.20-reasoning",
     ],
+    imageModels: [
+      "grok-imagine-image-quality",
+      "grok-imagine-image",
+      "grok-2-image-1212",
+    ],
   },
 ];
+
+export function isImageModel(provider: ProviderName, model: string) {
+  return Boolean(
+    PROVIDERS.find((entry) => entry.name === provider)?.imageModels.includes(model),
+  );
+}
+
+export function getImageModels(provider: ProviderName) {
+  return getProviderCatalog(provider).imageModels;
+}
 
 export function getProviderCatalog(provider: ProviderName) {
   const item = PROVIDERS.find((entry) => entry.name === provider);

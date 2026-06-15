@@ -31,6 +31,7 @@ export async function GET() {
         displayName: provider.displayName,
         shortName: provider.shortName,
         models: provider.models,
+        imageModels: provider.imageModels,
         defaultModel,
         fallbackProvider: config?.fallbackProvider ?? null,
         isEnabled,
