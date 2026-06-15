@@ -168,3 +168,9 @@
 - Reworked the "Add to project" picker into a centered modal so it is no longer clipped by the session card / bottom nav on mobile.
 - Added a "새 프로젝트로 추가" (Add to a new project) option in the picker, pre-filling the new project name with the conversation/result title being added. It creates the project and registers the item in one step.
 - Optimized the project detail page for mobile: collected items no longer overflow/clip (titles and source labels wrap), action buttons stretch to full width on small screens, and on mobile the collected items/sessions appear before the settings form.
+
+## Patch 20 (v1.22.0-20260615)
+
+- Added a new "Code review" (코드 리뷰) action type for the sequential review chain. It lets a later model review the code produced by an earlier model, find concrete issues (bugs, edge cases, security, performance, readability, missing tests), and return an improved version of the full code.
+- Built the review prompt so it does NOT force changes: when the code is already high quality and has nothing worth changing, the model returns it unchanged with a `NO_CHANGES:` note instead of inventing cosmetic edits. This matches a chain where the first step codes and later review steps only edit when there is a genuine improvement.
+- Exposed the action everywhere it is selectable: sequential workflow step builder, "review with another model" composer on result cards, preset previews, validation schemas, and the in-app guide.

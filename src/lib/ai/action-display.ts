@@ -14,6 +14,7 @@ const ACTION_DISPLAY_LABELS: Record<
   summarize: { en: "Summarize", ko: "요약" },
   simplify: { en: "Simplify", ko: "쉽게 정리" },
   consistency_review: { en: "Consistency review", ko: "일관성 검토" },
+  code_review: { en: "Code review", ko: "코드 리뷰" },
   follow_up: { en: "Follow-up", ko: "후속 질문" },
 };
 

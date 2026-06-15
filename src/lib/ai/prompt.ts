@@ -27,6 +27,8 @@ const actionLabels: Record<ActionType, string> = {
     "Rewrite the source answer in simpler language for a non-specialist reader.",
   consistency_review:
     "Review the source answer for consistency with the original task and the user's additional instructions.",
+  code_review:
+    "Act as a senior code reviewer. Review the code produced by the previous model, find concrete issues, and return an improved version of the code. If the code is already high quality and has nothing worth changing, return it as-is instead of forcing changes.",
   follow_up:
     "Answer the follow-up in the context of the selected source answer.",
 };
@@ -84,12 +86,18 @@ export function composePrompt(input: ComposePromptInput) {
     const sourceHeading =
       input.actionType === "brainstorm"
         ? "Ideas already on the table from other AI models (extend this living discussion, do not restate it):"
-        : "Source result to use:";
+        : input.actionType === "code_review"
+          ? "Code from the previous model to review (this is the work you must review and, only where it genuinely helps, improve):"
+          : "Source result to use:";
     parts.push("", sourceHeading, input.sourceText.trim());
   }
 
   if (input.actionType === "brainstorm") {
     parts.push("", ...buildBrainstormDirectives(Boolean(input.sourceText?.trim())));
+  }
+
+  if (input.actionType === "code_review") {
+    parts.push("", ...buildCodeReviewDirectives());
   }
 
   if (input.instructionTemplate?.trim()) {
@@ -122,4 +130,16 @@ function buildBrainstormDirectives(hasPriorIdeas: boolean) {
   );
 
   return lines;
+}
+
+function buildCodeReviewDirectives() {
+  return [
+    "Code review rules:",
+    "- You are the next reviewer in a sequential review chain. The code above was written (or already reviewed) by an earlier model. Your job is to make it better only where it genuinely needs it.",
+    "- First, silently inspect the code for real problems: correctness and edge-case bugs, security issues, performance pitfalls, error handling, readability and naming, dead or duplicated code, missing tests, and deviations from the task's requirements.",
+    "- When you DO find issues worth fixing, apply the fixes and return the COMPLETE, runnable improved code (not just a diff or the changed lines), then add a short \"Changes\" list summarizing what you changed and why.",
+    "- CRITICAL — do not force improvements. If the code is already high quality and you cannot find a change that is a clear, meaningful improvement, return the code EXACTLY as it is, unchanged, and add a single line: NO_CHANGES: the code is already high quality and needs no further changes.",
+    "- Never invent cosmetic, trivial, or stylistic-only edits just to look productive. A no-change pass on already-good code is the correct and expected outcome, not a failure.",
+    "- Preserve the original language, framework, structure, and public interfaces unless a change is truly necessary to fix a real problem.",
+  ];
 }

@@ -51,3 +51,35 @@ test("brainstorm prompt without source omits discussion-extension rules", () => 
 
   assert.doesNotMatch(prompt, /remix two ideas into a new one/);
 });
+
+test("code_review action label describes reviewing prior code without forcing changes", () => {
+  const label = getActionLabel("code_review");
+  assert.match(label, /code reviewer/i);
+  assert.match(label, /as-is/i);
+});
+
+test("code_review prompt injects review rules and the no-force-changes guard", () => {
+  const prompt = composePrompt({
+    actionType: "code_review",
+    originalInput: "Write a function that parses a CSV file",
+    sourceText: "function parse(s){ return s.split(',') }",
+  });
+
+  assert.match(prompt, /Code review rules:/);
+  assert.match(prompt, /Code from the previous model to review/);
+  // The defining behavior: leave already-good code untouched instead of forcing edits.
+  assert.match(prompt, /NO_CHANGES:/);
+  assert.match(prompt, /do not force improvements/i);
+  assert.match(prompt, /cosmetic, trivial, or stylistic-only edits/i);
+});
+
+test("non-code_review actions do not leak code review rules", () => {
+  const prompt = composePrompt({
+    actionType: "improve",
+    originalInput: "Write a function that parses a CSV file",
+    sourceText: "function parse(s){ return s.split(',') }",
+  });
+
+  assert.doesNotMatch(prompt, /Code review rules:/);
+  assert.doesNotMatch(prompt, /NO_CHANGES:/);
+});
