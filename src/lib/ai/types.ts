@@ -9,6 +9,7 @@ export type ActionType =
   | "summarize"
   | "simplify"
   | "consistency_review"
+  | "code_review"
   | "follow_up";
 
 export type SourceMode = "original" | "previous" | "selected_result" | "all_results";

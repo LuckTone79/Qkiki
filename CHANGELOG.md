@@ -188,3 +188,9 @@
 - Added freshness and web-research directives for current factual tasks, plus fact-check requirements that include the model's own independent assessment.
 - Enabled provider web-search/grounding tools for OpenAI Responses, Anthropic Messages, Gemini Google Search grounding, and xAI Responses when the prompt calls for fresh verification.
 - Added regression tests for prompt freshness rules and provider web-search tool configuration.
+
+## Patch 23 (v1.26.0-20260615)
+
+- Added a new "Code review" (코드 리뷰) action type for the sequential review chain. It lets a later model review the code produced by an earlier model, find concrete issues (bugs, edge cases, security, performance, readability, missing tests), and return an improved version of the full code.
+- Built the review prompt so it does NOT force changes: when the code is already high quality and has nothing worth changing, the model returns it unchanged with a `NO_CHANGES:` note instead of inventing cosmetic edits. This matches a chain where the first step codes and later review steps only edit when there is a genuine improvement.
+- Exposed the action everywhere it is selectable: sequential workflow step builder, "review with another model" composer on result cards, preset previews, validation schemas, and the in-app guide.

@@ -30,6 +30,10 @@ function actionLabel(value: string, language: "en" | "ko") {
       en: "Consistency review",
       ko: "\uc77c\uad00\uc131 \uac80\ud1a0",
     },
+    code_review: {
+      en: "Code review",
+      ko: "\ucf54\ub4dc \ub9ac\ubdf0",
+    },
   };
 
   return labels[value]?.[language] ?? value;

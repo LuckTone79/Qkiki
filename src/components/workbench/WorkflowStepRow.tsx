@@ -35,6 +35,7 @@ const actionOptions: { value: ActionType; en: string; ko: string }[] = [
   { value: "summarize", en: "Summarize", ko: "\uc694\uc57d" },
   { value: "simplify", en: "Simplify", ko: "\uc27d\uac8c \uc815\ub9ac" },
   { value: "consistency_review", en: "Consistency review", ko: "\uc77c\uad00\uc131 \uac80\ud1a0" },
+  { value: "code_review", en: "Code review", ko: "\ucf54\ub4dc \ub9ac\ubdf0" },
 ];
 
 const sourceOptions: { value: SourceMode; key: "originalInput" | "previousStep" | "selectedResult" | "allCurrentResults" }[] = [
