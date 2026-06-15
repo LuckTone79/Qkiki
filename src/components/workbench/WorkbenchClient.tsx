@@ -356,6 +356,31 @@ const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
   executive: { en: "executive", ko: "\uc784\uc6d0 \uc694\uc57d" },
 };
 
+// Image-generation styles. The value is passed straight into the image prompt
+// (e.g. "Style: photorealistic"), so each value is a usable English descriptor.
+const imageOutputStyles = [
+  "photorealistic",
+  "digital illustration",
+  "3d render",
+  "anime style",
+  "watercolor painting",
+  "oil painting",
+  "minimalist vector",
+  "pixel art",
+];
+const imageOutputStyleLabels: Record<string, Record<AppLanguage, string>> = {
+  photorealistic: { en: "Photorealistic", ko: "\uc0ac\uc2e4\uc801 \uc0ac\uc9c4" },
+  "digital illustration": { en: "Digital illustration", ko: "\ub514\uc9c0\ud138 \uc77c\ub7ec\uc2a4\ud2b8" },
+  "3d render": { en: "3D render", ko: "3D \ub80c\ub354" },
+  "anime style": { en: "Anime", ko: "\uc560\ub2c8\uba54\uc774\uc158" },
+  "watercolor painting": { en: "Watercolor", ko: "\uc218\ucc44\ud654" },
+  "oil painting": { en: "Oil painting", ko: "\uc720\ud654" },
+  "minimalist vector": { en: "Minimalist vector", ko: "\ubbf8\ub2c8\uba40 \ubca1\ud130" },
+  "pixel art": { en: "Pixel art", ko: "\ud53d\uc140 \uc544\ud2b8" },
+};
+const DEFAULT_IMAGE_OUTPUT_STYLE = "photorealistic";
+const DEFAULT_TEXT_OUTPUT_STYLE = "detailed";
+
 const outputLanguages: OutputLanguage[] = ["en", "ko", "ja", "zh", "hi"];
 const outputLanguageLabels: Record<OutputLanguage, string> = {
   en: "English",
@@ -4191,6 +4216,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       onClick={() => {
                         setImageMode(false);
                         setMode("parallel");
+                        setOutputStyle((prev) =>
+                          outputStyles.includes(prev) ? prev : DEFAULT_TEXT_OUTPUT_STYLE,
+                        );
                       }}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
                         mode === "parallel" && !imageMode
@@ -4205,6 +4233,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       onClick={() => {
                         setImageMode(false);
                         setMode("sequential");
+                        setOutputStyle((prev) =>
+                          outputStyles.includes(prev) ? prev : DEFAULT_TEXT_OUTPUT_STYLE,
+                        );
                       }}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
                         mode === "sequential" && !imageMode
@@ -4219,6 +4250,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       onClick={() => {
                         setImageMode(true);
                         setMode("parallel");
+                        setOutputStyle((prev) =>
+                          imageOutputStyles.includes(prev)
+                            ? prev
+                            : DEFAULT_IMAGE_OUTPUT_STYLE,
+                        );
                       }}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
                         imageMode
@@ -4316,19 +4352,28 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
               <label className="flex flex-col gap-1 text-sm text-stone-600">
-                <span>{t("outputStyle")}</span>
+                <span>
+                  {imageMode
+                    ? language === "ko"
+                      ? "\uc774\ubbf8\uc9c0 \uc2a4\ud0c0\uc77c"
+                      : "Image style"
+                    : t("outputStyle")}
+                </span>
                 <select
                   value={outputStyle}
                   onChange={(event) => setOutputStyle(event.target.value)}
                   className="rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
                 >
-                  {outputStyles.map((style) => (
+                  {(imageMode ? imageOutputStyles : outputStyles).map((style) => (
                     <option key={style} value={style}>
-                      {outputStyleLabels[style]?.[language] ?? style}
+                      {(imageMode ? imageOutputStyleLabels : outputStyleLabels)[
+                        style
+                      ]?.[language] ?? style}
                     </option>
                   ))}
                 </select>
               </label>
+              {imageMode ? null : (
               <label className="flex flex-col gap-1 text-sm text-stone-600">
                 <span>
                   {language === "ko"
@@ -4349,6 +4394,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   ))}
                 </select>
               </label>
+              )}
               <button
                 type="button"
                 onClick={runWorkbench}

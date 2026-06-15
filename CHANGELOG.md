@@ -181,3 +181,8 @@
 - Added a dedicated "Image generation" (이미지 생성) toggle in the workbench. When on, the model picker shows only image-capable models and a run generates an image from your description. It reuses the parallel run path, so you can compare several image models side by side.
 - Image-capable models are routed to each provider's image endpoint inside the provider layer; the generated image is stored as a base64 data URL and rendered inline in the result card (workbench and shared views). Image data is kept out of text contexts (sequential source text, parallel comparison) so it never pollutes downstream prompts.
 - Added flat per-image cost estimates and display names for the new image models.
+
+## Patch 22 (v1.23.1-20260615)
+
+- Fixed the output style options for image generation mode. Previously the style dropdown only offered text-oriented presets (detailed/short/bullet/table/executive) that are meaningless for images. Image mode now shows image styles (Photorealistic, Digital illustration, 3D render, Anime, Watercolor, Oil painting, Minimalist vector, Pixel art), and the selected style is fed into the image prompt.
+- Hid the "Default output language" selector in image generation mode since it does not apply to images. Switching between text and image modes now resets the style to a sensible default for that mode.
