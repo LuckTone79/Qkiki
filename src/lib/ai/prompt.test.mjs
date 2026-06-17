@@ -2,11 +2,32 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  composeImagePrompt,
   composePrompt,
   getActionLabel,
   getSourceHeading,
   shouldPreferWebSearch,
 } from "./prompt.ts";
+
+test("composeImagePrompt returns only the visual description", () => {
+  const prompt = composeImagePrompt({
+    originalInput: "A watercolor fox in a snowy forest",
+    additionalInstruction: "soft pastel colors",
+  });
+
+  assert.equal(prompt, "A watercolor fox in a snowy forest\n\nsoft pastel colors");
+  // None of the text-model orchestration boilerplate should leak into images.
+  assert.doesNotMatch(prompt, /Qkiki Orchestration Workbench/);
+  assert.doesNotMatch(prompt, /output language/i);
+  assert.doesNotMatch(prompt, /Return only/i);
+});
+
+test("composeImagePrompt omits an empty additional instruction", () => {
+  assert.equal(
+    composeImagePrompt({ originalInput: "A neon city skyline" }),
+    "A neon city skyline",
+  );
+});
 
 test("brainstorm action exposes a divergent label", () => {
   const label = getActionLabel("brainstorm");

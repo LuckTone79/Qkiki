@@ -1,5 +1,12 @@
 # Changelog
 
+## Patch 24 (v1.27.0-20260617)
+
+- Added image generation. Each provider's image models are now runnable from the workbench: OpenAI (gpt-image-1/2), Google (Imagen 4 standard/fast/ultra, Gemini 2.5 Flash Image, Gemini 3 Pro Image), and xAI (Grok image models). Anthropic has no image models and is excluded.
+- Added a dedicated "🖼 Image" toggle next to the parallel/sequential switch. Turning it on swaps the model picker to image models and runs the selected models in parallel, so it works identically on web and mobile (the toggle, selector, and image results all live in the existing responsive panels).
+- Routed image models to each provider's image endpoint in the provider layer (OpenAI/xAI `images/generations` → `b64_json`; Google Imagen `:predict` → `bytesBase64Encoded`; Gemini image `:generateContent` → inline image data). Results are stored as `data:` URLs in `outputText` (no schema change) and rendered inline as a downloadable image in the result cards.
+- Used the existing per-image credit pricing and `billingKind: "image"` path for cost, and kept base64 image data out of every text path (sequential source text, branch reviews, and the parallel comparison summary) so it never leaks into a text prompt.
+
 ## Patch 01
 
 - Inspected the workspace and confirmed it was a new empty project with no Git repository.
