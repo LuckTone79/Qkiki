@@ -1,5 +1,12 @@
 # Changelog
 
+## Patch 25 (v1.27.1-20260617)
+
+- 크레딧이 충분해 보이는데 실행이 "Not enough credits"로 막히던 혼란을 해결. 원인은 서버가 **총 크레딧과 일일 크레딧 한도 둘 다**로 예약을 검사하는데, 워크벤치 UI는 월 기준 "보유 크레딧"만 보여 줘서 일일 한도(예: FREE 플랜 25/일)에 걸리는 경우를 알 수 없었던 것.
+- 예상 크레딧 패널이 일일 한도가 더 작을 때 "오늘 남은" 크레딧을 함께 표시하고, "실행 후" 계산을 총·일일 중 더 작은 값(실제 가능 한도) 기준으로 변경.
+- 일일 한도 초과 시 실행 전에 "약 N 크레딧이 필요하지만 오늘 남은 크레딧은 M개(일일 한도 L)..."처럼 구체적 사유와 해결책(모델 수 줄이기/자정 초기화 후 재시도)을 안내하도록 사전 차단.
+- 서버의 크레딧 부족 오류 메시지도 일일 한도가 원인일 때 이를 명시하도록 개선.
+
 ## Patch 24 (v1.27.0-20260617)
 
 - Added image generation. Each provider's image models are now runnable from the workbench: OpenAI (gpt-image-1/2), Google (Imagen 4 standard/fast/ultra, Gemini 2.5 Flash Image, Gemini 3 Pro Image), and xAI (Grok image models). Anthropic has no image models and is excluded.
