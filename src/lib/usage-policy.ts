@@ -139,7 +139,18 @@ export class UsageCreditLimitReachedError extends Error {
   summary: UsageStatusSummary;
 
   constructor(summary: UsageStatusSummary) {
-    super("Not enough credits are available for this request.");
+    // When the monthly/total balance is sufficient but the daily credit
+    // allowance is the binding constraint, say so explicitly. Otherwise the
+    // user sees plenty of "available" credits and cannot tell why the run was
+    // blocked.
+    const dailyIsBindingConstraint =
+      summary.totalDailyCreditsAvailable < summary.totalCreditsAvailable;
+
+    super(
+      dailyIsBindingConstraint
+        ? `Daily credit limit reached: only ${summary.totalDailyCreditsAvailable.toLocaleString()} of your ${summary.dailyCreditLimit.toLocaleString()} daily credits remain. The daily allowance resets at midnight (KST); reduce the selected models or try again after the reset.`
+        : "Not enough credits are available for this request.",
+    );
     this.summary = summary;
   }
 }

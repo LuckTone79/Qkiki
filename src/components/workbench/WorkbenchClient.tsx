@@ -2391,9 +2391,24 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     ],
   );
   const numberLocale = language === "ko" ? "ko-KR" : "en-US";
-  const projectedCreditsAfterRun = usage
-    ? Math.max(0, usage.totalCreditsAvailable - runCreditEstimate.estimatedCredits)
+  // The server reserves credits against BOTH the total balance and the daily
+  // allowance, so a run is only feasible up to the smaller of the two. The UI
+  // previously showed only the total balance, which made daily-capped runs look
+  // affordable when they were not.
+  const bindingAvailableCredits = usage
+    ? Math.min(usage.totalCreditsAvailable, usage.totalDailyCreditsAvailable)
     : null;
+  const dailyIsBindingCredit = usage
+    ? usage.totalDailyCreditsAvailable < usage.totalCreditsAvailable
+    : false;
+  const projectedCreditsAfterRun =
+    bindingAvailableCredits == null
+      ? null
+      : Math.max(0, bindingAvailableCredits - runCreditEstimate.estimatedCredits);
+  const runExceedsAvailableCredits =
+    !isTrialMode &&
+    bindingAvailableCredits != null &&
+    runCreditEstimate.estimatedCredits > bindingAvailableCredits;
 
   function addRepeatBlock() {
     setWorkflowControl((current) => {
@@ -3554,6 +3569,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
+    // Block runs the server would reject for credits up front, with a message
+    // that names the binding constraint (daily allowance vs total balance) so a
+    // user with enough total credits understands why a daily-capped run fails.
+    if (runExceedsAvailableCredits && usage) {
+      setError(
+        dailyIsBindingCredit
+          ? language === "ko"
+            ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}개입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString(numberLocale)}). 선택한 모델 수를 줄이거나 자정(KST) 초기화 후 다시 시도하세요.`
+            : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} of your daily ${usage.dailyCreditLimit.toLocaleString(numberLocale)} remain today. Select fewer models or try again after the midnight (KST) reset.`
+          : language === "ko"
+            ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`
+            : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`,
+      );
+      return;
+    }
+
     setProgressNow(Date.now());
     setStoppingStepIndexes(new Set<number>());
     resetResultBoardControls();
@@ -4113,6 +4144,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   ? usage.totalCreditsAvailable.toLocaleString(numberLocale)
                   : "-"}
               </p>
+              {usage && dailyIsBindingCredit ? (
+                <p className="mt-1 text-[11px] font-medium text-amber-700">
+                  {language === "ko"
+                    ? `오늘 남은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}`
+                    : `Today ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} left`}
+                </p>
+              ) : null}
             </div>
             <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
               <p className="text-xs text-teal-700">
@@ -4126,6 +4164,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
           </div>
         </div>
+        {runExceedsAvailableCredits && usage ? (
+          <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+            {dailyIsBindingCredit
+              ? language === "ko"
+                ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}개입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString(numberLocale)}). 선택한 모델 수를 줄이거나 자정(KST) 초기화 후 다시 시도하세요.`
+                : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} of your daily ${usage.dailyCreditLimit.toLocaleString(numberLocale)} remain today. Select fewer models or try again after the midnight (KST) reset.`
+              : language === "ko"
+                ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`
+                : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`}
+          </p>
+        ) : null}
       </div>
 
       {project ? (
