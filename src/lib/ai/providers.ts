@@ -4,10 +4,12 @@ import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import {
   getProviderCatalog,
+  isImageModel,
   isProviderName,
   normalizeProviderModel,
   resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
+import { buildImageDataUrl } from "@/lib/ai/image-output";
 import {
   acquireProviderLease,
   releaseProviderLease,
@@ -646,6 +648,10 @@ async function executeProviderCall(
     const signal = controller.signal;
 
     try {
+      if (isImageModel(input.provider, input.model)) {
+        return await callImageGeneration(apiKey, input, startedAt, signal);
+      }
+
       if (input.provider === "openai") {
         return await callOpenAi(apiKey, input, startedAt, signal);
       }
@@ -1183,4 +1189,229 @@ async function callXaiResponses(
     latencyMs: Date.now() - startedAt,
     status: "completed",
   });
+}
+
+type GeneratedImage = { base64: string; mimeType?: string };
+
+/**
+ * Builds the completed result for an image generation. The image bytes are
+ * stored as a `data:` URL in `outputText`; the per-image cost is filled in by
+ * `withCost` (which routes image models to image pricing). The raw image bytes
+ * are intentionally omitted from `rawResponse` so we do not persist the large
+ * base64 payload twice.
+ */
+function buildImageProviderResult(
+  provider: ProviderName,
+  model: string,
+  image: GeneratedImage,
+  startedAt: number,
+) {
+  return withCost({
+    provider,
+    model,
+    outputText: buildImageDataUrl(image.base64, image.mimeType),
+    rawResponse: {
+      imageGeneration: true,
+      provider,
+      model,
+      mimeType: image.mimeType ?? "image/png",
+    },
+    latencyMs: Date.now() - startedAt,
+    status: "completed" as const,
+  });
+}
+
+function extractOpenAiCompatibleImage(body: JsonRecord): GeneratedImage | null {
+  const data = Array.isArray(body.data) ? body.data : [];
+  const first = data[0] as JsonRecord | undefined;
+  const base64 = getText(first?.b64_json);
+  return base64 ? { base64 } : null;
+}
+
+function extractGeminiInlineImage(body: JsonRecord): GeneratedImage | null {
+  const candidates = Array.isArray(body.candidates) ? body.candidates : [];
+
+  for (const candidate of candidates) {
+    const content = (candidate as JsonRecord | undefined)?.content as
+      | JsonRecord
+      | undefined;
+    const parts = Array.isArray(content?.parts) ? content.parts : [];
+
+    for (const part of parts) {
+      if (!part || typeof part !== "object") {
+        continue;
+      }
+
+      const inline =
+        ((part as JsonRecord).inline_data as JsonRecord | undefined) ??
+        ((part as JsonRecord).inlineData as JsonRecord | undefined);
+      const base64 = getText(inline?.data);
+
+      if (base64) {
+        const mimeType =
+          getText(inline?.mime_type) || getText(inline?.mimeType) || "image/png";
+        return { base64, mimeType };
+      }
+    }
+  }
+
+  return null;
+}
+
+async function callImageGeneration(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+): Promise<ProviderCallResult> {
+  if (input.provider === "openai") {
+    return callOpenAiImage(apiKey, input, startedAt, signal);
+  }
+
+  if (input.provider === "google") {
+    return callGoogleImage(apiKey, input, startedAt, signal);
+  }
+
+  if (input.provider === "xai") {
+    return callXaiImage(apiKey, input, startedAt, signal);
+  }
+
+  throw new Error(`${input.provider}: image generation is not supported.`);
+}
+
+async function callOpenAiImage(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  const response = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      prompt: input.prompt,
+      n: 1,
+      size: "1024x1024",
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("openai", body, response.status));
+  }
+
+  const image = extractOpenAiCompatibleImage(body);
+  if (!image) {
+    throw new Error("openai: image generation returned no image data.");
+  }
+
+  return buildImageProviderResult("openai", input.model, image, startedAt);
+}
+
+async function callXaiImage(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  const response = await fetch("https://api.x.ai/v1/images/generations", {
+    method: "POST",
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: input.model,
+      prompt: input.prompt,
+      n: 1,
+      response_format: "b64_json",
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("xai", body, response.status));
+  }
+
+  const image = extractOpenAiCompatibleImage(body);
+  if (!image) {
+    throw new Error("xai: image generation returned no image data.");
+  }
+
+  return buildImageProviderResult("xai", input.model, image, startedAt);
+}
+
+async function callGoogleImage(
+  apiKey: string,
+  input: ProviderCallInput,
+  startedAt: number,
+  signal: AbortSignal,
+) {
+  // Imagen models use the dedicated :predict endpoint, while the Gemini image
+  // models return inline image bytes from the standard :generateContent route.
+  if (input.model.startsWith("imagen")) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      input.model,
+    )}:predict?key=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(url, {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        instances: [{ prompt: input.prompt }],
+        parameters: { sampleCount: 1 },
+      }),
+    });
+    const body = await readJson(response);
+
+    if (!response.ok) {
+      throw new Error(providerError("google", body, response.status));
+    }
+
+    const predictions = Array.isArray(body.predictions) ? body.predictions : [];
+    const first = predictions[0] as JsonRecord | undefined;
+    const base64 = getText(first?.bytesBase64Encoded);
+    if (!base64) {
+      throw new Error("google: image generation returned no image data.");
+    }
+
+    const mimeType = getText(first?.mimeType) || "image/png";
+    return buildImageProviderResult(
+      "google",
+      input.model,
+      { base64, mimeType },
+      startedAt,
+    );
+  }
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    input.model,
+  )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ role: "user", parts: [{ text: input.prompt }] }],
+      generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+    }),
+  });
+  const body = await readJson(response);
+
+  if (!response.ok) {
+    throw new Error(providerError("google", body, response.status));
+  }
+
+  const image = extractGeminiInlineImage(body);
+  if (!image) {
+    throw new Error("google: image generation returned no image data.");
+  }
+
+  return buildImageProviderResult("google", input.model, image, startedAt);
 }

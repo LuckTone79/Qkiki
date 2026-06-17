@@ -13,6 +13,7 @@ import {
   getModelDisplayName,
   getModelOptionLabel,
 } from "@/lib/ai/model-display";
+import { isImageDataUrl } from "@/lib/ai/image-output";
 
 export type WorkbenchResult = {
   id: string;
@@ -241,7 +242,22 @@ export function ResultCard({
     return result.outputText || t("noOutputReturned");
   }, [isRunning, language, result.errorMessage, result.outputText, result.status, t]);
 
-  const collapsedPreview = useMemo(() => firstVisibleLine(displayBody), [displayBody]);
+  const imageOutput =
+    !isRunning &&
+    result.status === "completed" &&
+    isImageDataUrl(result.outputText)
+      ? result.outputText
+      : null;
+
+  const collapsedPreview = useMemo(
+    () =>
+      imageOutput
+        ? language === "ko"
+          ? "🖼 생성된 이미지"
+          : "🖼 Generated image"
+        : firstVisibleLine(displayBody),
+    [displayBody, imageOutput, language],
+  );
 
   async function copy() {
     const copyResult = await copyTextToClipboard(
@@ -334,7 +350,27 @@ export function ResultCard({
           compact ? "p-2.5 text-[13px] leading-5" : "p-3 text-sm leading-6"
         }`}
       >
-        {expanded ? (
+        {imageOutput ? (
+          expanded ? (
+            <figure className="space-y-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imageOutput}
+                alt={language === "ko" ? "생성된 이미지" : "Generated image"}
+                className="w-full max-w-md rounded-md border border-stone-200 object-contain"
+              />
+              <a
+                href={imageOutput}
+                download={`qkiki-image-${result.id}.png`}
+                className="inline-block text-xs font-semibold text-teal-700 underline"
+              >
+                {language === "ko" ? "이미지 다운로드" : "Download image"}
+              </a>
+            </figure>
+          ) : (
+            <p className="truncate">{collapsedPreview}</p>
+          )
+        ) : expanded ? (
           <p className="whitespace-pre-wrap">{displayBody}</p>
         ) : (
           <p className="truncate">{collapsedPreview}</p>

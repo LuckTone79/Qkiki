@@ -25,6 +25,7 @@ import {
 } from "@/components/workbench/ResultCard";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import { normalizeProviderModel } from "@/lib/ai/provider-catalog";
+import { isImageDataUrl } from "@/lib/ai/image-output";
 import {
   expandWorkflowSteps,
   MAX_REPEAT_BLOCKS,
@@ -674,6 +675,23 @@ function normalizeProviderSelection(
   };
 }
 
+function normalizeImageSelection(
+  selection: Partial<ProviderSelection> | undefined,
+  provider: ProviderOption,
+): ProviderSelection {
+  const imageModels = provider.imageModels ?? [];
+  const nextModels = dedupeModels(
+    Array.isArray(selection?.models) ? selection.models : [],
+  ).filter((model) => imageModels.includes(model));
+
+  // Image generation is opt-in: default to disabled and only enabled while at
+  // least one image model is selected.
+  return {
+    enabled: Boolean(selection?.enabled) && nextModels.length > 0,
+    models: nextModels,
+  };
+}
+
 function clampInteger(value: number, min: number, max: number) {
   if (!Number.isFinite(value)) {
     return min;
@@ -1141,6 +1159,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     defaultOutputLanguageForAppLanguage(language),
   );
   const [mode, setMode] = useState<"parallel" | "sequential">("parallel");
+  const [imageMode, setImageMode] = useState(false);
+  const [imageSelections, setImageSelections] = useState<
+    Partial<Record<ProviderName, ProviderSelection>>
+  >({});
   const [workflowSteps, setWorkflowSteps] =
     useState<WorkflowStepState[]>(() => initialSteps(language));
   const [workflowControl, setWorkflowControl] = useState<WorkflowControlState>(
@@ -2086,7 +2108,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         (result) =>
           result.parentResultId === null &&
           result.status === "completed" &&
-          Boolean(result.outputText?.trim()),
+          Boolean(result.outputText?.trim()) &&
+          // Generated images cannot be compared as text.
+          !isImageDataUrl(result.outputText),
       )
       .forEach((result) => {
         const key = `${result.provider}:${result.model}`;
@@ -2284,6 +2308,32 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     });
   }, [providers, selections]);
 
+  const imageProviders = useMemo(
+    () => providers.filter((provider) => (provider.imageModels?.length ?? 0) > 0),
+    [providers],
+  );
+
+  const selectedImageTargets = useMemo<TargetModelInput[]>(() => {
+    return imageProviders.flatMap((provider) => {
+      const selection = normalizeImageSelection(
+        imageSelections[provider.providerName],
+        provider,
+      );
+
+      if (!selection.enabled || !selection.models.length) {
+        return [];
+      }
+
+      return selection.models.map((model) => ({
+        provider: provider.providerName,
+        model,
+      }));
+    });
+  }, [imageProviders, imageSelections]);
+
+  const effectiveMode = imageMode ? "parallel" : mode;
+  const effectiveTargets = imageMode ? selectedImageTargets : selectedTargets;
+
   const normalizedWorkflowControl = useMemo(
     () => normalizeWorkflowControlState(workflowControl, workflowSteps.length),
     [workflowControl, workflowSteps.length],
@@ -2323,19 +2373,20 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const runCreditEstimate = useMemo(
     () =>
       estimateWorkbenchRunCredits({
-        mode,
+        mode: effectiveMode,
         originalInput,
         additionalInstruction,
-        targets: selectedTargets,
-        steps: workflowSteps,
+        targets: effectiveTargets,
+        steps: imageMode ? [] : workflowSteps,
         workflowControl: workflowControlToInput(normalizedWorkflowControl),
       }),
     [
       additionalInstruction,
-      mode,
+      effectiveMode,
+      effectiveTargets,
+      imageMode,
       normalizedWorkflowControl,
       originalInput,
-      selectedTargets,
       workflowSteps,
     ],
   );
@@ -2658,7 +2709,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         (result) =>
           result.parentResultId === null &&
           result.status === "completed" &&
-          Boolean(result.outputText?.trim()),
+          Boolean(result.outputText?.trim()) &&
+          // Generated images cannot be compared as text.
+          !isImageDataUrl(result.outputText),
       )
       .forEach((result) => {
         const key = `${result.provider}:${result.model}`;
@@ -3472,17 +3525,26 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       return;
     }
 
-    if (mode === "parallel" && !selectedTargets.length) {
+    if (imageMode && !selectedImageTargets.length) {
+      setError(
+        language === "ko"
+          ? "이미지 생성 모델을 한 개 이상 선택하세요."
+          : "Select at least one image generation model.",
+      );
+      return;
+    }
+
+    if (!imageMode && mode === "parallel" && !selectedTargets.length) {
       setError(t("enableProviderShort"));
       return;
     }
 
-    if (mode === "sequential" && !workflowSteps.length) {
+    if (!imageMode && mode === "sequential" && !workflowSteps.length) {
       setError(builderText.minimumStepNotice);
       return;
     }
 
-    if (mode === "sequential" && exceedsSequentialLimit) {
+    if (!imageMode && mode === "sequential" && exceedsSequentialLimit) {
       setError(builderText.totalLimitNotice);
       return;
     }
@@ -3495,9 +3557,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     setProgressNow(Date.now());
     setStoppingStepIndexes(new Set<number>());
     resetResultBoardControls();
-    setRunMonitor(createRunMonitor(mode));
+    setRunMonitor(createRunMonitor(effectiveMode));
     focusProgressPanel();
-    if (mode === "parallel") {
+    if (effectiveMode === "parallel") {
       setParallelComparison({ signature: "", status: "idle" });
     }
     setCurrentRunId("pending");
@@ -3511,9 +3573,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       outputStyle,
       outputLanguage,
       attachments,
-      mode,
-      targets: selectedTargets,
-      workflowSteps,
+      mode: effectiveMode,
+      targets: effectiveTargets,
+      workflowSteps: imageMode ? [] : workflowSteps,
       workflowControl: workflowControlToInput(normalizedWorkflowControl),
     });
     let data: ({
@@ -4152,59 +4214,110 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
       <div
         className={`grid gap-5 ${
-          mode === "parallel" ? "xl:grid-cols-[320px_minmax(0,1fr)]" : "xl:grid-cols-1"
+          effectiveMode === "parallel"
+            ? "xl:grid-cols-[320px_minmax(0,1fr)]"
+            : "xl:grid-cols-1"
         }`}
       >
-        {mode === "parallel" ? (
+        {effectiveMode === "parallel" ? (
           <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
             <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
               <h2 className="text-sm font-semibold text-stone-950">
-                {t("modelSelection")}
+                {imageMode
+                  ? language === "ko"
+                    ? "이미지 생성 모델"
+                    : "Image generation models"
+                  : t("modelSelection")}
               </h2>
               <p className="mt-1 text-xs leading-5 text-stone-600">
-                {t("enableProviderShort")}
+                {imageMode
+                  ? language === "ko"
+                    ? "이미지를 생성할 모델을 선택하세요. 선택한 모델별로 이미지가 만들어집니다."
+                    : "Pick the models that should generate images. Each selected model produces an image."
+                  : t("enableProviderShort")}
               </p>
               <div className="mt-4 space-y-3">
-                {providers.map((provider) => {
-                  const selection = normalizeProviderSelection(
-                    selections[provider.providerName],
-                    provider,
-                  );
+                {imageMode
+                  ? imageProviders.map((provider) => {
+                      const selection = normalizeImageSelection(
+                        imageSelections[provider.providerName],
+                        provider,
+                      );
 
-                  return (
-                    <ProviderSelectorRow
-                      key={provider.providerName}
-                      provider={provider}
-                      enabled={selection.enabled}
-                      selectedModels={selection.models}
-                      onEnabledChange={(enabled) =>
-                        setSelections((current) => {
-                          const currentSelection = normalizeProviderSelection(
-                            current[provider.providerName],
-                            provider,
-                          );
-                          return {
-                            ...current,
-                            [provider.providerName]: nextProviderSelectionForEnabledChange(
-                              currentSelection,
-                              provider.defaultModel,
-                              enabled,
-                            ),
-                          };
-                        })
-                      }
-                      onSelectedModelsChange={(models) =>
-                        setSelections((current) => ({
-                          ...current,
-                          [provider.providerName]: {
-                            enabled: models.length > 0,
-                            models: dedupeModels(models),
-                          },
-                        }))
-                      }
-                    />
-                  );
-                })}
+                      return (
+                        <ProviderSelectorRow
+                          key={`image-${provider.providerName}`}
+                          provider={provider}
+                          variant="image"
+                          availableModels={provider.imageModels}
+                          enabled={selection.enabled}
+                          selectedModels={selection.models}
+                          onEnabledChange={(enabled) =>
+                            setImageSelections((current) => ({
+                              ...current,
+                              [provider.providerName]: {
+                                enabled,
+                                models: enabled
+                                  ? normalizeImageSelection(
+                                      current[provider.providerName],
+                                      provider,
+                                    ).models
+                                  : [],
+                              },
+                            }))
+                          }
+                          onSelectedModelsChange={(models) =>
+                            setImageSelections((current) => ({
+                              ...current,
+                              [provider.providerName]: {
+                                enabled: models.length > 0,
+                                models: dedupeModels(models),
+                              },
+                            }))
+                          }
+                        />
+                      );
+                    })
+                  : providers.map((provider) => {
+                      const selection = normalizeProviderSelection(
+                        selections[provider.providerName],
+                        provider,
+                      );
+
+                      return (
+                        <ProviderSelectorRow
+                          key={provider.providerName}
+                          provider={provider}
+                          enabled={selection.enabled}
+                          selectedModels={selection.models}
+                          onEnabledChange={(enabled) =>
+                            setSelections((current) => {
+                              const currentSelection = normalizeProviderSelection(
+                                current[provider.providerName],
+                                provider,
+                              );
+                              return {
+                                ...current,
+                                [provider.providerName]: nextProviderSelectionForEnabledChange(
+                                  currentSelection,
+                                  provider.defaultModel,
+                                  enabled,
+                                ),
+                              };
+                            })
+                          }
+                          onSelectedModelsChange={(models) =>
+                            setSelections((current) => ({
+                              ...current,
+                              [provider.providerName]: {
+                                enabled: models.length > 0,
+                                models: dedupeModels(models),
+                              },
+                            }))
+                          }
+                        />
+                      );
+                    })}
               </div>
             </div>
           </aside>
@@ -4227,12 +4340,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
               <div className="overflow-x-auto">
                 <div className="flex min-w-max items-center gap-2">
-                  <div className="inline-flex rounded-md border border-stone-200 bg-white p-1">
+                  <div
+                    className={`inline-flex rounded-md border border-stone-200 bg-white p-1 ${
+                      imageMode ? "pointer-events-none opacity-40" : ""
+                    }`}
+                  >
                     <button
                       type="button"
                       onClick={() => setMode("parallel")}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
-                        mode === "parallel"
+                        !imageMode && mode === "parallel"
                           ? "bg-stone-950 text-white shadow-sm"
                           : "text-stone-600 hover:bg-stone-50"
                       }`}
@@ -4243,7 +4360,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       type="button"
                       onClick={() => setMode("sequential")}
                       className={`rounded px-3 py-2 text-sm font-semibold ${
-                        mode === "sequential"
+                        !imageMode && mode === "sequential"
                           ? "bg-stone-950 text-white shadow-sm"
                           : "text-stone-600 hover:bg-stone-50"
                       }`}
@@ -4251,6 +4368,24 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       {t("sequentialReviewChain")}
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    aria-pressed={imageMode}
+                    onClick={() => {
+                      const next = !imageMode;
+                      setImageMode(next);
+                      if (next) {
+                        setMode("parallel");
+                      }
+                    }}
+                    className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+                      imageMode
+                        ? "border-teal-600 bg-teal-700 text-white shadow-sm"
+                        : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
+                    }`}
+                  >
+                    {language === "ko" ? "🖼 이미지 생성" : "🖼 Image"}
+                  </button>
                   <button
                     type="button"
                     onClick={copyOriginalInputText}
@@ -5060,7 +5195,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           </div>
         </div>
 
-        {mode === "parallel" ? (
+        {mode === "parallel" && !imageMode ? (
           <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
@@ -5148,7 +5283,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           </div>
         ) : null}
 
-        {mode === "parallel" && parallelComparisonPanel.detached ? (
+        {mode === "parallel" && !imageMode && parallelComparisonPanel.detached ? (
           <div
             className="fixed inset-0 z-50 flex items-start justify-center bg-stone-950/45 px-4 py-6 sm:px-6"
             onClick={() =>

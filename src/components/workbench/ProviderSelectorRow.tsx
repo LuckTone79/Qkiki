@@ -11,6 +11,7 @@ export type ProviderOption = {
   displayName: string;
   shortName: string;
   models: string[];
+  imageModels: string[];
   defaultModel: string;
   fallbackProvider: ProviderName | null;
   isEnabled: boolean;
@@ -23,6 +24,12 @@ type ProviderSelectorRowProps = {
   selectedModels: string[];
   onEnabledChange: (enabled: boolean) => void;
   onSelectedModelsChange: (models: string[]) => void;
+  /**
+   * Models to offer for selection. Defaults to the provider's text models; the
+   * image-generation panel passes the provider's image models instead.
+   */
+  availableModels?: string[];
+  variant?: "text" | "image";
 };
 
 export function ProviderSelectorRow({
@@ -31,8 +38,12 @@ export function ProviderSelectorRow({
   selectedModels,
   onEnabledChange,
   onSelectedModelsChange,
+  availableModels,
+  variant = "text",
 }: ProviderSelectorRowProps) {
   const { language } = useLanguage();
+  const models = availableModels ?? provider.models;
+  const isImageVariant = variant === "image";
   const isReady = provider.status === "ready";
   const fallbackProviderLabel = provider.fallbackProvider
     ? provider.fallbackProvider.toUpperCase()
@@ -78,24 +89,30 @@ export function ProviderSelectorRow({
           </span>
         </div>
         <p className="mb-2 text-[11px] leading-5 text-stone-500">
-          {provider.fallbackProvider
+          {isImageVariant
             ? language === "ko"
-              ? `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`
-              : `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`
-            : language === "ko"
-              ? "선택한 모델 그대로 실행합니다."
-              : "Runs with the exact model you selected."}
+              ? "선택한 이미지 생성 모델로 이미지를 만듭니다."
+              : "Generates images with the image models you select."
+            : provider.fallbackProvider
+              ? language === "ko"
+                ? `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`
+                : `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`
+              : language === "ko"
+                ? "선택한 모델 그대로 실행합니다."
+                : "Runs with the exact model you selected."}
         </p>
         <div className="flex flex-wrap gap-2">
-          {provider.models.map((option) => {
+          {models.map((option) => {
             const checked = selectedModels.includes(option);
             const label = getModelOptionLabel(provider.providerName, option);
-            const guidance = getModelGuidance(
-              provider.providerName,
-              option,
-              provider.defaultModel,
-              language,
-            );
+            const guidance = isImageVariant
+              ? null
+              : getModelGuidance(
+                  provider.providerName,
+                  option,
+                  provider.defaultModel,
+                  language,
+                );
             return (
               <label
                 key={option}
@@ -118,21 +135,23 @@ export function ProviderSelectorRow({
                   className="mr-1 accent-teal-700"
                 />
                 <span>{label}</span>
-                <span className="mt-1 flex flex-wrap gap-1">
-                  {guidance.recommended ? (
-                    <span className="rounded-full border border-teal-200 bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">
-                      {guidance.recommendedLabel}
-                    </span>
-                  ) : null}
-                  {guidance.traits.map((trait) => (
-                    <span
-                      key={`${option}-${trait}`}
-                      className="rounded-full border border-stone-200 bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600"
-                    >
-                      {trait}
-                    </span>
-                  ))}
-                </span>
+                {guidance ? (
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {guidance.recommended ? (
+                      <span className="rounded-full border border-teal-200 bg-teal-100 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800">
+                        {guidance.recommendedLabel}
+                      </span>
+                    ) : null}
+                    {guidance.traits.map((trait) => (
+                      <span
+                        key={`${option}-${trait}`}
+                        className="rounded-full border border-stone-200 bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-600"
+                      >
+                        {trait}
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
               </label>
             );
           })}

@@ -8,7 +8,9 @@ import {
   hydrateRuntimeAttachments,
   type RuntimeAttachment,
 } from "@/lib/attachments";
-import { composePrompt } from "@/lib/ai/prompt";
+import { composeImagePrompt, composePrompt } from "@/lib/ai/prompt";
+import { isImageDataUrl, textOutputForPrompt } from "@/lib/ai/image-output";
+import { isImageModel } from "@/lib/ai/provider-catalog";
 import { callProvider } from "@/lib/ai/providers";
 import { shouldEnableProviderWebSearch } from "@/lib/ai/provider-web-search";
 import { getParallelComparisonSummaryTarget } from "@/lib/ai/summary-model";
@@ -630,7 +632,10 @@ export async function generateParallelComparisonSummary(input: {
     (result) =>
       result.status === "completed" &&
       typeof result.outputText === "string" &&
-      result.outputText.trim().length > 0,
+      result.outputText.trim().length > 0 &&
+      // Generated images are stored as data URLs; they cannot be summarized as
+      // text, so they are excluded from the parallel comparison.
+      !isImageDataUrl(result.outputText),
   );
 
   if (comparableResults.length < 2) {
@@ -1016,14 +1021,19 @@ export async function executeParallelRun(input: {
         requestType: "generate",
         attachments: runtimeAttachments,
         allowFallback: shouldAllowConfiguredProviderFallback("parallel"),
-        prompt: composePrompt({
-          actionType: "generate",
-          originalInput: input.session.originalInput,
-          additionalInstruction: input.session.additionalInstruction,
-          projectContext,
-          outputStyle: input.session.outputStyle,
-          outputLanguage: input.session.outputLanguage,
-        }),
+        prompt: isImageModel(target.provider, target.model)
+          ? composeImagePrompt({
+              originalInput: input.session.originalInput,
+              additionalInstruction: input.session.additionalInstruction,
+            })
+          : composePrompt({
+              actionType: "generate",
+              originalInput: input.session.originalInput,
+              additionalInstruction: input.session.additionalInstruction,
+              projectContext,
+              outputStyle: input.session.outputStyle,
+              outputLanguage: input.session.outputLanguage,
+            }),
       }),
     ),
   );
@@ -1124,14 +1134,19 @@ export async function executeParallelRunIncremental(input: {
               result: startedResult,
             });
           },
-          prompt: composePrompt({
-            actionType: "generate",
-            originalInput: input.session.originalInput,
-            additionalInstruction: input.session.additionalInstruction,
-            projectContext,
-            outputStyle: input.session.outputStyle,
-            outputLanguage: input.session.outputLanguage,
-          }),
+          prompt: isImageModel(target.provider, target.model)
+            ? composeImagePrompt({
+                originalInput: input.session.originalInput,
+                additionalInstruction: input.session.additionalInstruction,
+              })
+            : composePrompt({
+                actionType: "generate",
+                originalInput: input.session.originalInput,
+                additionalInstruction: input.session.additionalInstruction,
+                projectContext,
+                outputStyle: input.session.outputStyle,
+                outputLanguage: input.session.outputLanguage,
+              }),
         });
 
         await input.callbacks?.onResult?.({ index, result });
@@ -1175,7 +1190,7 @@ export async function resolveSourceText(input: {
   await ensureResultExecutionRunIdColumn();
   if (input.sourceMode === "previous") {
     return truncatePromptContext(
-      input.previousResultText || "",
+      textOutputForPrompt(input.previousResultText),
       MAX_SOURCE_TEXT_CHARS,
       "Source result",
     );
@@ -1190,7 +1205,7 @@ export async function resolveSourceText(input: {
       },
     });
     return truncatePromptContext(
-      result?.outputText || result?.errorMessage || "",
+      textOutputForPrompt(result?.outputText) || result?.errorMessage || "",
       MAX_SOURCE_TEXT_CHARS,
       "Source result",
     );
@@ -1224,7 +1239,7 @@ export async function resolveSourceText(input: {
         .map((result, index) =>
         [
           `Result ${index + 1} (${result.provider}/${result.model})`,
-          result.outputText ||
+          textOutputForPrompt(result.outputText) ||
             (result.status === "failed"
               ? `This result failed and produced no usable output: ${result.errorMessage || "unknown error"}`
               : result.errorMessage || ""),
@@ -1942,7 +1957,7 @@ export async function executeBranchRun(input: {
           projectContext,
           outputStyle: parent.session.outputStyle,
           outputLanguage: input.outputLanguage,
-          sourceText: parent.outputText || parent.errorMessage || "",
+          sourceText: textOutputForPrompt(parent.outputText) || parent.errorMessage || "",
           instructionTemplate: input.instruction,
         }),
       }),

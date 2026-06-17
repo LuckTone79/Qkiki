@@ -46,6 +46,22 @@ export function getActionLabel(actionType: ActionType) {
 }
 
 /**
+ * Image-generation models take the visual description directly. We deliberately
+ * skip the orchestration boilerplate (role framing, output language/style,
+ * "return only the response" directives) that `composePrompt` adds for text
+ * models, because that text would otherwise be drawn into the generated image.
+ */
+export function composeImagePrompt(input: {
+  originalInput: string;
+  additionalInstruction?: string | null;
+}) {
+  return [input.originalInput, input.additionalInstruction]
+    .map((part) => part?.trim() || "")
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/**
  * Heading used to introduce the source/prior-results block. Brainstorm steps
  * frame it as a living multi-model discussion to extend; other actions treat
  * it as a single source to work from. Exported so runners that deliver the
