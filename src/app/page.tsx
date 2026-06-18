@@ -106,7 +106,7 @@ export default function LandingPage() {
           </p>
           <Link
             href="/guide"
-            className="group mt-5 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/15 px-5 py-2.5 text-sm font-semibold text-white shadow-lg ring-1 ring-black/5 backdrop-blur-md transition hover:border-white hover:bg-white hover:text-[#171a20]"
+            className="mt-5 inline-flex items-center gap-2 rounded bg-white/90 px-6 py-3 text-sm font-semibold tracking-wide text-[#171a20] shadow-lg backdrop-blur transition hover:bg-white"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
