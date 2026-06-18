@@ -226,6 +226,9 @@ export function AdminCouponsClient() {
   const [quantity, setQuantity] = useState("1");
   const [loading, setLoading] = useState(false);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [createdCodes, setCreatedCodes] = useState<string[]>([]);
@@ -267,6 +270,10 @@ export function AdminCouponsClient() {
           ? t.copied
           : `${codes.length}${language === "ko" ? "" : " "}${t.copiedMany}`,
       );
+      if (codes.length === 1) {
+        setCopiedCode(codes[0]);
+        setTimeout(() => setCopiedCode(null), 1500);
+      }
     } catch {
       setError(t.failedCopy);
     }
@@ -314,23 +321,29 @@ export function AdminCouponsClient() {
   }
 
   async function deactivateCoupon(id: string) {
+    if (deactivatingId) return;
+    setDeactivatingId(id);
     setError("");
     setNotice("");
 
-    const response = await fetch(`/api/admin/coupons/${id}/deactivate`, {
-      method: "POST",
-    });
-    const data = (await response.json().catch(() => ({}))) as {
-      error?: string;
-    };
+    try {
+      const response = await fetch(`/api/admin/coupons/${id}/deactivate`, {
+        method: "POST",
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
 
-    if (!response.ok) {
-      setError(data.error || t.failedDeactivate);
-      return;
+      if (!response.ok) {
+        setError(data.error || t.failedDeactivate);
+        return;
+      }
+
+      setNotice(t.couponDeactivated);
+      await loadCoupons();
+    } finally {
+      setDeactivatingId(null);
     }
-
-    setNotice(t.couponDeactivated);
-    await loadCoupons();
   }
 
   async function saveCouponNote(id: string) {
@@ -389,6 +402,7 @@ export function AdminCouponsClient() {
       return;
     }
 
+    setDeletingCouponId(id);
     setError("");
     setNotice("");
 
@@ -411,6 +425,7 @@ export function AdminCouponsClient() {
       return next;
     });
     setNotice(t.couponDeleted);
+    setDeletingCouponId(null);
     await loadCoupons();
   }
 
@@ -729,9 +744,9 @@ export function AdminCouponsClient() {
               <button
                 type="button"
                 onClick={() => copyCodes([coupon.code])}
-                className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                className={`min-h-10 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${copiedCode === coupon.code ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-300 text-slate-700 hover:bg-slate-100"}`}
               >
-                {t.copy}
+                {copiedCode === coupon.code ? (language === "ko" ? "복사됨 ✓" : "Copied ✓") : t.copy}
               </button>
               <button
                 type="button"
@@ -745,17 +760,23 @@ export function AdminCouponsClient() {
                 <button
                   type="button"
                   onClick={() => deactivateCoupon(coupon.id)}
-                  className="min-h-10 rounded-md border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                  disabled={deactivatingId === coupon.id}
+                  className="min-h-10 rounded-md border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {t.deactivate}
+                  {deactivatingId === coupon.id
+                    ? (language === "ko" ? "비활성화 중…" : "Deactivating…")
+                    : t.deactivate}
                 </button>
               ) : null}
               <button
                 type="button"
                 onClick={() => deleteCoupon(coupon.id)}
-                className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                disabled={deletingCouponId === coupon.id}
+                className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {t.delete}
+                {deletingCouponId === coupon.id
+                  ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                  : t.delete}
               </button>
             </div>
           </article>

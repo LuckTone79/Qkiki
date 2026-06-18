@@ -65,3 +65,19 @@
 - 변경 파일 단위 테스트 통과: `canonical-host`, `prompt`, `workbench-run-payload`,
   `billing-plans` — **34/34 pass**
 - `src/` 잔여 `qkiki` 참조는 위 표의 의도적 내부 식별자만 남음(전수 확인 완료)
+
+---
+
+## 추가: 글자수 제한 제거
+
+글자수(입력 문자 수) 제한 게이트를 완전히 제거했습니다.
+
+입력 비용은 크레딧 시스템이 정확하게 과금하고 있어 글자수 하드 차단은 불필요한 중복 제어로 판단, 완전 제거함.
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/lib/billing-plans.ts` | `PlanLimitPolicy`에서 `inputCharLimit` 필드 제거, 전 플랜 설정에서 해당 값 제거 |
+| `src/lib/usage-policy.ts` | `UsageInputLimitError` 클래스 삭제, `UsageStatusSummary`/`ResolvedUsagePolicy`에서 `inputCharLimit` 필드 제거, `requireUsageAccess()`의 글자수 차단 체크 제거 |
+| `src/lib/api-auth.ts` | `UsageInputLimitError` import 제거, `INPUT_TOO_LONG` 에러 응답 핸들러 제거 |
+| `src/lib/usage-types.ts` | `UsageStatus`에서 `inputCharLimit` 필드 제거, `UsageErrorPayload`에서 `"INPUT_TOO_LONG"` 코드 제거 |
+| `src/app/app/pricing/page.tsx` | "Input limit" 표시 항목 제거 |

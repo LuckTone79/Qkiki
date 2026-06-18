@@ -104,15 +104,9 @@ export default function LandingPage() {
           <p className="mt-4 max-w-xl text-base leading-7 text-white/85 sm:text-lg">
             {t("landingDescription")}
           </p>
-          <Link
-            href="/guide"
-            className="mt-3 text-sm font-medium text-white/85 underline-offset-4 hover:underline"
-          >
-            {guideLabel}
-          </Link>
         </div>
 
-        <div className="relative z-10 mb-12 flex w-full max-w-2xl flex-col gap-3 px-5 sm:flex-row sm:px-8">
+        <div className="relative z-10 mb-12 flex w-full max-w-3xl flex-col gap-3 px-5 sm:flex-row sm:px-8">
           <button
             type="button"
             onClick={handleTrialStart}
@@ -121,6 +115,12 @@ export default function LandingPage() {
           >
             {isLoading ? "Loading..." : t("getStarted")}
           </button>
+          <Link
+            href="/guide"
+            className="flex-1 rounded bg-white/95 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-[#171a20] backdrop-blur transition hover:bg-white"
+          >
+            {guideLabel}
+          </Link>
           <Link
             href="/sign-in"
             className="flex-1 rounded bg-black/45 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-white backdrop-blur transition hover:bg-black/60"

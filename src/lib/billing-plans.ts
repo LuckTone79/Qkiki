@@ -4,7 +4,6 @@ export type PlanLimitPolicy = {
   // when the system was unified onto credits.
   monthlyCreditLimit: number;
   dailyCreditLimit: number;
-  inputCharLimit: number;
 };
 
 export type PaidPlanKey = "starter" | "pro" | "team";
@@ -14,33 +13,27 @@ export const QKIKI_PLAN_LIMITS = {
   anon: {
     monthlyCreditLimit: 900,
     dailyCreditLimit: 30,
-    inputCharLimit: 2000,
   },
   free: {
     monthlyCreditLimit: 350,
     dailyCreditLimit: 70,
-    inputCharLimit: 3000,
   },
   // Welcome boost granted to brand-new signed-in users for a short window.
   boost: {
     monthlyCreditLimit: 900,
     dailyCreditLimit: 150,
-    inputCharLimit: 5000,
   },
   starter: {
     monthlyCreditLimit: 800,
     dailyCreditLimit: 150,
-    inputCharLimit: 12000,
   },
   pro: {
     monthlyCreditLimit: 2200,
     dailyCreditLimit: 450,
-    inputCharLimit: 60000,
   },
   team: {
     monthlyCreditLimit: 7000,
     dailyCreditLimit: 1400,
-    inputCharLimit: 100000,
   },
 } satisfies Record<string, PlanLimitPolicy>;
 

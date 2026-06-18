@@ -91,6 +91,9 @@ export function PresetsClient() {
   const [presets, setPresets] = useState<Preset[]>([]);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamedId, setRenamedId] = useState<string | null>(null);
+  const [deletingPresetId, setDeletingPresetId] = useState<string | null>(null);
 
   async function loadPresets() {
     const response = await fetch("/api/presets");
@@ -113,19 +116,26 @@ export function PresetsClient() {
 
   async function renamePreset(preset: Preset) {
     const name = editing[preset.id]?.trim();
-    if (!name) {
+    if (!name || renamingId) {
       return;
     }
 
-    const response = await fetch(`/api/presets/${preset.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
+    setRenamingId(preset.id);
+    try {
+      const response = await fetch(`/api/presets/${preset.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
 
-    if (response.ok) {
-      await loadPresets();
-      setEditing((current) => ({ ...current, [preset.id]: "" }));
+      if (response.ok) {
+        await loadPresets();
+        setEditing((current) => ({ ...current, [preset.id]: "" }));
+        setRenamedId(preset.id);
+        setTimeout(() => setRenamedId(null), 1500);
+      }
+    } finally {
+      setRenamingId(null);
     }
   }
 
@@ -134,9 +144,14 @@ export function PresetsClient() {
       return;
     }
 
-    const response = await fetch(`/api/presets/${id}`, { method: "DELETE" });
-    if (response.ok) {
-      setPresets((current) => current.filter((preset) => preset.id !== id));
+    setDeletingPresetId(id);
+    try {
+      const response = await fetch(`/api/presets/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setPresets((current) => current.filter((preset) => preset.id !== id));
+      }
+    } finally {
+      setDeletingPresetId(null);
     }
   }
 
@@ -205,9 +220,14 @@ export function PresetsClient() {
                     <button
                       type="button"
                       onClick={() => renamePreset(preset)}
-                      className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                      disabled={renamingId === preset.id}
+                      className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${renamedId === preset.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                     >
-                      {t("rename")}
+                      {renamingId === preset.id
+                        ? (language === "ko" ? "저장 중…" : "Saving…")
+                        : renamedId === preset.id
+                          ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                          : t("rename")}
                     </button>
                     <Link
                       href={`/app/workbench?preset=${preset.id}`}
@@ -218,9 +238,12 @@ export function PresetsClient() {
                     <button
                       type="button"
                       onClick={() => deletePreset(preset.id)}
-                      className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                      disabled={deletingPresetId === preset.id}
+                      className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {t("delete")}
+                      {deletingPresetId === preset.id
+                        ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                        : t("delete")}
                     </button>
                   </div>
                 </div>

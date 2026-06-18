@@ -97,6 +97,10 @@ export function SessionsClient() {
   const [sessions, setSessions] = useState<SessionListItem[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [copyingInputId, setCopyingInputId] = useState<string | null>(null);
+  const [copiedInputId, setCopiedInputId] = useState<string | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function loadSessions() {
     const response = await fetch("/api/sessions");
@@ -118,23 +122,29 @@ export function SessionsClient() {
   }
 
   async function duplicateSession(id: string) {
-    const response = await fetch(`/api/sessions/${id}/duplicate`, {
-      method: "POST",
-    });
-    const data = (await response.json().catch(() => ({}))) as {
-      error?: string;
-    };
+    if (duplicatingId) return;
+    setDuplicatingId(id);
+    try {
+      const response = await fetch(`/api/sessions/${id}/duplicate`, {
+        method: "POST",
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
 
-    if (!response.ok) {
-      setError(
-        language === "ko"
-          ? t("couldNotDuplicateSession")
-          : data.error || t("couldNotDuplicateSession"),
-      );
-      return;
+      if (!response.ok) {
+        setError(
+          language === "ko"
+            ? t("couldNotDuplicateSession")
+            : data.error || t("couldNotDuplicateSession"),
+        );
+        return;
+      }
+
+      await loadSessions();
+    } finally {
+      setDuplicatingId(null);
     }
-
-    await loadSessions();
   }
 
   async function deleteSession(id: string) {
@@ -142,20 +152,35 @@ export function SessionsClient() {
       return;
     }
 
-    const response = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
-    if (response.ok) {
-      setSessions((current) => current.filter((session) => session.id !== id));
+    setDeletingId(id);
+    try {
+      const response = await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setSessions((current) => current.filter((session) => session.id !== id));
+      }
+    } finally {
+      setDeletingId(null);
     }
   }
 
-  async function copySessionInput(originalInput: string) {
-    const outcome = await copyTextToClipboard(originalInput);
-    setNotice(
-      buildSessionInputCopyNotice({
-        language,
-        copied: outcome.copied,
-      }),
-    );
+  async function copySessionInput(id: string, originalInput: string) {
+    if (copyingInputId) return;
+    setCopyingInputId(id);
+    try {
+      const outcome = await copyTextToClipboard(originalInput);
+      setNotice(
+        buildSessionInputCopyNotice({
+          language,
+          copied: outcome.copied,
+        }),
+      );
+      if (outcome.copied) {
+        setCopiedInputId(id);
+        setTimeout(() => setCopiedInputId(null), 1500);
+      }
+    } finally {
+      setCopyingInputId(null);
+    }
   }
 
   useEffect(() => {
@@ -238,17 +263,23 @@ export function SessionsClient() {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => copySessionInput(session.originalInput)}
-                    className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                    onClick={() => copySessionInput(session.id, session.originalInput)}
+                    disabled={!!copyingInputId}
+                    className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${copiedInputId === session.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                   >
-                    {language === "ko" ? "질문 복사" : "Copy input"}
+                    {copiedInputId === session.id
+                      ? (language === "ko" ? "복사됨" : "Copied")
+                      : (language === "ko" ? "질문 복사" : "Copy input")}
                   </button>
                   <button
                     type="button"
                     onClick={() => duplicateSession(session.id)}
-                    className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                    disabled={duplicatingId === session.id}
+                    className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {t("duplicate")}
+                    {duplicatingId === session.id
+                      ? (language === "ko" ? "복제 중…" : "Duplicating…")
+                      : t("duplicate")}
                   </button>
                   <AddToProjectButton
                     payload={{
@@ -261,9 +292,12 @@ export function SessionsClient() {
                   <button
                     type="button"
                     onClick={() => deleteSession(session.id)}
-                    className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                    disabled={deletingId === session.id}
+                    className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {t("delete")}
+                    {deletingId === session.id
+                      ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                      : t("delete")}
                   </button>
                 </div>
               </div>

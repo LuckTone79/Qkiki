@@ -53,6 +53,7 @@ export function ProjectsClient() {
   const [sharedContext, setSharedContext] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
   const hasProjects = useMemo(() => projects.length > 0, [projects]);
 
   async function loadProjects() {
@@ -76,11 +77,13 @@ export function ProjectsClient() {
 
   async function createProject(event: FormEvent) {
     event.preventDefault();
+    if (creatingProject) return;
     const submitter = (event.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null;
     const shouldStartConversation = submitter?.dataset.start === "true";
     setError("");
     setNotice("");
+    setCreatingProject(true);
 
     const response = await fetch("/api/projects", {
       method: "POST",
@@ -98,6 +101,7 @@ export function ProjectsClient() {
           ? t("couldNotCreateProject")
           : data.error || t("couldNotCreateProject"),
       );
+      setCreatingProject(false);
       return;
     }
 
@@ -105,6 +109,7 @@ export function ProjectsClient() {
     setDescription("");
     setSharedContext("");
     setShowCreate(false);
+    setCreatingProject(false);
 
     if (shouldStartConversation) {
       window.location.href = `/app/workbench?project=${data.project.id}`;
@@ -196,16 +201,22 @@ export function ProjectsClient() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="submit"
-              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+              disabled={creatingProject}
+              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t("createProject")}
+              {creatingProject
+                ? (language === "ko" ? "생성 중…" : "Creating…")
+                : t("createProject")}
             </button>
             <button
               type="submit"
               data-start="true"
-              className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+              disabled={creatingProject}
+              className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t("createAndStart")}
+              {creatingProject
+                ? (language === "ko" ? "생성 중…" : "Creating…")
+                : t("createAndStart")}
             </button>
           </div>
         </form>

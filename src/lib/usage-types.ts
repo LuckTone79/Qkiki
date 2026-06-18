@@ -25,14 +25,13 @@ export type UsageStatus = {
   totalCreditsAvailable: number;
   totalDailyCreditsAvailable: number;
   isCreditLimitReached: boolean;
-  inputCharLimit: number;
   warningThresholdReached: boolean;
   resetAt: string;
 };
 
 export type UsageErrorPayload = {
   error?: string;
-  code?: "INPUT_TOO_LONG" | "CREDIT_LIMIT_REACHED";
+  code?: "CREDIT_LIMIT_REACHED";
   redirectUrl?: string;
   usage?: UsageStatus;
 };

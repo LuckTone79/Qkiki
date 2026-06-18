@@ -84,9 +84,6 @@ export default async function PricingPage(props: PricingPageProps) {
               <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
                 Daily credit cap: {plan.limits.dailyCreditLimit.toLocaleString("en-US")}
               </li>
-              <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
-                Input limit: {plan.limits.inputCharLimit.toLocaleString("en-US")} chars
-              </li>
             </ul>
           </article>
         ))}

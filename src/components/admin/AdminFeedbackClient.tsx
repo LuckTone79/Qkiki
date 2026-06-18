@@ -85,17 +85,19 @@ export function AdminFeedbackClient() {
           />
           <button
             type="submit"
-            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+            disabled={loading}
+            className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {ko ? "검색" : "Search"}
+            {loading ? (ko ? "검색 중…" : "Searching…") : ko ? "검색" : "Search"}
           </button>
         </form>
         <select
           value={statusFilter}
+          disabled={loading}
           onChange={(event) =>
             setStatusFilter(event.target.value as "" | FeedbackStatusValue)
           }
-          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
+          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <option value="">{ko ? "전체 상태" : "All statuses"}</option>
           {FEEDBACK_STATUS_VALUES.map((value) => (

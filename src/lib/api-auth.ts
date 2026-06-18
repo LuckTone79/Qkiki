@@ -4,10 +4,7 @@ import {
   ActiveRunLimitReachedError,
   ActiveSessionRunExistsError,
 } from "@/lib/execution-runs";
-import {
-  UsageCreditLimitReachedError,
-  UsageInputLimitError,
-} from "@/lib/usage-policy";
+import { UsageCreditLimitReachedError } from "@/lib/usage-policy";
 
 export class ApiUnauthorizedError extends Error {
   redirectUrl?: string;
@@ -68,16 +65,6 @@ export function apiErrorResponse(error: unknown) {
         usage: error.summary,
       },
       { status: 403 },
-    );
-  }
-  if (error instanceof UsageInputLimitError) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: "INPUT_TOO_LONG",
-        usage: error.summary,
-      },
-      { status: 400 },
     );
   }
   if (error instanceof ActiveRunLimitReachedError) {
