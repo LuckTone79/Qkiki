@@ -47,9 +47,15 @@ import {
   readSessionCache,
 } from "@/lib/local-cache";
 import {
-  readBrowserStorageValue,
+  readBrowserStorageValueAny,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
+import { PRIMARY_STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/lib/brand";
+import {
+  buildWorkbenchSessionSearch,
+  pickLatestActiveSessionId,
+  resolveWorkbenchEntryAction,
+} from "@/lib/workbench-resume";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
 import {
@@ -161,6 +167,13 @@ type ProjectMeta = {
   name: string;
   description: string | null;
   sharedContext: string | null;
+};
+
+type SessionListEntry = {
+  id: string;
+  executionRuns?: Array<{
+    status?: string | null;
+  }>;
 };
 
 type RepeatBlockState = {
@@ -1222,6 +1235,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const streamAbortControllerRef = useRef<AbortController | null>(null);
   const cancelRequestedRef = useRef(false);
   const routeSyncReadyRef = useRef(false);
+  const autoResumeSessionIdRef = useRef<string | null>(null);
+  const skippedAutoResumeSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
@@ -1918,6 +1933,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const cached = readSessionCache<LoadedSession>(id);
     if (cached) {
       applySessionToState(cached.data);
+      autoResumeSessionIdRef.current = null;
       setNotice(`${t("sessionLoaded")} ${cached.data.title}`);
       void resumeActiveRun(cached.data);
 
@@ -1945,14 +1961,57 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     };
 
     if (!response.ok || !data.session) {
+      if (id === autoResumeSessionIdRef.current) {
+        autoResumeSessionIdRef.current = null;
+        skippedAutoResumeSessionIdRef.current = id;
+        const nextSearch = buildWorkbenchSessionSearch(
+          window.location.search,
+          null,
+        );
+        const nextUrl = nextSearch
+          ? `/app/workbench${nextSearch}`
+          : "/app/workbench";
+        router.replace(nextUrl, { scroll: false });
+        restoreDraftOrDefaultState();
+      }
       setError(language === "ko" ? t("runFailed") : data.error || t("runFailed"));
       return;
     }
 
     applySessionToState(data.session);
+    autoResumeSessionIdRef.current = null;
     writeSessionCache(id, data.session);
     setNotice(`${t("sessionLoaded")} ${data.session.title}`);
     void resumeActiveRun(data.session);
+  }
+
+  async function resumeLatestActiveSession() {
+    const response = await fetch("/api/sessions", {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) {
+      return false;
+    }
+
+    const data = (await response.json().catch(() => ({}))) as {
+      sessions?: SessionListEntry[];
+    };
+    const sessionIdToResume = pickLatestActiveSessionId(data.sessions ?? []);
+    if (
+      !sessionIdToResume ||
+      sessionIdToResume === skippedAutoResumeSessionIdRef.current
+    ) {
+      return false;
+    }
+
+    autoResumeSessionIdRef.current = sessionIdToResume;
+    const nextSearch = buildWorkbenchSessionSearch(
+      window.location.search,
+      sessionIdToResume,
+    );
+    const nextUrl = nextSearch ? `/app/workbench${nextSearch}` : "/app/workbench";
+    router.replace(nextUrl, { scroll: false });
+    return true;
   }
 
   useEffect(() => {
@@ -1965,53 +2024,61 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     loadProviders();
     loadUsageStatus();
     loadPresets(presetId);
-    if (forceNew) {
+    const draft = loadDraft();
+    const entryAction = resolveWorkbenchEntryAction({
+      loadId,
+      projectId,
+      forceNew,
+      hasDraft: Boolean(draft?.originalInput.trim()),
+      latestActiveSessionId: null,
+    });
+    if (entryAction.kind === "new-session") {
       clearDraft();
       restoreDraftOrDefaultState();
       return;
     }
-    if (loadId) {
-      loadSession(loadId);
-    } else if (projectId) {
-      loadProject(projectId);
+    if (entryAction.kind === "load-session") {
+      void loadSession(entryAction.sessionId);
+      return;
+    } else if (entryAction.kind === "load-project") {
+      void loadProject(entryAction.projectId);
+      return;
     } else {
-      // No URL session — try to restore unsaved draft from localStorage
-      const draft = loadDraft();
-      if (draft && draft.originalInput.trim()) {
-        const draftWorkflowSteps = sortSteps(
-          draft.workflowSteps.map((s) => ({
-            ...s,
-            uid: s.uid || newUid(),
-            actionType: s.actionType as ActionType,
-            targetProvider: s.targetProvider as ProviderName,
-            sourceMode: s.sourceMode as WorkflowStepState["sourceMode"],
-          })),
-        );
-        const draftWorkflowControl = workflowControlFromInput(
-          draft.workflowControl as WorkflowControlInput | undefined,
-          draft.workflowSteps.length || initialSteps(language).length,
-        );
-        setOriginalInput(draft.originalInput);
-        setAdditionalInstruction(draft.additionalInstruction);
-        setOutputStyle(draft.outputStyle);
-        setOutputLanguage(
-          outputLanguages.includes(draft.outputLanguage as OutputLanguage)
-            ? (draft.outputLanguage as OutputLanguage)
-            : defaultOutputLanguageForAppLanguage(language),
-        );
-        setMode(draft.mode);
-        setAttachments(draft.attachments || []);
-        setWorkflowSteps(draftWorkflowSteps);
-        setWorkflowControl(draftWorkflowControl);
-        setDraftBanner({ savedAt: draft.savedAt });
-      }
+      void resumeLatestActiveSession().then((resumed) => {
+        if (!resumed) {
+          restoreDraftOrDefaultState();
+        }
+      });
     }
     // Load URL-provided session or preset once on initial entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    const stored = readBrowserStorageValue("qkiki-result-layout-v2");
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!sessionId && searchParams.get("session")) {
+      return;
+    }
+
+    const nextSearch = buildWorkbenchSessionSearch(
+      window.location.search,
+      sessionId,
+    );
+    const nextUrl = `${window.location.pathname}${nextSearch}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (nextUrl !== currentUrl) {
+      router.replace(nextUrl, { scroll: false });
+    }
+  }, [router, searchParams, sessionId]);
+
+  useEffect(() => {
+    const stored = readBrowserStorageValueAny([
+      PRIMARY_STORAGE_KEYS.resultLayout,
+      ...LEGACY_STORAGE_KEYS.resultLayout,
+    ]);
     if (stored === "double" || stored === "single") {
       setResultLayout(stored);
     }
@@ -2028,28 +2095,41 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     const projectId = searchParams.get("project");
     const forceNew = searchParams.get("new") === "1";
 
-    if (forceNew) {
+    if (presetId) {
+      void loadPresets(presetId);
+    }
+
+    const draft = loadDraft();
+    const entryAction = resolveWorkbenchEntryAction({
+      loadId,
+      projectId,
+      forceNew,
+      hasDraft: Boolean(draft?.originalInput.trim()),
+      latestActiveSessionId: null,
+    });
+
+    if (entryAction.kind === "new-session") {
       clearDraft();
       restoreDraftOrDefaultState();
       return;
     }
 
-    if (presetId) {
-      void loadPresets(presetId);
-    }
-
-    if (loadId) {
-      void loadSession(loadId);
+    if (entryAction.kind === "load-session") {
+      void loadSession(entryAction.sessionId);
       return;
     }
 
-    if (projectId) {
+    if (entryAction.kind === "load-project") {
       restoreDraftOrDefaultState();
-      void loadProject(projectId);
+      void loadProject(entryAction.projectId);
       return;
     }
 
-    restoreDraftOrDefaultState();
+    void resumeLatestActiveSession().then((resumed) => {
+      if (!resumed) {
+        restoreDraftOrDefaultState();
+      }
+    });
     // Keep the workbench in sync with sidebar and in-app query navigation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, searchParams]);
@@ -2067,7 +2147,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }, [language, providers]);
 
   useEffect(() => {
-    writeBrowserStorageValue("qkiki-result-layout-v2", resultLayout);
+    writeBrowserStorageValue(PRIMARY_STORAGE_KEYS.resultLayout, resultLayout);
   }, [resultLayout]);
 
   useEffect(() => {
