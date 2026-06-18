@@ -58,7 +58,6 @@ export type UsageStatusSummary = {
   totalCreditsAvailable: number;
   totalDailyCreditsAvailable: number;
   isCreditLimitReached: boolean;
-  inputCharLimit: number;
   warningThresholdReached: boolean;
   resetAt: string;
 };
@@ -112,23 +111,6 @@ export class UsageLimitReachedError extends Error {
 
   constructor(summary: UsageStatusSummary) {
     super("Today’s usage limit has been reached.");
-    this.summary = summary;
-  }
-}
-
-export class UsageInputLimitError extends Error {
-  summary: UsageStatusSummary;
-
-  constructor(summary: UsageStatusSummary) {
-    const prefix = summary.isBoostActive
-      ? "Boost access allows"
-      : summary.planType === PlanType.FREE
-        ? "Free access allows"
-        : `${summary.planLabel.toUpperCase()} plan allows`;
-
-    super(
-      `This request exceeds the current input limit. ${prefix} up to ${summary.inputCharLimit.toLocaleString()} characters.`,
-    );
     this.summary = summary;
   }
 }
@@ -618,10 +600,6 @@ export async function requireUsageAccess(input: {
   });
   const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
   const summary = toSummary(policy, credit);
-
-  if (input.inputCharCount > summary.inputCharLimit) {
-    throw new UsageInputLimitError(summary);
-  }
 
   if (
     input.estimatedCredits &&
