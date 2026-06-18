@@ -104,29 +104,9 @@ export default function LandingPage() {
           <p className="mt-4 max-w-xl text-base leading-7 text-white/85 sm:text-lg">
             {t("landingDescription")}
           </p>
-          <Link
-            href="/guide"
-            className="mt-5 inline-flex items-center gap-2 rounded bg-white/90 px-6 py-3 text-sm font-semibold tracking-wide text-[#171a20] shadow-lg backdrop-blur transition hover:bg-white"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-              aria-hidden="true"
-            >
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-            </svg>
-            {guideLabel}
-          </Link>
         </div>
 
-        <div className="relative z-10 mb-12 flex w-full max-w-2xl flex-col gap-3 px-5 sm:flex-row sm:px-8">
+        <div className="relative z-10 mb-12 flex w-full max-w-3xl flex-col gap-3 px-5 sm:flex-row sm:px-8">
           <button
             type="button"
             onClick={handleTrialStart}
@@ -135,6 +115,12 @@ export default function LandingPage() {
           >
             {isLoading ? "Loading..." : t("getStarted")}
           </button>
+          <Link
+            href="/guide"
+            className="flex-1 rounded bg-white/95 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-[#171a20] backdrop-blur transition hover:bg-white"
+          >
+            {guideLabel}
+          </Link>
           <Link
             href="/sign-in"
             className="flex-1 rounded bg-black/45 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-white backdrop-blur transition hover:bg-black/60"
