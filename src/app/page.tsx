@@ -106,8 +106,22 @@ export default function LandingPage() {
           </p>
           <Link
             href="/guide"
-            className="mt-3 text-sm font-medium text-white/85 underline-offset-4 hover:underline"
+            className="group mt-5 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/15 px-5 py-2.5 text-sm font-semibold text-white shadow-lg ring-1 ring-black/5 backdrop-blur-md transition hover:border-white hover:bg-white hover:text-[#171a20]"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
             {guideLabel}
           </Link>
         </div>
