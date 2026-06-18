@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 type CouponTypeValue =
@@ -11,8 +11,12 @@ type CouponTypeValue =
   | "WEEKLY_CREDIT"
   | "CREDIT_7D"
   | "CREDIT_30D"
+  | "CREDIT_LIFETIME"
   | "UNLIMITED_7D"
-  | "UNLIMITED_30D";
+  | "UNLIMITED_30D"
+  | "UNLIMITED_LIFETIME";
+
+type DurationValue = "7d" | "30d" | "lifetime";
 
 type CouponItem = {
   id: string;
@@ -50,26 +54,35 @@ const couponText = {
   en: {
     title: "Coupons",
     description:
-      "Create one-time credit coupons: a 7-day or 30-day grant of a fixed credit amount, or unlimited credits for the period.",
+      "Create credit coupons: a 7-day / 30-day / lifetime grant of a fixed credit amount, or unlimited credits for the period. You can create many at once.",
     createSectionTitle: "Create coupon",
     duration: "Duration",
     day7: "7 days",
     day30: "30 days",
+    dayLifetime: "Lifetime",
     unlimited: "Unlimited credits",
     unlimitedHint: "No credit limit for the duration",
-    type: "Type",
-    customCode: "Custom code (optional)",
+    quantity: "Quantity",
+    quantityHint: "Create this many identical coupons at once",
+    customCode: "Custom code (only when quantity is 1)",
     customCodePlaceholder: "auto-generate if empty",
     note: "Note",
     notePlaceholder: "internal memo",
     creditAmount: "Credit amount",
-    creditAmountPlaceholder: "credits granted for 7 days",
+    creditAmountPlaceholder: "credits granted",
     createCoupon: "Create coupon",
     creating: "Creating...",
+    createdCodes: "Created codes",
+    copyAll: "Copy all",
     searchEmpty: "-",
     code: "Code",
     copied: "Code copied.",
+    copiedMany: "code(s) copied.",
     copy: "Copy",
+    copySelected: "Copy selected",
+    selectAll: "Select all",
+    clearSelection: "Clear",
+    noneSelected: "Select coupons to copy.",
     typeHeader: "Type",
     status: "Status",
     created: "Created",
@@ -101,59 +114,67 @@ const couponText = {
     weeklyCreditType: "weekly credit coupon",
     credit7dType: "7-day credit",
     credit30dType: "30-day credit",
+    creditLifetimeType: "lifetime credit",
     unlimited7dType: "7-day unlimited credits",
     unlimited30dType: "30-day unlimited credits",
+    unlimitedLifetimeType: "lifetime unlimited credits",
     creditUnit: "credits",
   },
   ko: {
-    title: "\uCFE0\uD3F0",
+    title: "쿠폰",
     description:
-      "크레딧 쿠폰을 발행합니다. 7일 또는 30일 동안 지정한 크레딧을 지급하거나, 기간 내 무제한 크레딧을 부여할 수 있습니다.",
-    createSectionTitle: "\uCFE0\uD3F0 \uC0DD\uC131",
-    duration: "\uAE30\uAC04",
-    day7: "7\uC77C",
-    day30: "30\uC77C",
-    unlimited: "\uBB34\uC81C\uD55C \uD06C\uB808\uB527",
-    unlimitedHint: "\uAE30\uAC04 \uB3D9\uC548 \uD06C\uB808\uB527 \uD55C\uB3C4 \uC5C6\uC74C",
-    type: "\uC720\uD615",
-    customCode: "\uC9C1\uC811 \uCF54\uB4DC (\uC120\uD0DD)",
-    customCodePlaceholder:
-      "\uBE44\uC6CC\uB450\uBA74 \uC790\uB3D9 \uC0DD\uC131\uB429\uB2C8\uB2E4",
-    note: "\uBA54\uBAA8",
-    notePlaceholder: "\uB0B4\uBD80 \uBA54\uBAA8",
+      "크레딧 쿠폰을 발행합니다. 7일 / 30일 / 평생 동안 지정한 크레딧을 지급하거나, 기간 내 무제한 크레딧을 부여할 수 있습니다. 한 번에 여러 개도 생성할 수 있습니다.",
+    createSectionTitle: "쿠폰 생성",
+    duration: "기간",
+    day7: "7일",
+    day30: "30일",
+    dayLifetime: "평생",
+    unlimited: "무제한 크레딧",
+    unlimitedHint: "기간 동안 크레딧 한도 없음",
+    quantity: "수량",
+    quantityHint: "동일한 쿠폰을 이 개수만큼 한 번에 생성",
+    customCode: "직접 코드 (수량 1일 때만)",
+    customCodePlaceholder: "비워두면 자동 생성됩니다",
+    note: "메모",
+    notePlaceholder: "내부 메모",
     creditAmount: "크레딧 수량",
-    creditAmountPlaceholder: "7일 동안 지급할 크레딧",
-    createCoupon: "\uCFE0\uD3F0 \uC0DD\uC131",
-    creating: "\uC0DD\uC131 \uC911...",
+    creditAmountPlaceholder: "지급할 크레딧",
+    createCoupon: "쿠폰 생성",
+    creating: "생성 중...",
+    createdCodes: "생성된 코드",
+    copyAll: "전체 복사",
     searchEmpty: "-",
-    code: "\uCF54\uB4DC",
-    copied: "\uCF54\uB4DC\uAC00 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
-    copy: "\uBCF5\uC0AC",
-    typeHeader: "\uC720\uD615",
-    status: "\uC0C1\uD0DC",
-    created: "\uC0DD\uC131\uC77C",
-    redeemedBy: "\uC0AC\uC6A9\uC790",
-    startedAt: "\uC0AC\uC6A9 \uC2DC\uC791\uC77C",
-    endsAt: "\uC885\uB8CC\uC77C",
-    action: "\uC791\uC5C5",
-    statusActive: "\uD65C\uC131",
-    statusInactive: "\uBE44\uD65C\uC131",
-    statusInUse: "\uC0AC\uC6A9 \uC911",
-    statusUsed: "\uC0AC\uC6A9 \uC885\uB8CC",
-    lifetime: "\uD3C9\uC0DD",
-    couponCreated: "\uCFE0\uD3F0 \uC0DD\uC131 \uC644\uB8CC",
-    couponDeleted: "\uCFE0\uD3F0\uC744 \uC0AD\uC81C\uD588\uC2B5\uB2C8\uB2E4.",
-    couponDeactivated: "\uCFE0\uD3F0\uC744 \uBE44\uD65C\uC131\uD654\uD588\uC2B5\uB2C8\uB2E4.",
-    deactivate: "\uBE44\uD65C\uC131\uD654",
-    delete: "\uC0AD\uC81C",
-    deleteConfirm:
-      "\uC774 \uCFE0\uD3F0\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?",
-    failedLoad: "\uCFE0\uD3F0\uC744 \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
-    failedCreate: "\uCFE0\uD3F0 \uC0DD\uC131\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
-    failedDeactivate:
-      "\uCFE0\uD3F0 \uBE44\uD65C\uC131\uD654\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
-    failedDelete: "\uCFE0\uD3F0 \uC0AD\uC81C\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
-    failedCopy: "\uCF54\uB4DC \uBCF5\uC0AC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+    code: "코드",
+    copied: "코드가 복사되었습니다.",
+    copiedMany: "개 코드가 복사되었습니다.",
+    copy: "복사",
+    copySelected: "선택 복사",
+    selectAll: "전체 선택",
+    clearSelection: "해제",
+    noneSelected: "복사할 쿠폰을 선택하세요.",
+    typeHeader: "유형",
+    status: "상태",
+    created: "생성일",
+    redeemedBy: "사용자",
+    startedAt: "사용 시작일",
+    endsAt: "종료일",
+    action: "작업",
+    statusActive: "활성",
+    statusInactive: "비활성",
+    statusInUse: "사용 중",
+    statusUsed: "사용 종료",
+    lifetime: "평생",
+    couponCreated: "쿠폰 생성 완료",
+    couponDeleted: "쿠폰을 삭제했습니다.",
+    couponDeactivated: "쿠폰을 비활성화했습니다.",
+    deactivate: "비활성화",
+    delete: "삭제",
+    deleteConfirm: "이 쿠폰을 삭제할까요?",
+    failedLoad: "쿠폰을 불러오지 못했습니다.",
+    failedCreate: "쿠폰 생성에 실패했습니다.",
+    failedDeactivate: "쿠폰 비활성화에 실패했습니다.",
+    failedDelete: "쿠폰 삭제에 실패했습니다.",
+    failedCopy: "코드 복사에 실패했습니다.",
     noPeriod: "-",
     monthlyType: "30일 무료 쿠폰 (일일 무제한)",
     monthly50Type: "30일 무료 쿠폰 (일일 50회)",
@@ -162,8 +183,10 @@ const couponText = {
     weeklyCreditType: "7일 크레딧 쿠폰",
     credit7dType: "7일 크레딧",
     credit30dType: "30일 크레딧",
+    creditLifetimeType: "평생 크레딧",
     unlimited7dType: "7일 무제한 크레딧",
     unlimited30dType: "30일 무제한 크레딧",
+    unlimitedLifetimeType: "평생 무제한 크레딧",
     creditUnit: "크레딧",
   },
 } as const;
@@ -185,15 +208,17 @@ export function AdminCouponsClient() {
   const { language } = useLanguage();
   const t = couponText[language];
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [durationDays, setDurationDays] = useState<7 | 30>(7);
+  const [duration, setDuration] = useState<DurationValue>("7d");
   const [unlimited, setUnlimited] = useState(false);
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
   const [creditAmount, setCreditAmount] = useState("500");
+  const [quantity, setQuantity] = useState("1");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [createdCode, setCreatedCode] = useState("");
+  const [createdCodes, setCreatedCodes] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const loadCoupons = useCallback(async () => {
     const response = await fetch("/api/admin/coupons");
@@ -210,38 +235,62 @@ export function AdminCouponsClient() {
     setCoupons(data.coupons);
   }, [t.failedLoad]);
 
+  async function copyCodes(codes: string[]) {
+    if (!codes.length) {
+      setError(t.noneSelected);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(codes.join("\n"));
+      setError("");
+      setNotice(
+        codes.length === 1
+          ? t.copied
+          : `${codes.length}${language === "ko" ? "" : " "}${t.copiedMany}`,
+      );
+    } catch {
+      setError(t.failedCopy);
+    }
+  }
+
   async function createCoupon(event: FormEvent) {
     event.preventDefault();
     setLoading(true);
     setError("");
     setNotice("");
-    setCreatedCode("");
+    setCreatedCodes([]);
+
+    const parsedQuantity = Math.max(
+      1,
+      Math.min(100, Number.parseInt(quantity, 10) || 1),
+    );
 
     const response = await fetch("/api/admin/coupons", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        durationDays,
+        duration,
         unlimited,
-        code,
+        quantity: parsedQuantity,
+        code: parsedQuantity === 1 ? code : undefined,
         note,
         creditAmount: unlimited ? undefined : Number.parseInt(creditAmount, 10),
       }),
     });
 
     const data = (await response.json().catch(() => ({}))) as {
-      coupon?: CouponItem;
+      coupons?: { code: string }[];
       error?: string;
     };
 
-    if (!response.ok || !data.coupon) {
+    if (!response.ok || !data.coupons?.length) {
       setError(data.error || t.failedCreate);
       setLoading(false);
       return;
     }
 
     setNotice(t.couponCreated);
-    setCreatedCode(data.coupon.code);
+    setCreatedCodes(data.coupons.map((coupon) => coupon.code));
     setCode("");
     setNote("");
     await loadCoupons();
@@ -251,7 +300,6 @@ export function AdminCouponsClient() {
   async function deactivateCoupon(id: string) {
     setError("");
     setNotice("");
-    setCreatedCode("");
 
     const response = await fetch(`/api/admin/coupons/${id}/deactivate`, {
       method: "POST",
@@ -276,7 +324,6 @@ export function AdminCouponsClient() {
 
     setError("");
     setNotice("");
-    setCreatedCode("");
 
     const response = await fetch(`/api/admin/coupons/${id}`, {
       method: "DELETE",
@@ -291,19 +338,43 @@ export function AdminCouponsClient() {
       return;
     }
 
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
     setNotice(t.couponDeleted);
     await loadCoupons();
   }
 
-  async function copyCouponCode(targetCode: string) {
-    try {
-      await navigator.clipboard.writeText(targetCode);
-      setNotice(t.copied);
-      setError("");
-    } catch {
-      setError(t.failedCopy);
-    }
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   }
+
+  const allSelected =
+    coupons.length > 0 && coupons.every((coupon) => selectedIds.has(coupon.id));
+
+  function toggleSelectAll() {
+    setSelectedIds(
+      allSelected ? new Set() : new Set(coupons.map((coupon) => coupon.id)),
+    );
+  }
+
+  const selectedCodes = useMemo(
+    () =>
+      coupons
+        .filter((coupon) => selectedIds.has(coupon.id))
+        .map((coupon) => coupon.code),
+    [coupons, selectedIds],
+  );
 
   useEffect(() => {
     void loadCoupons();
@@ -350,8 +421,10 @@ export function AdminCouponsClient() {
     if (couponType === "LIFETIME_FREE_DAILY_50") return t.lifetime50Type;
     if (couponType === "CREDIT_7D") return t.credit7dType;
     if (couponType === "CREDIT_30D") return t.credit30dType;
+    if (couponType === "CREDIT_LIFETIME") return t.creditLifetimeType;
     if (couponType === "UNLIMITED_7D") return t.unlimited7dType;
     if (couponType === "UNLIMITED_30D") return t.unlimited30dType;
+    if (couponType === "UNLIMITED_LIFETIME") return t.unlimitedLifetimeType;
     return t.weeklyCreditType;
   }
 
@@ -366,21 +439,7 @@ export function AdminCouponsClient() {
 
       {notice ? (
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
-          <div className="flex flex-wrap items-center gap-2">
-            <span>{notice}</span>
-            {createdCode ? (
-              <>
-                <span className="font-mono font-semibold">{createdCode}</span>
-                <button
-                  type="button"
-                  onClick={() => copyCouponCode(createdCode)}
-                  className="rounded border border-emerald-300 bg-white px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
-                >
-                  {t.copy}
-                </button>
-              </>
-            ) : null}
-          </div>
+          <span>{notice}</span>
         </div>
       ) : null}
       {error ? (
@@ -398,25 +457,27 @@ export function AdminCouponsClient() {
           <label className="block">
             <span className="text-sm font-medium text-slate-700">{t.duration}</span>
             <select
-              value={durationDays}
-              onChange={(event) =>
-                setDurationDays(Number(event.target.value) === 30 ? 30 : 7)
-              }
+              value={duration}
+              onChange={(event) => setDuration(event.target.value as DurationValue)}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
             >
-              <option value={7}>{t.day7}</option>
-              <option value={30}>{t.day30}</option>
+              <option value="7d">{t.day7}</option>
+              <option value="30d">{t.day30}</option>
+              <option value="lifetime">{t.dayLifetime}</option>
             </select>
           </label>
 
           <label className="block">
-            <span className="text-sm font-medium text-slate-700">{t.customCode}</span>
+            <span className="text-sm font-medium text-slate-700">{t.quantity}</span>
             <input
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
+              type="number"
+              min={1}
+              max={100}
+              value={quantity}
+              onChange={(event) => setQuantity(event.target.value)}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
-              placeholder={t.customCodePlaceholder}
             />
+            <span className="mt-1 block text-xs text-slate-500">{t.quantityHint}</span>
           </label>
 
           <label className="flex items-start gap-2 md:col-span-2">
@@ -451,7 +512,19 @@ export function AdminCouponsClient() {
             </label>
           ) : null}
 
-          <label className={`block ${unlimited ? "md:col-span-2" : ""}`}>
+          {Number.parseInt(quantity, 10) === 1 ? (
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">{t.customCode}</span>
+              <input
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
+                placeholder={t.customCodePlaceholder}
+              />
+            </label>
+          ) : null}
+
+          <label className="block md:col-span-2">
             <span className="text-sm font-medium text-slate-700">{t.note}</span>
             <input
               value={note}
@@ -471,7 +544,51 @@ export function AdminCouponsClient() {
             </button>
           </div>
         </form>
+
+        {createdCodes.length ? (
+          <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-emerald-900">
+                {t.createdCodes} ({createdCodes.length})
+              </p>
+              <button
+                type="button"
+                onClick={() => copyCodes(createdCodes)}
+                className="rounded border border-emerald-300 bg-white px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+              >
+                {t.copyAll}
+              </button>
+            </div>
+            <textarea
+              readOnly
+              value={createdCodes.join("\n")}
+              rows={Math.min(8, createdCodes.length)}
+              onFocus={(event) => event.currentTarget.select()}
+              className="mt-2 w-full rounded-md border border-emerald-200 bg-white px-2 py-2 font-mono text-xs text-slate-800"
+            />
+          </div>
+        ) : null}
       </section>
+
+      {coupons.length ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            {allSelected ? t.clearSelection : t.selectAll}
+          </button>
+          <button
+            type="button"
+            onClick={() => copyCodes(selectedCodes)}
+            disabled={!selectedCodes.length}
+            className="rounded-md border border-slate-900 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-40"
+          >
+            {t.copySelected} ({selectedCodes.length})
+          </button>
+        </div>
+      ) : null}
 
       <section className="space-y-3 md:hidden">
         {coupons.map((coupon) => (
@@ -480,16 +597,24 @@ export function AdminCouponsClient() {
             className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate font-mono text-sm font-semibold text-slate-950">
-                  {coupon.code}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">{typeLabel(coupon.type)}</p>
-                {coupon.creditAmount ? (
-                  <p className="mt-1 text-xs font-medium text-slate-700">
-                    {coupon.creditAmount.toLocaleString(locale)} {t.creditUnit}
+              <div className="flex min-w-0 items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(coupon.id)}
+                  onChange={() => toggleSelected(coupon.id)}
+                  className="mt-1 h-4 w-4 shrink-0 accent-slate-900"
+                />
+                <div className="min-w-0">
+                  <p className="truncate font-mono text-sm font-semibold text-slate-950">
+                    {coupon.code}
                   </p>
-                ) : null}
+                  <p className="mt-1 text-xs text-slate-500">{typeLabel(coupon.type)}</p>
+                  {coupon.creditAmount ? (
+                    <p className="mt-1 text-xs font-medium text-slate-700">
+                      {coupon.creditAmount.toLocaleString(locale)} {t.creditUnit}
+                    </p>
+                  ) : null}
+                </div>
               </div>
               <span
                 className={`shrink-0 rounded px-2 py-1 text-xs font-semibold ${statusClass(coupon.usageStatus)}`}
@@ -522,7 +647,7 @@ export function AdminCouponsClient() {
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => copyCouponCode(coupon.code)}
+                onClick={() => copyCodes([coupon.code])}
                 className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
                 {t.copy}
@@ -552,6 +677,14 @@ export function AdminCouponsClient() {
         <table className="min-w-full text-left text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
+              <th className="px-3 py-3">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 accent-slate-900"
+                />
+              </th>
               <th className="px-3 py-3">{t.code}</th>
               <th className="px-3 py-3">{t.typeHeader}</th>
               <th className="px-3 py-3">{t.status}</th>
@@ -566,11 +699,19 @@ export function AdminCouponsClient() {
             {coupons.map((coupon) => (
               <tr key={coupon.id} className="border-t border-slate-100">
                 <td className="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(coupon.id)}
+                    onChange={() => toggleSelected(coupon.id)}
+                    className="h-4 w-4 accent-slate-900"
+                  />
+                </td>
+                <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs text-slate-900">{coupon.code}</span>
                     <button
                       type="button"
-                      onClick={() => copyCouponCode(coupon.code)}
+                      onClick={() => copyCodes([coupon.code])}
                       className="rounded border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       {t.copy}

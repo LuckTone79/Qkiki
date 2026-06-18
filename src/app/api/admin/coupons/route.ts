@@ -101,41 +101,58 @@ export async function POST(request: Request) {
       );
     }
 
-    const { durationDays, unlimited } = parsed.data;
+    const { duration, unlimited, quantity } = parsed.data;
     const type: CouponType = unlimited
-      ? durationDays === 30
-        ? CouponType.UNLIMITED_30D
-        : CouponType.UNLIMITED_7D
-      : durationDays === 30
-        ? CouponType.CREDIT_30D
-        : CouponType.CREDIT_7D;
-    const code = (parsed.data.code?.trim().toUpperCase() || generateCouponCode(type)).slice(0, 64);
+      ? duration === "lifetime"
+        ? CouponType.UNLIMITED_LIFETIME
+        : duration === "30d"
+          ? CouponType.UNLIMITED_30D
+          : CouponType.UNLIMITED_7D
+      : duration === "lifetime"
+        ? CouponType.CREDIT_LIFETIME
+        : duration === "30d"
+          ? CouponType.CREDIT_30D
+          : CouponType.CREDIT_7D;
+    const creditAmount = unlimited ? null : parsed.data.creditAmount ?? null;
 
-    const coupon = await prisma.coupon.create({
-      data: {
-        code,
-        type,
-        creditAmount: unlimited ? null : parsed.data.creditAmount ?? null,
-        note: parsed.data.note || null,
-        createdByAdminId: admin.id,
-      },
-    });
+    // Create `quantity` identical coupons, each with a unique code. A custom
+    // code is only allowed for a single coupon (enforced by the schema).
+    const usedCodes = new Set<string>();
+    const coupons: { id: string; code: string; type: CouponType }[] = [];
+    for (let i = 0; i < quantity; i += 1) {
+      let code = (
+        quantity === 1 && parsed.data.code?.trim()
+          ? parsed.data.code.trim().toUpperCase()
+          : generateCouponCode(type)
+      ).slice(0, 64);
+      while (usedCodes.has(code)) {
+        code = generateCouponCode(type).slice(0, 64);
+      }
+      usedCodes.add(code);
 
-    await logAdminAudit({
-      adminUserId: admin.id,
-      action: "COUPON_CREATE",
-      targetType: "coupon",
-      targetId: coupon.id,
-      detail: {
-        code: coupon.code,
-        type: coupon.type,
-        creditAmount: coupon.creditAmount,
-      },
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-    });
+      const coupon = await prisma.coupon.create({
+        data: {
+          code,
+          type,
+          creditAmount,
+          note: parsed.data.note || null,
+          createdByAdminId: admin.id,
+        },
+      });
+      coupons.push({ id: coupon.id, code: coupon.code, type: coupon.type });
 
-    return NextResponse.json({ coupon });
+      await logAdminAudit({
+        adminUserId: admin.id,
+        action: "COUPON_CREATE",
+        targetType: "coupon",
+        targetId: coupon.id,
+        detail: { code: coupon.code, type: coupon.type, creditAmount },
+        ipAddress: meta.ipAddress,
+        userAgent: meta.userAgent,
+      });
+    }
+
+    return NextResponse.json({ coupons, coupon: coupons[0] });
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) {
       return NextResponse.json({ error: "Coupon code already exists." }, { status: 409 });

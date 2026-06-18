@@ -1,0 +1,3 @@
+-- Add lifetime credit coupon variants.
+ALTER TYPE "CouponType" ADD VALUE IF NOT EXISTS 'CREDIT_LIFETIME';
+ALTER TYPE "CouponType" ADD VALUE IF NOT EXISTS 'UNLIMITED_LIFETIME';

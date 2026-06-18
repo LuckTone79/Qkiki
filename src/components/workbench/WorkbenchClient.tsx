@@ -4139,11 +4139,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 {language === "ko" ? "보유 크레딧" : "Available"}
               </p>
               <p className="mt-1 font-semibold text-teal-950">
-                {usage
-                  ? usage.totalCreditsAvailable.toLocaleString(numberLocale)
-                  : "-"}
+                {!usage
+                  ? "-"
+                  : usage.isUnlimitedCredits
+                    ? "∞"
+                    : usage.totalCreditsAvailable.toLocaleString(numberLocale)}
               </p>
-              {usage && dailyIsBindingCredit ? (
+              {usage && !usage.isUnlimitedCredits && dailyIsBindingCredit ? (
                 <p className="mt-1 text-[11px] font-medium text-amber-700">
                   {language === "ko"
                     ? `오늘 남은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}`
@@ -4156,9 +4158,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 {language === "ko" ? "실행 후" : "After run"}
               </p>
               <p className="mt-1 font-semibold text-teal-950">
-                {projectedCreditsAfterRun == null
-                  ? "-"
-                  : projectedCreditsAfterRun.toLocaleString(numberLocale)}
+                {usage?.isUnlimitedCredits
+                  ? "∞"
+                  : projectedCreditsAfterRun == null
+                    ? "-"
+                    : projectedCreditsAfterRun.toLocaleString(numberLocale)}
               </p>
             </div>
           </div>

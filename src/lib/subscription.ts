@@ -12,6 +12,34 @@ import { prisma } from "@/lib/prisma";
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+// "Lifetime" grants use a far-future expiry (~100 years) so the existing
+// expiry-based active checks treat them as never expiring.
+const LIFETIME_MS = 100 * 365 * 24 * 60 * 60 * 1000;
+
+function couponCreditDurationMs(type: CouponType) {
+  if (type === CouponType.CREDIT_30D) return THIRTY_DAYS_MS;
+  if (type === CouponType.CREDIT_LIFETIME) return LIFETIME_MS;
+  return SEVEN_DAYS_MS;
+}
+
+function couponUnlimitedDurationMs(type: CouponType) {
+  if (type === CouponType.UNLIMITED_30D) return THIRTY_DAYS_MS;
+  if (type === CouponType.UNLIMITED_LIFETIME) return LIFETIME_MS;
+  return SEVEN_DAYS_MS;
+}
+
+function couponDurationLabel(type: CouponType) {
+  if (type === CouponType.CREDIT_30D || type === CouponType.UNLIMITED_30D) {
+    return "30d";
+  }
+  if (
+    type === CouponType.CREDIT_LIFETIME ||
+    type === CouponType.UNLIMITED_LIFETIME
+  ) {
+    return "lifetime";
+  }
+  return "7d";
+}
 const COUPON_DEACTIVATED_NOTE = "coupon_deactivated_by_admin";
 const COUPON_DELETED_NOTE = "coupon_deleted_by_admin";
 
@@ -41,8 +69,10 @@ export function generateCouponCode(type: CouponType) {
     WEEKLY_CREDIT: "CR7",
     CREDIT_7D: "CR7",
     CREDIT_30D: "CR30",
+    CREDIT_LIFETIME: "CRLIFE",
     UNLIMITED_7D: "UNL7",
     UNLIMITED_30D: "UNL30",
+    UNLIMITED_LIFETIME: "UNLLIFE",
   };
   const prefix = prefixMap[type];
   const random = cryptoRandom(10);
@@ -63,37 +93,120 @@ function normalizeCouponCode(code: string) {
   return code.trim().toUpperCase();
 }
 
+// "Lifetime" grants are stored with a far-future expiry; treat anything past
+// this threshold as permanent (no expiry date shown).
+const LIFETIME_DATE_THRESHOLD = new Date("2100-01-01T00:00:00Z").getTime();
+
+function describeExpiry(date: Date | null | undefined) {
+  if (!date) {
+    return { expiresAt: null as string | null, isLifetime: false };
+  }
+  if (date.getTime() >= LIFETIME_DATE_THRESHOLD) {
+    return { expiresAt: null as string | null, isLifetime: true };
+  }
+  return { expiresAt: date.toISOString(), isLifetime: false };
+}
+
 export async function getUserSubscriptionState(userId: string) {
-  const [subscription, lastCouponAdminEvent] = await Promise.all([
-    prisma.userSubscription.findUnique({
-      where: { userId },
-    }),
-    prisma.subscriptionLedger.findFirst({
-      where: {
-        userId,
-        eventType: SubscriptionEventType.COUPON_REDEMPTION,
-        note: {
-          in: [COUPON_DEACTIVATED_NOTE, COUPON_DELETED_NOTE],
+  const now = new Date();
+  const [subscription, latestCouponEvent, latestAppliedRedemption] =
+    await Promise.all([
+      prisma.userSubscription.findUnique({
+        where: { userId },
+      }),
+      // The most recent coupon ledger event of ANY kind. If it is a
+      // deactivation/deletion the coupon is currently disabled; a newer
+      // redemption clears that state.
+      prisma.subscriptionLedger.findFirst({
+        where: {
+          userId,
+          eventType: SubscriptionEventType.COUPON_REDEMPTION,
         },
-      },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        note: true,
-      },
-    }),
-  ]);
+        orderBy: { createdAt: "desc" },
+        select: { id: true, note: true },
+      }),
+      prisma.couponRedemption.findFirst({
+        where: {
+          userId,
+          result: {
+            in: [
+              CouponRedemptionResult.APPLIED,
+              CouponRedemptionResult.ALREADY_LIFETIME,
+            ],
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          grantStartAt: true,
+          createdAt: true,
+          coupon: { select: { type: true, creditAmount: true } },
+        },
+      }),
+    ]);
+
+  const couponStatus =
+    latestCouponEvent?.note === COUPON_DEACTIVATED_NOTE ||
+    latestCouponEvent?.note === COUPON_DELETED_NOTE
+      ? "DEACTIVATED"
+      : null;
+
+  const unlimitedActive = Boolean(
+    subscription?.couponUnlimitedUntil &&
+      subscription.couponUnlimitedUntil.getTime() > now.getTime(),
+  );
+  const creditActive = Boolean(
+    (subscription?.couponCreditBalance ?? 0) > 0 &&
+      subscription?.couponCreditEndsAt &&
+      subscription.couponCreditEndsAt.getTime() > now.getTime(),
+  );
+
+  let activeCoupon: {
+    kind: "credit" | "unlimited";
+    type: CouponType | null;
+    creditAmount: number | null;
+    appliedAt: string | null;
+    expiresAt: string | null;
+    isLifetime: boolean;
+  } | null = null;
+
+  if (couponStatus !== "DEACTIVATED" && (unlimitedActive || creditActive)) {
+    const appliedAt = (
+      latestAppliedRedemption?.grantStartAt ??
+      latestAppliedRedemption?.createdAt ??
+      null
+    )?.toISOString() ?? null;
+
+    if (unlimitedActive) {
+      const expiry = describeExpiry(subscription?.couponUnlimitedUntil);
+      activeCoupon = {
+        kind: "unlimited",
+        type: latestAppliedRedemption?.coupon.type ?? null,
+        creditAmount: null,
+        appliedAt,
+        expiresAt: expiry.expiresAt,
+        isLifetime: expiry.isLifetime,
+      };
+    } else {
+      const expiry = describeExpiry(subscription?.couponCreditEndsAt);
+      activeCoupon = {
+        kind: "credit",
+        type: latestAppliedRedemption?.coupon.type ?? null,
+        creditAmount: subscription?.couponCreditBalance ?? 0,
+        appliedAt,
+        expiresAt: expiry.expiresAt,
+        isLifetime: expiry.isLifetime,
+      };
+    }
+  }
 
   return {
     isLifetime: subscription?.isLifetime ?? false,
     planEndsAt: subscription?.planEndsAt ?? null,
     couponCreditBalance: subscription?.couponCreditBalance ?? 0,
     couponCreditEndsAt: subscription?.couponCreditEndsAt ?? null,
-    couponStatus:
-      lastCouponAdminEvent?.note === COUPON_DEACTIVATED_NOTE ||
-      lastCouponAdminEvent?.note === COUPON_DELETED_NOTE
-        ? "DEACTIVATED"
-        : null,
+    couponUnlimitedUntil: subscription?.couponUnlimitedUntil ?? null,
+    couponStatus,
+    activeCoupon,
   };
 }
 
@@ -124,7 +237,8 @@ export async function revokeCouponGrantForUserByAdmin(
   if (
     input.couponType === CouponType.WEEKLY_CREDIT ||
     input.couponType === CouponType.CREDIT_7D ||
-    input.couponType === CouponType.CREDIT_30D
+    input.couponType === CouponType.CREDIT_30D ||
+    input.couponType === CouponType.CREDIT_LIFETIME
   ) {
     await tx.userSubscription.updateMany({
       where: { userId: input.userId },
@@ -151,7 +265,8 @@ export async function revokeCouponGrantForUserByAdmin(
 
   if (
     input.couponType === CouponType.UNLIMITED_7D ||
-    input.couponType === CouponType.UNLIMITED_30D
+    input.couponType === CouponType.UNLIMITED_30D ||
+    input.couponType === CouponType.UNLIMITED_LIFETIME
   ) {
     await tx.userSubscription.updateMany({
       where: { userId: input.userId },
@@ -328,15 +443,15 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
 
     if (
       coupon.type === CouponType.CREDIT_7D ||
-      coupon.type === CouponType.CREDIT_30D
+      coupon.type === CouponType.CREDIT_30D ||
+      coupon.type === CouponType.CREDIT_LIFETIME
     ) {
       const amount = coupon.creditAmount ?? 0;
       if (amount < 1) {
         throw new CouponRedeemError("Credit coupon amount is invalid.", 409);
       }
 
-      const durationMs =
-        coupon.type === CouponType.CREDIT_30D ? THIRTY_DAYS_MS : SEVEN_DAYS_MS;
+      const durationMs = couponCreditDurationMs(coupon.type);
       const activeExistingCredits =
         current?.couponCreditEndsAt &&
         current.couponCreditEndsAt.getTime() > now.getTime()
@@ -370,23 +485,24 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
           subscriptionType: SubscriptionType.WEEKLY_CREDIT_7D,
           startAt: now,
           endAt: mergedEnd,
-          isLifetime: false,
-          note: `credit_${coupon.type === CouponType.CREDIT_30D ? 30 : 7}d_${amount}`,
+          isLifetime: coupon.type === CouponType.CREDIT_LIFETIME,
+          note: `credit_${couponDurationLabel(coupon.type)}_${amount}`,
         },
       });
 
       grantStartAt = now;
       grantEndAt = mergedEnd;
+      grantIsLifetime = coupon.type === CouponType.CREDIT_LIFETIME;
       creditAmount = amount;
       creditExpiresAt = mergedEnd;
     }
 
     if (
       coupon.type === CouponType.UNLIMITED_7D ||
-      coupon.type === CouponType.UNLIMITED_30D
+      coupon.type === CouponType.UNLIMITED_30D ||
+      coupon.type === CouponType.UNLIMITED_LIFETIME
     ) {
-      const durationMs =
-        coupon.type === CouponType.UNLIMITED_30D ? THIRTY_DAYS_MS : SEVEN_DAYS_MS;
+      const durationMs = couponUnlimitedDurationMs(coupon.type);
       const nextEnd = new Date(now.getTime() + durationMs);
       const mergedEnd =
         current?.couponUnlimitedUntil &&
@@ -408,13 +524,14 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
           subscriptionType: SubscriptionType.MONTHLY_FREE_30D,
           startAt: now,
           endAt: mergedEnd,
-          isLifetime: false,
-          note: `unlimited_${coupon.type === CouponType.UNLIMITED_30D ? 30 : 7}d`,
+          isLifetime: coupon.type === CouponType.UNLIMITED_LIFETIME,
+          note: `unlimited_${couponDurationLabel(coupon.type)}`,
         },
       });
 
       grantStartAt = now;
       grantEndAt = mergedEnd;
+      grantIsLifetime = coupon.type === CouponType.UNLIMITED_LIFETIME;
     }
 
     if (

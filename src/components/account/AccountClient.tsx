@@ -10,6 +10,51 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { readUsageCache, writeUsageCache } from "@/lib/local-cache";
 import type { UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
+type ActiveCoupon = {
+  kind: "credit" | "unlimited";
+  type: string | null;
+  creditAmount: number | null;
+  appliedAt: string | null;
+  expiresAt: string | null;
+  isLifetime: boolean;
+};
+
+type SubscriptionState = {
+  isLifetime: boolean;
+  planEndsAt: string | null;
+  couponStatus: "DEACTIVATED" | null;
+  activeCoupon: ActiveCoupon | null;
+};
+
+function activeCouponLabel(coupon: ActiveCoupon, language: "en" | "ko") {
+  if (coupon.kind === "unlimited") {
+    return language === "ko"
+      ? coupon.isLifetime
+        ? "평생 무제한 크레딧"
+        : "무제한 크레딧"
+      : coupon.isLifetime
+        ? "Lifetime unlimited credits"
+        : "Unlimited credits";
+  }
+  return language === "ko"
+    ? coupon.isLifetime
+      ? "평생 크레딧"
+      : "크레딧 쿠폰"
+    : coupon.isLifetime
+      ? "Lifetime credits"
+      : "Credit coupon";
+}
+
+function formatCouponDate(value: string | null, language: "en" | "ko") {
+  if (!value) {
+    return "-";
+  }
+  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function AccountClient({
   initialName,
   email,
@@ -20,11 +65,9 @@ export function AccountClient({
   const { language, t } = useLanguage();
   const [name, setName] = useState(initialName);
   const [couponCode, setCouponCode] = useState("");
-  const [subscription, setSubscription] = useState<{
-    isLifetime: boolean;
-    planEndsAt: string | null;
-    couponStatus: "DEACTIVATED" | null;
-  } | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionState | null>(
+    null,
+  );
   const [usage, setUsage] = useState<UsageStatusType | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -42,11 +85,7 @@ export function AccountClient({
       ? await usageResponsePromise
       : null;
     const data = (await response.json().catch(() => ({}))) as {
-      subscription?: {
-        isLifetime: boolean;
-        planEndsAt: string | null;
-        couponStatus: "DEACTIVATED" | null;
-      };
+      subscription?: SubscriptionState;
     };
     const usageData = usageResponse
       ? ((await usageResponse.json().catch(() => ({}))) as {
@@ -199,8 +238,38 @@ export function AccountClient({
           {language === "ko" ? "이용권 및 쿠폰" : "Plan and coupons"}
         </h2>
         <p className="mt-1 text-sm text-stone-600">{planLabel}</p>
-        {subscription?.couponStatus === "DEACTIVATED" ? (
-          <p className="mt-2 text-sm font-semibold text-rose-700">쿠폰 비활성화</p>
+        {subscription?.activeCoupon ? (
+          <div className="mt-3 rounded-md border border-teal-200 bg-teal-50 px-3 py-3 text-sm text-teal-900">
+            <p className="font-semibold">
+              {language === "ko" ? "적용된 쿠폰" : "Active coupon"}:{" "}
+              {activeCouponLabel(subscription.activeCoupon, language)}
+            </p>
+            {subscription.activeCoupon.kind === "credit" &&
+            subscription.activeCoupon.creditAmount ? (
+              <p className="mt-1">
+                {language === "ko" ? "남은 크레딧" : "Credit balance"}:{" "}
+                {subscription.activeCoupon.creditAmount.toLocaleString(
+                  language === "ko" ? "ko-KR" : "en-US",
+                )}
+              </p>
+            ) : null}
+            <p className="mt-1">
+              {language === "ko" ? "적용일" : "Applied"}:{" "}
+              {formatCouponDate(subscription.activeCoupon.appliedAt, language)}
+            </p>
+            <p className="mt-1">
+              {language === "ko" ? "만료일" : "Expires"}:{" "}
+              {subscription.activeCoupon.isLifetime
+                ? language === "ko"
+                  ? "무기한 (평생)"
+                  : "Never (lifetime)"
+                : formatCouponDate(subscription.activeCoupon.expiresAt, language)}
+            </p>
+          </div>
+        ) : subscription?.couponStatus === "DEACTIVATED" ? (
+          <p className="mt-2 text-sm font-semibold text-rose-700">
+            {language === "ko" ? "쿠폰 비활성화" : "Coupon deactivated"}
+          </p>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
