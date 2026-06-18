@@ -34,6 +34,20 @@ export function readBrowserStorageValue(
   }
 }
 
+export function readBrowserStorageValueAny(
+  keys: readonly string[],
+  options?: { storage?: StorageLike | null },
+) {
+  for (const key of keys) {
+    const value = readBrowserStorageValue(key, options);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 export function writeBrowserStorageValue(
   key: string,
   value: string,
