@@ -117,8 +117,22 @@ export default function LandingPage() {
           </button>
           <Link
             href="/guide"
-            className="flex-1 rounded bg-white/95 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-[#171a20] backdrop-blur transition hover:bg-white"
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded bg-teal-500 px-6 py-3.5 text-center text-sm font-semibold tracking-wide text-white shadow-lg ring-1 ring-teal-300/40 transition hover:bg-teal-400"
           >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
             {guideLabel}
           </Link>
           <Link
