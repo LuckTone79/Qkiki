@@ -331,6 +331,45 @@ export default function LandingPage() {
               ? "각 단계의 출력이 다음 단계의 입력으로 자동 전달됩니다 — 복사·붙여넣기 없이."
               : "Each step's output is auto-passed as the next step's input — no copy-paste."}
           </p>
+
+          {/* Repeat-loop highlight — re-run a step range until quality converges */}
+          <div className="mx-auto mt-6 max-w-2xl rounded-xl border border-teal-400/30 bg-teal-400/[0.07] p-5">
+            <div className="flex items-center justify-center gap-2">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 text-teal-300" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M17 2.1 21 6l-4 3.9" />
+                <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                <path d="M7 21.9 3 18l4-3.9" />
+                <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+              </svg>
+              <span className="text-sm font-semibold text-teal-200">
+                {language === "ko" ? "반복 루프 설정" : "Repeat-loop setting"}
+              </span>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-white/75">
+                Grok · {language === "ko" ? "비판" : "Critique"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-teal-400/40 bg-teal-400/10 px-2.5 py-1 text-[11px] font-semibold text-teal-200">
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M17 2.1 21 6l-4 3.9" />
+                  <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+                  <path d="M7 21.9 3 18l4-3.9" />
+                  <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+                </svg>
+                ×3
+              </span>
+              <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-white/75">
+                Gemini · {language === "ko" ? "개선" : "Improve"}
+              </span>
+            </div>
+
+            <p className="mt-4 text-center text-xs leading-5 text-white/60">
+              {language === "ko"
+                ? "원하는 단계 구간(시작~종료)을 반복 횟수만큼 자동으로 돌려, 품질이 수렴할 때까지 다듬습니다. 최대 10개 구간 · 총 50단계까지."
+                : "Loop any step range (start–end) for as many passes as you set, refining until quality converges. Up to 10 ranges · 50 total steps."}
+            </p>
+          </div>
         </div>
 
         <div>
