@@ -163,7 +163,7 @@ type WorkflowControlLike = {
 };
 
 export type WorkbenchCreditEstimateInput = {
-  mode: "parallel" | "sequential";
+  mode: "parallel" | "sequential" | "image";
   originalInput: string;
   additionalInstruction?: string | null;
   targets?: TargetLike[];
@@ -411,7 +411,7 @@ export function estimateWorkbenchRunCredits(input: WorkbenchCreditEstimateInput)
     estimateTextTokens(input.additionalInstruction) +
     350;
 
-  if (input.mode === "parallel") {
+  if (input.mode === "parallel" || input.mode === "image") {
     return sumEstimateLines(
       (input.targets ?? []).map((target) =>
         estimateLine({
