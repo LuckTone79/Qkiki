@@ -90,7 +90,7 @@ const guide = {
       {
         num: "04",
         title: "Write a task and select models",
-        desc: 'Type your question, analysis request, or instruction in the text area. Then enable the AI models you want to compare by toggling them in the "Model Selection" panel. You can also choose an output style (detailed, short, bullet, table, or executive) to control how results are formatted.',
+        desc: 'Type your question, analysis request, or instruction in the text area. Then enable the AI models you want to compare by toggling them in the "Model Selection" panel. You can also choose an output style (detailed, short, bullet, table, or results-focused) to control how results are formatted.',
         tip: "Use the additional instruction field to add optional context, constraints, or evaluation criteria. Attach files (text, Word, images, PDF) for richer inputs.",
       },
       {
@@ -143,7 +143,7 @@ const guide = {
         {
           num: "4",
           title: "Pick an output style (optional)",
-          desc: 'Choose how you want answers formatted: Detailed (long), Short (brief), Bullet (list), Table (grid), or Executive (summary). Not sure? Just leave it on "Detailed."',
+          desc: 'Choose how you want answers formatted: Detailed (long), Short (brief), Bullet (list), Table (grid), or Results-focused (summary). Not sure? Just leave it on "Detailed."',
         },
         {
           num: "5",
@@ -271,9 +271,9 @@ const guide = {
     backToHome: "홈으로 돌아가기",
 
     /* why different */
-    diffTitle: "Yapp는 뭐가 다른가요?",
+    diffTitle: "Yapp은 뭐가 다른가요?",
     diffSubtitle:
-      "Yapp는 챗봇이 아닙니다. 여러 AI 모델을 하나의 검토 파이프라인으로 연결하는 오케스트레이션 워크벤치입니다.",
+      "Yapp은 챗봇이 아닙니다. 여러 AI 모델을 하나의 검토 파이프라인으로 연결하는 오케스트레이션 워크벤치입니다.",
 
     diffItems: [
       {
@@ -663,6 +663,49 @@ export default function GuidePage() {
         </section>
 
         {/* ═══════════════════════════════════════════════════════════ */}
+        {/*  STEP-BY-STEP GUIDE                                        */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        <section className="mt-28">
+          <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
+            {t.guideTitle}
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-base text-stone-600">
+            {t.guideSubtitle}
+          </p>
+
+          <div className="relative mt-14">
+            {/* vertical timeline line */}
+            <div className="absolute left-6 top-0 hidden h-full w-px bg-stone-200 sm:block" />
+
+            <div className="space-y-8">
+              {t.steps.map((step) => (
+                <div key={step.num} className="relative flex gap-6">
+                  {/* step number bubble */}
+                  <div className="relative z-10 flex h-12 w-12 flex-none items-center justify-center rounded-full border-2 border-teal-600 bg-white text-sm font-bold text-teal-700">
+                    {step.num}
+                  </div>
+
+                  <div className="flex-1 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+                    <h3 className="text-lg font-semibold text-stone-950">
+                      {step.title}
+                    </h3>
+                    <p className="mt-2 text-sm leading-7 text-stone-600">
+                      {step.desc}
+                    </p>
+                    {step.tip ? (
+                      <p className="mt-3 rounded-md border border-teal-100 bg-teal-50 px-4 py-2 text-xs leading-5 text-teal-800">
+                        {"TIP: "}
+                        {step.tip}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════════════════════════════════════════════════════════ */}
         {/*  PARALLEL COMPARE TUTORIAL                                 */}
         {/* ═══════════════════════════════════════════════════════════ */}
         <section className="mt-28">
@@ -944,49 +987,6 @@ export default function GuidePage() {
                 <span className="text-sm text-stone-600">{f.value}</span>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* ═══════════════════════════════════════════════════════════ */}
-        {/*  STEP-BY-STEP GUIDE                                        */}
-        {/* ═══════════════════════════════════════════════════════════ */}
-        <section className="mt-28">
-          <h2 className="text-center font-serif text-3xl font-semibold tracking-tight">
-            {t.guideTitle}
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-base text-stone-600">
-            {t.guideSubtitle}
-          </p>
-
-          <div className="relative mt-14">
-            {/* vertical timeline line */}
-            <div className="absolute left-6 top-0 hidden h-full w-px bg-stone-200 sm:block" />
-
-            <div className="space-y-8">
-              {t.steps.map((step) => (
-                <div key={step.num} className="relative flex gap-6">
-                  {/* step number bubble */}
-                  <div className="relative z-10 flex h-12 w-12 flex-none items-center justify-center rounded-full border-2 border-teal-600 bg-white text-sm font-bold text-teal-700">
-                    {step.num}
-                  </div>
-
-                  <div className="flex-1 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-                    <h3 className="text-lg font-semibold text-stone-950">
-                      {step.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-7 text-stone-600">
-                      {step.desc}
-                    </p>
-                    {step.tip ? (
-                      <p className="mt-3 rounded-md border border-teal-100 bg-teal-50 px-4 py-2 text-xs leading-5 text-teal-800">
-                        {"TIP: "}
-                        {step.tip}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 

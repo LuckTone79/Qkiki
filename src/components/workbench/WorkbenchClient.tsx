@@ -373,7 +373,7 @@ const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
   short: { en: "short", ko: "\uc9e7\uac8c" },
   bullet: { en: "bullet", ko: "\uae00\uba38\ub9ac\ud45c" },
   table: { en: "table", ko: "\ud45c" },
-  executive: { en: "executive", ko: "\uc784\uc6d0 \uc694\uc57d" },
+  executive: { en: "results-focused", ko: "\uacb0\uacfc\uc911\uc2ec" },
 };
 
 const outputLanguages: OutputLanguage[] = ["en", "ko", "ja", "zh", "hi"];
