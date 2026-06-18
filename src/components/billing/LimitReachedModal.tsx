@@ -19,31 +19,24 @@ export function LimitReachedModal({
     return null;
   }
 
-  const limitLabel = usage.isUnlimitedDaily
-    ? language === "ko"
-      ? "무제한"
-      : "Unlimited"
-    : `${usage.dailyLimit}`;
+  // The daily allowance is the binding constraint when there is still a monthly
+  // balance left but today's credits are exhausted.
+  const dailyIsBinding =
+    usage.totalDailyCreditsAvailable < usage.totalCreditsAvailable;
 
   const title =
     language === "ko"
-      ? usage.isCreditLimitReached && !usage.isLimitReached
-        ? "사용 가능한 크레딧을 모두 사용했어요."
-        : usage.isBoostActive
-        ? "오늘의 Boost 사용량을 모두 사용했어요."
-        : "오늘의 무료 사용량을 모두 사용했어요."
-      : usage.isCreditLimitReached && !usage.isLimitReached
-        ? "You've used your available credits."
-        : "You've used all of today's available runs.";
+      ? "사용 가능한 크레딧을 모두 사용했어요."
+      : "You've used your available credits.";
 
   const description =
     language === "ko"
-      ? usage.isCreditLimitReached && !usage.isLimitReached
-        ? `현재 남은 크레딧은 ${usage.totalCreditsAvailable.toLocaleString("ko-KR")}입니다.`
-        : `내일 다시 ${limitLabel}회가 충전됩니다.`
-      : usage.isCreditLimitReached && !usage.isLimitReached
-        ? `You currently have ${usage.totalCreditsAvailable.toLocaleString("en-US")} credits left.`
-        : `${limitLabel} uses will refresh tomorrow.`;
+      ? dailyIsBinding
+        ? `오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString("ko-KR")}입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString("ko-KR")}). 자정(KST)에 초기화됩니다.`
+        : `현재 남은 크레딧은 ${usage.totalCreditsAvailable.toLocaleString("ko-KR")}입니다.`
+      : dailyIsBinding
+        ? `Only ${usage.totalDailyCreditsAvailable.toLocaleString("en-US")} of your daily ${usage.dailyCreditLimit.toLocaleString("en-US")} credits remain. They reset at midnight (KST).`
+        : `You currently have ${usage.totalCreditsAvailable.toLocaleString("en-US")} credits left.`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4">

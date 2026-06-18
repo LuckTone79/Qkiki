@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   apiErrorResponse,
-  consumeTrialConversation,
   requireApiGenerationUser,
 } from "@/lib/api-auth";
 import { executeBranchRun } from "@/lib/ai/workflow";
@@ -44,13 +43,11 @@ export async function POST(request: Request) {
       targets: parsed.data.targets,
     });
 
-    const usageContext = user.isTrial
-      ? null
-      : await requireUsageAccess({
-          userId: user.id,
-          inputCharCount: parsed.data.instruction.length,
-          estimatedCredits: creditEstimate.estimatedCredits,
-        });
+    const usageContext = await requireUsageAccess({
+      userId: user.id,
+      inputCharCount: parsed.data.instruction.length,
+      estimatedCredits: creditEstimate.estimatedCredits,
+    });
 
     const providerError = await assertProvidersReadyForRun(
       parsed.data.targets.map((target) => target.provider as ProviderName),
@@ -60,24 +57,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: providerError }, { status: 400 });
     }
 
-    if (user.isTrial) {
-      await consumeTrialConversation(user);
-    }
-
-    reservedUsage = user.isTrial
-      ? null
-      : await reserveUsage({
-          userId: user.id,
-          requestType: parsed.data.actionType,
-          inputCharCount: parsed.data.instruction.length,
-          reservationKey: `branch:${crypto.randomUUID()}`,
-          estimatedCredits: creditEstimate.estimatedCredits,
-          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
-          maxApprovedCredits: creditEstimate.estimatedCredits,
-          pricingVersion: creditEstimate.pricingVersion,
-          quote: creditEstimate,
-          context: usageContext ?? undefined,
-        });
+    reservedUsage = await reserveUsage({
+      userId: user.id,
+      requestType: parsed.data.actionType,
+      inputCharCount: parsed.data.instruction.length,
+      reservationKey: `branch:${crypto.randomUUID()}`,
+      estimatedCredits: creditEstimate.estimatedCredits,
+      estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+      maxApprovedCredits: creditEstimate.estimatedCredits,
+      pricingVersion: creditEstimate.pricingVersion,
+      quote: creditEstimate,
+      context: usageContext ?? undefined,
+    });
 
     const result = await executeBranchRun({
       userId: user.id,
@@ -92,29 +83,27 @@ export async function POST(request: Request) {
     });
     executionFinished = true;
 
-    const usage = user.isTrial
-      ? undefined
-      : await settleUsageReservation({
-          reservationId: reservedUsage?.id,
-          userId: user.id,
-          requestType: parsed.data.actionType,
-          selectedModels: parsed.data.targets.map(
-            (target) => `${target.provider}/${target.model}`,
-          ),
-          inputCharCount: parsed.data.instruction.length,
-          inputTokenCount: (result.results || []).reduce(
-            (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
-            0,
-          ),
-          outputTokenCount: (result.results || []).reduce(
-            (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
-            0,
-          ),
-          estimatedCostUsd: (result.results || []).reduce(
-            (sum, item) => sum + (item.estimatedCost ?? 0),
-            0,
-          ),
-        });
+    const usage = await settleUsageReservation({
+      reservationId: reservedUsage?.id,
+      userId: user.id,
+      requestType: parsed.data.actionType,
+      selectedModels: parsed.data.targets.map(
+        (target) => `${target.provider}/${target.model}`,
+      ),
+      inputCharCount: parsed.data.instruction.length,
+      inputTokenCount: (result.results || []).reduce(
+        (sum, item) => sum + (item.tokenUsagePrompt ?? 0),
+        0,
+      ),
+      outputTokenCount: (result.results || []).reduce(
+        (sum, item) => sum + (item.tokenUsageCompletion ?? 0),
+        0,
+      ),
+      estimatedCostUsd: (result.results || []).reduce(
+        (sum, item) => sum + (item.estimatedCost ?? 0),
+        0,
+      ),
+    });
 
     return NextResponse.json({ ...result, usage, creditEstimate });
   } catch (error) {

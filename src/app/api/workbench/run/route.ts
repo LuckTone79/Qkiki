@@ -4,7 +4,6 @@ import { start } from "workflow/api";
 import { Prisma } from "@prisma/client";
 import {
   apiErrorResponse,
-  consumeTrialConversation,
   requireApiGenerationUser,
 } from "@/lib/api-auth";
 import { assertProvidersReadyForRun } from "@/lib/provider-availability";
@@ -68,13 +67,13 @@ export async function POST(request: Request) {
       workflowControl: parsed.data.workflowControl,
     });
 
-    const usageContext = user.isTrial
-      ? null
-      : await requireUsageAccess({
-          userId: user.id,
-          inputCharCount,
-          estimatedCredits: creditEstimate.estimatedCredits,
-        });
+    // All users (including anonymous trial visitors) are now metered purely by
+    // credits — there is no separate per-request count gate.
+    const usageContext = await requireUsageAccess({
+      userId: user.id,
+      inputCharCount,
+      estimatedCredits: creditEstimate.estimatedCredits,
+    });
 
     if (parsed.data.mode === "parallel") {
       if (!parsed.data.targets?.length) {
@@ -108,10 +107,6 @@ export async function POST(request: Request) {
       }
     }
 
-    if (user.isTrial) {
-      await consumeTrialConversation(user);
-    }
-
     const plannedTotal = calculatePlannedExecutionTotal(parsed.data);
     const preparedSession = await upsertWorkbenchSession(user.id, {
       ...parsed.data,
@@ -133,20 +128,18 @@ export async function POST(request: Request) {
       ...parsed.data,
       sessionId: preparedSession.id,
     };
-    const reservation = user.isTrial
-      ? null
-      : await reserveUsage({
-          userId: user.id,
-          requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
-          inputCharCount,
-          reservationKey: `run:${crypto.randomUUID()}`,
-          estimatedCredits: creditEstimate.estimatedCredits,
-          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
-          maxApprovedCredits: creditEstimate.estimatedCredits,
-          pricingVersion: creditEstimate.pricingVersion,
-          quote: creditEstimate,
-          context: usageContext ?? undefined,
-        });
+    const reservation = await reserveUsage({
+      userId: user.id,
+      requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+      inputCharCount,
+      reservationKey: `run:${crypto.randomUUID()}`,
+      estimatedCredits: creditEstimate.estimatedCredits,
+      estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+      maxApprovedCredits: creditEstimate.estimatedCredits,
+      pricingVersion: creditEstimate.pricingVersion,
+      quote: creditEstimate,
+      context: usageContext ?? undefined,
+    });
     reservationId = reservation?.id ?? null;
 
     if (parsed.data.mode === "sequential" && runnerVersion === "v2") {

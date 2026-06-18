@@ -39,6 +39,10 @@ export function generateCouponCode(type: CouponType) {
     LIFETIME_FREE: "LIFE",
     LIFETIME_FREE_DAILY_50: "LIFE-50",
     WEEKLY_CREDIT: "CR7",
+    CREDIT_7D: "CR7",
+    CREDIT_30D: "CR30",
+    UNLIMITED_7D: "UNL7",
+    UNLIMITED_30D: "UNL30",
   };
   const prefix = prefixMap[type];
   const random = cryptoRandom(10);
@@ -117,7 +121,11 @@ export async function revokeCouponGrantForUserByAdmin(
   const now = new Date();
   const note = input.reason === "delete" ? COUPON_DELETED_NOTE : COUPON_DEACTIVATED_NOTE;
 
-  if (input.couponType === CouponType.WEEKLY_CREDIT) {
+  if (
+    input.couponType === CouponType.WEEKLY_CREDIT ||
+    input.couponType === CouponType.CREDIT_7D ||
+    input.couponType === CouponType.CREDIT_30D
+  ) {
     await tx.userSubscription.updateMany({
       where: { userId: input.userId },
       data: {
@@ -132,6 +140,30 @@ export async function revokeCouponGrantForUserByAdmin(
         couponId: input.couponId,
         eventType: SubscriptionEventType.COUPON_REDEMPTION,
         subscriptionType: SubscriptionType.WEEKLY_CREDIT_7D,
+        startAt: now,
+        endAt: now,
+        isLifetime: false,
+        note,
+      },
+    });
+    return;
+  }
+
+  if (
+    input.couponType === CouponType.UNLIMITED_7D ||
+    input.couponType === CouponType.UNLIMITED_30D
+  ) {
+    await tx.userSubscription.updateMany({
+      where: { userId: input.userId },
+      data: { couponUnlimitedUntil: null },
+    });
+
+    await tx.subscriptionLedger.create({
+      data: {
+        userId: input.userId,
+        couponId: input.couponId,
+        eventType: SubscriptionEventType.COUPON_REDEMPTION,
+        subscriptionType: SubscriptionType.MONTHLY_FREE_30D,
         startAt: now,
         endAt: now,
         isLifetime: false,
@@ -292,6 +324,97 @@ export async function redeemCouponCode(input: { userId: string; couponCode: stri
       grantEndAt = mergedEnd;
       creditAmount = amount;
       creditExpiresAt = mergedEnd;
+    }
+
+    if (
+      coupon.type === CouponType.CREDIT_7D ||
+      coupon.type === CouponType.CREDIT_30D
+    ) {
+      const amount = coupon.creditAmount ?? 0;
+      if (amount < 1) {
+        throw new CouponRedeemError("Credit coupon amount is invalid.", 409);
+      }
+
+      const durationMs =
+        coupon.type === CouponType.CREDIT_30D ? THIRTY_DAYS_MS : SEVEN_DAYS_MS;
+      const activeExistingCredits =
+        current?.couponCreditEndsAt &&
+        current.couponCreditEndsAt.getTime() > now.getTime()
+          ? current.couponCreditBalance
+          : 0;
+      const nextEnd = new Date(now.getTime() + durationMs);
+      const mergedEnd =
+        current?.couponCreditEndsAt &&
+        current.couponCreditEndsAt.getTime() > nextEnd.getTime()
+          ? current.couponCreditEndsAt
+          : nextEnd;
+
+      await tx.userSubscription.upsert({
+        where: { userId: input.userId },
+        update: {
+          couponCreditBalance: activeExistingCredits + amount,
+          couponCreditEndsAt: mergedEnd,
+        },
+        create: {
+          userId: input.userId,
+          couponCreditBalance: amount,
+          couponCreditEndsAt: nextEnd,
+        },
+      });
+
+      await tx.subscriptionLedger.create({
+        data: {
+          userId: input.userId,
+          couponId: coupon.id,
+          eventType: SubscriptionEventType.COUPON_REDEMPTION,
+          subscriptionType: SubscriptionType.WEEKLY_CREDIT_7D,
+          startAt: now,
+          endAt: mergedEnd,
+          isLifetime: false,
+          note: `credit_${coupon.type === CouponType.CREDIT_30D ? 30 : 7}d_${amount}`,
+        },
+      });
+
+      grantStartAt = now;
+      grantEndAt = mergedEnd;
+      creditAmount = amount;
+      creditExpiresAt = mergedEnd;
+    }
+
+    if (
+      coupon.type === CouponType.UNLIMITED_7D ||
+      coupon.type === CouponType.UNLIMITED_30D
+    ) {
+      const durationMs =
+        coupon.type === CouponType.UNLIMITED_30D ? THIRTY_DAYS_MS : SEVEN_DAYS_MS;
+      const nextEnd = new Date(now.getTime() + durationMs);
+      const mergedEnd =
+        current?.couponUnlimitedUntil &&
+        current.couponUnlimitedUntil.getTime() > nextEnd.getTime()
+          ? current.couponUnlimitedUntil
+          : nextEnd;
+
+      await tx.userSubscription.upsert({
+        where: { userId: input.userId },
+        update: { couponUnlimitedUntil: mergedEnd },
+        create: { userId: input.userId, couponUnlimitedUntil: nextEnd },
+      });
+
+      await tx.subscriptionLedger.create({
+        data: {
+          userId: input.userId,
+          couponId: coupon.id,
+          eventType: SubscriptionEventType.COUPON_REDEMPTION,
+          subscriptionType: SubscriptionType.MONTHLY_FREE_30D,
+          startAt: now,
+          endAt: mergedEnd,
+          isLifetime: false,
+          note: `unlimited_${coupon.type === CouponType.UNLIMITED_30D ? 30 : 7}d`,
+        },
+      });
+
+      grantStartAt = now;
+      grantEndAt = mergedEnd;
     }
 
     if (

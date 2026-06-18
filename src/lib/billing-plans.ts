@@ -1,60 +1,46 @@
 export type PlanLimitPolicy = {
-  dailyLimit: number;
+  // Credit-based limits only. The legacy per-request "count" limits
+  // (daily run count, daily share/save/advanced-reasoning counts) were removed
+  // when the system was unified onto credits.
   monthlyCreditLimit: number;
   dailyCreditLimit: number;
   inputCharLimit: number;
-  resultSaveLimit: number;
-  shareDailyLimit: number;
-  advancedReasoningDailyLimit: number;
 };
 
 export type PaidPlanKey = "starter" | "pro" | "team";
 
 export const QKIKI_PLAN_LIMITS = {
-  free: {
-    dailyLimit: 10,
-    monthlyCreditLimit: 50,
-    dailyCreditLimit: 25,
-    inputCharLimit: 3000,
-    resultSaveLimit: 10,
-    shareDailyLimit: 3,
-    advancedReasoningDailyLimit: 1,
+  // Non-logged-in (anonymous) visitors. Metered purely by daily credits.
+  anon: {
+    monthlyCreditLimit: 900,
+    dailyCreditLimit: 30,
+    inputCharLimit: 2000,
   },
+  free: {
+    monthlyCreditLimit: 350,
+    dailyCreditLimit: 70,
+    inputCharLimit: 3000,
+  },
+  // Welcome boost granted to brand-new signed-in users for a short window.
   boost: {
-    dailyLimit: 30,
-    monthlyCreditLimit: 250,
-    dailyCreditLimit: 80,
+    monthlyCreditLimit: 900,
+    dailyCreditLimit: 150,
     inputCharLimit: 5000,
-    resultSaveLimit: 50,
-    shareDailyLimit: 10,
-    advancedReasoningDailyLimit: 3,
   },
   starter: {
-    dailyLimit: 40,
-    monthlyCreditLimit: 700,
-    dailyCreditLimit: 120,
+    monthlyCreditLimit: 800,
+    dailyCreditLimit: 150,
     inputCharLimit: 12000,
-    resultSaveLimit: 120,
-    shareDailyLimit: 15,
-    advancedReasoningDailyLimit: 4,
   },
   pro: {
-    dailyLimit: 120,
-    monthlyCreditLimit: 2400,
-    dailyCreditLimit: 400,
+    monthlyCreditLimit: 2200,
+    dailyCreditLimit: 450,
     inputCharLimit: 60000,
-    resultSaveLimit: 600,
-    shareDailyLimit: 60,
-    advancedReasoningDailyLimit: 25,
   },
   team: {
-    dailyLimit: 250,
-    monthlyCreditLimit: 7500,
-    dailyCreditLimit: 1300,
+    monthlyCreditLimit: 7000,
+    dailyCreditLimit: 1400,
     inputCharLimit: 100000,
-    resultSaveLimit: 2500,
-    shareDailyLimit: 180,
-    advancedReasoningDailyLimit: 100,
   },
 } satisfies Record<string, PlanLimitPolicy>;
 
@@ -62,19 +48,19 @@ export const QKIKI_PRICING_PLANS = [
   {
     key: "starter",
     title: "Starter",
-    monthlyPriceUsd: 11.3,
-    annualPriceUsd: 113,
+    monthlyPriceUsd: 7.3,
+    annualPriceUsd: 73,
     limits: QKIKI_PLAN_LIMITS.starter,
     positioning:
-      "Entry plan priced below the $20 single-chatbot subscriptions, with enough credits for light multi-model comparison.",
+      "Entry plan priced well below the $20 single-chatbot subscriptions, with a monthly credit bucket for light multi-model comparison.",
     positioningKo:
-      "$20 단일 챗봇 구독보다 낮은 입문 플랜입니다. 가벼운 병렬 비교와 짧은 검토 체인을 검증하기 위한 용도입니다.",
+      "$20 단일 챗봇 구독보다 크게 낮은 입문 플랜입니다. 가벼운 병렬 비교와 짧은 검토 체인을 위한 월 크레딧을 제공합니다.",
   },
   {
     key: "pro",
     title: "Pro",
-    monthlyPriceUsd: 29,
-    annualPriceUsd: 290,
+    monthlyPriceUsd: 19,
+    annualPriceUsd: 190,
     limits: QKIKI_PLAN_LIMITS.pro,
     positioning:
       "Main individual plan for users who repeatedly compare models and run structured review chains.",
@@ -84,21 +70,21 @@ export const QKIKI_PRICING_PLANS = [
   {
     key: "team",
     title: "Team",
-    monthlyPriceUsd: 89,
-    annualPriceUsd: 890,
+    monthlyPriceUsd: 59,
+    annualPriceUsd: 590,
     limits: QKIKI_PLAN_LIMITS.team,
     positioning:
-      "Shared plan for small teams that need longer inputs, more saved results, and heavier monthly usage.",
+      "Shared plan for small teams that need longer inputs and heavier monthly credit usage.",
     positioningKo:
-      "긴 입력, 더 많은 저장 결과, 공유 사용량이 필요한 소규모 팀용 플랜입니다.",
+      "긴 입력과 더 많은 월 크레딧이 필요한 소규모 팀용 플랜입니다.",
   },
 ] as const;
 
 export const QKIKI_CREDIT_PACK = {
   key: "credit",
   title: "Credit Pack",
-  priceUsd: 39,
-  credits: 2500,
+  priceUsd: 25,
+  credits: 1500,
   expiresInMonths: 12,
   positioning:
     "Optional top-up for peak projects. It is intentionally priced above subscription credits so monthly plans remain the best value.",

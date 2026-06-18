@@ -1,14 +1,11 @@
 export type UsageStatus = {
   planType: "FREE" | "STARTER" | "PRO" | "TEAM";
   billingType: "NONE" | "MONTHLY" | "YEARLY" | "CREDIT";
-  planLabel: "free" | "boost" | "starter" | "pro" | "team";
+  planLabel: "anon" | "free" | "boost" | "starter" | "pro" | "team";
+  isAnonymous: boolean;
   isBoostActive: boolean;
   boostEndsAt: string | null;
   boostDaysRemaining: number;
-  dailyLimit: number;
-  isUnlimitedDaily: boolean;
-  dailyUsed: number;
-  remaining: number;
   monthlyCreditLimit: number;
   monthlyCreditsUsed: number;
   monthlyCreditsRemaining: number;
@@ -20,23 +17,22 @@ export type UsageStatus = {
   couponCreditBalance: number;
   couponCreditEndsAt: string | null;
   couponCreditActive: boolean;
+  // Period-based "unlimited credits" coupon grant.
+  isUnlimitedCredits: boolean;
+  unlimitedCreditsEndsAt: string | null;
   walletCreditsAvailable: number;
   planCreditsAvailable: number;
   totalCreditsAvailable: number;
   totalDailyCreditsAvailable: number;
   isCreditLimitReached: boolean;
   inputCharLimit: number;
-  resultSaveLimit: number;
-  shareDailyLimit: number;
-  advancedReasoningDailyLimit: number;
   warningThresholdReached: boolean;
-  isLimitReached: boolean;
   resetAt: string;
 };
 
 export type UsageErrorPayload = {
   error?: string;
-  code?: "LIMIT_REACHED" | "INPUT_TOO_LONG" | "CREDIT_LIMIT_REACHED";
+  code?: "INPUT_TOO_LONG" | "CREDIT_LIMIT_REACHED";
   redirectUrl?: string;
   usage?: UsageStatus;
 };

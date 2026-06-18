@@ -38,14 +38,14 @@ export default async function PricingPage(props: PricingPageProps) {
           USD 기준 크레딧 구독
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
-          최저 유료 플랜은 ChatGPT Plus와 Claude Pro의 월 $20 가격대보다 낮은
-          월 $11.30으로 조정했습니다. Qkiki는 단일 챗봇 무제한 상품이 아니라 여러
-          모델을 동시에 호출하는 워크벤치이므로, 가격은 낮추되 크레딧 한도는 함께
-          낮춰 원가와 사용자 기대치를 같이 보호합니다.
+          모든 한도는 횟수가 아니라 크레딧으로 통일했습니다. 최저 유료 플랜은
+          ChatGPT Plus·Claude Pro의 월 $20대보다 낮은 월 $7.30입니다. 무료 사용자는
+          하루 70크레딧, 비로그인 사용자는 하루 30크레딧이 제공됩니다.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
-          Entry pricing now starts at $11.30/month. Higher tiers are reserved for
-          repeated comparison, longer sequential review chains, and team usage.
+          Entry pricing starts at $7.30/month. Everything is metered in credits —
+          there is no separate per-run count. Free users get 70 credits/day, and
+          signed-out visitors get 30 credits/day.
         </p>
         {intent ? (
           <p className="mt-4 inline-flex rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-800">
@@ -79,17 +79,13 @@ export default async function PricingPage(props: PricingPageProps) {
             <p className="mt-2 text-sm leading-6 text-stone-600">{plan.positioningKo}</p>
             <ul className="mt-5 space-y-2 text-sm text-stone-700">
               <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
+                Monthly credits: {plan.limits.monthlyCreditLimit.toLocaleString("en-US")}
+              </li>
+              <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
                 Daily credit cap: {plan.limits.dailyCreditLimit.toLocaleString("en-US")}
               </li>
               <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
-                Daily runs: {plan.limits.dailyLimit.toLocaleString("en-US")}
-              </li>
-              <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
                 Input limit: {plan.limits.inputCharLimit.toLocaleString("en-US")} chars
-              </li>
-              <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
-                Advanced reasoning runs:{" "}
-                {plan.limits.advancedReasoningDailyLimit.toLocaleString("en-US")} / day
               </li>
             </ul>
           </article>

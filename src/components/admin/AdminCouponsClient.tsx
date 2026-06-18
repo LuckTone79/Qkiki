@@ -8,7 +8,11 @@ type CouponTypeValue =
   | "MONTHLY_FREE_30D_DAILY_50"
   | "LIFETIME_FREE"
   | "LIFETIME_FREE_DAILY_50"
-  | "WEEKLY_CREDIT";
+  | "WEEKLY_CREDIT"
+  | "CREDIT_7D"
+  | "CREDIT_30D"
+  | "UNLIMITED_7D"
+  | "UNLIMITED_30D";
 
 type CouponItem = {
   id: string;
@@ -46,8 +50,13 @@ const couponText = {
   en: {
     title: "Coupons",
     description:
-      "Create one-time coupons for request-count grants or one-week credit grants.",
+      "Create one-time credit coupons: a 7-day or 30-day grant of a fixed credit amount, or unlimited credits for the period.",
     createSectionTitle: "Create coupon",
+    duration: "Duration",
+    day7: "7 days",
+    day30: "30 days",
+    unlimited: "Unlimited credits",
+    unlimitedHint: "No credit limit for the duration",
     type: "Type",
     customCode: "Custom code (optional)",
     customCodePlaceholder: "auto-generate if empty",
@@ -90,13 +99,22 @@ const couponText = {
     lifetimeType: "lifetime_free (daily unlimited)",
     lifetime50Type: "lifetime_free (daily 50)",
     weeklyCreditType: "weekly credit coupon",
+    credit7dType: "7-day credit",
+    credit30dType: "30-day credit",
+    unlimited7dType: "7-day unlimited credits",
+    unlimited30dType: "30-day unlimited credits",
     creditUnit: "credits",
   },
   ko: {
     title: "\uCFE0\uD3F0",
     description:
-      "횟수 차감 쿠폰과 7일 크레딧 쿠폰을 발행합니다.",
+      "크레딧 쿠폰을 발행합니다. 7일 또는 30일 동안 지정한 크레딧을 지급하거나, 기간 내 무제한 크레딧을 부여할 수 있습니다.",
     createSectionTitle: "\uCFE0\uD3F0 \uC0DD\uC131",
+    duration: "\uAE30\uAC04",
+    day7: "7\uC77C",
+    day30: "30\uC77C",
+    unlimited: "\uBB34\uC81C\uD55C \uD06C\uB808\uB527",
+    unlimitedHint: "\uAE30\uAC04 \uB3D9\uC548 \uD06C\uB808\uB527 \uD55C\uB3C4 \uC5C6\uC74C",
     type: "\uC720\uD615",
     customCode: "\uC9C1\uC811 \uCF54\uB4DC (\uC120\uD0DD)",
     customCodePlaceholder:
@@ -142,6 +160,10 @@ const couponText = {
     lifetimeType: "평생 무료 쿠폰 (일일 무제한)",
     lifetime50Type: "평생 무료 쿠폰 (일일 50회)",
     weeklyCreditType: "7일 크레딧 쿠폰",
+    credit7dType: "7일 크레딧",
+    credit30dType: "30일 크레딧",
+    unlimited7dType: "7일 무제한 크레딧",
+    unlimited30dType: "30일 무제한 크레딧",
     creditUnit: "크레딧",
   },
 } as const;
@@ -163,7 +185,8 @@ export function AdminCouponsClient() {
   const { language } = useLanguage();
   const t = couponText[language];
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
-  const [type, setType] = useState<CouponTypeValue>("MONTHLY_FREE_30D");
+  const [durationDays, setDurationDays] = useState<7 | 30>(7);
+  const [unlimited, setUnlimited] = useState(false);
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
   const [creditAmount, setCreditAmount] = useState("500");
@@ -198,11 +221,11 @@ export function AdminCouponsClient() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        type,
+        durationDays,
+        unlimited,
         code,
         note,
-        creditAmount:
-          type === "WEEKLY_CREDIT" ? Number.parseInt(creditAmount, 10) : undefined,
+        creditAmount: unlimited ? undefined : Number.parseInt(creditAmount, 10),
       }),
     });
 
@@ -325,6 +348,10 @@ export function AdminCouponsClient() {
     if (couponType === "MONTHLY_FREE_30D_DAILY_50") return t.monthly50Type;
     if (couponType === "LIFETIME_FREE") return t.lifetimeType;
     if (couponType === "LIFETIME_FREE_DAILY_50") return t.lifetime50Type;
+    if (couponType === "CREDIT_7D") return t.credit7dType;
+    if (couponType === "CREDIT_30D") return t.credit30dType;
+    if (couponType === "UNLIMITED_7D") return t.unlimited7dType;
+    if (couponType === "UNLIMITED_30D") return t.unlimited30dType;
     return t.weeklyCreditType;
   }
 
@@ -369,17 +396,16 @@ export function AdminCouponsClient() {
 
         <form onSubmit={createCoupon} className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="block">
-            <span className="text-sm font-medium text-slate-700">{t.type}</span>
+            <span className="text-sm font-medium text-slate-700">{t.duration}</span>
             <select
-              value={type}
-              onChange={(event) => setType(event.target.value as CouponTypeValue)}
+              value={durationDays}
+              onChange={(event) =>
+                setDurationDays(Number(event.target.value) === 30 ? 30 : 7)
+              }
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
             >
-              <option value="MONTHLY_FREE_30D">{t.monthlyType}</option>
-              <option value="MONTHLY_FREE_30D_DAILY_50">{t.monthly50Type}</option>
-              <option value="LIFETIME_FREE">{t.lifetimeType}</option>
-              <option value="LIFETIME_FREE_DAILY_50">{t.lifetime50Type}</option>
-              <option value="WEEKLY_CREDIT">{t.weeklyCreditType}</option>
+              <option value={7}>{t.day7}</option>
+              <option value={30}>{t.day30}</option>
             </select>
           </label>
 
@@ -393,7 +419,22 @@ export function AdminCouponsClient() {
             />
           </label>
 
-          {type === "WEEKLY_CREDIT" ? (
+          <label className="flex items-start gap-2 md:col-span-2">
+            <input
+              type="checkbox"
+              checked={unlimited}
+              onChange={(event) => setUnlimited(event.target.checked)}
+              className="mt-1 h-4 w-4 accent-slate-900"
+            />
+            <span>
+              <span className="block text-sm font-medium text-slate-700">
+                {t.unlimited}
+              </span>
+              <span className="text-xs text-slate-500">{t.unlimitedHint}</span>
+            </span>
+          </label>
+
+          {!unlimited ? (
             <label className="block">
               <span className="text-sm font-medium text-slate-700">
                 {t.creditAmount}
@@ -401,7 +442,7 @@ export function AdminCouponsClient() {
               <input
                 type="number"
                 min={1}
-                max={100000}
+                max={1000000}
                 value={creditAmount}
                 onChange={(event) => setCreditAmount(event.target.value)}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-700"
@@ -410,7 +451,7 @@ export function AdminCouponsClient() {
             </label>
           ) : null}
 
-          <label className={`block ${type === "WEEKLY_CREDIT" ? "" : "md:col-span-2"}`}>
+          <label className={`block ${unlimited ? "md:col-span-2" : ""}`}>
             <span className="text-sm font-medium text-slate-700">{t.note}</span>
             <input
               value={note}
