@@ -51,11 +51,23 @@ export default function LandingPage() {
   };
 
   const features = [t("featureCompare"), t("featureRoute"), t("featureSave")];
-  const routeExample: Array<[string, string]> = [
-    ["GPT", t("stepDraftAnswer")],
-    ["Grok", t("stepCritiqueFlaws")],
-    ["Gemini", t("stepImproveCritique")],
-    ["Claude", t("stepFinalAnswer")],
+
+  // Parallel-compare mock: one prompt fans out to every model at once,
+  // each card surfacing latency + token cost so differences are obvious.
+  const parallelCards = [
+    { name: "GPT", badge: "bg-blue-50 text-blue-700", line: "bg-blue-200/70", time: "1.1s", tok: "312" },
+    { name: "Claude", badge: "bg-violet-50 text-violet-700", line: "bg-violet-200/70", time: "1.4s", tok: "298" },
+    { name: "Gemini", badge: "bg-emerald-50 text-emerald-700", line: "bg-emerald-200/70", time: "0.9s", tok: "275" },
+    { name: "Grok", badge: "bg-orange-50 text-orange-700", line: "bg-orange-200/70", time: "1.3s", tok: "301" },
+  ];
+
+  // Sequential chain: each model plays a specialized role and its output
+  // is auto-fed as the next step's input.
+  const chainFlow: Array<{ model: string; action: string; desc: string }> = [
+    { model: "GPT", action: language === "ko" ? "초안 생성" : "Draft", desc: t("stepDraftAnswer") },
+    { model: "Grok", action: language === "ko" ? "비판" : "Critique", desc: t("stepCritiqueFlaws") },
+    { model: "Gemini", action: language === "ko" ? "개선" : "Improve", desc: t("stepImproveCritique") },
+    { model: "Claude", action: language === "ko" ? "최종 완성" : "Finalize", desc: t("stepFinalAnswer") },
   ];
   const quickStarts = [
     {
@@ -170,6 +182,63 @@ export default function LandingPage() {
           </p>
         </div>
 
+        {/* Parallel-compare visualization */}
+        <div className="mx-auto w-full max-w-4xl px-5">
+          <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-md sm:p-8">
+            {/* one prompt */}
+            <div className="mx-auto max-w-md rounded-xl border border-[#171a20]/10 bg-[#fafafa] px-4 py-3 text-center text-sm italic text-[#171a20]/60">
+              {language === "ko"
+                ? '"신제품 출시 카피를 써줘"'
+                : '"Write a launch copy for our new product"'}
+            </div>
+
+            {/* fan-out indicator */}
+            <div className="my-3 flex flex-col items-center">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-teal-600">
+                {language === "ko"
+                  ? "4개 모델에 동시 전송"
+                  : "Sent to 4 models at once"}
+              </span>
+              <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 text-teal-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 5v14M19 12l-7 7-7-7" />
+              </svg>
+            </div>
+
+            {/* result cards side by side */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {parallelCards.map((card) => (
+                <div
+                  key={card.name}
+                  className="rounded-xl border border-black/5 bg-white p-3 text-left shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${card.badge}`}>
+                      {card.name}
+                    </span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  </div>
+                  <div className="mt-3 space-y-1.5">
+                    <div className={`h-1.5 rounded-full ${card.line}`} />
+                    <div className={`h-1.5 w-4/5 rounded-full ${card.line}`} />
+                    <div className={`h-1.5 w-3/5 rounded-full ${card.line}`} />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[10px] text-[#171a20]/40">
+                    <span>⏱ {card.time}</span>
+                    <span>{card.tok} tok</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-5 text-center text-xs text-[#171a20]/45">
+              {language === "ko"
+                ? "탭을 4개 열 필요 없이, 답변 · 속도 · 비용을 한 화면에서 비교합니다."
+                : "No more juggling 4 tabs — compare answers, speed, and cost on one screen."}
+            </p>
+          </div>
+        </div>
+
+        {/* supporting feature chips */}
         <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 px-5 sm:grid-cols-3">
           {features.map((feature, index) => (
             <div
@@ -209,26 +278,59 @@ export default function LandingPage() {
           </h2>
         </div>
 
-        <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-3 px-5 sm:grid-cols-4">
-          {routeExample.map(([model, text], index) => {
-            const isFinal = index === routeExample.length - 1;
-            return (
-              <div
-                key={model}
-                className={`rounded-lg border px-4 py-5 text-left ${
-                  isFinal
-                    ? "border-white/40 bg-white/10"
-                    : "border-white/15 bg-transparent"
-                }`}
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/55">
-                  {t("step")} {String(index + 1).padStart(2, "0")}
-                </p>
-                <p className="mt-2 text-base font-semibold text-white">{model}</p>
-                <p className="mt-1 text-sm leading-6 text-white/75">{text}</p>
-              </div>
-            );
-          })}
+        {/* Sequential chain visualization — output feeds the next input */}
+        <div className="mx-auto w-full max-w-5xl px-5">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-stretch">
+            {chainFlow.map((step, index) => {
+              const isFinal = index === chainFlow.length - 1;
+              return (
+                <div key={step.model} className="flex flex-col items-center gap-3 sm:flex-1 sm:flex-row">
+                  <div
+                    className={`w-full flex-1 rounded-xl border p-4 text-left transition ${
+                      isFinal
+                        ? "border-teal-400/60 bg-teal-400/10 ring-1 ring-teal-300/30"
+                        : "border-white/15 bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
+                        {t("step")} {String(index + 1).padStart(2, "0")}
+                      </span>
+                      {isFinal ? (
+                        <span className="rounded-full bg-teal-400/20 px-2 py-0.5 text-[10px] font-semibold text-teal-200">
+                          {language === "ko" ? "최종" : "Final"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-base font-semibold text-white">{step.model}</p>
+                    <span
+                      className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[11px] font-medium ${
+                        isFinal ? "bg-teal-400/20 text-teal-100" : "bg-white/10 text-white/70"
+                      }`}
+                    >
+                      {step.action}
+                    </span>
+                    <p className="mt-2 text-sm leading-6 text-white/70">{step.desc}</p>
+                  </div>
+
+                  {/* connector: down on mobile, right on desktop */}
+                  {!isFinal ? (
+                    <span className="flex-none text-white/30">
+                      <svg viewBox="0 0 24 24" className="h-5 w-5 rotate-90 sm:rotate-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="mt-6 text-center text-xs text-white/45">
+            {language === "ko"
+              ? "각 단계의 출력이 다음 단계의 입력으로 자동 전달됩니다 — 복사·붙여넣기 없이."
+              : "Each step's output is auto-passed as the next step's input — no copy-paste."}
+          </p>
         </div>
 
         <div>
