@@ -95,27 +95,23 @@ export async function POST(request: Request) {
     const inputCharCount =
       session.originalInput.length +
       resultTextLengths.reduce((sum, length) => sum + length, 0);
-    const usageContext = user.isTrial
-      ? null
-      : await requireUsageAccess({
-          userId: user.id,
-          inputCharCount,
-          estimatedCredits: creditEstimate.estimatedCredits,
-        });
-    reservedUsage = user.isTrial
-      ? null
-      : await reserveUsage({
-          userId: user.id,
-          requestType: "parallel_comparison_summary",
-          inputCharCount,
-          reservationKey: `compare-summary:${crypto.randomUUID()}`,
-          estimatedCredits: creditEstimate.estimatedCredits,
-          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
-          maxApprovedCredits: creditEstimate.estimatedCredits,
-          pricingVersion: creditEstimate.pricingVersion,
-          quote: creditEstimate,
-          context: usageContext ?? undefined,
-        });
+    const usageContext = await requireUsageAccess({
+      userId: user.id,
+      inputCharCount,
+      estimatedCredits: creditEstimate.estimatedCredits,
+    });
+    reservedUsage = await reserveUsage({
+      userId: user.id,
+      requestType: "parallel_comparison_summary",
+      inputCharCount,
+      reservationKey: `compare-summary:${crypto.randomUUID()}`,
+      estimatedCredits: creditEstimate.estimatedCredits,
+      estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+      maxApprovedCredits: creditEstimate.estimatedCredits,
+      pricingVersion: creditEstimate.pricingVersion,
+      quote: creditEstimate,
+      context: usageContext ?? undefined,
+    });
 
     const comparison = await generateParallelComparisonSummary({
       userId: user.id,
@@ -123,18 +119,16 @@ export async function POST(request: Request) {
       resultIds,
     });
     comparisonGenerated = true;
-    const usage = user.isTrial
-      ? undefined
-      : await settleUsageReservation({
-          reservationId: reservedUsage?.id,
-          userId: user.id,
-          requestType: "parallel_comparison_summary",
-          selectedModels: [`${comparison.provider}/${comparison.model}`],
-          inputCharCount,
-          inputTokenCount: comparison.inputTokenCount ?? 0,
-          outputTokenCount: comparison.outputTokenCount ?? 0,
-          estimatedCostUsd: comparison.estimatedCostUsd ?? 0,
-        });
+    const usage = await settleUsageReservation({
+      reservationId: reservedUsage?.id,
+      userId: user.id,
+      requestType: "parallel_comparison_summary",
+      selectedModels: [`${comparison.provider}/${comparison.model}`],
+      inputCharCount,
+      inputTokenCount: comparison.inputTokenCount ?? 0,
+      outputTokenCount: comparison.outputTokenCount ?? 0,
+      estimatedCostUsd: comparison.estimatedCostUsd ?? 0,
+    });
 
     return NextResponse.json({
       comparison,

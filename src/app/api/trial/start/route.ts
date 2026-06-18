@@ -2,10 +2,8 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import {
   buildTrialLoginRedirect,
-  buildTrialLimitRedirect,
   getRequestIp,
   hashIpAddress,
-  TRIAL_CONVERSATION_LIMIT,
   TRIAL_SESSION_HOURS,
 } from "@/lib/access-policy";
 import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
@@ -60,16 +58,8 @@ export async function POST(request: Request) {
   });
 
   if (existing) {
-    if (existing.conversationCount >= TRIAL_CONVERSATION_LIMIT) {
-      return NextResponse.json(
-        {
-          error: `You have used all ${TRIAL_CONVERSATION_LIMIT} trial conversations. Sign in to continue.`,
-          redirectUrl: buildTrialLimitRedirect(),
-        },
-        { status: 401 },
-      );
-    }
-
+    // Anonymous visitors are no longer capped by a conversation count — they
+    // are metered purely by their daily credit allowance (30/day).
     await createAuthSession(existing.trialUserId, {
       durationMs: TRIAL_SESSION_DURATION_MS,
       persistCookie: false,

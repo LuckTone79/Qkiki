@@ -101,17 +101,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const type = parsed.data.type as CouponType;
+    const { durationDays, unlimited } = parsed.data;
+    const type: CouponType = unlimited
+      ? durationDays === 30
+        ? CouponType.UNLIMITED_30D
+        : CouponType.UNLIMITED_7D
+      : durationDays === 30
+        ? CouponType.CREDIT_30D
+        : CouponType.CREDIT_7D;
     const code = (parsed.data.code?.trim().toUpperCase() || generateCouponCode(type)).slice(0, 64);
 
     const coupon = await prisma.coupon.create({
       data: {
         code,
         type,
-        creditAmount:
-          type === CouponType.WEEKLY_CREDIT
-            ? parsed.data.creditAmount ?? null
-            : null,
+        creditAmount: unlimited ? null : parsed.data.creditAmount ?? null,
         note: parsed.data.note || null,
         createdByAdminId: admin.id,
       },

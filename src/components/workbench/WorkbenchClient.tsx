@@ -1586,7 +1586,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     setUsage(data.usage);
     writeUsageCache(data.usage);
-    if (data.code === "LIMIT_REACHED") {
+    if (data.code === "CREDIT_LIMIT_REACHED") {
       setLimitModalOpen(true);
       return true;
     }
@@ -2406,7 +2406,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       ? null
       : Math.max(0, bindingAvailableCredits - runCreditEstimate.estimatedCredits);
   const runExceedsAvailableCredits =
-    !isTrialMode &&
     bindingAvailableCredits != null &&
     runCreditEstimate.estimatedCredits > bindingAvailableCredits;
 
@@ -4068,12 +4067,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
             <div>
               <p className="font-semibold text-blue-950">
-                {language === "ko" ? "체험 모드" : "Trial Mode"}
+                {language === "ko" ? "체험 모드 (비로그인)" : "Trial Mode (signed out)"}
               </p>
               <p className="text-sm text-blue-800">
                 {language === "ko"
-                  ? "로그인 없이 5번까지 구독자와 동일하게 사용할 수 있습니다. 6번째부터는 로그인 후 계속 이용할 수 있습니다."
-                  : "Use the full workbench for 5 conversations without signing in. Starting from the 6th, sign in to continue."}
+                  ? "비로그인 사용자는 하루 30크레딧을 사용할 수 있습니다. 로그인하면 하루 70크레딧이 적용됩니다."
+                  : "Signed-out visitors get 30 credits per day. Sign in to get 70 credits per day."}
               </p>
             </div>
           </div>
@@ -4086,8 +4085,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         description={t("workbenchDescription")}
       />
 
-      {usage && !isTrialMode ? <UsageStatus usage={usage} compact /> : null}
-      {usageLoading && !isTrialMode ? (
+      {usage ? <UsageStatus usage={usage} compact /> : null}
+      {usageLoading ? (
         <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500 shadow-sm">
           {language === "ko" ? "사용량 정보를 불러오는 중..." : "Loading usage status..."}
         </div>

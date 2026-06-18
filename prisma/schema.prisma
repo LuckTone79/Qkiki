@@ -31,6 +31,12 @@ enum CouponType {
   LIFETIME_FREE
   LIFETIME_FREE_DAILY_50
   WEEKLY_CREDIT
+  // Credit-only coupons (current system). 7-day / 30-day grants of either a
+  // fixed credit amount or unlimited credits for the period.
+  CREDIT_7D
+  CREDIT_30D
+  UNLIMITED_7D
+  UNLIMITED_30D
 }
 
 enum CouponRedemptionResult {
@@ -645,6 +651,9 @@ model UserSubscription {
   couponLimitIsLifetime Boolean   @default(false)
   couponCreditBalance   Int       @default(0)
   couponCreditEndsAt    DateTime?
+  // Active "unlimited credits" coupon grant expiry. While in the future, the
+  // user's credit ceilings are lifted for the period.
+  couponUnlimitedUntil  DateTime?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

@@ -9,13 +9,18 @@ import { CREDIT_PRICING_VERSION, costUsdToCredits } from "@/lib/credits";
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const RESERVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+const ANON_POLICY = QKIKI_PLAN_LIMITS.anon;
 const FREE_POLICY = QKIKI_PLAN_LIMITS.free;
 const BOOST_POLICY = QKIKI_PLAN_LIMITS.boost;
 const STARTER_POLICY = QKIKI_PLAN_LIMITS.starter;
 const PRO_POLICY = QKIKI_PLAN_LIMITS.pro;
 const TEAM_POLICY = QKIKI_PLAN_LIMITS.team;
 
-const UNLIMITED_DAILY_LIMIT = 1_000_000_000;
+// Effective "no ceiling" value used when an unlimited-credit coupon is active.
+const UNLIMITED_CREDITS = 1_000_000_000;
+// The per-request "count" gating was removed; the legacy DB columns stay but are
+// written with a dormant, never-reached value so nothing gates on them.
+const DORMANT_REQUEST_LIMIT = 1_000_000_000;
 
 type UserUsageProfile = {
   id: string;
@@ -24,19 +29,17 @@ type UserUsageProfile = {
   trialStartedAt: Date | null;
   trialEndsAt: Date | null;
   isTrialUsed: boolean;
+  isAnonymous: boolean;
 };
 
 export type UsageStatusSummary = {
   planType: PlanType;
   billingType: BillingType;
-  planLabel: "free" | "boost" | "starter" | "pro" | "team";
+  planLabel: "anon" | "free" | "boost" | "starter" | "pro" | "team";
+  isAnonymous: boolean;
   isBoostActive: boolean;
   boostEndsAt: string | null;
   boostDaysRemaining: number;
-  dailyLimit: number;
-  isUnlimitedDaily: boolean;
-  dailyUsed: number;
-  remaining: number;
   monthlyCreditLimit: number;
   monthlyCreditsUsed: number;
   monthlyCreditsRemaining: number;
@@ -48,24 +51,20 @@ export type UsageStatusSummary = {
   couponCreditBalance: number;
   couponCreditEndsAt: string | null;
   couponCreditActive: boolean;
+  isUnlimitedCredits: boolean;
+  unlimitedCreditsEndsAt: string | null;
   walletCreditsAvailable: number;
   planCreditsAvailable: number;
   totalCreditsAvailable: number;
   totalDailyCreditsAvailable: number;
   isCreditLimitReached: boolean;
   inputCharLimit: number;
-  resultSaveLimit: number;
-  shareDailyLimit: number;
-  advancedReasoningDailyLimit: number;
   warningThresholdReached: boolean;
-  isLimitReached: boolean;
   resetAt: string;
 };
 
 export type ResolvedUsagePolicy = Omit<
   UsageStatusSummary,
-  | "dailyUsed"
-  | "remaining"
   | "monthlyCreditsUsed"
   | "monthlyCreditsRemaining"
   | "dailyCreditsUsed"
@@ -81,7 +80,6 @@ export type ResolvedUsagePolicy = Omit<
   | "totalDailyCreditsAvailable"
   | "isCreditLimitReached"
   | "warningThresholdReached"
-  | "isLimitReached"
   | "resetAt"
 > & {
   resetAt: Date;
@@ -226,6 +224,7 @@ async function getUserUsageProfile(userId: string) {
       where: { id: userId },
       select: {
         id: true,
+        email: true,
         planType: true,
         billingType: true,
         trialStartedAt: true,
@@ -243,6 +242,7 @@ async function getUserUsageProfile(userId: string) {
         couponLimitIsLifetime: true,
         couponCreditBalance: true,
         couponCreditEndsAt: true,
+        couponUnlimitedUntil: true,
       },
     }),
   ]);
@@ -251,15 +251,26 @@ async function getUserUsageProfile(userId: string) {
     throw new Error("User not found.");
   }
 
-  return { user, userSubscription };
+  const profile: UserUsageProfile = {
+    id: user.id,
+    planType: user.planType,
+    billingType: user.billingType,
+    trialStartedAt: user.trialStartedAt,
+    trialEndsAt: user.trialEndsAt,
+    isTrialUsed: user.isTrialUsed,
+    isAnonymous:
+      typeof user.email === "string" && user.email.endsWith("@trial.local"),
+  };
+
+  return { user: profile, userSubscription };
 }
 
 function resolvePolicy(input: {
   profile: UserUsageProfile;
   hasLegacySubscription: boolean;
-  couponDailyLimit: number | null;
   couponLimitEndsAt: Date | null;
   couponLimitIsLifetime: boolean;
+  couponUnlimitedUntil: Date | null;
   now?: Date;
 }): ResolvedUsagePolicy {
   const now = input.now ?? new Date();
@@ -271,87 +282,120 @@ function resolvePolicy(input: {
       input.profile.trialEndsAt.getTime() >= now.getTime(),
   );
 
-  if (input.profile.planType === PlanType.TEAM) {
-    return {
-      planType: PlanType.TEAM,
-      billingType: input.profile.billingType,
-      planLabel: "team",
-      isBoostActive: false,
-      boostEndsAt: null,
-      boostDaysRemaining: 0,
-      isUnlimitedDaily: false,
-      resetAt,
-      ...TEAM_POLICY,
-    };
-  }
+  // A "free for a period" coupon (legacy lifetime/30d grants, or the new
+  // unlimited-credit coupon) now means: unlimited credits for that window.
+  const legacyUnlimitedActive = Boolean(
+    input.couponLimitIsLifetime ||
+      (input.couponLimitEndsAt &&
+        input.couponLimitEndsAt.getTime() > now.getTime()),
+  );
+  const unlimitedCreditsActive = Boolean(
+    input.couponUnlimitedUntil &&
+      input.couponUnlimitedUntil.getTime() > now.getTime(),
+  );
+  const isUnlimitedCredits = legacyUnlimitedActive || unlimitedCreditsActive;
+  const unlimitedCreditsEndsAt = input.couponLimitIsLifetime
+    ? null
+    : (unlimitedCreditsActive
+        ? input.couponUnlimitedUntil
+        : input.couponLimitEndsAt
+      )?.toISOString() ?? null;
 
-  if (input.profile.planType === PlanType.PRO || input.hasLegacySubscription) {
-    const couponLimitActive = Boolean(
-      input.couponLimitIsLifetime ||
-        (input.couponLimitEndsAt &&
-          input.couponLimitEndsAt.getTime() > now.getTime()),
-    );
-    const isUnlimitedDaily =
-      couponLimitActive && input.couponDailyLimit == null;
-    const resolvedDailyLimit = couponLimitActive
-      ? (input.couponDailyLimit ?? UNLIMITED_DAILY_LIMIT)
-      : PRO_POLICY.dailyLimit;
-    return {
-      planType: PlanType.PRO,
-      billingType:
-        input.hasLegacySubscription &&
-        input.profile.billingType === BillingType.NONE
-          ? BillingType.MONTHLY
-          : input.profile.billingType,
-      planLabel: "pro",
-      isBoostActive: false,
-      boostEndsAt: null,
-      boostDaysRemaining: 0,
-      resetAt,
-      ...PRO_POLICY,
-      dailyLimit: resolvedDailyLimit,
-      isUnlimitedDaily,
-    };
-  }
+  const base = (() => {
+    if (input.profile.isAnonymous) {
+      return {
+        planType: PlanType.FREE,
+        billingType: BillingType.NONE,
+        planLabel: "anon" as const,
+        isAnonymous: true,
+        isBoostActive: false,
+        boostEndsAt: null,
+        boostDaysRemaining: 0,
+        ...ANON_POLICY,
+      };
+    }
 
-  if (input.profile.planType === PlanType.STARTER) {
-    return {
-      planType: PlanType.STARTER,
-      billingType: input.profile.billingType,
-      planLabel: "starter",
-      isBoostActive: false,
-      boostEndsAt: null,
-      boostDaysRemaining: 0,
-      isUnlimitedDaily: false,
-      resetAt,
-      ...STARTER_POLICY,
-    };
-  }
+    if (input.profile.planType === PlanType.TEAM) {
+      return {
+        planType: PlanType.TEAM,
+        billingType: input.profile.billingType,
+        planLabel: "team" as const,
+        isAnonymous: false,
+        isBoostActive: false,
+        boostEndsAt: null,
+        boostDaysRemaining: 0,
+        ...TEAM_POLICY,
+      };
+    }
 
-  if (boostActive) {
+    if (input.profile.planType === PlanType.PRO || input.hasLegacySubscription) {
+      return {
+        planType: PlanType.PRO,
+        billingType:
+          input.hasLegacySubscription &&
+          input.profile.billingType === BillingType.NONE
+            ? BillingType.MONTHLY
+            : input.profile.billingType,
+        planLabel: "pro" as const,
+        isAnonymous: false,
+        isBoostActive: false,
+        boostEndsAt: null,
+        boostDaysRemaining: 0,
+        ...PRO_POLICY,
+      };
+    }
+
+    if (input.profile.planType === PlanType.STARTER) {
+      return {
+        planType: PlanType.STARTER,
+        billingType: input.profile.billingType,
+        planLabel: "starter" as const,
+        isAnonymous: false,
+        isBoostActive: false,
+        boostEndsAt: null,
+        boostDaysRemaining: 0,
+        ...STARTER_POLICY,
+      };
+    }
+
+    if (boostActive) {
+      return {
+        planType: PlanType.FREE,
+        billingType: BillingType.NONE,
+        planLabel: "boost" as const,
+        isAnonymous: false,
+        isBoostActive: true,
+        boostEndsAt: input.profile.trialEndsAt?.toISOString() ?? null,
+        boostDaysRemaining: daysRemainingInclusive(input.profile.trialEndsAt, now),
+        ...BOOST_POLICY,
+      };
+    }
+
     return {
       planType: PlanType.FREE,
       billingType: BillingType.NONE,
-      planLabel: "boost",
-      isBoostActive: true,
+      planLabel: "free" as const,
+      isAnonymous: false,
+      isBoostActive: false,
       boostEndsAt: input.profile.trialEndsAt?.toISOString() ?? null,
-      boostDaysRemaining: daysRemainingInclusive(input.profile.trialEndsAt, now),
-      isUnlimitedDaily: false,
-      resetAt,
-      ...BOOST_POLICY,
+      boostDaysRemaining: 0,
+      ...FREE_POLICY,
     };
-  }
+  })();
 
   return {
-    planType: PlanType.FREE,
-    billingType: BillingType.NONE,
-    planLabel: "free",
-    isBoostActive: false,
-    boostEndsAt: input.profile.trialEndsAt?.toISOString() ?? null,
-    boostDaysRemaining: 0,
-    isUnlimitedDaily: false,
+    ...base,
+    // An active unlimited-credit grant lifts the credit ceilings; the charge
+    // path then draws from the (effectively infinite) plan allowance.
+    monthlyCreditLimit: isUnlimitedCredits
+      ? UNLIMITED_CREDITS
+      : base.monthlyCreditLimit,
+    dailyCreditLimit: isUnlimitedCredits
+      ? UNLIMITED_CREDITS
+      : base.dailyCreditLimit,
+    isUnlimitedCredits,
+    unlimitedCreditsEndsAt,
     resetAt,
-    ...FREE_POLICY,
   };
 }
 
@@ -368,13 +412,13 @@ async function getOrCreateUsageRecord(
       },
     },
     update: {
-      dailyRequestLimit: policy.dailyLimit,
+      dailyRequestLimit: DORMANT_REQUEST_LIMIT,
       resetAt: policy.resetAt,
     },
     create: {
       userId,
       usageDate,
-      dailyRequestLimit: policy.dailyLimit,
+      dailyRequestLimit: DORMANT_REQUEST_LIMIT,
       resetAt: policy.resetAt,
     },
   });
@@ -470,23 +514,21 @@ async function getCreditUsageSnapshot(input: {
   };
 }
 
+const EMPTY_CREDIT_SNAPSHOT: CreditUsageSnapshot = {
+  monthlyCreditsUsed: 0,
+  dailyCreditsUsed: 0,
+  pendingReservedCredits: 0,
+  paidCredits: 0,
+  bonusCredits: 0,
+  couponCreditBalance: 0,
+  couponCreditEndsAt: null,
+  couponCreditActive: false,
+};
+
 function toSummary(
   policy: ResolvedUsagePolicy,
-  dailyUsedCommitted: number,
-  pendingReserved = 0,
-  credit: CreditUsageSnapshot = {
-    monthlyCreditsUsed: 0,
-    dailyCreditsUsed: 0,
-    pendingReservedCredits: 0,
-    paidCredits: 0,
-    bonusCredits: 0,
-    couponCreditBalance: 0,
-    couponCreditEndsAt: null,
-    couponCreditActive: false,
-  },
+  credit: CreditUsageSnapshot = EMPTY_CREDIT_SNAPSHOT,
 ): UsageStatusSummary {
-  const dailyUsed = dailyUsedCommitted + pendingReserved;
-  const remaining = Math.max(0, policy.dailyLimit - dailyUsed);
   const monthlyCreditsRemaining = Math.max(
     0,
     policy.monthlyCreditLimit - credit.monthlyCreditsUsed,
@@ -497,16 +539,16 @@ function toSummary(
   );
   const walletCreditsAvailable = credit.paidCredits + credit.bonusCredits;
   const planCreditsAvailable = monthlyCreditsRemaining;
-  const totalCreditsAvailable =
-    planCreditsAvailable + credit.couponCreditBalance + walletCreditsAvailable;
-  const totalDailyCreditsAvailable =
-    dailyCreditsRemaining + credit.couponCreditBalance + walletCreditsAvailable;
+  const totalCreditsAvailable = policy.isUnlimitedCredits
+    ? UNLIMITED_CREDITS
+    : planCreditsAvailable + credit.couponCreditBalance + walletCreditsAvailable;
+  const totalDailyCreditsAvailable = policy.isUnlimitedCredits
+    ? UNLIMITED_CREDITS
+    : dailyCreditsRemaining + credit.couponCreditBalance + walletCreditsAvailable;
 
   return {
     ...policy,
     resetAt: policy.resetAt.toISOString(),
-    dailyUsed,
-    remaining,
     monthlyCreditsUsed: credit.monthlyCreditsUsed,
     monthlyCreditsRemaining,
     dailyCreditsUsed: credit.dailyCreditsUsed,
@@ -520,14 +562,13 @@ function toSummary(
     planCreditsAvailable,
     totalCreditsAvailable,
     totalDailyCreditsAvailable,
-    isCreditLimitReached:
-      totalCreditsAvailable <= 0 || totalDailyCreditsAvailable <= 0,
+    isCreditLimitReached: policy.isUnlimitedCredits
+      ? false
+      : totalCreditsAvailable <= 0 || totalDailyCreditsAvailable <= 0,
     warningThresholdReached:
-      (policy.dailyLimit > 0 ? dailyUsed / policy.dailyLimit >= 0.8 : false) ||
-      (policy.monthlyCreditLimit > 0
-        ? credit.monthlyCreditsUsed / policy.monthlyCreditLimit >= 0.8
-        : false),
-    isLimitReached: dailyUsed >= policy.dailyLimit,
+      !policy.isUnlimitedCredits &&
+      policy.monthlyCreditLimit > 0 &&
+      credit.monthlyCreditsUsed / policy.monthlyCreditLimit >= 0.8,
   };
 }
 
@@ -539,23 +580,17 @@ export async function getUsageStatus(userId: string) {
       isLifetime: userSubscription?.isLifetime ?? false,
       planEndsAt: userSubscription?.planEndsAt ?? null,
     }),
-    couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
     couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
+    couponUnlimitedUntil: userSubscription?.couponUnlimitedUntil ?? null,
   });
   const usage = await getOrCreateUsageRecord(userId, policy);
-  const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
   const credit = await getCreditUsageSnapshot({
     userId,
     usageLimitId: usage.id,
     userSubscription,
   });
-  return toSummary(
-    policy,
-    usage.dailyRequestUsed,
-    pending._sum.reservedRequestCount ?? 0,
-    credit,
-  );
+  return toSummary(policy, credit);
 }
 
 export async function requireUsageAccess(input: {
@@ -570,9 +605,9 @@ export async function requireUsageAccess(input: {
       isLifetime: userSubscription?.isLifetime ?? false,
       planEndsAt: userSubscription?.planEndsAt ?? null,
     }),
-    couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
     couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
+    couponUnlimitedUntil: userSubscription?.couponUnlimitedUntil ?? null,
   });
   const usage = await getOrCreateUsageRecord(input.userId, policy);
   const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
@@ -582,16 +617,7 @@ export async function requireUsageAccess(input: {
     userSubscription,
   });
   const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
-  const summary = toSummary(
-    policy,
-    usage.dailyRequestUsed,
-    pendingReservedRequests,
-    credit,
-  );
-
-  if (summary.isLimitReached) {
-    throw new UsageLimitReachedError(summary);
-  }
+  const summary = toSummary(policy, credit);
 
   if (input.inputCharCount > summary.inputCharLimit) {
     throw new UsageInputLimitError(summary);
@@ -637,16 +663,7 @@ export async function reserveUsage(input: {
       estimatedCredits: input.estimatedCredits,
     }));
 
-  const summary = toSummary(
-    context.policy,
-    context.usage.dailyRequestUsed,
-    context.usage.pendingReservedRequests,
-    context.usage.credit,
-  );
-
-  if (summary.isLimitReached) {
-    throw new UsageLimitReachedError(summary);
-  }
+  const summary = toSummary(context.policy, context.usage.credit);
 
   if (
     input.estimatedCredits &&
@@ -670,7 +687,7 @@ export async function reserveUsage(input: {
         const usage = await tx.usageLimit.update({
           where: { id: context.usage.id },
           data: {
-            dailyRequestLimit: context.policy.dailyLimit,
+            dailyRequestLimit: DORMANT_REQUEST_LIMIT,
             resetAt: context.policy.resetAt,
           },
         });
@@ -685,7 +702,6 @@ export async function reserveUsage(input: {
             reservedCreditCount: true,
           },
         });
-        const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
         const effectiveCredit = {
           ...context.usage.credit,
           monthlyCreditsUsed:
@@ -698,16 +714,7 @@ export async function reserveUsage(input: {
             (pending._sum.reservedCreditCount ?? 0),
           pendingReservedCredits: pending._sum.reservedCreditCount ?? 0,
         };
-        const effectiveSummary = toSummary(
-          context.policy,
-          usage.dailyRequestUsed,
-          pendingReservedRequests,
-          effectiveCredit,
-        );
-
-        if (effectiveSummary.isLimitReached) {
-          throw new UsageLimitReachedError(effectiveSummary);
-        }
+        const effectiveSummary = toSummary(context.policy, effectiveCredit);
 
         if (
           input.estimatedCredits &&
@@ -863,9 +870,9 @@ export async function settleUsageReservation(input: {
       isLifetime: userSubscription?.isLifetime ?? false,
       planEndsAt: userSubscription?.planEndsAt ?? null,
     }),
-    couponDailyLimit: userSubscription?.couponDailyLimit ?? null,
     couponLimitEndsAt: userSubscription?.couponLimitEndsAt ?? null,
     couponLimitIsLifetime: userSubscription?.couponLimitIsLifetime ?? false,
+    couponUnlimitedUntil: userSubscription?.couponUnlimitedUntil ?? null,
   });
 
   await withSerializableRetries(() =>
@@ -1027,7 +1034,7 @@ export async function recordUsageSuccess(input: {
     const usage = await tx.usageLimit.update({
       where: { id: context.usage.id },
       data: {
-        dailyRequestLimit: context.policy.dailyLimit,
+        dailyRequestLimit: DORMANT_REQUEST_LIMIT,
         resetAt: context.policy.resetAt,
         dailyRequestUsed: { increment: 1 },
       },
@@ -1052,8 +1059,9 @@ export async function recordUsageSuccess(input: {
 
     return usage;
   });
+  void updatedUsage;
 
-  return toSummary(context.policy, updatedUsage.dailyRequestUsed, 0);
+  return getUsageStatus(input.userId);
 }
 
 export async function grantWelcomeBoostToUser(userId: string) {

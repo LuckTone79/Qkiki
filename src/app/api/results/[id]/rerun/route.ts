@@ -2,7 +2,6 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import {
   apiErrorResponse,
-  consumeTrialConversation,
   requireApiGenerationUser,
 } from "@/lib/api-auth";
 import { createSignedRunToken, failExecutionRun } from "@/lib/execution-runs";
@@ -78,10 +77,6 @@ export async function POST(
       return NextResponse.json({ error: providerError }, { status: 400 });
     }
 
-    if (user.isTrial) {
-      await consumeTrialConversation(user);
-    }
-
     if (
       result.executionRun?.runnerVersion === "v2" &&
       result.executionRunStep?.orderIndex &&
@@ -135,28 +130,24 @@ export async function POST(
           instructionTemplate: step.instructionTemplate,
         })),
       });
-      const usageContext = user.isTrial
-        ? null
-        : await requireUsageAccess({
-            userId: user.id,
-            inputCharCount: parentRun.inputCharCount,
-            estimatedCredits: creditEstimate.estimatedCredits,
-          });
+      const usageContext = await requireUsageAccess({
+        userId: user.id,
+        inputCharCount: parentRun.inputCharCount,
+        estimatedCredits: creditEstimate.estimatedCredits,
+      });
 
-      reservedUsage = user.isTrial
-        ? null
-        : await reserveUsage({
-            userId: user.id,
-            requestType: "sequential",
-            inputCharCount: parentRun.inputCharCount,
-            reservationKey: `rerun-branch:${crypto.randomUUID()}`,
-            estimatedCredits: creditEstimate.estimatedCredits,
-            estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
-            maxApprovedCredits: creditEstimate.estimatedCredits,
-            pricingVersion: creditEstimate.pricingVersion,
-            quote: creditEstimate,
-            context: usageContext ?? undefined,
-          });
+      reservedUsage = await reserveUsage({
+        userId: user.id,
+        requestType: "sequential",
+        inputCharCount: parentRun.inputCharCount,
+        reservationKey: `rerun-branch:${crypto.randomUUID()}`,
+        estimatedCredits: creditEstimate.estimatedCredits,
+        estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+        maxApprovedCredits: creditEstimate.estimatedCredits,
+        pricingVersion: creditEstimate.pricingVersion,
+        quote: creditEstimate,
+        context: usageContext ?? undefined,
+      });
 
       const branchRun = await prisma.executionRun.create({
         data: {
@@ -256,28 +247,24 @@ export async function POST(
       inputText: result.promptSnapshot,
       targets: [{ provider: result.provider, model: result.model }],
     });
-    const usageContext = user.isTrial
-      ? null
-      : await requireUsageAccess({
-          userId: user.id,
-          inputCharCount: result.promptSnapshot.length,
-          estimatedCredits: creditEstimate.estimatedCredits,
-        });
+    const usageContext = await requireUsageAccess({
+      userId: user.id,
+      inputCharCount: result.promptSnapshot.length,
+      estimatedCredits: creditEstimate.estimatedCredits,
+    });
 
-    reservedUsage = user.isTrial
-      ? null
-      : await reserveUsage({
-          userId: user.id,
-          requestType: "rerun",
-          inputCharCount: result.promptSnapshot.length,
-          reservationKey: `rerun:${crypto.randomUUID()}`,
-          estimatedCredits: creditEstimate.estimatedCredits,
-          estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
-          maxApprovedCredits: creditEstimate.estimatedCredits,
-          pricingVersion: creditEstimate.pricingVersion,
-          quote: creditEstimate,
-          context: usageContext ?? undefined,
-        });
+    reservedUsage = await reserveUsage({
+      userId: user.id,
+      requestType: "rerun",
+      inputCharCount: result.promptSnapshot.length,
+      reservationKey: `rerun:${crypto.randomUUID()}`,
+      estimatedCredits: creditEstimate.estimatedCredits,
+      estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+      maxApprovedCredits: creditEstimate.estimatedCredits,
+      pricingVersion: creditEstimate.pricingVersion,
+      quote: creditEstimate,
+      context: usageContext ?? undefined,
+    });
 
     const rerun = await executeAndPersistResult({
       userId: user.id,
@@ -295,18 +282,16 @@ export async function POST(
     });
     executionFinished = true;
 
-    const usage = user.isTrial
-      ? undefined
-      : await settleUsageReservation({
-          reservationId: reservedUsage?.id,
-          userId: user.id,
-          requestType: "rerun",
-          selectedModels: [`${rerun.provider}/${rerun.model}`],
-          inputCharCount: result.promptSnapshot.length,
-          inputTokenCount: rerun.tokenUsagePrompt ?? 0,
-          outputTokenCount: rerun.tokenUsageCompletion ?? 0,
-          estimatedCostUsd: rerun.estimatedCost ?? 0,
-        });
+    const usage = await settleUsageReservation({
+      reservationId: reservedUsage?.id,
+      userId: user.id,
+      requestType: "rerun",
+      selectedModels: [`${rerun.provider}/${rerun.model}`],
+      inputCharCount: result.promptSnapshot.length,
+      inputTokenCount: rerun.tokenUsagePrompt ?? 0,
+      outputTokenCount: rerun.tokenUsageCompletion ?? 0,
+      estimatedCostUsd: rerun.estimatedCost ?? 0,
+    });
 
     return NextResponse.json({ result: rerun, usage, creditEstimate });
   } catch (error) {

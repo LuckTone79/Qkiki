@@ -1,12 +1,5 @@
 import { NextResponse } from "next/server";
-import { clearAuthSession, getCurrentUser, isAdminRole } from "@/lib/auth";
-import type { CurrentUser } from "@/lib/auth";
-import {
-  buildTrialLimitRedirect,
-  buildTrialLoginRedirect,
-  TRIAL_CONVERSATION_LIMIT,
-} from "@/lib/access-policy";
-import { prisma } from "@/lib/prisma";
+import { getCurrentUser, isAdminRole } from "@/lib/auth";
 import {
   ActiveRunLimitReachedError,
   ActiveSessionRunExistsError,
@@ -14,7 +7,6 @@ import {
 import {
   UsageCreditLimitReachedError,
   UsageInputLimitError,
-  UsageLimitReachedError,
 } from "@/lib/usage-policy";
 
 export class ApiUnauthorizedError extends Error {
@@ -45,47 +37,6 @@ export async function requireApiUser() {
   return user;
 }
 
-export async function consumeTrialConversation(user: CurrentUser) {
-  const access = await prisma.trialAccess.findUnique({
-    where: { trialUserId: user.id },
-  });
-
-  if (!access) {
-    await clearAuthSession();
-    throw new ApiUnauthorizedError(
-      "Trial session expired. Sign in to continue.",
-      buildTrialLoginRedirect(),
-    );
-  }
-
-  if (access.conversationCount >= TRIAL_CONVERSATION_LIMIT) {
-    await clearAuthSession();
-    await prisma.trialAccess.update({
-      where: { id: access.id },
-      data: {
-        limitReachedAt: access.limitReachedAt ?? new Date(),
-        lastUsedAt: new Date(),
-      },
-    });
-    throw new ApiUnauthorizedError(
-      `Trial limit reached. Sign in after ${TRIAL_CONVERSATION_LIMIT} conversations to continue.`,
-      buildTrialLimitRedirect(),
-    );
-  }
-
-  await prisma.trialAccess.update({
-    where: { id: access.id },
-    data: {
-      conversationCount: { increment: 1 },
-      lastUsedAt: new Date(),
-      limitReachedAt:
-        access.conversationCount + 1 >= TRIAL_CONVERSATION_LIMIT
-          ? new Date()
-          : null,
-    },
-  });
-}
-
 export async function requireApiGenerationUser() {
   const user = await requireApiUser();
   return user;
@@ -108,16 +59,6 @@ export function apiErrorResponse(error: unknown) {
   }
   if (error instanceof ApiForbiddenError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
-  }
-  if (error instanceof UsageLimitReachedError) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: "LIMIT_REACHED",
-        usage: error.summary,
-      },
-      { status: 403 },
-    );
   }
   if (error instanceof UsageCreditLimitReachedError) {
     return NextResponse.json(

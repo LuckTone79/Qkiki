@@ -131,30 +131,25 @@ export const projectSchema = z.object({
   sharedContext: z.string().trim().max(12000).optional(),
 });
 
-export const couponCreateSchema = z.object({
-  type: z.enum([
-    "MONTHLY_FREE_30D",
-    "MONTHLY_FREE_30D_DAILY_50",
-    "LIFETIME_FREE",
-    "LIFETIME_FREE_DAILY_50",
-    "WEEKLY_CREDIT",
-  ]),
-  code: z.string().trim().max(64).optional(),
-  note: z.string().trim().max(500).optional(),
-  creditAmount: z.number().int().min(1).max(100000).optional(),
-}).superRefine((value, ctx) => {
-  if (value.type !== "WEEKLY_CREDIT") {
-    return;
-  }
-
-  if (!value.creditAmount) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["creditAmount"],
-      message: "Credit amount is required for weekly credit coupons.",
-    });
-  }
-});
+// Credit-only coupons. Admin picks a duration (7 or 30 days) and either a fixed
+// credit amount or "unlimited credits for the period".
+export const couponCreateSchema = z
+  .object({
+    durationDays: z.union([z.literal(7), z.literal(30)]),
+    unlimited: z.boolean().default(false),
+    creditAmount: z.number().int().min(1).max(1000000).optional(),
+    code: z.string().trim().max(64).optional(),
+    note: z.string().trim().max(500).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (!value.unlimited && !value.creditAmount) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["creditAmount"],
+        message: "Credit amount is required unless the coupon is unlimited.",
+      });
+    }
+  });
 
 export const couponRedeemSchema = z.object({
   code: z.string().trim().min(3).max(64),
