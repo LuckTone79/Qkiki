@@ -79,6 +79,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const [sharedContext, setSharedContext] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [savingProject, setSavingProject] = useState(false);
+  const [projectSavedAt, setProjectSavedAt] = useState<number | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
 
   async function loadProject() {
     const response = await fetch(`/api/projects/${projectId}`);
@@ -104,8 +107,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
   async function saveProject(event: FormEvent) {
     event.preventDefault();
+    if (savingProject) return;
     setNotice("");
     setError("");
+    setSavingProject(true);
 
     const response = await fetch(`/api/projects/${projectId}`, {
       method: "PATCH",
@@ -123,10 +128,14 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           ? t("couldNotSaveProject")
           : data.error || t("couldNotSaveProject"),
       );
+      setSavingProject(false);
       return;
     }
 
     setNotice(t("projectContextSaved"));
+    setProjectSavedAt(Date.now());
+    setTimeout(() => setProjectSavedAt(null), 2000);
+    setSavingProject(false);
     await loadProject();
   }
 
@@ -159,12 +168,17 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       return;
     }
 
-    const response = await fetch(`/api/projects/${projectId}`, {
-      method: "DELETE",
-    });
+    setDeletingProject(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: "DELETE",
+      });
 
-    if (response.ok) {
-      window.location.href = "/app/projects";
+      if (response.ok) {
+        window.location.href = "/app/projects";
+      }
+    } finally {
+      setDeletingProject(false);
     }
   }
 
@@ -269,16 +283,24 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="submit"
-              className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"
+              disabled={savingProject}
+              className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${projectSavedAt ? "bg-teal-500" : "bg-teal-700 hover:bg-teal-800 disabled:opacity-60"}`}
             >
-              {t("saveProject")}
+              {savingProject
+                ? (language === "ko" ? "저장 중…" : "Saving…")
+                : projectSavedAt
+                  ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                  : t("saveProject")}
             </button>
             <button
               type="button"
               onClick={deleteProject}
-              className="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+              disabled={deletingProject}
+              className="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t("deleteFolder")}
+              {deletingProject
+                ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                : t("deleteFolder")}
             </button>
           </div>
         </form>

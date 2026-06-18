@@ -71,6 +71,9 @@ export function AccountClient({
   const [usage, setUsage] = useState<UsageStatusType | null>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [accountSavedAt, setAccountSavedAt] = useState<number | null>(null);
+  const [redeemingCoupon, setRedeemingCoupon] = useState(false);
 
   async function loadSubscription() {
     const cachedUsage = readUsageCache<UsageStatusType>();
@@ -104,8 +107,10 @@ export function AccountClient({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (savingAccount) return;
     setNotice("");
     setError("");
+    setSavingAccount(true);
 
     const response = await fetch("/api/account", {
       method: "PATCH",
@@ -122,16 +127,22 @@ export function AccountClient({
           ? t("couldNotUpdateAccount")
           : data.error || t("couldNotUpdateAccount"),
       );
+      setSavingAccount(false);
       return;
     }
 
     setNotice(t("accountUpdated"));
+    setAccountSavedAt(Date.now());
+    setTimeout(() => setAccountSavedAt(null), 2000);
+    setSavingAccount(false);
   }
 
   async function redeemCoupon(event: FormEvent) {
     event.preventDefault();
+    if (redeemingCoupon) return;
     setNotice("");
     setError("");
+    setRedeemingCoupon(true);
 
     const response = await fetch("/api/coupons/redeem", {
       method: "POST",
@@ -146,6 +157,7 @@ export function AccountClient({
 
     if (!response.ok) {
       setError(data.error || (language === "ko" ? "쿠폰 적용에 실패했습니다." : "Coupon redemption failed."));
+      setRedeemingCoupon(false);
       return;
     }
 
@@ -160,6 +172,7 @@ export function AccountClient({
     }
 
     setCouponCode("");
+    setRedeemingCoupon(false);
     await loadSubscription();
   }
 
@@ -224,9 +237,14 @@ export function AccountClient({
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"
-              className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+              disabled={savingAccount}
+              className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${accountSavedAt ? "bg-teal-600" : "bg-stone-950 hover:bg-stone-800 disabled:opacity-60"}`}
             >
-              {t("saveAccount")}
+              {savingAccount
+                ? (language === "ko" ? "저장 중…" : "Saving…")
+                : accountSavedAt
+                  ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                  : t("saveAccount")}
             </button>
             <SignOutButton />
           </div>
@@ -306,9 +324,12 @@ export function AccountClient({
           </label>
           <button
             type="submit"
-            className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+            disabled={redeemingCoupon}
+            className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {language === "ko" ? "쿠폰 등록" : "Redeem coupon"}
+            {redeemingCoupon
+              ? (language === "ko" ? "등록 중…" : "Redeeming…")
+              : (language === "ko" ? "쿠폰 등록" : "Redeem coupon")}
           </button>
         </form>
       </section>

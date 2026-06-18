@@ -1209,6 +1209,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [uploadingAttachments, setUploadingAttachments] = useState(false);
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetSavedAt, setPresetSavedAt] = useState<number | null>(null);
+  const [inputCopied, setInputCopied] = useState(false);
   const [resultLayout, setResultLayout] = useState<ResultLayout>("double");
   const [resultFilter, setResultFilter] = useState<ResultBoardFilter>("all");
   const [resultSort, setResultSort] = useState<ResultBoardSort>("workflow");
@@ -4019,6 +4020,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         copied: outcome.copied,
       }),
     );
+    if (outcome.copied) {
+      setInputCopied(true);
+      setTimeout(() => setInputCopied(false), 1500);
+    }
   }
 
   async function shareResultLink(resultId: string) {
@@ -4532,9 +4537,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     type="button"
                     onClick={copyOriginalInputText}
                     disabled={!originalInput.trim()}
-                    className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${inputCopied ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"}`}
                   >
-                    {language === "ko" ? "질문 복사" : "Copy input"}
+                    {inputCopied
+                      ? (language === "ko" ? "복사됨" : "Copied")
+                      : (language === "ko" ? "질문 복사" : "Copy input")}
                   </button>
                 </div>
               </div>
