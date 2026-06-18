@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AuthEntryLinks } from "@/components/AuthEntryLinks";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
@@ -9,6 +10,7 @@ import {
   readBrowserStorageValue,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
+import { shouldShowAuthEntryPoints } from "@/lib/trial-user";
 import { APP_VERSION } from "@/lib/version";
 import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
 
@@ -60,6 +62,7 @@ export function AppShell({
   const recentSessionsLabel = language === "ko" ? "최근 작업" : "Recent work";
   const visibleRecentSessions = recentSessions.slice(0, 10);
   const hasMoreRecentSessions = recentSessions.length > 10;
+  const showAuthEntryLinks = shouldShowAuthEntryPoints(user);
   const requestNewWorkbench = () => {
     window.dispatchEvent(new Event(NEW_WORKBENCH_EVENT));
   };
@@ -93,7 +96,11 @@ export function AppShell({
                 </p>
               </Link>
               <div className="lg:hidden">
-                <SignOutButton compact />
+                {showAuthEntryLinks ? (
+                  <AuthEntryLinks compact />
+                ) : (
+                  <SignOutButton compact />
+                )}
               </div>
             </div>
 
@@ -178,16 +185,27 @@ export function AppShell({
             </div>
 
             <div className="mt-8 hidden rounded-md border border-stone-200 bg-[#f7f6f3] p-3 lg:block">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">
-                {t("signedIn")}
-              </p>
-              <p className="mt-2 truncate text-sm font-medium text-stone-950">
-                {user.name || user.email}
-              </p>
-              <p className="truncate text-xs text-stone-500">{user.email}</p>
-              <div className="mt-3">
-                <SignOutButton compact />
-              </div>
+              {showAuthEntryLinks ? (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">
+                    {t("signIn")}
+                  </p>
+                  <AuthEntryLinks />
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">
+                    {t("signedIn")}
+                  </p>
+                  <p className="mt-2 truncate text-sm font-medium text-stone-950">
+                    {user.name || user.email}
+                  </p>
+                  <p className="truncate text-xs text-stone-500">{user.email}</p>
+                  <div className="mt-3">
+                    <SignOutButton compact />
+                  </div>
+                </>
+              )}
               <p className="mt-3 text-xs text-stone-500">
                 {versionLabel} {APP_VERSION}
               </p>
