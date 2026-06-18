@@ -131,13 +131,15 @@ export const projectSchema = z.object({
   sharedContext: z.string().trim().max(12000).optional(),
 });
 
-// Credit-only coupons. Admin picks a duration (7 or 30 days) and either a fixed
-// credit amount or "unlimited credits for the period".
+// Credit-only coupons. Admin picks a duration (7 days / 30 days / lifetime) and
+// either a fixed credit amount or "unlimited credits for the period". Multiple
+// identical coupons can be created at once via `quantity`.
 export const couponCreateSchema = z
   .object({
-    durationDays: z.union([z.literal(7), z.literal(30)]),
+    duration: z.enum(["7d", "30d", "lifetime"]),
     unlimited: z.boolean().default(false),
     creditAmount: z.number().int().min(1).max(1000000).optional(),
+    quantity: z.number().int().min(1).max(100).default(1),
     code: z.string().trim().max(64).optional(),
     note: z.string().trim().max(500).optional(),
   })
@@ -147,6 +149,13 @@ export const couponCreateSchema = z
         code: "custom",
         path: ["creditAmount"],
         message: "Credit amount is required unless the coupon is unlimited.",
+      });
+    }
+    if (value.quantity > 1 && value.code) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["code"],
+        message: "A custom code cannot be used when creating multiple coupons.",
       });
     }
   });

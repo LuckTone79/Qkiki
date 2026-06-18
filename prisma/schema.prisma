@@ -31,12 +31,14 @@ enum CouponType {
   LIFETIME_FREE
   LIFETIME_FREE_DAILY_50
   WEEKLY_CREDIT
-  // Credit-only coupons (current system). 7-day / 30-day grants of either a
-  // fixed credit amount or unlimited credits for the period.
+  // Credit-only coupons (current system). 7-day / 30-day / lifetime grants of
+  // either a fixed credit amount or unlimited credits for the period.
   CREDIT_7D
   CREDIT_30D
+  CREDIT_LIFETIME
   UNLIMITED_7D
   UNLIMITED_30D
+  UNLIMITED_LIFETIME
 }
 
 enum CouponRedemptionResult {
