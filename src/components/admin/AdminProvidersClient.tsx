@@ -100,6 +100,9 @@ export function AdminProvidersClient() {
   const [drafts, setDrafts] = useState<Drafts>({});
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [savingProvider, setSavingProvider] = useState<string | null>(null);
+  const [savedProvider, setSavedProvider] = useState<string | null>(null);
+  const [checkingProvider, setCheckingProvider] = useState<string | null>(null);
 
   const loadProviders = useCallback(async () => {
     const response = await fetch("/api/admin/providers");
@@ -130,53 +133,67 @@ export function AdminProvidersClient() {
   }, [t.failedLoad]);
 
   async function saveProvider(provider: AdminProviderOption) {
+    if (savingProvider) return;
     setNotice("");
     setError("");
+    setSavingProvider(provider.providerName);
 
-    const draft = drafts[provider.providerName];
-    const response = await fetch("/api/admin/providers", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        providerName: provider.providerName,
-        isEnabled: draft.isEnabled,
-        defaultModel: draft.defaultModel,
-        fallbackProvider: draft.fallbackProvider || null,
-        perUserDailyLimit: draft.perUserDailyLimit,
-        timeoutSeconds: draft.timeoutSeconds,
-        apiKey: draft.apiKey,
-        clearStoredKey: draft.clearStoredKey,
-      }),
-    });
+    try {
+      const draft = drafts[provider.providerName];
+      const response = await fetch("/api/admin/providers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          providerName: provider.providerName,
+          isEnabled: draft.isEnabled,
+          defaultModel: draft.defaultModel,
+          fallbackProvider: draft.fallbackProvider || null,
+          perUserDailyLimit: draft.perUserDailyLimit,
+          timeoutSeconds: draft.timeoutSeconds,
+          apiKey: draft.apiKey,
+          clearStoredKey: draft.clearStoredKey,
+        }),
+      });
 
-    const data = (await response.json().catch(() => ({}))) as { error?: string };
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
 
-    if (!response.ok) {
-      setError(data.error || t.failedSave);
-      return;
+      if (!response.ok) {
+        setError(data.error || t.failedSave);
+        return;
+      }
+
+      setNotice(`${provider.displayName} ${t.saved}`);
+      setSavedProvider(provider.providerName);
+      setTimeout(() => setSavedProvider(null), 2000);
+      await loadProviders();
+    } finally {
+      setSavingProvider(null);
     }
-
-    setNotice(`${provider.displayName} ${t.saved}`);
-    await loadProviders();
   }
 
   async function runHealthCheck(provider: AdminProviderOption) {
+    if (checkingProvider) return;
     setNotice("");
     setError("");
+    setCheckingProvider(provider.providerName);
 
-    const response = await fetch(
-      `/api/admin/providers/${provider.providerName}/health-check`,
-      { method: "POST" },
-    );
-    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    try {
+      const response = await fetch(
+        `/api/admin/providers/${provider.providerName}/health-check`,
+        { method: "POST" },
+      );
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
 
-    if (!response.ok) {
-      setError(data.error || t.failedHealthCheck);
-      return;
+      if (!response.ok) {
+        setError(data.error || t.failedHealthCheck);
+        return;
+      }
+
+      setNotice(`${provider.displayName} ${t.healthCheckDone}`);
+      await loadProviders();
+    } finally {
+      setCheckingProvider(null);
     }
-
-    setNotice(`${provider.displayName} ${t.healthCheckDone}`);
-    await loadProviders();
   }
 
   function updateDraft(providerName: string, value: Partial<Drafts[string]>) {
@@ -368,16 +385,24 @@ export function AdminProvidersClient() {
                   <button
                     type="button"
                     onClick={() => saveProvider(provider)}
-                    className="min-h-10 rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                    disabled={savingProvider === provider.providerName}
+                    className={`min-h-10 rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${savedProvider === provider.providerName ? "bg-teal-600" : "bg-slate-900 hover:bg-slate-800 disabled:opacity-60"}`}
                   >
-                    {t.saveProvider}
+                    {savingProvider === provider.providerName
+                      ? (language === "ko" ? "저장 중…" : "Saving…")
+                      : savedProvider === provider.providerName
+                        ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                        : t.saveProvider}
                   </button>
                   <button
                     type="button"
                     onClick={() => runHealthCheck(provider)}
-                    className="min-h-10 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    disabled={checkingProvider === provider.providerName}
+                    className="min-h-10 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {t.runHealthCheck}
+                    {checkingProvider === provider.providerName
+                      ? (language === "ko" ? "점검 중…" : "Checking…")
+                      : t.runHealthCheck}
                   </button>
                 </div>
               </div>
