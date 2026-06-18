@@ -64,6 +64,11 @@ export function buildWorkbenchSessionSearch(
   return next ? `?${next}` : "";
 }
 
+export function canAutoResumeFromSearch(currentSearch: string) {
+  const params = new URLSearchParams(currentSearch);
+  return !params.get("session") && !params.get("project") && params.get("new") !== "1";
+}
+
 export function resolveWorkbenchEntryAction(
   input: ResolveWorkbenchEntryActionInput,
 ): WorkbenchEntryAction {

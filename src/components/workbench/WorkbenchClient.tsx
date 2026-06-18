@@ -53,6 +53,7 @@ import {
 import { PRIMARY_STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/lib/brand";
 import {
   buildWorkbenchSessionSearch,
+  canAutoResumeFromSearch,
   pickLatestActiveSessionId,
   resolveWorkbenchEntryAction,
 } from "@/lib/workbench-resume";
@@ -1240,6 +1241,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const routeSyncReadyRef = useRef(false);
   const autoResumeSessionIdRef = useRef<string | null>(null);
   const skippedAutoResumeSessionIdRef = useRef<string | null>(null);
+  const autoResumeRequestIdRef = useRef(0);
 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
@@ -1989,6 +1991,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   }
 
   async function resumeLatestActiveSession() {
+    const requestId = autoResumeRequestIdRef.current + 1;
+    autoResumeRequestIdRef.current = requestId;
     const response = await fetch("/api/sessions", {
       headers: { Accept: "application/json" },
     });
@@ -2004,6 +2008,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       !sessionIdToResume ||
       sessionIdToResume === skippedAutoResumeSessionIdRef.current
     ) {
+      return false;
+    }
+
+    if (requestId !== autoResumeRequestIdRef.current) {
+      return false;
+    }
+
+    if (!canAutoResumeFromSearch(window.location.search)) {
       return false;
     }
 

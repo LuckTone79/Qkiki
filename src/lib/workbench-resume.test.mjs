@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildWorkbenchSessionSearch,
+  canAutoResumeFromSearch,
   pickLatestActiveSessionId,
   resolveWorkbenchEntryAction,
 } from "./workbench-resume.ts";
@@ -57,6 +58,14 @@ test("buildWorkbenchSessionSearch removes the session param when cleared", () =>
   );
 
   assert.equal(nextSearch, "?project=proj-1");
+});
+
+test("canAutoResumeFromSearch only allows bare workbench entries", () => {
+  assert.equal(canAutoResumeFromSearch(""), true);
+  assert.equal(canAutoResumeFromSearch("?preset=starter"), true);
+  assert.equal(canAutoResumeFromSearch("?session=session-42"), false);
+  assert.equal(canAutoResumeFromSearch("?project=proj-1"), false);
+  assert.equal(canAutoResumeFromSearch("?new=1"), false);
 });
 
 test("resolveWorkbenchEntryAction prefers an active server run over a local draft", () => {
