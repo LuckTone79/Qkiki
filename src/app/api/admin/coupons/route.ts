@@ -6,6 +6,7 @@ import {
   requireApiAdminManager,
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
+import { normalizeCouponNote } from "@/lib/coupon-note";
 import { prisma } from "@/lib/prisma";
 import { generateCouponCode } from "@/lib/subscription";
 import { couponCreateSchema } from "@/lib/validation";
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
           code,
           type,
           creditAmount,
-          note: parsed.data.note || null,
+          note: normalizeCouponNote(parsed.data.note),
           createdByAdminId: admin.id,
         },
       });
@@ -146,7 +147,12 @@ export async function POST(request: Request) {
         action: "COUPON_CREATE",
         targetType: "coupon",
         targetId: coupon.id,
-        detail: { code: coupon.code, type: coupon.type, creditAmount },
+        detail: {
+          code: coupon.code,
+          type: coupon.type,
+          creditAmount,
+          note: coupon.note,
+        },
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
       });

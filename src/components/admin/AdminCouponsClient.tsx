@@ -68,6 +68,7 @@ const couponText = {
     customCodePlaceholder: "auto-generate if empty",
     note: "Note",
     notePlaceholder: "internal memo",
+    noteHeader: "Memo",
     creditAmount: "Credit amount",
     creditAmountPlaceholder: "credits granted",
     createCoupon: "Create coupon",
@@ -98,13 +99,17 @@ const couponText = {
     couponCreated: "Coupon created",
     couponDeleted: "Coupon deleted.",
     couponDeactivated: "Coupon deactivated.",
+    couponUpdated: "Coupon memo saved.",
     deactivate: "Deactivate",
     delete: "Delete",
+    saveMemo: "Save memo",
+    savingMemo: "Saving...",
     deleteConfirm: "Delete this coupon?",
     failedLoad: "Failed to load coupons.",
     failedCreate: "Failed to create coupon.",
     failedDeactivate: "Failed to deactivate coupon.",
     failedDelete: "Failed to delete coupon.",
+    failedUpdate: "Failed to save coupon memo.",
     failedCopy: "Could not copy code.",
     noPeriod: "-",
     monthlyType: "monthly_free_30d (daily unlimited)",
@@ -133,11 +138,12 @@ const couponText = {
     unlimitedHint: "기간 동안 크레딧 한도 없음",
     quantity: "수량",
     quantityHint: "동일한 쿠폰을 이 개수만큼 한 번에 생성",
-    customCode: "직접 코드 (수량 1일 때만)",
+    customCode: "직접 코드 (수량 1개일 때만)",
     customCodePlaceholder: "비워두면 자동 생성됩니다",
     note: "메모",
     notePlaceholder: "내부 메모",
-    creditAmount: "크레딧 수량",
+    noteHeader: "메모",
+    creditAmount: "크레딧 양",
     creditAmountPlaceholder: "지급할 크레딧",
     createCoupon: "쿠폰 생성",
     creating: "생성 중...",
@@ -167,13 +173,17 @@ const couponText = {
     couponCreated: "쿠폰 생성 완료",
     couponDeleted: "쿠폰을 삭제했습니다.",
     couponDeactivated: "쿠폰을 비활성화했습니다.",
+    couponUpdated: "쿠폰 메모를 저장했습니다.",
     deactivate: "비활성화",
     delete: "삭제",
+    saveMemo: "메모 저장",
+    savingMemo: "저장 중...",
     deleteConfirm: "이 쿠폰을 삭제할까요?",
     failedLoad: "쿠폰을 불러오지 못했습니다.",
     failedCreate: "쿠폰 생성에 실패했습니다.",
     failedDeactivate: "쿠폰 비활성화에 실패했습니다.",
     failedDelete: "쿠폰 삭제에 실패했습니다.",
+    failedUpdate: "쿠폰 메모 저장에 실패했습니다.",
     failedCopy: "코드 복사에 실패했습니다.",
     noPeriod: "-",
     monthlyType: "30일 무료 쿠폰 (일일 무제한)",
@@ -215,10 +225,12 @@ export function AdminCouponsClient() {
   const [creditAmount, setCreditAmount] = useState("500");
   const [quantity, setQuantity] = useState("1");
   const [loading, setLoading] = useState(false);
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [createdCodes, setCreatedCodes] = useState<string[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [noteDraftById, setNoteDraftById] = useState<Record<string, string>>({});
 
   const loadCoupons = useCallback(async () => {
     const response = await fetch("/api/admin/coupons");
@@ -232,7 +244,13 @@ export function AdminCouponsClient() {
       return;
     }
 
-    setCoupons(data.coupons);
+    const nextCoupons = data.coupons;
+    setCoupons(nextCoupons);
+    setNoteDraftById((current) =>
+      Object.fromEntries(
+        nextCoupons.map((coupon) => [coupon.id, current[coupon.id] ?? coupon.note ?? ""]),
+      ),
+    );
   }, [t.failedLoad]);
 
   async function copyCodes(codes: string[]) {
@@ -240,6 +258,7 @@ export function AdminCouponsClient() {
       setError(t.noneSelected);
       return;
     }
+
     try {
       await navigator.clipboard.writeText(codes.join("\n"));
       setError("");
@@ -260,10 +279,7 @@ export function AdminCouponsClient() {
     setNotice("");
     setCreatedCodes([]);
 
-    const parsedQuantity = Math.max(
-      1,
-      Math.min(100, Number.parseInt(quantity, 10) || 1),
-    );
+    const parsedQuantity = Math.max(1, Math.min(100, Number.parseInt(quantity, 10) || 1));
 
     const response = await fetch("/api/admin/coupons", {
       method: "POST",
@@ -315,6 +331,57 @@ export function AdminCouponsClient() {
 
     setNotice(t.couponDeactivated);
     await loadCoupons();
+  }
+
+  async function saveCouponNote(id: string) {
+    const coupon = coupons.find((item) => item.id === id);
+    if (!coupon) {
+      return;
+    }
+
+    try {
+      setSavingNoteId(id);
+      setError("");
+      setNotice("");
+
+      const response = await fetch(`/api/admin/coupons/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          note: noteDraftById[id] ?? coupon.note ?? "",
+        }),
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        coupon?: { id: string; note: string | null };
+        error?: string;
+      };
+
+      if (!response.ok || !data.coupon) {
+        setError(data.error || t.failedUpdate);
+        return;
+      }
+
+      setCoupons((current) =>
+        current.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                note: data.coupon?.note ?? null,
+              }
+            : item,
+        ),
+      );
+      setNoteDraftById((current) => ({
+        ...current,
+        [id]: data.coupon?.note ?? "",
+      }));
+      setNotice(t.couponUpdated);
+    } catch {
+      setError(t.failedUpdate);
+    } finally {
+      setSavingNoteId(null);
+    }
   }
 
   async function deleteCoupon(id: string) {
@@ -401,19 +468,6 @@ export function AdminCouponsClient() {
     }).format(new Date(value));
   }
 
-  function statusLabel(status: CouponItem["usageStatus"]) {
-    if (status === "ACTIVE") {
-      return t.statusActive;
-    }
-    if (status === "INACTIVE") {
-      return t.statusInactive;
-    }
-    if (status === "IN_USE") {
-      return t.statusInUse;
-    }
-    return t.statusUsed;
-  }
-
   function typeLabel(couponType: CouponTypeValue) {
     if (couponType === "MONTHLY_FREE_30D") return t.monthlyType;
     if (couponType === "MONTHLY_FREE_30D_DAILY_50") return t.monthly50Type;
@@ -426,6 +480,19 @@ export function AdminCouponsClient() {
     if (couponType === "UNLIMITED_30D") return t.unlimited30dType;
     if (couponType === "UNLIMITED_LIFETIME") return t.unlimitedLifetimeType;
     return t.weeklyCreditType;
+  }
+
+  function statusLabel(status: CouponItem["usageStatus"]) {
+    if (status === "ACTIVE") {
+      return t.statusActive;
+    }
+    if (status === "INACTIVE") {
+      return t.statusInactive;
+    }
+    if (status === "IN_USE") {
+      return t.statusInUse;
+    }
+    return t.statusUsed;
   }
 
   return (
@@ -623,6 +690,21 @@ export function AdminCouponsClient() {
               </span>
             </div>
             <div className="mt-3 space-y-1 text-xs text-slate-600">
+              <div>
+                <p className="font-medium text-slate-700">{t.noteHeader}</p>
+                <textarea
+                  value={noteDraftById[coupon.id] ?? coupon.note ?? ""}
+                  onChange={(event) =>
+                    setNoteDraftById((current) => ({
+                      ...current,
+                      [coupon.id]: event.target.value,
+                    }))
+                  }
+                  rows={2}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-700 outline-none focus:border-slate-700"
+                  placeholder={t.notePlaceholder}
+                />
+              </div>
               <p>
                 {t.created}: {formatDateTime(coupon.createdAt)}
               </p>
@@ -630,8 +712,7 @@ export function AdminCouponsClient() {
                 {t.redeemedBy}: {coupon.redeemedByUser?.email || t.searchEmpty}
               </p>
               <p>
-                {t.startedAt}:{" "}
-                {formatDate(coupon.appliedRedemption?.grantStartAt ?? null)}
+                {t.startedAt}: {formatDate(coupon.appliedRedemption?.grantStartAt ?? null)}
               </p>
               <p>
                 {t.endsAt}:{" "}
@@ -651,6 +732,14 @@ export function AdminCouponsClient() {
                 className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
                 {t.copy}
+              </button>
+              <button
+                type="button"
+                onClick={() => saveCouponNote(coupon.id)}
+                disabled={savingNoteId === coupon.id}
+                className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+              >
+                {savingNoteId === coupon.id ? t.savingMemo : t.saveMemo}
               </button>
               {coupon.isActive ? (
                 <button
@@ -689,6 +778,7 @@ export function AdminCouponsClient() {
               <th className="px-3 py-3">{t.typeHeader}</th>
               <th className="px-3 py-3">{t.status}</th>
               <th className="px-3 py-3">{t.created}</th>
+              <th className="px-3 py-3">{t.noteHeader}</th>
               <th className="px-3 py-3">{t.redeemedBy}</th>
               <th className="px-3 py-3">{t.startedAt}</th>
               <th className="px-3 py-3">{t.endsAt}</th>
@@ -735,6 +825,30 @@ export function AdminCouponsClient() {
                 </td>
                 <td className="px-3 py-3 text-slate-600">
                   {formatDateTime(coupon.createdAt)}
+                </td>
+                <td className="px-3 py-3">
+                  <div className="min-w-[220px]">
+                    <textarea
+                      value={noteDraftById[coupon.id] ?? coupon.note ?? ""}
+                      onChange={(event) =>
+                        setNoteDraftById((current) => ({
+                          ...current,
+                          [coupon.id]: event.target.value,
+                        }))
+                      }
+                      rows={2}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-xs text-slate-700 outline-none focus:border-slate-700"
+                      placeholder={t.notePlaceholder}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => saveCouponNote(coupon.id)}
+                      disabled={savingNoteId === coupon.id}
+                      className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                    >
+                      {savingNoteId === coupon.id ? t.savingMemo : t.saveMemo}
+                    </button>
+                  </div>
                 </td>
                 <td className="px-3 py-3 text-slate-600">
                   {coupon.redeemedByUser?.email || t.searchEmpty}

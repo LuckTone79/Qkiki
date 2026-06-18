@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PROVIDERS } from "@/lib/ai/provider-catalog";
+import { isImageModel, isProviderName, PROVIDERS } from "./ai/provider-catalog";
 
 const providerNames = PROVIDERS.map((provider) => provider.name) as [
   string,
@@ -89,7 +89,7 @@ export const runWorkbenchSchema = z.object({
   outputStyle: z.string().max(80).nullable().optional(),
   outputLanguage: z.enum(["en", "ko", "ja", "zh", "hi"]).nullable().optional(),
   attachmentIds: z.array(z.string().min(1)).max(8).optional(),
-  mode: z.enum(["parallel", "sequential"]),
+  mode: z.enum(["parallel", "sequential", "image"]),
   targets: z.array(targetModelSchema).max(8).optional(),
   steps: z.array(workflowStepSchema).max(50).optional(),
   workflowControl: z
@@ -99,6 +99,29 @@ export const runWorkbenchSchema = z.object({
       stopCondition: workflowStopConditionSchema.optional(),
     })
     .optional(),
+}).superRefine((value, ctx) => {
+  if (value.mode !== "image") {
+    return;
+  }
+
+  if (!value.targets?.length) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["targets"],
+      message: "Select at least one image generation model.",
+    });
+    return;
+  }
+
+  value.targets.forEach((target, index) => {
+    if (!isProviderName(target.provider) || !isImageModel(target.provider, target.model)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["targets", index, "model"],
+        message: "Image generation mode only accepts image generation models.",
+      });
+    }
+  });
 });
 
 export const branchRunSchema = z.object({
@@ -159,6 +182,10 @@ export const couponCreateSchema = z
       });
     }
   });
+
+export const couponNoteUpdateSchema = z.object({
+  note: z.string().trim().max(500).nullable().optional(),
+});
 
 export const couponRedeemSchema = z.object({
   code: z.string().trim().min(3).max(64),
