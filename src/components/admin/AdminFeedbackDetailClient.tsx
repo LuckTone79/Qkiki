@@ -205,7 +205,7 @@ export function AdminFeedbackDetailClient({
                     {comment.isAdmin
                       ? ko
                         ? "운영팀"
-                        : "Qkiki team"
+                        : "Yapp team"
                       : comment.authorName}
                   </span>
                   <span className="text-xs text-slate-500">

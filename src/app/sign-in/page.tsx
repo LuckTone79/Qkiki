@@ -10,7 +10,7 @@ export default function SignInPage() {
     <main className="flex min-h-screen items-center justify-center bg-[#ffffff] px-5 py-10">
       <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-7">
         <p className="flex items-center gap-2 font-serif text-lg font-semibold tracking-tight text-stone-950">
-          <span aria-hidden="true">⬡</span> Qkiki
+          <span aria-hidden="true">⬡</span> Yapp
         </p>
         <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-stone-950">
           {t("signIn")}

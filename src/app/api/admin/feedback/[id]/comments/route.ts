@@ -70,7 +70,7 @@ export async function POST(
           id: comment.id,
           body: comment.body,
           isAdmin: true,
-          authorName: "Qkiki",
+          authorName: "Yapp",
           createdAt: comment.createdAt.toISOString(),
         },
       },

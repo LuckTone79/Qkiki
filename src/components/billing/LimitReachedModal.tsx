@@ -41,7 +41,7 @@ export function LimitReachedModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4">
       <div className="w-full max-w-lg rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Qkiki</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Yapp</p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">{title}</h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">{description}</p>
         <p className="mt-2 text-sm leading-6 text-stone-600">

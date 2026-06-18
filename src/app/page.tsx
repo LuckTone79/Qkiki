@@ -86,7 +86,7 @@ export default function LandingPage() {
       <section className="relative flex min-h-[100svh] flex-col items-center justify-between overflow-hidden">
         <Image
           src={heroImage}
-          alt="Qkiki orchestration — networked architecture"
+          alt="Yapp orchestration — networked architecture"
           fill
           priority
           sizes="100vw"

@@ -361,7 +361,7 @@ export function ResultCard({
               />
               <a
                 href={imageOutput}
-                download={`qkiki-image-${result.id}.png`}
+                download={`yapp-image-${result.id}.png`}
                 className="inline-block text-xs font-semibold text-teal-700 underline"
               >
                 {language === "ko" ? "이미지 다운로드" : "Download image"}

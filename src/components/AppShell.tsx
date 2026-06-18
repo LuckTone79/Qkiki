@@ -86,7 +86,7 @@ export function AppShell({
                 className="block"
               >
                 <p className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
-                  <span aria-hidden="true">⬡</span> Qkiki
+                  <span aria-hidden="true">⬡</span> Yapp
                 </p>
                 <p className="mt-0.5 text-xs text-stone-500">
                   {t("orchestrationWorkbench")}

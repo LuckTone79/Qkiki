@@ -55,7 +55,7 @@ export default async function FeedbackThreadPage({
       body: comment.body,
       isAdmin: comment.isAdmin,
       authorName: comment.isAdmin
-        ? "Qkiki"
+        ? "Yapp"
         : comment.author.name || comment.author.email,
       createdAt: comment.createdAt.toISOString(),
     })),

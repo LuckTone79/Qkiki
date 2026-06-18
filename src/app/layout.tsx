@@ -21,8 +21,8 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Qkiki",
-  description: "A Qkiki orchestration workbench for compare, review, and branch workflows.",
+  title: "Yapp",
+  description: "A Yapp orchestration workbench for compare, review, and branch workflows.",
 };
 
 export default function RootLayout({

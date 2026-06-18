@@ -11,7 +11,7 @@ const guidePath = path.join(
 );
 
 export const metadata: Metadata = {
-  title: "Global Monetization Guide | Qkiki",
+  title: "Global Monetization Guide | Yapp",
   description:
     "A mobile-friendly Korean guidebook for global subscription pricing, payment providers, Korean business registration, and payout setup.",
 };
@@ -303,7 +303,7 @@ export default async function GlobalMonetizationGuidePage() {
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-3 text-sm text-stone-600">
             <Link href="/" className="font-medium text-stone-900 hover:underline">
-              Qkiki
+              Yapp
             </Link>
             <span>/</span>
             <Link href="/guide" className="font-medium text-stone-900 hover:underline">
