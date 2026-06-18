@@ -92,8 +92,8 @@ const dictionaries = {
     korean: "Korean",
     language: "Language",
     landingDescription:
-      "Qkiki runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.",
-    landingEyebrow: "Qkiki Orchestration Workbench",
+      "Yapp runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.",
+    landingEyebrow: "Yapp Orchestration Workbench",
     landingTitle: "Turn several AI models into a review chain.",
     leaveBlankCurrentKey: "Leave blank to keep current key",
     load: "Load",
@@ -114,7 +114,7 @@ const dictionaries = {
     new: "New",
     newConversationWindow: "New conversation window",
     newProject: "New project",
-    newToMultiAi: "New to Qkiki?",
+    newToMultiAi: "New to Yapp?",
     newWorkbench: "New workbench",
     newWindow: "New window",
     noConversationWindowsDescription:
@@ -348,8 +348,8 @@ const dictionaries = {
     korean: "\ud55c\uad6d\uc5b4",
     language: "\uc5b8\uc5b4",
     landingDescription:
-      "Qkiki\ub294 \ud558\ub098\uc758 \uc791\uc5c5\uc744 \uc5ec\ub7ec \ubaa8\ub378\uc5d0 \uc2e4\ud589\ud558\uace0, \ub2f5\ubcc0\uc744 \ube44\uad50\ud55c \ub4a4, \uac01 \uacb0\uacfc\ub97c \ub2e4\uc74c \uac80\ud1a0, \ube44\ud310, \uac1c\uc120, \uc694\uc57d\uc758 \ucd9c\ubc1c\uc810\uc73c\ub85c \uc774\uc5b4\uac08 \uc218 \uc788\uac8c \ud569\ub2c8\ub2e4.",
-    landingEyebrow: "Qkiki \uc624\ucf00\uc2a4\ud2b8\ub808\uc774\uc158 \uc6cc\ud06c\ubca4\uce58",
+      "Yapp\ub294 \ud558\ub098\uc758 \uc791\uc5c5\uc744 \uc5ec\ub7ec \ubaa8\ub378\uc5d0 \uc2e4\ud589\ud558\uace0, \ub2f5\ubcc0\uc744 \ube44\uad50\ud55c \ub4a4, \uac01 \uacb0\uacfc\ub97c \ub2e4\uc74c \uac80\ud1a0, \ube44\ud310, \uac1c\uc120, \uc694\uc57d\uc758 \ucd9c\ubc1c\uc810\uc73c\ub85c \uc774\uc5b4\uac08 \uc218 \uc788\uac8c \ud569\ub2c8\ub2e4.",
+    landingEyebrow: "Yapp \uc624\ucf00\uc2a4\ud2b8\ub808\uc774\uc158 \uc6cc\ud06c\ubca4\uce58",
     landingTitle: "\uc5ec\ub7ec AI \ubaa8\ub378\uc744 \ud558\ub098\uc758 \uac80\ud1a0 \uccb4\uc778\uc73c\ub85c \uc5f0\uacb0\ud558\uc138\uc694.",
     leaveBlankCurrentKey: "\ud604\uc7ac \ud0a4\ub97c \uc720\uc9c0\ud558\ub824\uba74 \ube44\uc6cc\ub450\uc138\uc694",
     load: "\ubd88\ub7ec\uc624\uae30",
@@ -371,7 +371,7 @@ const dictionaries = {
     new: "\uc0c8\ub85c \ub9cc\ub4e4\uae30",
     newConversationWindow: "\uc0c8 \ub300\ud654\ucc3d",
     newProject: "\uc0c8 \ud504\ub85c\uc81d\ud2b8",
-    newToMultiAi: "Qkiki\uac00 \ucc98\uc74c\uc778\uac00\uc694?",
+    newToMultiAi: "Yapp\uac00 \ucc98\uc74c\uc778\uac00\uc694?",
     newWorkbench: "\uc0c8 \uc6cc\ud06c\ubca4\uce58",
     newWindow: "\uc0c8 \ub300\ud654\ucc3d",
     noConversationWindowsDescription:

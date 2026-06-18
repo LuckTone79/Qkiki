@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     canonicalRedirect.search = "";
     return NextResponse.json(
       {
-        error: "Please continue sign-up on the main Qkiki domain.",
+        error: "Please continue sign-up on the main Yapp domain.",
         redirectUrl: canonicalRedirect.toString(),
       },
       { status: 409 },

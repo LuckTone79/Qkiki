@@ -320,7 +320,7 @@ export function AccountClient({
         <p className="mt-1 text-sm text-stone-600">
           {language === "ko"
             ? "불편 사항이나 개선 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있으며, 캡처 이미지도 첨부할 수 있습니다."
-            : "Report problems or suggest improvements. Only you and the Qkiki team can see your posts, and you can attach screenshots."}
+            : "Report problems or suggest improvements. Only you and the Yapp team can see your posts, and you can attach screenshots."}
         </p>
         <div className="mt-4">
           <Link

@@ -32,7 +32,7 @@ export default async function PricingPage(props: PricingPageProps) {
     <div className="space-y-6">
       <section className="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
-          Qkiki Pricing
+          Yapp Pricing
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-stone-950">
           USD 기준 크레딧 구독

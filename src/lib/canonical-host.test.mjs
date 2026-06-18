@@ -10,7 +10,7 @@ import {
 test("resolveCanonicalAppUrl defaults to the wideget production host", () => {
   const resolved = resolveCanonicalAppUrl({ VERCEL_ENV: "production" });
 
-  assert.equal(resolved?.toString(), "https://qkiki.wideget.net/");
+  assert.equal(resolved?.toString(), "https://yapp.wideget.net/");
 });
 
 test("shouldRedirectToCanonicalHost redirects vercel production hosts for browser pages", () => {
@@ -38,7 +38,7 @@ test("shouldRedirectToCanonicalHost still redirects the qkiki production alias w
 test("shouldRedirectToCanonicalHost keeps the canonical wideget host in place", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: { VERCEL_ENV: "production" },
-    hostname: "qkiki.wideget.net",
+    hostname: "yapp.wideget.net",
     pathname: "/app/workbench",
     method: "GET",
   });
@@ -93,7 +93,7 @@ test("shouldRedirectToCanonicalHost does not redirect admin subdomains into the 
 test("resolveCanonicalAppUrl stays disabled outside production even when configured", () => {
   const resolved = resolveCanonicalAppUrl({
     VERCEL_ENV: "preview",
-    CANONICAL_APP_URL: "https://qkiki.wideget.net",
+    CANONICAL_APP_URL: "https://yapp.wideget.net",
   });
 
   assert.equal(resolved, null);
@@ -107,7 +107,7 @@ test("getCanonicalHostRedirectUrl can still canonicalize stale auth POST origins
 
   assert.equal(
     redirectUrl?.toString(),
-    "https://qkiki.wideget.net/api/auth/sign-in",
+    "https://yapp.wideget.net/api/auth/sign-in",
   );
 });
 
@@ -119,6 +119,6 @@ test("buildCanonicalRedirectUrl preserves path and query when canonicalizing", (
 
   assert.equal(
     redirectUrl?.toString(),
-    "https://qkiki.wideget.net/sign-in?next=%2Fapp%2Fworkbench",
+    "https://yapp.wideget.net/sign-in?next=%2Fapp%2Fworkbench",
   );
 });

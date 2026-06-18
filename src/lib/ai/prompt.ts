@@ -183,7 +183,7 @@ function buildFactCheckDirectives() {
 export function composePrompt(input: ComposePromptInput) {
   const preferWebSearch = shouldPreferWebSearch(input);
   const parts = [
-    "You are participating in a Qkiki Orchestration Workbench.",
+    "You are participating in a Yapp Orchestration Workbench.",
     "Stay focused on the task, be explicit about uncertainty, and do not invent tool access.",
     "",
     ...formatCurrentContext(input.currentDate ?? new Date()),

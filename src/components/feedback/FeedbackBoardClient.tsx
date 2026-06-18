@@ -188,7 +188,7 @@ export function FeedbackBoardClient() {
         description={
           ko
             ? "불편 사항이나 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있습니다."
-            : "Report problems or suggest improvements. Only you and the Qkiki team can see your posts."
+            : "Report problems or suggest improvements. Only you and the Yapp team can see your posts."
         }
       />
 

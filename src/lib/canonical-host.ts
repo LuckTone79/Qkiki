@@ -1,4 +1,4 @@
-const DEFAULT_CANONICAL_APP_URL = "https://qkiki.wideget.net";
+const DEFAULT_CANONICAL_APP_URL = "https://yapp.wideget.net";
 const EXCLUDED_PREFIXES = ["/_next", "/api", "/.well-known/workflow"];
 const EXCLUDED_PATHS = ["/favicon.ico"];
 

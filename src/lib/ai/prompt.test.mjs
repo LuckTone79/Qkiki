@@ -17,7 +17,7 @@ test("composeImagePrompt returns only the visual description", () => {
 
   assert.equal(prompt, "A watercolor fox in a snowy forest\n\nsoft pastel colors");
   // None of the text-model orchestration boilerplate should leak into images.
-  assert.doesNotMatch(prompt, /Qkiki Orchestration Workbench/);
+  assert.doesNotMatch(prompt, /Yapp Orchestration Workbench/);
   assert.doesNotMatch(prompt, /output language/i);
   assert.doesNotMatch(prompt, /Return only/i);
 });

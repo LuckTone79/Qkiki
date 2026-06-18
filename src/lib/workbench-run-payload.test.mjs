@@ -18,7 +18,7 @@ test("buildWorkbenchRunPayload preserves user-selected advanced fields", () => {
     sessionId: "session-1",
     projectId: "project-1",
     title: "Demo",
-    originalInput: "Explain Qkiki.",
+    originalInput: "Explain Yapp.",
     additionalInstruction: "Be extra formal.",
     outputStyle: "bullet",
     outputLanguage: "ko",

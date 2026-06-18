@@ -11,19 +11,19 @@ import { APP_VERSION } from "@/lib/version";
 const guide = {
   en: {
     /* hero */
-    eyebrow: "Qkiki Guidebook",
-    heroTitle: "Your First Steps with Qkiki",
+    eyebrow: "Yapp Guidebook",
+    heroTitle: "Your First Steps with Yapp",
     heroSubtitle:
       "A step-by-step guide to comparing, routing, and branching AI model outputs — all from one workspace.",
 
     /* CTA */
-    getStarted: "Start using Qkiki",
+    getStarted: "Start using Yapp",
     backToHome: "Back to Home",
 
     /* why different */
-    diffTitle: "How is Qkiki different?",
+    diffTitle: "How is Yapp different?",
     diffSubtitle:
-      "Qkiki isn't another chatbot. It's an orchestration workbench that turns several AI models into a structured review pipeline.",
+      "Yapp isn't another chatbot. It's an orchestration workbench that turns several AI models into a structured review pipeline.",
 
     diffItems: [
       {
@@ -236,7 +236,7 @@ const guide = {
         a: "Yes. All AI calls happen server-side only — your inputs never go directly to external providers from your browser. Sessions use HttpOnly cookies, and all credentials are encrypted.",
       },
       {
-        q: "Can I use Qkiki on mobile?",
+        q: "Can I use Yapp on mobile?",
         a: "Yes. The workbench is fully responsive with a mobile-optimized bottom navigation bar and collapsible panels for models, input, workflow, and results.",
       },
       {
@@ -256,24 +256,24 @@ const guide = {
 
     /* footer */
     version: "Version",
-    copyright: "Qkiki by Wideget",
+    copyright: "Yapp by Wideget",
   },
 
   ko: {
     /* hero */
-    eyebrow: "Qkiki 가이드북",
-    heroTitle: "Qkiki 시작하기",
+    eyebrow: "Yapp 가이드북",
+    heroTitle: "Yapp 시작하기",
     heroSubtitle:
       "여러 AI 모델의 답변을 비교하고, 연결하고, 분기하는 오케스트레이션 워크벤치를 단계별로 안내합니다.",
 
     /* CTA */
-    getStarted: "Qkiki 시작하기",
+    getStarted: "Yapp 시작하기",
     backToHome: "홈으로 돌아가기",
 
     /* why different */
-    diffTitle: "Qkiki는 뭐가 다른가요?",
+    diffTitle: "Yapp는 뭐가 다른가요?",
     diffSubtitle:
-      "Qkiki는 챗봇이 아닙니다. 여러 AI 모델을 하나의 검토 파이프라인으로 연결하는 오케스트레이션 워크벤치입니다.",
+      "Yapp는 챗봇이 아닙니다. 여러 AI 모델을 하나의 검토 파이프라인으로 연결하는 오케스트레이션 워크벤치입니다.",
 
     diffItems: [
       {
@@ -506,7 +506,7 @@ const guide = {
 
     /* footer */
     version: "버전",
-    copyright: "Qkiki by Wideget",
+    copyright: "Yapp by Wideget",
   },
 } as const;
 
@@ -727,7 +727,7 @@ export default function GuidePage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
                 </div>
                 <span className="text-xs font-medium text-stone-400">
-                  Qkiki Workbench
+                  Yapp Workbench
                 </span>
               </div>
 
@@ -877,7 +877,7 @@ export default function GuidePage() {
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
                 </div>
                 <span className="text-xs font-medium text-stone-400">
-                  Qkiki Workbench
+                  Yapp Workbench
                 </span>
               </div>
 

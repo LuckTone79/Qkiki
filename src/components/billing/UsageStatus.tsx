@@ -26,27 +26,27 @@ export function UsageStatus({
   const title =
     language === "ko"
       ? usage.isAnonymous
-        ? "Qkiki 체험 (비로그인)"
+        ? "Yapp 체험 (비로그인)"
         : usage.isBoostActive
-          ? "Qkiki Boost 사용 중"
+          ? "Yapp Boost 사용 중"
           : usage.planType === "PRO"
-            ? "Qkiki Pro 플랜"
+            ? "Yapp Pro 플랜"
             : usage.planType === "STARTER"
-              ? "Qkiki Starter 플랜"
+              ? "Yapp Starter 플랜"
               : usage.planType === "TEAM"
-                ? "Qkiki Team 플랜"
-                : "Qkiki 무료 사용량"
+                ? "Yapp Team 플랜"
+                : "Yapp 무료 사용량"
       : usage.isAnonymous
-        ? "Qkiki trial (signed out)"
+        ? "Yapp trial (signed out)"
         : usage.isBoostActive
-          ? "Qkiki Boost active"
+          ? "Yapp Boost active"
           : usage.planType === "PRO"
-            ? "Qkiki Pro plan"
+            ? "Yapp Pro plan"
             : usage.planType === "STARTER"
-              ? "Qkiki Starter plan"
+              ? "Yapp Starter plan"
               : usage.planType === "TEAM"
-                ? "Qkiki Team plan"
-                : "Qkiki free usage";
+                ? "Yapp Team plan"
+                : "Yapp free usage";
 
   const primary = usage.isUnlimitedCredits
     ? language === "ko"

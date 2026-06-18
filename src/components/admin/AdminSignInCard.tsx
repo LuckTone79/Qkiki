@@ -5,13 +5,13 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 const signInCardText = {
   en: {
-    adminTitle: "Qkiki Admin",
+    adminTitle: "Yapp Admin",
     heading: "Administrator sign-in",
     description:
       "Access user management, coupon controls, provider keys, and audit logs.",
   },
   ko: {
-    adminTitle: "Qkiki \uAD00\uB9AC\uC790",
+    adminTitle: "Yapp \uAD00\uB9AC\uC790",
     heading: "\uAD00\uB9AC\uC790 \uB85C\uADF8\uC778",
     description:
       "\uC0AC\uC6A9\uC790 \uAD00\uB9AC, \uCFE0\uD3F0 \uC81C\uC5B4, \uACF5\uAE09\uC790 \uD0A4, \uAC10\uC0AC \uB85C\uADF8\uC5D0 \uC811\uADFC\uD569\uB2C8\uB2E4.",

@@ -6,15 +6,15 @@ import { useLanguage } from "@/components/i18n/LanguageProvider";
 const aboutContent = {
   en: {
     title: "About",
-    appName: "Qkiki Admin",
+    appName: "Yapp Admin",
     version: "Version",
-    description: "Operations console for managing Qkiki services.",
+    description: "Operations console for managing Yapp services.",
   },
   ko: {
     title: "정보",
-    appName: "Qkiki 관리자",
+    appName: "Yapp 관리자",
     version: "버전",
-    description: "Qkiki 서비스를 관리하는 운영 콘솔입니다.",
+    description: "Yapp 서비스를 관리하는 운영 콘솔입니다.",
   },
 };
 
@@ -32,7 +32,7 @@ export default function AboutPage() {
         <div className="space-y-4">
           <div>
             <p className="text-sm font-medium text-slate-500">{t.appName}</p>
-            <p className="mt-1 text-lg font-semibold text-slate-950">Qkiki</p>
+            <p className="mt-1 text-lg font-semibold text-slate-950">Yapp</p>
           </div>
 
           <div className="border-t border-slate-200 pt-4">

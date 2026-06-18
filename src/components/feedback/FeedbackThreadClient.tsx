@@ -192,7 +192,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
                     {comment.isAdmin
                       ? ko
                         ? "운영팀"
-                        : "Qkiki team"
+                        : "Yapp team"
                       : comment.authorName}
                   </span>
                   <span className="text-xs text-stone-500">
