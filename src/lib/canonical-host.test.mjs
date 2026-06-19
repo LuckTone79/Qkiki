@@ -24,6 +24,17 @@ test("shouldRedirectToCanonicalHost redirects vercel production hosts for browse
   assert.equal(shouldRedirect, true);
 });
 
+test("shouldRedirectToCanonicalHost redirects the legacy qkiki wideget host", () => {
+  const shouldRedirect = shouldRedirectToCanonicalHost({
+    env: { VERCEL_ENV: "production" },
+    hostname: "qkiki.wideget.net",
+    pathname: "/sign-in",
+    method: "GET",
+  });
+
+  assert.equal(shouldRedirect, true);
+});
+
 test("shouldRedirectToCanonicalHost still redirects the qkiki production alias when proxy env is missing", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: {},
@@ -121,4 +132,13 @@ test("buildCanonicalRedirectUrl preserves path and query when canonicalizing", (
     redirectUrl?.toString(),
     "https://yapp.wideget.net/sign-in?next=%2Fapp%2Fworkbench",
   );
+});
+
+test("buildCanonicalRedirectUrl preserves paths from the legacy qkiki wideget host", () => {
+  const redirectUrl = buildCanonicalRedirectUrl(
+    "https://qkiki.wideget.net/guide?lang=ko",
+    { VERCEL_ENV: "production" },
+  );
+
+  assert.equal(redirectUrl?.toString(), "https://yapp.wideget.net/guide?lang=ko");
 });

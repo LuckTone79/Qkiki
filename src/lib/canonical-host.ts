@@ -42,6 +42,7 @@ function isRedirectableHost(hostname: string, canonicalHostname: string) {
   return (
     !hostname.startsWith("admin.") &&
     (hostname === `www.${canonicalHostname}` ||
+    hostname === "qkiki.wideget.net" ||
     hostname === "qkiki.vercel.app" ||
     hostname.endsWith(".vercel.app"))
   );
