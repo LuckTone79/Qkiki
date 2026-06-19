@@ -14,6 +14,8 @@ if (env === "production") {
 
   console.log("[prebuild] Running prisma migrate deploy for production...");
   execSync("npx prisma migrate deploy", { stdio: "inherit" });
+  console.log("[prebuild] Asserting workbench run schema for production...");
+  execSync("node scripts/assert-workbench-run-schema.mjs", { stdio: "inherit" });
 } else {
   console.log("[prebuild] Skipping prisma migrate deploy outside production.");
 }

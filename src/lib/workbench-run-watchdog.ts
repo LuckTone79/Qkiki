@@ -26,7 +26,7 @@ function staleRunMessage(staleSeconds: number) {
 export async function closeStaleWorkbenchRuns(input: {
   userId?: string;
   executionRunId?: string;
-}) {
+} = {}) {
   await ensureWorkbenchRunSchema();
   const staleSeconds = getStaleRunSeconds();
   const cutoff = new Date(Date.now() - staleSeconds * 1000);

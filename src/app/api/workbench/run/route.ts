@@ -26,7 +26,7 @@ import {
   getSequentialRunnerReadiness,
 } from "@/lib/qstash";
 import { runWorkbenchSchema } from "@/lib/validation";
-import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
+import { shouldRunRequestStaleCleanup } from "@/lib/workbench-maintenance-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import { selectWorkbenchRunnerVersion } from "@/lib/workbench-runner-version";
 import { syncWorkflowTemplateSteps } from "@/lib/workflow-templates";
@@ -62,8 +62,9 @@ export async function POST(request: Request) {
       );
     }
 
-    await timing.time("schema", () => ensureWorkbenchRunSchema());
-    await timing.query("stale_runs", () => closeStaleWorkbenchRuns({ userId: user.id }));
+    if (shouldRunRequestStaleCleanup()) {
+      await timing.query("stale_runs", () => closeStaleWorkbenchRuns({ userId: user.id }));
+    }
     const creditEstimate = estimateWorkbenchRunCredits({
       mode: parsed.data.mode,
       originalInput: parsed.data.originalInput,
@@ -371,6 +372,7 @@ export async function POST(request: Request) {
       executionRunId: executionRun.id,
       workflowRunId: workflowRun.runId,
     });
+    await enqueueWorkbenchWatchdog(getWorkbenchWatchdogIntervalSeconds()).catch(() => undefined);
 
     const signedRunId = createSignedRunToken({
       executionRunId: executionRun.id,

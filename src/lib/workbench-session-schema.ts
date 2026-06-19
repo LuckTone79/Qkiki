@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { shouldRunLegacyWorkbenchSchemaRepair } from "@/lib/workbench-maintenance-policy";
 
 let workflowControlColumnPromise: Promise<boolean> | null = null;
 let workflowTemplateStepsColumnPromise: Promise<boolean> | null = null;
@@ -64,6 +65,10 @@ async function ensureWorkflowTemplateStepsColumnInternal() {
 }
 
 export async function ensureWorkflowControlJsonColumn() {
+  if (!shouldRunLegacyWorkbenchSchemaRepair()) {
+    return true;
+  }
+
   if (!workflowControlColumnPromise) {
     workflowControlColumnPromise = ensureWorkflowControlColumnInternal().catch((error) => {
       workflowControlColumnPromise = null;
@@ -75,6 +80,10 @@ export async function ensureWorkflowControlJsonColumn() {
 }
 
 export async function ensureWorkflowTemplateStepsJsonColumn() {
+  if (!shouldRunLegacyWorkbenchSchemaRepair()) {
+    return true;
+  }
+
   if (!workflowTemplateStepsColumnPromise) {
     workflowTemplateStepsColumnPromise =
       ensureWorkflowTemplateStepsColumnInternal().catch((error) => {

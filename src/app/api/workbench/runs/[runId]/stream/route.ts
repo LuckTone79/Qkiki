@@ -12,6 +12,10 @@ import {
 import { prisma } from "@/lib/prisma";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
+import {
+  shouldRunLegacyWorkbenchSchemaRepair,
+  shouldRunRequestStaleCleanup,
+} from "@/lib/workbench-maintenance-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import { createRouteTiming } from "@/server/perf/route-timing";
 
@@ -55,7 +59,9 @@ export async function GET(request: Request, { params }: RouteContext) {
       return json({ error: "Run not found." }, { status: 404 });
     }
 
-    await timing.time("schema", () => ensureWorkbenchRunSchema());
+    if (shouldRunLegacyWorkbenchSchemaRepair()) {
+      await timing.time("schema", () => ensureWorkbenchRunSchema());
+    }
     let executionRun =
       "executionRunId" in token
         ? await timing.query("run_lookup", () =>
@@ -71,18 +77,20 @@ export async function GET(request: Request, { params }: RouteContext) {
     }
 
     if ("executionRunId" in token) {
-      await timing.query("stale_runs", () =>
-        closeStaleWorkbenchRuns({
-          executionRunId: token.executionRunId,
-          userId: user.id,
-        }),
-      );
-      executionRun = await timing.query("run_refresh", () =>
-        getExecutionRunForUser({
-          executionRunId: token.executionRunId,
-          userId: user.id,
-        }),
-      );
+      if (shouldRunRequestStaleCleanup()) {
+        await timing.query("stale_runs", () =>
+          closeStaleWorkbenchRuns({
+            executionRunId: token.executionRunId,
+            userId: user.id,
+          }),
+        );
+        executionRun = await timing.query("run_refresh", () =>
+          getExecutionRunForUser({
+            executionRunId: token.executionRunId,
+            userId: user.id,
+          }),
+        );
+      }
 
       if (executionRun?.status === "canceled") {
         const canceledRun = executionRun;

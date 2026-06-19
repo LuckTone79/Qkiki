@@ -15,6 +15,11 @@ import {
 import { prisma } from "@/lib/prisma";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
+import {
+  shouldRunLegacyWorkbenchSchemaRepair,
+  shouldRunRequestStaleCleanup,
+  WORKBENCH_RUN_SCHEMA_CAPABILITIES,
+} from "@/lib/workbench-maintenance-policy";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import { createRouteTiming } from "@/server/perf/route-timing";
@@ -42,16 +47,19 @@ export async function GET(_request: Request, { params }: RouteContext) {
       return json({ error: "Run not found." }, { status: 404 });
     }
 
-    const { supportsRunExecutionOrder } = await timing.time("schema", () =>
-      ensureWorkbenchRunSchema(),
-    );
+    const { supportsRunExecutionOrder } =
+      shouldRunLegacyWorkbenchSchemaRepair()
+        ? await timing.time("schema", () => ensureWorkbenchRunSchema())
+        : WORKBENCH_RUN_SCHEMA_CAPABILITIES;
     if ("executionRunId" in token) {
-      await timing.query("stale_runs", () =>
-        closeStaleWorkbenchRuns({
-          executionRunId: token.executionRunId,
-          userId: user.id,
-        }),
-      );
+      if (shouldRunRequestStaleCleanup()) {
+        await timing.query("stale_runs", () =>
+          closeStaleWorkbenchRuns({
+            executionRunId: token.executionRunId,
+            userId: user.id,
+          }),
+        );
+      }
 
       const executionRun = await timing.query("run_lookup", () =>
         getExecutionRunForUser({
@@ -273,7 +281,9 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
     }
 
-    await ensureWorkbenchRunSchema();
+    if (shouldRunLegacyWorkbenchSchemaRepair()) {
+      await ensureWorkbenchRunSchema();
+    }
     const executionRun = await getExecutionRunForUser({
       executionRunId: token.executionRunId,
       userId: user.id,

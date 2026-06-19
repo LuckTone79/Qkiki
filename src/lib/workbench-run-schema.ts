@@ -1,6 +1,10 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import {
+  shouldRunLegacyWorkbenchSchemaRepair,
+  WORKBENCH_RUN_SCHEMA_CAPABILITIES,
+} from "@/lib/workbench-maintenance-policy";
 
 // Deprecated runtime schema repair helper.
 // Production schema management must use prisma migrate deploy before serving traffic.
@@ -126,6 +130,10 @@ function ensureIndex(input: {
 }
 
 export function ensureExecutionRunStepControlJsonColumn() {
+  if (!shouldRunLegacyWorkbenchSchemaRepair()) {
+    return Promise.resolve(true);
+  }
+
   return ensureColumn({
     cacheKey: "ExecutionRun.stepControlJson",
     tableName: "ExecutionRun",
@@ -142,6 +150,10 @@ export function ensureExecutionRunStepControlJsonColumn() {
 }
 
 export function ensureResultExecutionRunIdColumn() {
+  if (!shouldRunLegacyWorkbenchSchemaRepair()) {
+    return Promise.resolve(true);
+  }
+
   return ensureColumn({
     cacheKey: "Result.executionRunId",
     tableName: "Result",
@@ -162,6 +174,10 @@ export function ensureResultExecutionRunIdColumn() {
 }
 
 export async function ensureResultExecutionOrderColumn() {
+  if (!shouldRunLegacyWorkbenchSchemaRepair()) {
+    return true;
+  }
+
   const hasColumn = await ensureColumn({
     cacheKey: "Result.executionOrder",
     tableName: "Result",
@@ -225,6 +241,10 @@ export async function ensureResultExecutionOrderColumn() {
 }
 
 export async function ensureWorkbenchRunSchema() {
+  if (!shouldRunLegacyWorkbenchSchemaRepair()) {
+    return WORKBENCH_RUN_SCHEMA_CAPABILITIES;
+  }
+
   const [supportsStepControl, supportsRunScopedResults] = await Promise.all([
     ensureExecutionRunStepControlJsonColumn(),
     ensureResultExecutionRunIdColumn(),
