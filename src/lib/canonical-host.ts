@@ -1,6 +1,7 @@
 const DEFAULT_CANONICAL_APP_URL = "https://yapp.wideget.net";
 const EXCLUDED_PREFIXES = ["/_next", "/api", "/.well-known/workflow"];
 const EXCLUDED_PATHS = ["/favicon.ico"];
+const LEGACY_CANONICAL_HOSTS = new Set(["qkiki.vercel.app", "qkiki.wideget.net"]);
 
 type CanonicalHostInput = {
   env?: Record<string, string | undefined>;
@@ -42,8 +43,7 @@ function isRedirectableHost(hostname: string, canonicalHostname: string) {
   return (
     !hostname.startsWith("admin.") &&
     (hostname === `www.${canonicalHostname}` ||
-    hostname === "qkiki.wideget.net" ||
-    hostname === "qkiki.vercel.app" ||
+    LEGACY_CANONICAL_HOSTS.has(hostname) ||
     hostname.endsWith(".vercel.app"))
   );
 }
@@ -56,7 +56,7 @@ export function getCanonicalHostRedirectUrl(
   const hostname = redirectUrl.hostname.trim().toLowerCase();
   const canonicalUrl =
     resolveCanonicalAppUrl(env) ||
-    (hostname === "qkiki.vercel.app" ? new URL(DEFAULT_CANONICAL_APP_URL) : null);
+    (LEGACY_CANONICAL_HOSTS.has(hostname) ? new URL(DEFAULT_CANONICAL_APP_URL) : null);
 
   if (!canonicalUrl) {
     return null;

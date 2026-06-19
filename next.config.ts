@@ -1,15 +1,17 @@
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
 
+const legacyCanonicalRedirectHosts = ["qkiki.vercel.app", "qkiki.wideget.net"];
+
 const nextConfig: NextConfig = {
   async redirects() {
-    return [
+    return legacyCanonicalRedirectHosts.flatMap((host) => [
       {
         source: "/",
         has: [
           {
             type: "host",
-            value: "qkiki.vercel.app",
+            value: host,
           },
         ],
         missing: [
@@ -27,7 +29,7 @@ const nextConfig: NextConfig = {
         has: [
           {
             type: "host",
-            value: "qkiki.vercel.app",
+            value: host,
           },
         ],
         missing: [
@@ -40,7 +42,7 @@ const nextConfig: NextConfig = {
         permanent: false,
         basePath: false,
       },
-    ];
+    ]);
   },
   images: {
     remotePatterns: [

@@ -46,6 +46,17 @@ test("shouldRedirectToCanonicalHost still redirects the qkiki production alias w
   assert.equal(shouldRedirect, true);
 });
 
+test("shouldRedirectToCanonicalHost still redirects the legacy qkiki wideget host when proxy env is missing", () => {
+  const shouldRedirect = shouldRedirectToCanonicalHost({
+    env: {},
+    hostname: "qkiki.wideget.net",
+    pathname: "/sign-in",
+    method: "GET",
+  });
+
+  assert.equal(shouldRedirect, true);
+});
+
 test("shouldRedirectToCanonicalHost keeps the canonical wideget host in place", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: { VERCEL_ENV: "production" },
