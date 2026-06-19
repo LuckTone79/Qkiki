@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthEntryLinks } from "@/components/AuthEntryLinks";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
 import {
-  readBrowserStorageValue,
+  readBrowserStorageValueAny,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
+import { LEGACY_STORAGE_KEYS, PRIMARY_STORAGE_KEYS } from "@/lib/brand";
 import { shouldShowAuthEntryPoints } from "@/lib/trial-user";
 import { APP_VERSION } from "@/lib/version";
 import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
@@ -36,16 +38,20 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const { language, t } = useLanguage();
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
-    const stored = readBrowserStorageValue("qkiki-sidebar-collapsed");
+    const stored = readBrowserStorageValueAny([
+      PRIMARY_STORAGE_KEYS.sidebarCollapsed,
+      ...LEGACY_STORAGE_KEYS.sidebarCollapsed,
+    ]);
     setSidebarCollapsed(stored === "true");
   }, []);
 
   useEffect(() => {
     writeBrowserStorageValue(
-      "qkiki-sidebar-collapsed",
+      PRIMARY_STORAGE_KEYS.sidebarCollapsed,
       sidebarCollapsed ? "true" : "false",
     );
   }, [sidebarCollapsed]);
@@ -65,6 +71,9 @@ export function AppShell({
   const showAuthEntryLinks = shouldShowAuthEntryPoints(user);
   const requestNewWorkbench = () => {
     window.dispatchEvent(new Event(NEW_WORKBENCH_EVENT));
+  };
+  const prefetchHref = (href: string) => {
+    router.prefetch(href);
   };
 
   return (
@@ -109,7 +118,6 @@ export function AppShell({
                 <div key={item.href}>
                   <Link
                     href={item.href}
-                    prefetch={false}
                     onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
                     className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
@@ -128,6 +136,12 @@ export function AppShell({
                           key={session.id}
                           href={`/app/workbench?session=${session.id}`}
                           prefetch={false}
+                          onMouseEnter={() =>
+                            prefetchHref(`/app/workbench?session=${session.id}`)
+                          }
+                          onFocus={() =>
+                            prefetchHref(`/app/workbench?session=${session.id}`)
+                          }
                           className="block rounded-md px-2 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950"
                           title={session.title}
                         >
@@ -137,7 +151,6 @@ export function AppShell({
                       {hasMoreRecentSessions ? (
                         <Link
                           href="/app/sessions"
-                          prefetch={false}
                           className="block rounded-md px-2 py-1.5 text-xs font-semibold text-stone-500 hover:bg-stone-100 hover:text-stone-950"
                         >
                           ...
@@ -156,7 +169,6 @@ export function AppShell({
                 </p>
                 <Link
                   href="/app/projects?create=1"
-                  prefetch={false}
                   className="text-xs font-semibold text-stone-600 hover:text-stone-950"
                 >
                   {t("new")}
@@ -168,6 +180,10 @@ export function AppShell({
                     key={project.id}
                     href={`/app/projects/${project.id}`}
                     prefetch={false}
+                    onMouseEnter={() =>
+                      prefetchHref(`/app/projects/${project.id}`)
+                    }
+                    onFocus={() => prefetchHref(`/app/projects/${project.id}`)}
                     className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
                     <span aria-hidden="true" className="text-[13px] opacity-70">📁</span>
@@ -176,7 +192,6 @@ export function AppShell({
                 ))}
                 <Link
                   href="/app/projects"
-                  prefetch={false}
                   className="block rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-950"
                 >
                   {t("more")}
@@ -255,7 +270,6 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
-              prefetch={false}
               onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
               className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-0.5 py-1.5 text-center text-[10px] font-semibold leading-tight tracking-tight text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >

@@ -14,6 +14,11 @@ type Preset = {
   updatedAt: string;
 };
 
+type PresetsClientProps = {
+  initialPresets?: Preset[];
+  initialLoaded?: boolean;
+};
+
 function actionLabel(value: string, language: "en" | "ko") {
   const labels: Record<string, { en: string; ko: string }> = {
     generate: { en: "Generate", ko: "\uc0dd\uc131" },
@@ -86,9 +91,12 @@ function stepPreview(
   }
 }
 
-export function PresetsClient() {
+export function PresetsClient({
+  initialPresets = [],
+  initialLoaded = false,
+}: PresetsClientProps = {}) {
   const { language, t } = useLanguage();
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presets, setPresets] = useState<Preset[]>(initialPresets);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -158,10 +166,11 @@ export function PresetsClient() {
   const hasPresets = useMemo(() => presets.length > 0, [presets]);
 
   useEffect(() => {
+    if (initialLoaded) return;
     loadPresets();
     // Load presets once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLoaded]);
 
   return (
     <div className="space-y-5">

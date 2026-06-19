@@ -29,6 +29,11 @@ type SessionListItem = {
   }>;
 };
 
+type SessionsClientProps = {
+  initialSessions?: SessionListItem[];
+  initialLoaded?: boolean;
+};
+
 function formatDate(value: string, language: "en" | "ko") {
   return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
     month: "short",
@@ -92,9 +97,13 @@ function formatRunSummary(
   return `${statusLabel} · ${doneLabel} · ${finalLabel}`;
 }
 
-export function SessionsClient() {
+export function SessionsClient({
+  initialSessions = [],
+  initialLoaded = false,
+}: SessionsClientProps = {}) {
   const { language, t } = useLanguage();
-  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [sessions, setSessions] =
+    useState<SessionListItem[]>(initialSessions);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copyingInputId, setCopyingInputId] = useState<string | null>(null);
@@ -184,10 +193,11 @@ export function SessionsClient() {
   }
 
   useEffect(() => {
+    if (initialLoaded) return;
     loadSessions();
     // Load session history once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLoaded]);
 
   return (
     <div className="space-y-5">

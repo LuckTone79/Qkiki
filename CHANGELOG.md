@@ -1,5 +1,23 @@
 # Changelog
 
+## Patch 28 (v1.32.0-20260619)
+
+- Applied backend optimization Phase 1 and Phase 2 from the execution plan.
+- Restored prefetching for primary authenticated app navigation and limited growing sidebar lists to hover/focus prefetch.
+- Added loading skeletons for app route transitions.
+- Moved sessions/projects/presets initial list data into Server Components so first render no longer waits on client-side fetch waterfalls.
+- Wrapped `getCurrentUser()` in React request-scope cache and shared list query shapes between RSC pages and existing APIs.
+- Excluded local worktree build output from ESLint so verification checks source files instead of generated `.next` chunks.
+
+## Patch 27 (v1.31.0-20260618)
+
+- Upgraded the `code_review` action from a generic improvement prompt into a findings-first code review protocol.
+- Code review steps now require concrete findings ordered by severity, with location/evidence/impact/fix details when issues exist.
+- Meaningful fixes must return the full runnable improved code plus a short changes list; already-good code must remain unchanged with `NO_CHANGES`.
+- The queued sequential runner now frames separately budgeted `code_review` source blocks as prior code to review instead of a generic source result.
+- Increased the code-review output-token estimate so credit planning leaves room for findings plus complete improved code.
+- Added regression coverage for the code-review prompt protocol and code-review credit estimate.
+
 ## Patch 26 (v1.28.0-20260618) — 크레딧 단일화 (횟수 개념 제거)
 
 - 과금/한도 체계를 **크레딧으로 일원화**. 런 "횟수"(일일 실행 횟수, 비로그인 5회 대화), 고급추론·공유·저장 등 모든 횟수형 제한을 제거. 입력 길이 제한과 크레딧만 유지.

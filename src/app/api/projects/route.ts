@@ -2,27 +2,12 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { projectSchema } from "@/lib/validation";
+import { listProjectsForUser } from "@/server/app-data/projects";
 
 export async function GET() {
   try {
     const user = await requireApiUser();
-    const projects = await prisma.project.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: "desc" },
-      include: {
-        _count: { select: { sessions: true } },
-        sessions: {
-          orderBy: { updatedAt: "desc" },
-          take: 3,
-          select: {
-            id: true,
-            title: true,
-            updatedAt: true,
-            _count: { select: { results: true } },
-          },
-        },
-      },
-    });
+    const projects = await listProjectsForUser(user.id);
 
     return NextResponse.json({ projects });
   } catch (error) {

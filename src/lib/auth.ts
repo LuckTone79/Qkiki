@@ -4,9 +4,16 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, TRIAL_COOKIE } from "@/lib/auth-constants";
+import {
+  SESSION_COOKIE,
+  SESSION_COOKIE_CANDIDATES,
+  TRIAL_COOKIE_CANDIDATES,
+  deleteCookies,
+  readCookieValue,
+} from "@/lib/auth-constants";
 
 const SESSION_DAYS = 30;
 const TRIAL_EMAIL_DOMAIN = "@trial.local";
@@ -63,7 +70,7 @@ export async function createAuthSession(
   });
 
   const cookieStore = await cookies();
-  cookieStore.delete(TRIAL_COOKIE);
+  deleteCookies(cookieStore, TRIAL_COOKIE_CANDIDATES);
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -75,7 +82,7 @@ export async function createAuthSession(
 
 export async function clearAuthSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const token = readCookieValue(cookieStore, SESSION_COOKIE_CANDIDATES);
 
   if (token) {
     await prisma.authSession.deleteMany({
@@ -83,8 +90,8 @@ export async function clearAuthSession() {
     });
   }
 
-  cookieStore.delete(SESSION_COOKIE);
-  cookieStore.delete(TRIAL_COOKIE);
+  deleteCookies(cookieStore, SESSION_COOKIE_CANDIDATES);
+  deleteCookies(cookieStore, TRIAL_COOKIE_CANDIDATES);
 }
 
 export function getInitialRoleForEmail(email: string): UserRole {
@@ -93,10 +100,10 @@ export function getInitialRoleForEmail(email: string): UserRole {
   return bootstrapAdmins.includes(normalized) ? UserRole.SUPER_ADMIN : UserRole.USER;
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+async function getCurrentUserUncached(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
 
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const token = readCookieValue(cookieStore, SESSION_COOKIE_CANDIDATES);
   if (!token) {
     return null;
   }
@@ -121,6 +128,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     isTrial,
   };
 }
+
+export const getCurrentUser = cache(getCurrentUserUncached);
 
 export async function requireUser() {
   const user = await getCurrentUser();

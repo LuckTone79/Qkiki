@@ -21,6 +21,11 @@ type ProjectListItem = {
   }>;
 };
 
+type ProjectsClientProps = {
+  initialProjects?: ProjectListItem[];
+  initialLoaded?: boolean;
+};
+
 function formatDate(value: string, language: "en" | "ko") {
   return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
     month: "short",
@@ -43,10 +48,14 @@ const projectSettingsText = {
   },
 } as const;
 
-export function ProjectsClient() {
+export function ProjectsClient({
+  initialProjects = [],
+  initialLoaded = false,
+}: ProjectsClientProps = {}) {
   const { language, t } = useLanguage();
   const settingsText = projectSettingsText[language];
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [projects, setProjects] =
+    useState<ProjectListItem[]>(initialProjects);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -123,10 +132,11 @@ export function ProjectsClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setShowCreate(params.get("create") === "1");
+    if (initialLoaded) return;
     loadProjects();
     // Load project list once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLoaded]);
 
   return (
     <div className="space-y-5">

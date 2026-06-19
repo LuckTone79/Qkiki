@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { presetSchema } from "@/lib/validation";
+import { listPresetsForUser } from "@/server/app-data/presets";
 
 export async function GET() {
   try {
     const user = await requireApiUser();
-    const presets = await prisma.preset.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: "desc" },
-    });
+    const presets = await listPresetsForUser(user.id);
 
     return NextResponse.json({ presets });
   } catch (error) {

@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     ".claude/**",
+    ".worktrees/**",
     "src/app/.well-known/**",
     "out/**",
     "build/**",
