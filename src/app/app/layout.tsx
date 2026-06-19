@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/AppShell";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { WebVitalsReporter } from "./WebVitalsReporter";
 
 export default async function ProtectedLayout({
   children,
@@ -25,6 +26,7 @@ export default async function ProtectedLayout({
 
   return (
     <AppShell user={user} projects={projects} recentSessions={recentSessions}>
+      <WebVitalsReporter />
       {children}
     </AppShell>
   );

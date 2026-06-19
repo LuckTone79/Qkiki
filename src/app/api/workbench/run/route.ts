@@ -35,29 +35,35 @@ import type { ProviderName } from "@/lib/ai/types";
 import { upsertWorkbenchSession } from "@/lib/ai/workflow";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
 import { releaseUsageReservation, reserveUsage } from "@/lib/usage-policy";
+import { createRouteTiming } from "@/server/perf/route-timing";
 
 export async function POST(request: Request) {
+  const timing = createRouteTiming();
+  const json = (body: unknown, init?: ResponseInit) =>
+    timing.response(NextResponse.json(body, init));
   let userId = "";
   let reservationId: string | null = null;
   let executionRunId: string | null = null;
 
   try {
-    const user = await requireApiGenerationUser();
+    const user = await timing.time("auth", () => requireApiGenerationUser());
     userId = user.id;
-    const parsed = runWorkbenchSchema.safeParse(await request.json());
+    const parsed = runWorkbenchSchema.safeParse(
+      await timing.time("parse_body", () => request.json()),
+    );
     const inputCharCount =
       (parsed.success ? parsed.data.originalInput.length : 0) +
       (parsed.success ? parsed.data.additionalInstruction?.length ?? 0 : 0);
 
     if (!parsed.success) {
-      return NextResponse.json(
+      return json(
         { error: parsed.error.issues[0]?.message ?? "Invalid run request." },
         { status: 400 },
       );
     }
 
-    await ensureWorkbenchRunSchema();
-    await closeStaleWorkbenchRuns({ userId: user.id });
+    await timing.time("schema", () => ensureWorkbenchRunSchema());
+    await timing.query("stale_runs", () => closeStaleWorkbenchRuns({ userId: user.id }));
     const creditEstimate = estimateWorkbenchRunCredits({
       mode: parsed.data.mode,
       originalInput: parsed.data.originalInput,
@@ -69,15 +75,17 @@ export async function POST(request: Request) {
 
     // All users (including anonymous trial visitors) are now metered purely by
     // credits — there is no separate per-request count gate.
-    const usageContext = await requireUsageAccess({
-      userId: user.id,
-      inputCharCount,
-      estimatedCredits: creditEstimate.estimatedCredits,
-    });
+    const usageContext = await timing.query("usage_access", () =>
+      requireUsageAccess({
+        userId: user.id,
+        inputCharCount,
+        estimatedCredits: creditEstimate.estimatedCredits,
+      }),
+    );
 
     if (parsed.data.mode === "parallel") {
       if (!parsed.data.targets?.length) {
-        return NextResponse.json(
+        return json(
           { error: "Select at least one target model." },
           { status: 400 },
         );
@@ -88,11 +96,11 @@ export async function POST(request: Request) {
         user.id,
       );
       if (providerError) {
-        return NextResponse.json({ error: providerError }, { status: 400 });
+        return json({ error: providerError }, { status: 400 });
       }
     } else {
       if (!parsed.data.steps?.length) {
-        return NextResponse.json(
+        return json(
           { error: "Add at least one workflow step." },
           { status: 400 },
         );
@@ -103,23 +111,25 @@ export async function POST(request: Request) {
         user.id,
       );
       if (providerError) {
-        return NextResponse.json({ error: providerError }, { status: 400 });
+        return json({ error: providerError }, { status: 400 });
       }
     }
 
     const plannedTotal = calculatePlannedExecutionTotal(parsed.data);
-    const preparedSession = await upsertWorkbenchSession(user.id, {
-      ...parsed.data,
-      workflowControl: parsed.data.workflowControl,
-      workflowTemplateSteps:
-        parsed.data.mode === "sequential"
-          ? parsed.data.steps?.map((step) => ({
-              ...step,
-              targetProvider: step.targetProvider as ProviderName,
-            }))
-          : undefined,
-      mode: parsed.data.mode,
-    });
+    const preparedSession = await timing.query("session_upsert", () =>
+      upsertWorkbenchSession(user.id, {
+        ...parsed.data,
+        workflowControl: parsed.data.workflowControl,
+        workflowTemplateSteps:
+          parsed.data.mode === "sequential"
+            ? parsed.data.steps?.map((step) => ({
+                ...step,
+                targetProvider: step.targetProvider as ProviderName,
+              }))
+            : undefined,
+        mode: parsed.data.mode,
+      }),
+    );
     const runnerVersion =
       parsed.data.mode === "sequential"
         ? selectWorkbenchRunnerVersion(user.id)
@@ -128,131 +138,135 @@ export async function POST(request: Request) {
       ...parsed.data,
       sessionId: preparedSession.id,
     };
-    const reservation = await reserveUsage({
-      userId: user.id,
-      requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
-      inputCharCount,
-      reservationKey: `run:${crypto.randomUUID()}`,
-      estimatedCredits: creditEstimate.estimatedCredits,
-      estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
-      maxApprovedCredits: creditEstimate.estimatedCredits,
-      pricingVersion: creditEstimate.pricingVersion,
-      quote: creditEstimate,
-      context: usageContext ?? undefined,
-    });
+    const reservation = await timing.query("usage_reserve", () =>
+      reserveUsage({
+        userId: user.id,
+        requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+        inputCharCount,
+        reservationKey: `run:${crypto.randomUUID()}`,
+        estimatedCredits: creditEstimate.estimatedCredits,
+        estimatedCostUsd: creditEstimate.estimatedRawCostUsd,
+        maxApprovedCredits: creditEstimate.estimatedCredits,
+        pricingVersion: creditEstimate.pricingVersion,
+        quote: creditEstimate,
+        context: usageContext ?? undefined,
+      }),
+    );
     reservationId = reservation?.id ?? null;
 
     if (parsed.data.mode === "sequential" && runnerVersion === "v2") {
       const runnerReadiness = getSequentialRunnerReadiness();
       if (!runnerReadiness.ok) {
-        return NextResponse.json(
+        return json(
           { error: runnerReadiness.message ?? "The V2 sequential runner is not ready." },
           { status: 503 },
         );
       }
 
-      const executionRun = await prisma.$transaction(
-        async (tx) => {
-          const activeCount = await tx.executionRun.count({
-            where: {
-              userId: user.id,
-              status: { in: ["queued", "running", "retrying", "canceling"] },
-            },
-          });
+      const executionRun = await timing.query("v2_run_create", () =>
+        prisma.$transaction(
+          async (tx) => {
+            const activeCount = await tx.executionRun.count({
+              where: {
+                userId: user.id,
+                status: { in: ["queued", "running", "retrying", "canceling"] },
+              },
+            });
 
-          const maxActiveRuns = Number.parseInt(
-            process.env.WORKBENCH_MAX_ACTIVE_RUNS_PER_USER || "3",
-            10,
-          );
-          if (activeCount >= maxActiveRuns) {
-            throw new Error(
-              `You already have ${activeCount} active AI runs. Wait for one to finish before starting another.`,
+            const maxActiveRuns = Number.parseInt(
+              process.env.WORKBENCH_MAX_ACTIVE_RUNS_PER_USER || "3",
+              10,
             );
-          }
+            if (activeCount >= maxActiveRuns) {
+              throw new Error(
+                `You already have ${activeCount} active AI runs. Wait for one to finish before starting another.`,
+              );
+            }
 
-          const sessionActiveRun = await tx.executionRun.findFirst({
-            where: {
-              userId: user.id,
+            const sessionActiveRun = await tx.executionRun.findFirst({
+              where: {
+                userId: user.id,
+                sessionId: preparedSession.id,
+                status: { in: ["queued", "running", "retrying", "canceling"] },
+              },
+              select: { id: true },
+            });
+
+            if (sessionActiveRun) {
+              throw new Error(
+                "This workbench session is already running. Wait for it to finish or resume the active run.",
+              );
+            }
+
+            const templateSteps = await syncWorkflowTemplateSteps(tx, {
               sessionId: preparedSession.id,
-              status: { in: ["queued", "running", "retrying", "canceling"] },
-            },
-            select: { id: true },
-          });
+              steps:
+                parsed.data.steps?.map((step) => ({
+                  ...step,
+                  targetProvider: step.targetProvider as ProviderName,
+                })) ?? [],
+            });
 
-          if (sessionActiveRun) {
-            throw new Error(
-              "This workbench session is already running. Wait for it to finish or resume the active run.",
+            const createdRun = await tx.executionRun.create({
+              data: {
+                userId: user.id,
+                sessionId: preparedSession.id,
+                runnerVersion: "v2",
+                mode: parsed.data.mode,
+                requestType: "sequential",
+                status: "queued",
+                inputCharCount,
+                totalStepsPlanned: plannedTotal,
+                usageReservationId: reservation?.id ?? null,
+              },
+            });
+
+            const templateStepIdsByIndex = new Map(
+              templateSteps.map((step) => [step.orderIndex, step.id]),
             );
-          }
-
-          const templateSteps = await syncWorkflowTemplateSteps(tx, {
-            sessionId: preparedSession.id,
-            steps:
-              parsed.data.steps?.map((step) => ({
-                ...step,
-                targetProvider: step.targetProvider as ProviderName,
-              })) ?? [],
-          });
-
-          const createdRun = await tx.executionRun.create({
-            data: {
-              userId: user.id,
-              sessionId: preparedSession.id,
-              runnerVersion: "v2",
-              mode: parsed.data.mode,
-              requestType: "sequential",
-              status: "queued",
-              inputCharCount,
-              totalStepsPlanned: plannedTotal,
-              usageReservationId: reservation?.id ?? null,
-            },
-          });
-
-          const templateStepIdsByIndex = new Map(
-            templateSteps.map((step) => [step.orderIndex, step.id]),
-          );
-          const stepPlan = buildExecutionRunStepPlan({
-            executionRunId: createdRun.id,
-            sessionId: preparedSession.id,
-            templateSteps:
-              parsed.data.steps?.map((step) => ({
-                ...step,
-                targetProvider: step.targetProvider as ProviderName,
-              })) ?? [],
-            workflowControl: parsed.data.workflowControl,
-            templateStepIdsByIndex,
-          });
-
-          await tx.executionRunStep.createMany({
-            data: stepPlan.map((step) => ({
+            const stepPlan = buildExecutionRunStepPlan({
               executionRunId: createdRun.id,
               sessionId: preparedSession.id,
-              orderIndex: step.orderIndex,
-              stepKey: step.stepKey,
-              attemptKey: null,
-              templateStepIndex: step.templateStepIndex,
-              templateStepId: step.templateStepId,
-              actionType: step.actionType,
-              targetProvider: step.targetProvider,
-              targetModel: step.targetModel,
-              sourceMode: step.sourceMode,
-              sourceResultId: step.sourceResultId,
-              instructionTemplate: step.instructionTemplate,
-              repeatBlockIndex: step.repeatBlockIndex,
-              repeatIteration: step.repeatIteration,
-              repeatRangeStart: step.repeatRangeStart,
-              repeatRangeEnd: step.repeatRangeEnd,
-              status: "queued",
-              queuedAt: new Date(),
-            })),
-          });
+              templateSteps:
+                parsed.data.steps?.map((step) => ({
+                  ...step,
+                  targetProvider: step.targetProvider as ProviderName,
+                })) ?? [],
+              workflowControl: parsed.data.workflowControl,
+              templateStepIdsByIndex,
+            });
 
-          return {
-            executionRun: createdRun,
-            firstStepOrderIndex: stepPlan[0]?.orderIndex ?? null,
-          };
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+            await tx.executionRunStep.createMany({
+              data: stepPlan.map((step) => ({
+                executionRunId: createdRun.id,
+                sessionId: preparedSession.id,
+                orderIndex: step.orderIndex,
+                stepKey: step.stepKey,
+                attemptKey: null,
+                templateStepIndex: step.templateStepIndex,
+                templateStepId: step.templateStepId,
+                actionType: step.actionType,
+                targetProvider: step.targetProvider,
+                targetModel: step.targetModel,
+                sourceMode: step.sourceMode,
+                sourceResultId: step.sourceResultId,
+                instructionTemplate: step.instructionTemplate,
+                repeatBlockIndex: step.repeatBlockIndex,
+                repeatIteration: step.repeatIteration,
+                repeatRangeStart: step.repeatRangeStart,
+                repeatRangeEnd: step.repeatRangeEnd,
+                status: "queued",
+                queuedAt: new Date(),
+              })),
+            });
+
+            return {
+              executionRun: createdRun,
+              firstStepOrderIndex: stepPlan[0]?.orderIndex ?? null,
+            };
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        ),
       );
 
       executionRunId = executionRun.executionRun.id;
@@ -269,7 +283,7 @@ export async function POST(request: Request) {
       }
 
       try {
-        await enqueueExecutionRunStep(firstStep.id);
+        await timing.time("v2_queue", () => enqueueExecutionRunStep(firstStep.id));
         await enqueueWorkbenchWatchdog(getWorkbenchWatchdogIntervalSeconds()).catch(() => undefined);
       } catch (error) {
         if (reservation?.id) {
@@ -295,7 +309,7 @@ export async function POST(request: Request) {
         createdAt: new Date().toISOString(),
       });
 
-      return NextResponse.json({
+      return json({
         ok: true,
         runId: signedRunId,
         status: "queued",
@@ -307,31 +321,35 @@ export async function POST(request: Request) {
       });
     }
 
-    const executionRun = await createQueuedExecutionRun({
-      userId: user.id,
-      sessionId: preparedSession.id,
-      mode: parsed.data.mode,
-      requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
-      inputCharCount,
-      totalStepsPlanned: plannedTotal,
-      usageReservationId: reservation?.id ?? null,
-      runnerVersion,
-    });
+    const executionRun = await timing.query("run_create", () =>
+      createQueuedExecutionRun({
+        userId: user.id,
+        sessionId: preparedSession.id,
+        mode: parsed.data.mode,
+        requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+        inputCharCount,
+        totalStepsPlanned: plannedTotal,
+        usageReservationId: reservation?.id ?? null,
+        runnerVersion,
+      }),
+    );
     executionRunId = executionRun.id;
 
     let workflowRun;
 
     try {
-      workflowRun = await start(workbenchRunWorkflow, [
-        {
-          executionRunId: executionRun.id,
-          usageReservationId: reservation?.id ?? null,
-          userId: user.id,
-          inputCharCount,
-          requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
-          session: runSession,
-        },
-      ]);
+      workflowRun = await timing.time("workflow_start", () =>
+        start(workbenchRunWorkflow, [
+          {
+            executionRunId: executionRun.id,
+            usageReservationId: reservation?.id ?? null,
+            userId: user.id,
+            inputCharCount,
+            requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+            session: runSession,
+          },
+        ]),
+      );
     } catch (error) {
       if (reservation) {
         await releaseUsageReservation({
@@ -361,7 +379,7 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     });
 
-    return NextResponse.json({
+    return json({
       ok: true,
       runId: signedRunId,
       status: "queued",
@@ -377,6 +395,6 @@ export async function POST(request: Request) {
         userId,
       }).catch(() => undefined);
     }
-    return apiErrorResponse(error);
+    return timing.response(apiErrorResponse(error));
   }
 }

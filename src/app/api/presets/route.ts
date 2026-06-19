@@ -2,53 +2,68 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { presetSchema } from "@/lib/validation";
+import { createRouteTiming } from "@/server/perf/route-timing";
 
 export async function GET() {
-  try {
-    const user = await requireApiUser();
-    const presets = await prisma.preset.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: "desc" },
-    });
+  const timing = createRouteTiming();
 
-    return NextResponse.json({ presets });
+  try {
+    const user = await timing.time("auth", () => requireApiUser());
+    const presets = await timing.query("preset_list", () =>
+      prisma.preset.findMany({
+        where: { userId: user.id },
+        orderBy: { updatedAt: "desc" },
+      }),
+    );
+
+    return timing.response(NextResponse.json({ presets }));
   } catch (error) {
-    return apiErrorResponse(error);
+    return timing.response(apiErrorResponse(error));
   }
 }
 
 export async function POST(request: Request) {
+  const timing = createRouteTiming();
+
   try {
-    const user = await requireApiUser();
-    const parsed = presetSchema.safeParse(await request.json());
+    const user = await timing.time("auth", () => requireApiUser());
+    const parsed = presetSchema.safeParse(
+      await timing.time("parse_body", () => request.json()),
+    );
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid preset." },
-        { status: 400 },
+      return timing.response(
+        NextResponse.json(
+          { error: parsed.error.issues[0]?.message ?? "Invalid preset." },
+          { status: 400 },
+        ),
       );
     }
 
     JSON.parse(parsed.data.workflowJson);
 
-    const preset = await prisma.preset.create({
-      data: {
-        userId: user.id,
-        name: parsed.data.name,
-        description: parsed.data.description || null,
-        workflowJson: parsed.data.workflowJson,
-      },
-    });
+    const preset = await timing.query("preset_create", () =>
+      prisma.preset.create({
+        data: {
+          userId: user.id,
+          name: parsed.data.name,
+          description: parsed.data.description || null,
+          workflowJson: parsed.data.workflowJson,
+        },
+      }),
+    );
 
-    return NextResponse.json({ preset });
+    return timing.response(NextResponse.json({ preset }));
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return NextResponse.json(
-        { error: "Preset workflow must be valid JSON." },
-        { status: 400 },
+      return timing.response(
+        NextResponse.json(
+          { error: "Preset workflow must be valid JSON." },
+          { status: 400 },
+        ),
       );
     }
 
-    return apiErrorResponse(error);
+    return timing.response(apiErrorResponse(error));
   }
 }

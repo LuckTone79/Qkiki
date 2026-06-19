@@ -17,40 +17,51 @@ import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
+import { createRouteTiming } from "@/server/perf/route-timing";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
 };
 
 export async function GET(_request: Request, { params }: RouteContext) {
+  const timing = createRouteTiming();
+  const json = (body: unknown, init?: ResponseInit) =>
+    timing.response(NextResponse.json(body, init));
+
   try {
-    const user = await requireApiGenerationUser();
+    const user = await timing.time("auth", () => requireApiGenerationUser());
     const { runId } = await params;
     let token;
     try {
       token = readSignedRunToken(decodeURIComponent(runId));
     } catch {
-      return NextResponse.json({ error: "Run not found." }, { status: 404 });
+      return json({ error: "Run not found." }, { status: 404 });
     }
 
     if (token.userId !== user.id) {
-      return NextResponse.json({ error: "Run not found." }, { status: 404 });
+      return json({ error: "Run not found." }, { status: 404 });
     }
 
-    const { supportsRunExecutionOrder } = await ensureWorkbenchRunSchema();
+    const { supportsRunExecutionOrder } = await timing.time("schema", () =>
+      ensureWorkbenchRunSchema(),
+    );
     if ("executionRunId" in token) {
-      await closeStaleWorkbenchRuns({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
+      await timing.query("stale_runs", () =>
+        closeStaleWorkbenchRuns({
+          executionRunId: token.executionRunId,
+          userId: user.id,
+        }),
+      );
 
-      const executionRun = await getExecutionRunForUser({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
+      const executionRun = await timing.query("run_lookup", () =>
+        getExecutionRunForUser({
+          executionRunId: token.executionRunId,
+          userId: user.id,
+        }),
+      );
 
       if (!executionRun) {
-        return NextResponse.json({ error: "Run not found." }, { status: 404 });
+        return json({ error: "Run not found." }, { status: 404 });
       }
 
       if (executionRun.runnerVersion === "v2") {
@@ -59,32 +70,36 @@ export async function GET(_request: Request, { params }: RouteContext) {
         }).catch(() => undefined);
 
         const [snapshot, results] = await Promise.all([
-          getExecutionRunStatusSnapshot({
-            executionRunId: executionRun.id,
-            userId: user.id,
-          }),
-          prisma.result.findMany({
-            where: { executionRunId: executionRun.id },
-            orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
-            select: buildWorkbenchResultSelect({
-              includePromptSnapshot: true,
-              includeOutputText: true,
-              includeEncryptedOutput: true,
-              includeRawResponse: true,
-              includeBranching: true,
-              includeUsage: true,
-              includeExecutionFields: true,
-              includeTimestamps: true,
-              includeWorkflowStep: true,
+          timing.query("v2_snapshot", () =>
+            getExecutionRunStatusSnapshot({
+              executionRunId: executionRun.id,
+              userId: user.id,
             }),
-          }),
+          ),
+          timing.query("v2_results", () =>
+            prisma.result.findMany({
+              where: { executionRunId: executionRun.id },
+              orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
+              select: buildWorkbenchResultSelect({
+                includePromptSnapshot: true,
+                includeOutputText: true,
+                includeEncryptedOutput: true,
+                includeRawResponse: true,
+                includeBranching: true,
+                includeUsage: true,
+                includeExecutionFields: true,
+                includeTimestamps: true,
+                includeWorkflowStep: true,
+              }),
+            }),
+          ),
         ]);
 
         if (!snapshot) {
-          return NextResponse.json({ error: "Run not found." }, { status: 404 });
+          return json({ error: "Run not found." }, { status: 404 });
         }
 
-        return NextResponse.json({
+        return json({
           runId,
           executionRunId: executionRun.id,
           mode: token.mode,
@@ -119,22 +134,24 @@ export async function GET(_request: Request, { params }: RouteContext) {
       }
 
       if (!executionRun.workflowRunId) {
-        const results = await prisma.result.findMany({
-          where: { executionRunId: executionRun.id },
-          orderBy: { createdAt: "asc" },
-          select: buildWorkbenchResultSelect({
-            includePromptSnapshot: true,
-            includeOutputText: true,
-            includeEncryptedOutput: true,
-            includeRawResponse: true,
-            includeBranching: true,
-            includeUsage: true,
-            includeExecutionFields: supportsRunExecutionOrder,
-            includeTimestamps: true,
-            includeWorkflowStep: true,
+        const results = await timing.query("legacy_results", () =>
+          prisma.result.findMany({
+            where: { executionRunId: executionRun.id },
+            orderBy: { createdAt: "asc" },
+            select: buildWorkbenchResultSelect({
+              includePromptSnapshot: true,
+              includeOutputText: true,
+              includeEncryptedOutput: true,
+              includeRawResponse: true,
+              includeBranching: true,
+              includeUsage: true,
+              includeExecutionFields: supportsRunExecutionOrder,
+              includeTimestamps: true,
+              includeWorkflowStep: true,
+            }),
           }),
-        });
-        return NextResponse.json({
+        );
+        return json({
           runId,
           executionRunId: executionRun.id,
           mode: token.mode,
@@ -151,35 +168,41 @@ export async function GET(_request: Request, { params }: RouteContext) {
       }
 
       const run = getRun(executionRun.workflowRunId);
-      const [workflowStatus, createdAt, startedAt, completedAt] = await Promise.all([
-        run.status,
-        run.createdAt,
-        run.startedAt,
-        run.completedAt,
-      ]);
+      const [workflowStatus, createdAt, startedAt, completedAt] = await timing.time(
+        "workflow_status",
+        () =>
+          Promise.all([
+            run.status,
+            run.createdAt,
+            run.startedAt,
+            run.completedAt,
+          ]),
+      );
 
       const resolvedStatus =
         ["completed", "partial", "failed", "canceled"].includes(executionRun.status)
           ? executionRun.status
           : workflowStatus;
 
-      const results = await prisma.result.findMany({
-        where: { executionRunId: executionRun.id },
-        orderBy: { createdAt: "asc" },
-        select: buildWorkbenchResultSelect({
-          includePromptSnapshot: true,
-          includeOutputText: true,
-          includeEncryptedOutput: true,
-          includeRawResponse: true,
-          includeBranching: true,
-          includeUsage: true,
-          includeExecutionFields: supportsRunExecutionOrder,
-          includeTimestamps: true,
-          includeWorkflowStep: true,
+      const results = await timing.query("workflow_results", () =>
+        prisma.result.findMany({
+          where: { executionRunId: executionRun.id },
+          orderBy: { createdAt: "asc" },
+          select: buildWorkbenchResultSelect({
+            includePromptSnapshot: true,
+            includeOutputText: true,
+            includeEncryptedOutput: true,
+            includeRawResponse: true,
+            includeBranching: true,
+            includeUsage: true,
+            includeExecutionFields: supportsRunExecutionOrder,
+            includeTimestamps: true,
+            includeWorkflowStep: true,
+          }),
         }),
-      });
+      );
 
-      return NextResponse.json({
+      return json({
         runId,
         executionRunId: executionRun.id,
         workflowRunId: executionRun.workflowRunId,
@@ -205,14 +228,18 @@ export async function GET(_request: Request, { params }: RouteContext) {
     }
 
     const run = getRun(token.workflowRunId);
-    const [status, createdAt, startedAt, completedAt] = await Promise.all([
-      run.status,
-      run.createdAt,
-      run.startedAt,
-      run.completedAt,
-    ]);
+    const [status, createdAt, startedAt, completedAt] = await timing.time(
+      "workflow_status",
+      () =>
+        Promise.all([
+          run.status,
+          run.createdAt,
+          run.startedAt,
+          run.completedAt,
+        ]),
+    );
 
-    return NextResponse.json({
+    return json({
       runId,
       workflowRunId: token.workflowRunId,
       mode: token.mode,
@@ -227,7 +254,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       finalResultId: null,
     });
   } catch (error) {
-    return apiErrorResponse(error);
+    return timing.response(apiErrorResponse(error));
   }
 }
 

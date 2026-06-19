@@ -109,7 +109,6 @@ export function AppShell({
                 <div key={item.href}>
                   <Link
                     href={item.href}
-                    prefetch={false}
                     onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
                     className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
@@ -137,7 +136,6 @@ export function AppShell({
                       {hasMoreRecentSessions ? (
                         <Link
                           href="/app/sessions"
-                          prefetch={false}
                           className="block rounded-md px-2 py-1.5 text-xs font-semibold text-stone-500 hover:bg-stone-100 hover:text-stone-950"
                         >
                           ...
@@ -156,7 +154,6 @@ export function AppShell({
                 </p>
                 <Link
                   href="/app/projects?create=1"
-                  prefetch={false}
                   className="text-xs font-semibold text-stone-600 hover:text-stone-950"
                 >
                   {t("new")}
@@ -176,7 +173,6 @@ export function AppShell({
                 ))}
                 <Link
                   href="/app/projects"
-                  prefetch={false}
                   className="block rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-950"
                 >
                   {t("more")}
@@ -255,7 +251,6 @@ export function AppShell({
             <Link
               key={item.href}
               href={item.href}
-              prefetch={false}
               onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
               className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-0.5 py-1.5 text-center text-[10px] font-semibold leading-tight tracking-tight text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >

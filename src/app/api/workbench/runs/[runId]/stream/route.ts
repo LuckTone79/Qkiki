@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
+import { createRouteTiming } from "@/server/perf/route-timing";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -28,14 +29,22 @@ const V2_STREAM_MAX_MS =
     : 25_000;
 
 export async function GET(request: Request, { params }: RouteContext) {
+  const timing = createRouteTiming();
+  const json = (body: unknown, init?: ResponseInit) =>
+    timing.response(Response.json(body, init));
+  const streamResponse = (
+    body: BodyInit | null,
+    init?: ResponseInit,
+  ) => timing.response(new Response(body, init));
+
   try {
-    const user = await requireApiGenerationUser();
+    const user = await timing.time("auth", () => requireApiGenerationUser());
     const { runId } = await params;
     let token;
     try {
       token = readSignedRunToken(decodeURIComponent(runId));
     } catch {
-      return Response.json({ error: "Run not found." }, { status: 404 });
+      return json({ error: "Run not found." }, { status: 404 });
     }
     const { searchParams } = new URL(request.url);
     const startIndexParam = searchParams.get("startIndex");
@@ -43,56 +52,68 @@ export async function GET(request: Request, { params }: RouteContext) {
       startIndexParam !== null ? Number.parseInt(startIndexParam, 10) : undefined;
 
     if (token.userId !== user.id) {
-      return Response.json({ error: "Run not found." }, { status: 404 });
+      return json({ error: "Run not found." }, { status: 404 });
     }
 
-    await ensureWorkbenchRunSchema();
+    await timing.time("schema", () => ensureWorkbenchRunSchema());
     let executionRun =
       "executionRunId" in token
-        ? await getExecutionRunForUser({
-            executionRunId: token.executionRunId,
-            userId: user.id,
-          })
+        ? await timing.query("run_lookup", () =>
+            getExecutionRunForUser({
+              executionRunId: token.executionRunId,
+              userId: user.id,
+            }),
+          )
         : null;
 
     if ("executionRunId" in token && !executionRun) {
-      return Response.json({ error: "Run not found." }, { status: 404 });
+      return json({ error: "Run not found." }, { status: 404 });
     }
 
     if ("executionRunId" in token) {
-      await closeStaleWorkbenchRuns({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
-      executionRun = await getExecutionRunForUser({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
+      await timing.query("stale_runs", () =>
+        closeStaleWorkbenchRuns({
+          executionRunId: token.executionRunId,
+          userId: user.id,
+        }),
+      );
+      executionRun = await timing.query("run_refresh", () =>
+        getExecutionRunForUser({
+          executionRunId: token.executionRunId,
+          userId: user.id,
+        }),
+      );
 
       if (executionRun?.status === "canceled") {
+        const canceledRun = executionRun;
+        const sessionId = canceledRun.sessionId;
         const [session, results] = await Promise.all([
-          executionRun.sessionId
-            ? prisma.workbenchSession.findFirst({
-                where: { id: executionRun.sessionId, userId: user.id },
-                select: { id: true, title: true },
-              })
+          sessionId
+            ? timing.query("session_lookup", () =>
+                prisma.workbenchSession.findFirst({
+                  where: { id: sessionId, userId: user.id },
+                  select: { id: true, title: true },
+                }),
+              )
             : null,
-          executionRun.startedAt
-            ? prisma.result.findMany({
-                where: {
-                  executionRunId: executionRun.id,
-                },
-                orderBy: { createdAt: "asc" },
-                include: {
-                  workflowStep: {
-                    select: { orderIndex: true, actionType: true },
+          canceledRun.startedAt
+            ? timing.query("canceled_results", () =>
+                prisma.result.findMany({
+                  where: {
+                    executionRunId: canceledRun.id,
                   },
-                },
-              })
+                  orderBy: { createdAt: "asc" },
+                  include: {
+                    workflowStep: {
+                      select: { orderIndex: true, actionType: true },
+                    },
+                  },
+                }),
+              )
             : [],
         ]);
         const encoder = new TextEncoder();
-        return new Response(
+        return streamResponse(
           encoder.encode(
             `${JSON.stringify({
               type: "done",
@@ -100,14 +121,14 @@ export async function GET(request: Request, { params }: RouteContext) {
                 ? {
                     id: session.id,
                     title: session.title,
-                    finalResultId: executionRun.finalResultId,
+                    finalResultId: canceledRun.finalResultId,
                   }
                 : undefined,
               results,
               executionSummary:
-                parseExecutionRunSummary(executionRun.executionSummaryJson) ?? {
-                  plannedTotal: executionRun.totalStepsPlanned,
-                  executedTotal: executionRun.totalStepsDone,
+                parseExecutionRunSummary(canceledRun.executionSummaryJson) ?? {
+                  plannedTotal: canceledRun.totalStepsPlanned,
+                  executedTotal: canceledRun.totalStepsDone,
                   stoppedEarly: true,
                   stopReason: "canceled",
                 },
@@ -124,7 +145,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 
       if (executionRun?.status === "failed") {
         const encoder = new TextEncoder();
-        return new Response(
+        return streamResponse(
           encoder.encode(
             `${JSON.stringify({
               type: "error",
@@ -146,11 +167,14 @@ export async function GET(request: Request, { params }: RouteContext) {
       if (executionRun?.runnerVersion === "v2") {
         const executionRunId = executionRun.id;
         const encoder = new TextEncoder();
-        const session = executionRun.sessionId
-          ? await prisma.workbenchSession.findFirst({
-              where: { id: executionRun.sessionId, userId: user.id },
-              select: { id: true, title: true, finalResultId: true },
-            })
+        const sessionId = executionRun.sessionId;
+        const session = sessionId
+          ? await timing.query("session_lookup", () =>
+              prisma.workbenchSession.findFirst({
+                where: { id: sessionId, userId: user.id },
+                select: { id: true, title: true, finalResultId: true },
+              }),
+            )
           : null;
 
         const stream = new ReadableStream<Uint8Array>({
@@ -328,7 +352,7 @@ export async function GET(request: Request, { params }: RouteContext) {
           },
         });
 
-        return new Response(stream, {
+        return streamResponse(stream, {
           headers: {
             "Content-Type": "application/x-ndjson; charset=utf-8",
             "Cache-Control": "no-cache, no-transform",
@@ -341,16 +365,20 @@ export async function GET(request: Request, { params }: RouteContext) {
       "executionRunId" in token ? executionRun?.workflowRunId : token.workflowRunId;
 
     if (!workflowRunId) {
-      return Response.json({ error: "Run is still being queued.", status: "queued" }, { status: 409 });
+      return json({ error: "Run is still being queued.", status: "queued" }, { status: 409 });
     }
 
     const run = getRun(workflowRunId);
-    const readable = run.getReadable(
-      startIndex === undefined || Number.isNaN(startIndex)
-        ? undefined
-        : { startIndex },
+    const readable = await timing.time("workflow_readable", () =>
+      Promise.resolve(
+        run.getReadable(
+          startIndex === undefined || Number.isNaN(startIndex)
+            ? undefined
+            : { startIndex },
+        ),
+      ),
     );
-    const tailIndex = await readable.getTailIndex();
+    const tailIndex = await timing.time("workflow_tail", () => readable.getTailIndex());
     const encoder = new TextEncoder();
 
     const ndjsonStream = (readable as ReadableStream<unknown>).pipeThrough(
@@ -361,7 +389,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       }),
     );
 
-    return new Response(ndjsonStream, {
+    return streamResponse(ndjsonStream, {
       headers: {
         "Content-Type": "application/x-ndjson; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
@@ -369,6 +397,6 @@ export async function GET(request: Request, { params }: RouteContext) {
       },
     });
   } catch (error) {
-    return apiErrorResponse(error);
+    return timing.response(apiErrorResponse(error));
   }
 }

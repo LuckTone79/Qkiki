@@ -1,4 +1,5 @@
 import { WorkbenchClient } from "@/components/workbench/WorkbenchClient";
+import { AppRouteLoading } from "@/components/AppRouteLoading";
 import { Suspense } from "react";
 
 type WorkbenchPageProps = {
@@ -10,7 +11,7 @@ export default async function WorkbenchPage(props: WorkbenchPageProps) {
   const isTrialMode = searchParams.trial === "true";
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<AppRouteLoading variant="workbench" />}>
       <WorkbenchClient isTrialMode={isTrialMode} />
     </Suspense>
   );
