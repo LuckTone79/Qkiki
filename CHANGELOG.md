@@ -1,5 +1,11 @@
 # Changelog
 
+## Patch 29 (v1.32.1-20260619)
+
+- Added the missing cookie helper exports in `src/lib/auth-constants.ts` that the Phase 1/2 auth changes depended on.
+- Fixed the Vercel remote build failure where `src/lib/auth.ts` imported `SESSION_COOKIE_CANDIDATES`, `TRIAL_COOKIE_CANDIDATES`, `deleteCookies`, and `readCookieValue` but the deployed commit did not include those exports yet.
+- Re-deployed production from commit `a78c997` after the missing auth constants were committed.
+
 ## Patch 28 (v1.32.0-20260619)
 
 - Applied backend optimization Phase 1 and Phase 2 from the execution plan.
