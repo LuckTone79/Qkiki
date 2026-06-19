@@ -5,14 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { shouldLoadListOnMount } from "@/lib/initial-list-data";
+import type { PresetListDataItem } from "@/server/app-data/serializers";
 
-type Preset = {
-  id: string;
-  name: string;
-  description: string | null;
-  workflowJson: string;
-  updatedAt: string;
-};
+type Preset = PresetListDataItem;
 
 function actionLabel(value: string, language: "en" | "ko") {
   const labels: Record<string, { en: string; ko: string }> = {
@@ -86,9 +82,17 @@ function stepPreview(
   }
 }
 
-export function PresetsClient() {
+type PresetsClientProps = {
+  initialPresets?: Preset[];
+  initialLoaded?: boolean;
+};
+
+export function PresetsClient({
+  initialPresets = [],
+  initialLoaded = false,
+}: PresetsClientProps) {
   const { language, t } = useLanguage();
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presets, setPresets] = useState<Preset[]>(initialPresets);
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -158,10 +162,14 @@ export function PresetsClient() {
   const hasPresets = useMemo(() => presets.length > 0, [presets]);
 
   useEffect(() => {
-    loadPresets();
+    if (!shouldLoadListOnMount(initialLoaded)) {
+      return;
+    }
+
+    void loadPresets();
     // Load presets once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLoaded]);
 
   return (
     <div className="space-y-5">

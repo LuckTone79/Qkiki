@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, TRIAL_COOKIE } from "@/lib/auth-constants";
 
@@ -93,7 +94,7 @@ export function getInitialRoleForEmail(email: string): UserRole {
   return bootstrapAdmins.includes(normalized) ? UserRole.SUPER_ADMIN : UserRole.USER;
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+async function getCurrentUserUncached(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
 
   const token = cookieStore.get(SESSION_COOKIE)?.value;
@@ -121,6 +122,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     isTrial,
   };
 }
+
+export const getCurrentUser = cache(getCurrentUserUncached);
 
 export async function requireUser() {
   const user = await getCurrentUser();

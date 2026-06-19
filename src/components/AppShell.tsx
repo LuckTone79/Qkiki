@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthEntryLinks } from "@/components/AuthEntryLinks";
 import { SignOutButton } from "@/components/SignOutButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
@@ -13,6 +14,7 @@ import {
 import { shouldShowAuthEntryPoints } from "@/lib/trial-user";
 import { APP_VERSION } from "@/lib/version";
 import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
+import { prefetchOnIntent } from "@/lib/navigation-prefetch";
 
 const navItems = [
   { href: buildNewWorkbenchPath(), key: "workbench", icon: "🧪" },
@@ -35,6 +37,7 @@ export function AppShell({
   recentSessions?: Array<{ id: string; title: string }>;
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const { language, t } = useLanguage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -65,6 +68,9 @@ export function AppShell({
   const showAuthEntryLinks = shouldShowAuthEntryPoints(user);
   const requestNewWorkbench = () => {
     window.dispatchEvent(new Event(NEW_WORKBENCH_EVENT));
+  };
+  const prefetchDynamicHref = (href: string) => {
+    prefetchOnIntent(router, href);
   };
 
   return (
@@ -127,6 +133,12 @@ export function AppShell({
                           key={session.id}
                           href={`/app/workbench?session=${session.id}`}
                           prefetch={false}
+                          onMouseEnter={() =>
+                            prefetchDynamicHref(`/app/workbench?session=${session.id}`)
+                          }
+                          onFocus={() =>
+                            prefetchDynamicHref(`/app/workbench?session=${session.id}`)
+                          }
                           className="block rounded-md px-2 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950"
                           title={session.title}
                         >
@@ -165,6 +177,12 @@ export function AppShell({
                     key={project.id}
                     href={`/app/projects/${project.id}`}
                     prefetch={false}
+                    onMouseEnter={() =>
+                      prefetchDynamicHref(`/app/projects/${project.id}`)
+                    }
+                    onFocus={() =>
+                      prefetchDynamicHref(`/app/projects/${project.id}`)
+                    }
                     className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
                     <span aria-hidden="true" className="text-[13px] opacity-70">📁</span>

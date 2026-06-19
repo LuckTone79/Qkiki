@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { presetSchema } from "@/lib/validation";
+import { listPresetsForUser } from "@/server/app-data/presets";
 import { createRouteTiming } from "@/server/perf/route-timing";
 
 export async function GET() {
@@ -10,10 +11,7 @@ export async function GET() {
   try {
     const user = await timing.time("auth", () => requireApiUser());
     const presets = await timing.query("preset_list", () =>
-      prisma.preset.findMany({
-        where: { userId: user.id },
-        orderBy: { updatedAt: "desc" },
-      }),
+      listPresetsForUser(user.id),
     );
 
     return timing.response(NextResponse.json({ presets }));

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
 import { projectSchema } from "@/lib/validation";
+import { listProjectsForUser } from "@/server/app-data/projects";
 import { createRouteTiming } from "@/server/perf/route-timing";
 
 export async function GET() {
@@ -10,23 +11,7 @@ export async function GET() {
   try {
     const user = await timing.time("auth", () => requireApiUser());
     const projects = await timing.query("project_list", () =>
-      prisma.project.findMany({
-        where: { userId: user.id },
-        orderBy: { updatedAt: "desc" },
-        include: {
-          _count: { select: { sessions: true } },
-          sessions: {
-            orderBy: { updatedAt: "desc" },
-            take: 3,
-            select: {
-              id: true,
-              title: true,
-              updatedAt: true,
-              _count: { select: { results: true } },
-            },
-          },
-        },
-      }),
+      listProjectsForUser(user.id),
     );
 
     return timing.response(NextResponse.json({ projects }));

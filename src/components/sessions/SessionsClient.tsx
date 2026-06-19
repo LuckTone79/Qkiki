@@ -7,27 +7,11 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { AddToProjectButton } from "@/components/projects/AddToProjectButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
+import { shouldLoadListOnMount } from "@/lib/initial-list-data";
 import { buildSessionInputCopyNotice } from "@/lib/session-input-copy";
+import type { SessionListDataItem } from "@/server/app-data/serializers";
 
-type SessionListItem = {
-  id: string;
-  title: string;
-  originalInput: string;
-  mode: string;
-  project: { id: string; name: string } | null;
-  createdAt: string;
-  updatedAt: string;
-  _count: { results: number; workflowSteps: number };
-  executionRuns: Array<{
-    id: string;
-    mode: string;
-    status: string;
-    totalStepsPlanned: number;
-    totalStepsDone: number;
-    finalResultId: string | null;
-    updatedAt: string;
-  }>;
-};
+type SessionListItem = SessionListDataItem;
 
 function formatDate(value: string, language: "en" | "ko") {
   return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
@@ -92,9 +76,17 @@ function formatRunSummary(
   return `${statusLabel} · ${doneLabel} · ${finalLabel}`;
 }
 
-export function SessionsClient() {
+type SessionsClientProps = {
+  initialSessions?: SessionListItem[];
+  initialLoaded?: boolean;
+};
+
+export function SessionsClient({
+  initialSessions = [],
+  initialLoaded = false,
+}: SessionsClientProps) {
   const { language, t } = useLanguage();
-  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copyingInputId, setCopyingInputId] = useState<string | null>(null);
@@ -184,10 +176,14 @@ export function SessionsClient() {
   }
 
   useEffect(() => {
-    loadSessions();
+    if (!shouldLoadListOnMount(initialLoaded)) {
+      return;
+    }
+
+    void loadSessions();
     // Load session history once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLoaded]);
 
   return (
     <div className="space-y-5">

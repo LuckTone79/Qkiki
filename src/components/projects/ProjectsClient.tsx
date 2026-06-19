@@ -5,21 +5,10 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { shouldLoadListOnMount } from "@/lib/initial-list-data";
+import type { ProjectListDataItem } from "@/server/app-data/serializers";
 
-type ProjectListItem = {
-  id: string;
-  name: string;
-  description: string | null;
-  sharedContext: string | null;
-  updatedAt: string;
-  _count: { sessions: number };
-  sessions: Array<{
-    id: string;
-    title: string;
-    updatedAt: string;
-    _count: { results: number };
-  }>;
-};
+type ProjectListItem = ProjectListDataItem;
 
 function formatDate(value: string, language: "en" | "ko") {
   return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
@@ -43,10 +32,18 @@ const projectSettingsText = {
   },
 } as const;
 
-export function ProjectsClient() {
+type ProjectsClientProps = {
+  initialProjects?: ProjectListItem[];
+  initialLoaded?: boolean;
+};
+
+export function ProjectsClient({
+  initialProjects = [],
+  initialLoaded = false,
+}: ProjectsClientProps) {
   const { language, t } = useLanguage();
   const settingsText = projectSettingsText[language];
-  const [projects, setProjects] = useState<ProjectListItem[]>([]);
+  const [projects, setProjects] = useState<ProjectListItem[]>(initialProjects);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -123,10 +120,12 @@ export function ProjectsClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setShowCreate(params.get("create") === "1");
-    loadProjects();
+    if (shouldLoadListOnMount(initialLoaded)) {
+      void loadProjects();
+    }
     // Load project list once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLoaded]);
 
   return (
     <div className="space-y-5">
