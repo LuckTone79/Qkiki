@@ -1233,6 +1233,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const [sessionShareUrl, setSessionShareUrl] = useState<string | null>(null);
   const [sessionShareCopyBlocked, setSessionShareCopyBlocked] = useState(false);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const creditWarningRef = useRef<HTMLDivElement | null>(null);
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
   const activeRunIdRef = useRef<string | null>(null);
@@ -1295,6 +1296,22 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         behavior: "smooth",
         block: "start",
       });
+    }, 50);
+  }
+
+  function focusCreditWarning() {
+    setActiveMobilePanel("input");
+    window.setTimeout(() => {
+      const warning = creditWarningRef.current;
+      if (!warning) {
+        return;
+      }
+
+      warning.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      warning.focus({ preventScroll: true });
     }, 50);
   }
 
@@ -1608,6 +1625,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     writeUsageCache(data.usage);
     if (data.code === "CREDIT_LIMIT_REACHED") {
       setLimitModalOpen(true);
+      focusCreditWarning();
       return true;
     }
 
@@ -3676,6 +3694,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`
             : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`,
       );
+      focusCreditWarning();
       return;
     }
 
@@ -4343,7 +4362,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
       ) : null}
       {error ? (
-        <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+        <div
+          ref={creditWarningRef}
+          tabIndex={-1}
+          className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 outline-none ring-rose-300 focus:ring-2"
+        >
           {error}
         </div>
       ) : null}

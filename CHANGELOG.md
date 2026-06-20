@@ -1,5 +1,10 @@
 # Changelog
 
+## Patch 30 (v1.32.3-20260620)
+
+- Added automatic scrolling/focus to the credit warning banner when a workbench run is blocked by insufficient credits.
+- Covered both client-side preflight credit checks and server-side `CREDIT_LIMIT_REACHED` responses so users land on the visible warning instead of staying at the run button.
+
 ## Patch 29 (v1.32.1-20260619)
 
 - Added the missing cookie helper exports in `src/lib/auth-constants.ts` that the Phase 1/2 auth changes depended on.
