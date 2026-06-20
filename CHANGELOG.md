@@ -1,5 +1,11 @@
 # Changelog
 
+## Patch 31 (v1.32.4-20260620)
+
+- Made both desktop and mobile workbench Run buttons larger and more prominent.
+- Changed the Run button from the previous dark style to a bright orange primary CTA with stronger shadow, ring, and focus states.
+- Shared the Run button class between parallel and sequential layouts so both modes stay visually aligned.
+
 ## Patch 30 (v1.32.3-20260620)
 
 - Added automatic scrolling/focus to the credit warning banner when a workbench run is blocked by insufficient credits.
