@@ -240,3 +240,9 @@
 - Added a new "Code review" (코드 리뷰) action type for the sequential review chain. It lets a later model review the code produced by an earlier model, find concrete issues (bugs, edge cases, security, performance, readability, missing tests), and return an improved version of the full code.
 - Built the review prompt so it does NOT force changes: when the code is already high quality and has nothing worth changing, the model returns it unchanged with a `NO_CHANGES:` note instead of inventing cosmetic edits. This matches a chain where the first step codes and later review steps only edit when there is a genuine improvement.
 - Exposed the action everywhere it is selectable: sequential workflow step builder, "review with another model" composer on result cards, preset previews, validation schemas, and the in-app guide.
+
+## Patch 24 (v1.32.2-20260620)
+
+- Moved the sequential review chain "Add step" action directly below the step cards, so it appears immediately after the default third step.
+- Replaced the small secondary button with a full-width dashed CTA that includes a plus marker and the current step count.
+- Verified the local trial workbench screen with Playwright and confirmed the new button renders as a prominent 3/50 action before the run preview.

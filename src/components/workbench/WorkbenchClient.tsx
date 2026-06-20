@@ -4746,6 +4746,23 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               ))}
             </div>
 
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={addStep}
+                disabled={workflowSteps.length >= MAX_TEMPLATE_STEPS}
+                className="flex w-full items-center justify-center gap-3 rounded-lg border-2 border-dashed border-teal-400 bg-white px-5 py-4 text-base font-bold text-teal-800 shadow-sm transition hover:border-teal-600 hover:bg-teal-50 disabled:border-stone-200 disabled:bg-stone-50 disabled:text-stone-400 disabled:opacity-70 sm:py-5"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-700 text-lg leading-none text-white">
+                  +
+                </span>
+                <span>{t("addStep")}</span>
+                <span className="text-sm font-semibold text-teal-600">
+                  {workflowSteps.length}/{MAX_TEMPLATE_STEPS}
+                </span>
+              </button>
+            </div>
+
             <div className="mt-4 rounded-lg border border-stone-200 bg-white p-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
@@ -4798,20 +4815,6 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={addStep}
-                disabled={workflowSteps.length >= MAX_TEMPLATE_STEPS}
-                className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-60"
-              >
-                {t("addStep")}
-              </button>
-              <p className="text-xs text-stone-500">
-                {workflowSteps.length}/{MAX_TEMPLATE_STEPS}
-              </p>
             </div>
 
             {workflowSteps.length >= MAX_TEMPLATE_STEPS ? (
