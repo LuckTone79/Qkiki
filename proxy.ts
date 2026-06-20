@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ADMIN_SESSION_COOKIE, SESSION_COOKIE } from "@/lib/auth-constants";
+import {
+  ADMIN_SESSION_COOKIE_CANDIDATES,
+  SESSION_COOKIE_CANDIDATES,
+  hasAnyCookie,
+} from "@/lib/auth-constants";
 import {
   buildCanonicalRedirectUrl,
   shouldRedirectToCanonicalHost,
@@ -22,8 +26,8 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
   const hostname = host?.split(":")[0]?.trim().toLowerCase() || request.nextUrl.hostname;
-  const hasUserSession = request.cookies.has(SESSION_COOKIE);
-  const hasAdminSession = request.cookies.has(ADMIN_SESSION_COOKIE);
+  const hasUserSession = hasAnyCookie(request.cookies, SESSION_COOKIE_CANDIDATES);
+  const hasAdminSession = hasAnyCookie(request.cookies, ADMIN_SESSION_COOKIE_CANDIDATES);
 
   if (isAdminHost(host) && shouldRewriteToAdmin(pathname)) {
     const rewriteUrl = request.nextUrl.clone();

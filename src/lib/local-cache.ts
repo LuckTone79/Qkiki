@@ -11,6 +11,8 @@
  * storage-quota errors never crash the app.
  */
 
+import { LEGACY_STORAGE_KEYS, PRIMARY_STORAGE_KEYS } from "@/lib/brand";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type WorkbenchDraft = {
@@ -48,9 +50,12 @@ export type SessionCacheEntry<T> = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DRAFT_KEY = "qkiki-draft";
-const SESSION_PREFIX = "qkiki-sc-";
-const USAGE_KEY = "qkiki-usage-cache";
+const DRAFT_KEY = PRIMARY_STORAGE_KEYS.draft;
+const SESSION_PREFIX = PRIMARY_STORAGE_KEYS.sessionPrefix;
+const USAGE_KEY = PRIMARY_STORAGE_KEYS.usage;
+const LEGACY_DRAFT_KEYS = LEGACY_STORAGE_KEYS.draft;
+const LEGACY_SESSION_PREFIXES = LEGACY_STORAGE_KEYS.sessionPrefix;
+const LEGACY_USAGE_KEYS = LEGACY_STORAGE_KEYS.usage;
 const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // 7 days
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;       // 12 hours
 const USAGE_TTL_MS = 15 * 1000; // 15 seconds
@@ -64,6 +69,17 @@ function read<T>(key: string): T | null {
   } catch {
     return null;
   }
+}
+
+function readFirst<T>(keys: readonly string[]): T | null {
+  for (const key of keys) {
+    const value = read<T>(key);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
 }
 
 function write(key: string, value: unknown): void {
@@ -89,7 +105,7 @@ export function saveDraft(draft: Omit<WorkbenchDraft, "savedAt">): void {
 
 /** Return the draft if it exists and has not expired, otherwise null. */
 export function loadDraft(): WorkbenchDraft | null {
-  const entry = read<WorkbenchDraft>(DRAFT_KEY);
+  const entry = readFirst<WorkbenchDraft>([DRAFT_KEY, ...LEGACY_DRAFT_KEYS]);
   if (!entry) return null;
   if (Date.now() - entry.savedAt > DRAFT_TTL_MS) {
     remove(DRAFT_KEY);
@@ -101,6 +117,7 @@ export function loadDraft(): WorkbenchDraft | null {
 /** Delete the draft (call after a successful run or explicit user dismiss). */
 export function clearDraft(): void {
   remove(DRAFT_KEY);
+  LEGACY_DRAFT_KEYS.forEach(remove);
 }
 
 // ─── Session cache API ────────────────────────────────────────────────────────
@@ -118,7 +135,10 @@ export function writeSessionCache<T>(id: string, data: T): void {
  * Returns null when the cache is cold, expired, or unavailable.
  */
 export function readSessionCache<T>(id: string): SessionCacheEntry<T> | null {
-  const entry = read<SessionCacheEntry<T>>(`${SESSION_PREFIX}${id}`);
+  const entry = readFirst<SessionCacheEntry<T>>([
+    `${SESSION_PREFIX}${id}`,
+    ...LEGACY_SESSION_PREFIXES.map((prefix) => `${prefix}${id}`),
+  ]);
   if (!entry) return null;
   if (Date.now() - entry.cachedAt > SESSION_TTL_MS) {
     remove(`${SESSION_PREFIX}${id}`);
@@ -137,7 +157,7 @@ export function writeUsageCache<T>(data: T): void {
 
 /** Return the cached usage snapshot when it is still fresh. */
 export function readUsageCache<T>(): SessionCacheEntry<T> | null {
-  const entry = read<SessionCacheEntry<T>>(USAGE_KEY);
+  const entry = readFirst<SessionCacheEntry<T>>([USAGE_KEY, ...LEGACY_USAGE_KEYS]);
   if (!entry) return null;
   if (Date.now() - entry.cachedAt > USAGE_TTL_MS) {
     remove(USAGE_KEY);

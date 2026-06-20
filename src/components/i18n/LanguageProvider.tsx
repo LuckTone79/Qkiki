@@ -8,9 +8,10 @@ import {
   useState,
 } from "react";
 import {
-  readBrowserStorageValue,
+  readBrowserStorageValueAny,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
+import { APP_NAME, APP_ORCHESTRATION_NAME, PRIMARY_STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/lib/brand";
 
 export type AppLanguage = "en" | "ko";
 
@@ -92,8 +93,8 @@ const dictionaries = {
     korean: "Korean",
     language: "Language",
     landingDescription:
-      "Yapp runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.",
-    landingEyebrow: "Yapp Orchestration Workbench",
+      `${APP_NAME} runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.`,
+    landingEyebrow: APP_ORCHESTRATION_NAME,
     landingTitle: "Turn several AI models into a review chain.",
     leaveBlankCurrentKey: "Leave blank to keep current key",
     load: "Load",
@@ -114,7 +115,7 @@ const dictionaries = {
     new: "New",
     newConversationWindow: "New conversation window",
     newProject: "New project",
-    newToMultiAi: "New to Yapp?",
+    newToMultiAi: `New to ${APP_NAME}?`,
     newWorkbench: "New workbench",
     newWindow: "New window",
     noConversationWindowsDescription:
@@ -541,7 +542,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>("en");
 
   useEffect(() => {
-    const stored = readBrowserStorageValue("qkiki-language");
+    const stored = readBrowserStorageValueAny([
+      PRIMARY_STORAGE_KEYS.language,
+      ...LEGACY_STORAGE_KEYS.language,
+    ]);
     const nextLanguage = stored === "ko" ? "ko" : "en";
     setLanguageState(nextLanguage);
     document.documentElement.lang = nextLanguage;
@@ -549,7 +553,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   function setLanguage(nextLanguage: AppLanguage) {
     setLanguageState(nextLanguage);
-    writeBrowserStorageValue("qkiki-language", nextLanguage);
+    writeBrowserStorageValue(PRIMARY_STORAGE_KEYS.language, nextLanguage);
     document.documentElement.lang = nextLanguage;
   }
 

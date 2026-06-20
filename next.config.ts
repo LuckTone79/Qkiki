@@ -1,5 +1,16 @@
 import type { NextConfig } from "next";
 import { withWorkflow } from "workflow/next";
+import {
+  LEGACY_SESSION_COOKIES,
+  SESSION_COOKIE,
+} from "./src/lib/auth-constants";
+import { APP_CANONICAL_URL } from "./src/lib/brand";
+
+const vercelAliasPattern = "(?:qkiki|yapp)\\.vercel\\.app";
+const missingSessionCookies = [SESSION_COOKIE, ...LEGACY_SESSION_COOKIES].map((key) => ({
+  type: "cookie" as const,
+  key,
+}));
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -9,16 +20,11 @@ const nextConfig: NextConfig = {
         has: [
           {
             type: "host",
-            value: "qkiki.vercel.app",
+            value: vercelAliasPattern,
           },
         ],
-        missing: [
-          {
-            type: "cookie",
-            key: "qkiki_session",
-          },
-        ],
-        destination: "https://yapp.wideget.net",
+        missing: missingSessionCookies,
+        destination: APP_CANONICAL_URL,
         permanent: false,
         basePath: false,
       },
@@ -27,16 +33,11 @@ const nextConfig: NextConfig = {
         has: [
           {
             type: "host",
-            value: "qkiki.vercel.app",
+            value: vercelAliasPattern,
           },
         ],
-        missing: [
-          {
-            type: "cookie",
-            key: "qkiki_session",
-          },
-        ],
-        destination: "https://yapp.wideget.net/:path",
+        missing: missingSessionCookies,
+        destination: `${APP_CANONICAL_URL}/:path`,
         permanent: false,
         basePath: false,
       },

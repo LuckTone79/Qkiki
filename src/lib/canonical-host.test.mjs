@@ -16,7 +16,7 @@ test("resolveCanonicalAppUrl defaults to the wideget production host", () => {
 test("shouldRedirectToCanonicalHost redirects vercel production hosts for browser pages", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: { VERCEL_ENV: "production" },
-    hostname: "qkiki.vercel.app",
+    hostname: "yapp.vercel.app",
     pathname: "/app/workbench",
     method: "GET",
   });
@@ -35,7 +35,18 @@ test("shouldRedirectToCanonicalHost still redirects the qkiki production alias w
   assert.equal(shouldRedirect, true);
 });
 
-test("shouldRedirectToCanonicalHost keeps the canonical wideget host in place", () => {
+test("shouldRedirectToCanonicalHost redirects the legacy qkiki wideget host", () => {
+  const shouldRedirect = shouldRedirectToCanonicalHost({
+    env: { VERCEL_ENV: "production" },
+    hostname: "qkiki.wideget.net",
+    pathname: "/app/workbench",
+    method: "GET",
+  });
+
+  assert.equal(shouldRedirect, true);
+});
+
+test("shouldRedirectToCanonicalHost does not redirect the canonical wideget host", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: { VERCEL_ENV: "production" },
     hostname: "yapp.wideget.net",

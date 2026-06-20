@@ -7,10 +7,11 @@ import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { grantWelcomeBoostToUser } from "@/lib/usage-policy";
 import {
   GOOGLE_OAUTH_PROVIDER,
-  GOOGLE_OAUTH_STATE_COOKIE,
+  GOOGLE_OAUTH_STATE_COOKIE_CANDIDATES,
   getGoogleOAuthConfig,
   validateGoogleOAuthState,
 } from "@/lib/google-oauth";
+import { deleteCookies, readCookieValue } from "@/lib/auth-constants";
 
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -31,7 +32,7 @@ function signInErrorRedirect(requestUrl: string, errorCode: string) {
   const redirectUrl = new URL("/sign-in", requestUrl);
   redirectUrl.searchParams.set("error", errorCode);
   const response = NextResponse.redirect(redirectUrl);
-  response.cookies.delete(GOOGLE_OAUTH_STATE_COOKIE);
+  deleteCookies(response.cookies, GOOGLE_OAUTH_STATE_COOKIE_CANDIDATES);
   return response;
 }
 
@@ -59,7 +60,7 @@ export async function GET(request: Request) {
   const code = callbackUrl.searchParams.get("code");
   const state = callbackUrl.searchParams.get("state");
   const cookieStore = await cookies();
-  const stateToken = cookieStore.get(GOOGLE_OAUTH_STATE_COOKIE)?.value;
+  const stateToken = readCookieValue(cookieStore, GOOGLE_OAUTH_STATE_COOKIE_CANDIDATES);
   const statePayload = validateGoogleOAuthState(stateToken, state);
 
   if (!code || !statePayload) {
@@ -182,6 +183,6 @@ export async function GET(request: Request) {
   await createAuthSession(user.id);
 
   const successRedirect = NextResponse.redirect(new URL(statePayload.nextPath, request.url));
-  successRedirect.cookies.delete(GOOGLE_OAUTH_STATE_COOKIE);
+  deleteCookies(successRedirect.cookies, GOOGLE_OAUTH_STATE_COOKIE_CANDIDATES);
   return successRedirect;
 }
