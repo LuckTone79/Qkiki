@@ -208,11 +208,11 @@ export function ProjectsClient({
               placeholder={settingsText.defaultGuidelinePlaceholder}
             />
           </label>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
             <button
               type="submit"
               disabled={creatingProject}
-              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {creatingProject
                 ? (language === "ko" ? "생성 중…" : "Creating…")
@@ -222,7 +222,7 @@ export function ProjectsClient({
               type="submit"
               data-start="true"
               disabled={creatingProject}
-              className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {creatingProject
                 ? (language === "ko" ? "생성 중…" : "Creating…")
@@ -237,35 +237,35 @@ export function ProjectsClient({
           {projects.map((project) => (
             <article
               key={project.id}
-              className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+              className="overflow-hidden rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-stone-400">[ ]</span>
-                    <h2 className="text-lg font-semibold text-stone-950">
+                    <h2 className="line-clamp-2 break-words text-lg font-semibold leading-snug text-stone-950">
                       {project.name}
                     </h2>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-stone-600">
+                  <p className="mt-2 break-words text-sm leading-6 text-stone-600">
                     {project.description || t("noDescription")}
                   </p>
-                  <p className="mt-3 text-xs text-stone-500">
+                  <p className="mt-3 break-words text-xs text-stone-500">
                     {project._count.sessions} {t("conversationWindows")} -{" "}
                     {t("updated")}{" "}
                     {formatDate(project.updatedAt, language)}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:w-auto sm:min-w-[14rem]">
                   <Link
                     href={`/app/projects/${project.id}`}
-                    className="rounded-md bg-stone-950 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+                    className="flex min-w-0 items-center justify-center rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold leading-5 text-white hover:bg-stone-800"
                   >
                     {t("open")}
                   </Link>
                   <Link
                     href={`/app/workbench?project=${project.id}`}
-                    className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+                    className="flex min-w-0 items-center justify-center rounded-md border border-stone-300 px-3 py-2 text-center text-sm font-semibold leading-5 text-stone-700 hover:bg-stone-50"
                   >
                     {t("newWindow")}
                   </Link>
@@ -278,12 +278,12 @@ export function ProjectsClient({
                     <Link
                       key={session.id}
                       href={`/app/workbench?session=${session.id}`}
-                      className="block rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2 hover:bg-[#f1f0ee]"
+                      className="block overflow-hidden rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2 hover:bg-[#f1f0ee]"
                     >
-                      <span className="block truncate text-sm font-medium text-stone-800">
+                      <span className="block line-clamp-2 break-words text-sm font-medium leading-5 text-stone-800">
                         {session.title}
                       </span>
-                      <span className="text-xs text-stone-500">
+                      <span className="mt-1 block break-words text-xs text-stone-500">
                         {session._count.results} {t("results")} -{" "}
                         {formatDate(session.updatedAt, language)}
                       </span>
