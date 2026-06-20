@@ -4165,7 +4165,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   });
   const showResultScrollControls = displayResultIds.length > 0;
   const runButtonClassName =
-    "w-full rounded-lg bg-orange-600 px-7 py-4 !text-lg !font-extrabold text-white shadow-lg shadow-orange-200/70 ring-2 ring-orange-200 transition hover:bg-orange-700 hover:shadow-xl hover:shadow-orange-300/60 focus:outline-none focus:ring-4 focus:ring-orange-300 disabled:cursor-not-allowed disabled:bg-orange-300 disabled:shadow-none sm:w-auto sm:min-w-36";
+    "w-full rounded-lg bg-sky-500 px-7 py-4 !text-lg !font-extrabold text-white shadow-lg shadow-sky-200/70 ring-2 ring-sky-200 transition hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-300/60 focus:outline-none focus:ring-4 focus:ring-sky-300 disabled:cursor-not-allowed disabled:bg-sky-300 disabled:shadow-none sm:w-auto sm:min-w-36";
 
   function jumpToCurrentResultStart() {
     if (!resultStartTargetId) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## Patch 32 (v1.32.11-20260620)
+
+- Changed the prominent workbench Run button color from orange to a sky-blue primary CTA.
+- Kept the larger desktop/mobile sizing, shadow, ring, hover, focus, and disabled states aligned to the new sky-blue palette.
+
 ## Patch 31 (v1.32.4-20260620)
 
 - Made both desktop and mobile workbench Run buttons larger and more prominent.
