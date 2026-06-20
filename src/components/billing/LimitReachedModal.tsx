@@ -39,8 +39,8 @@ export function LimitReachedModal({
         : `You currently have ${usage.totalCreditsAvailable.toLocaleString("en-US")} credits left.`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4">
-      <div className="w-full max-w-lg rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center overflow-y-auto bg-stone-950/40 px-4 py-4 sm:items-center">
+      <div className="w-full max-w-lg rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Yapp</p>
         <h2 className="mt-3 text-2xl font-semibold tracking-tight text-stone-950">{title}</h2>
         <p className="mt-2 text-sm leading-6 text-stone-600">{description}</p>

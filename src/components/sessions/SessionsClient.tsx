@@ -235,7 +235,7 @@ export function SessionsClient({
               className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
             >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-stone-950">
                       {session.title}
@@ -264,10 +264,10 @@ export function SessionsClient({
                     {formatRunSummary(session, language)}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <Link
                     href={`/app/workbench?session=${session.id}`}
-                    className="rounded-md bg-stone-950 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+                    className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
                   >
                     {t("open")}
                   </Link>
@@ -297,7 +297,7 @@ export function SessionsClient({
                       sessionId: session.id,
                       title: session.title,
                     }}
-                    className="rounded-md border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-50"
+                    className="w-full rounded-md border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-50 sm:w-auto"
                   />
                   <button
                     type="button"

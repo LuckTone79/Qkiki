@@ -327,7 +327,7 @@ export function ResultCard({
               .join(" / ")}
           </p>
         </div>
-        <div className="flex items-start gap-2 self-start">
+        <div className="flex w-full flex-wrap items-start justify-between gap-2 self-start sm:w-auto sm:flex-nowrap sm:justify-end">
           <button
             type="button"
             onClick={() => onToggleExpanded(result.id)}
@@ -341,7 +341,7 @@ export function ResultCard({
                 ? "펼치기"
                 : "Expand"}
           </button>
-          <p className="pt-1 text-xs text-stone-500">{meta}</p>
+          <p className="min-w-0 break-words pt-1 text-xs text-stone-500">{meta}</p>
         </div>
       </div>
 

@@ -363,11 +363,11 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                         </p>
                       ) : null}
                     </div>
-                    <div className="flex flex-none flex-wrap gap-2">
+                    <div className="grid w-full grid-cols-2 gap-2 lg:flex lg:w-auto lg:flex-none lg:flex-wrap">
                       {item.session ? (
                         <Link
                           href={`/app/workbench?session=${item.session.id}`}
-                          className="flex-1 rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800 lg:flex-none"
+                          className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
                         >
                           {t("open")}
                         </Link>
@@ -375,7 +375,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                       <button
                         type="button"
                         onClick={() => removeItem(item.id)}
-                        className="flex-1 rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 lg:flex-none"
+                        className={`${item.session ? "" : "col-span-2 "}rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50`}
                       >
                         {language === "ko" ? "제거" : "Remove"}
                       </button>
@@ -403,7 +403,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-lg font-semibold text-stone-950">
                           {session.title}
@@ -423,7 +423,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                     </div>
                     <Link
                       href={`/app/workbench?session=${session.id}`}
-                      className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
+                      className="w-full rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800 lg:w-auto"
                     >
                       {t("open")}
                     </Link>

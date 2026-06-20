@@ -213,7 +213,7 @@ export function PresetsClient({
                     {stepPreview(preset.workflowJson, language, t)}
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 sm:min-w-72">
+                <div className="flex min-w-0 flex-col gap-2 sm:min-w-72">
                   <input
                     value={editing[preset.id] ?? ""}
                     onChange={(event) =>
@@ -225,12 +225,12 @@ export function PresetsClient({
                     className="rounded-md border border-stone-300 px-3 py-2 text-sm outline-none focus:border-teal-600"
                     placeholder={t("renamePreset")}
                   />
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button
                       type="button"
                       onClick={() => renamePreset(preset)}
                       disabled={renamingId === preset.id}
-                      className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${renamedId === preset.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
+                      className={`col-span-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-1 ${renamedId === preset.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                     >
                       {renamingId === preset.id
                         ? (language === "ko" ? "저장 중…" : "Saving…")
@@ -240,7 +240,7 @@ export function PresetsClient({
                     </button>
                     <Link
                       href={`/app/workbench?preset=${preset.id}`}
-                      className="rounded-md bg-stone-950 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+                      className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
                     >
                       {t("load")}
                     </Link>

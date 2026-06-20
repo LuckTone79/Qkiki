@@ -13,13 +13,13 @@ export function SectionHeader({
 }: SectionHeaderProps) {
   return (
     <div className="flex flex-col gap-3 border-b border-stone-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
+      <div className="min-w-0">
         {eyebrow ? (
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight text-stone-950">
+        <h1 className="mt-1 break-words font-serif text-3xl font-semibold tracking-tight text-stone-950">
           {title}
         </h1>
         {description ? (
@@ -28,7 +28,11 @@ export function SectionHeader({
           </p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? (
+        <div className="w-full sm:w-auto [&>*]:w-full sm:[&>*]:w-auto">
+          {action}
+        </div>
+      ) : null}
     </div>
   );
 }

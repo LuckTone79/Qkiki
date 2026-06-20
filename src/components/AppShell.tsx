@@ -37,7 +37,7 @@ export function AppShell({
   recentSessions?: Array<{ id: string; title: string }>;
   children: React.ReactNode;
 }) {
-  const { language, t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -104,13 +104,31 @@ export function AppShell({
                   {t("orchestrationWorkbench")}
                 </p>
               </Link>
-              <div className="lg:hidden">
+            <div className="lg:hidden">
+              <div className="flex flex-col items-end gap-2">
                 {showAuthEntryLinks ? (
                   <AuthEntryLinks compact />
                 ) : (
                   <SignOutButton compact />
                 )}
+                <label className="flex items-center gap-2 rounded-md border border-stone-200 bg-white px-2 py-1.5 text-[11px] font-medium text-stone-600">
+                  <span className="sr-only">{t("language")}</span>
+                  <select
+                    value={language}
+                    onChange={(event) =>
+                      setLanguage(
+                        event.target.value === "ko" ? "ko" : "en",
+                      )
+                    }
+                    className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 outline-none focus:border-stone-900"
+                    aria-label={t("language")}
+                  >
+                    <option value="en">{t("english")}</option>
+                    <option value="ko">{t("korean")}</option>
+                  </select>
+                </label>
               </div>
+            </div>
             </div>
 
             <nav className="mt-5 hidden gap-2 lg:flex lg:flex-col">
@@ -251,7 +269,7 @@ export function AppShell({
           </button>
         </div>
 
-        <main className="flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-8">
+        <main className="flex-1 px-4 pb-40 pt-5 sm:px-6 lg:px-8 lg:pb-8">
           <div className="mb-4 hidden items-center justify-end lg:flex">
             <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-medium text-stone-500">
               {versionLabel} {APP_VERSION}
@@ -271,7 +289,7 @@ export function AppShell({
               key={item.href}
               href={item.href}
               onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
-              className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-0.5 py-1.5 text-center text-[10px] font-semibold leading-tight tracking-tight text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
+              className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-0.5 py-1.5 text-center text-[9px] font-semibold leading-tight tracking-tight text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >
               <span aria-hidden="true" className="text-base leading-none">
                 {item.icon}

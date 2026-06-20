@@ -4522,8 +4522,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {t("startPointDescription")}
                 </p>
               </div>
-              <div className="overflow-x-auto">
-                <div className="flex min-w-max items-center gap-2">
+              <div className="overflow-visible sm:overflow-x-auto">
+                <div className="flex flex-wrap items-center gap-2 sm:min-w-max sm:flex-nowrap">
                   <div
                     className={`inline-flex rounded-md border border-stone-200 bg-white p-1 ${
                       imageMode ? "pointer-events-none opacity-40" : ""
@@ -5424,7 +5424,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     )}
                   </span>
                 ) : null}
-                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
+                <div className="inline-flex w-full rounded-md border border-stone-200 bg-[#ffffff] p-1 sm:w-auto">
                   <button
                     type="button"
                     onClick={() =>
@@ -5603,11 +5603,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   </button>
                 </div>
               ) : null}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-medium text-stone-500">
                   {uiText.resultLayout}
                 </span>
-                <div className="inline-flex rounded-md border border-stone-200 bg-[#ffffff] p-1">
+                <div className="inline-flex w-full rounded-md border border-stone-200 bg-[#ffffff] p-1 sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setResultLayout("single")}
