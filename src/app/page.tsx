@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
@@ -88,22 +87,28 @@ export default function LandingPage() {
     },
   ];
 
-  const heroImage =
-    "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1600&q=80";
   const guideLabel = language === "ko" ? "가이드북" : "Guidebook";
 
   return (
     <main className="bg-white text-[#171a20]">
       {/* HERO — Tesla full-bleed cinematic section */}
       <section className="relative flex min-h-[100svh] flex-col items-center justify-between overflow-hidden">
-        <Image
-          src={heroImage}
-          alt="Yapp orchestration — networked architecture"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-        />
+        <picture className="absolute inset-0">
+          <source
+            media="(max-width: 767px)"
+            srcSet="/media/landing-network-bg-mobile.webp"
+            type="image/webp"
+          />
+          <source srcSet="/media/landing-network-bg.webp" type="image/webp" />
+          <img
+            src="/media/landing-network-poster.jpg"
+            alt=""
+            className="h-full w-full object-cover"
+            decoding="async"
+            fetchPriority="high"
+            loading="eager"
+          />
+        </picture>
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/55" />
 
         <div className="relative z-10 flex w-full flex-col items-center px-5 pt-28 text-center sm:pt-32">

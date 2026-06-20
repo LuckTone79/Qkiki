@@ -1,5 +1,11 @@
 # Changelog
 
+## Patch 33 (v1.32.12-20260620)
+
+- Replaced the landing hero's external stock image with the provided network animation as an optimized local background.
+- Added separate desktop and mobile animated WebP assets, plus lightweight JPEG poster fallbacks, so the original 93MB GIF is not served directly.
+- Updated the landing hero markup to use responsive `picture` sources and select the mobile-specialized background on narrow screens.
+
 ## Patch 32 (v1.32.11-20260620)
 
 - Changed the prominent workbench Run button color from orange to a sky-blue primary CTA.
