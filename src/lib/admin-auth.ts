@@ -4,7 +4,12 @@ import crypto from "crypto";
 import { UserRole } from "@prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ADMIN_SESSION_COOKIE } from "@/lib/auth-constants";
+import {
+  ADMIN_SESSION_COOKIE,
+  ADMIN_SESSION_COOKIE_CANDIDATES,
+  deleteCookies,
+  readCookieValue,
+} from "@/lib/auth-constants";
 import { prisma } from "@/lib/prisma";
 
 const ADMIN_SESSION_DAYS = 7;
@@ -58,7 +63,7 @@ export async function createAdminSession(userId: string, mfaVerifiedAt: Date | n
 
 export async function clearAdminSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const token = readCookieValue(cookieStore, ADMIN_SESSION_COOKIE_CANDIDATES);
 
   if (token) {
     await prisma.adminSession.deleteMany({
@@ -66,12 +71,12 @@ export async function clearAdminSession() {
     });
   }
 
-  cookieStore.delete(ADMIN_SESSION_COOKIE);
+  deleteCookies(cookieStore, ADMIN_SESSION_COOKIE_CANDIDATES);
 }
 
 export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const token = readCookieValue(cookieStore, ADMIN_SESSION_COOKIE_CANDIDATES);
 
   if (!token) {
     return null;

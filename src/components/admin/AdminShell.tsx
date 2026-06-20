@@ -58,7 +58,7 @@ export function AdminShell({
   admin: CurrentAdmin;
   children: React.ReactNode;
 }) {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const pathname = usePathname();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const t = adminText[language];
@@ -109,7 +109,23 @@ export function AdminShell({
               <p className="mt-0.5 text-xs text-slate-500">{t.subtitle}</p>
             </Link>
             <div className="lg:hidden">
-              <AdminSignOutButton compact />
+              <div className="flex flex-col items-end gap-2">
+                <AdminSignOutButton compact />
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-medium text-slate-600">
+                  <span className="sr-only">Language</span>
+                  <select
+                    value={language}
+                    onChange={(event) =>
+                      setLanguage(event.target.value === "ko" ? "ko" : "en")
+                    }
+                    className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 outline-none focus:border-slate-900"
+                    aria-label="Language"
+                  >
+                    <option value="en">English</option>
+                    <option value="ko">한국어</option>
+                  </select>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -148,7 +164,7 @@ export function AdminShell({
           </div>
         </aside>
 
-        <main className="flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-8">
+        <main className="flex-1 px-4 pb-40 pt-5 sm:px-6 lg:px-8 lg:pb-8">
           {children}
         </main>
       </div>

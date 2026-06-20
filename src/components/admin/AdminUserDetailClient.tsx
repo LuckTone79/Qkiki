@@ -97,33 +97,53 @@ export function AdminUserDetailClient({ user }: { user: UserDetailData }) {
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">{t.usageLogs}</h2>
             {user.aiRequests.length ? (
-              <div className="mt-3 overflow-x-auto">
-                <table className="min-w-full text-left text-xs">
-                  <thead className="text-slate-500">
-                    <tr>
-                      <th className="px-2 py-2">Time</th>
-                      <th className="px-2 py-2">Type</th>
-                      <th className="px-2 py-2">Model</th>
-                      <th className="px-2 py-2">Input</th>
-                      <th className="px-2 py-2">Output</th>
-                      <th className="px-2 py-2">Cost($)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {user.aiRequests.map((item) => (
-                      <tr key={item.id} className="border-t border-slate-100">
-                        <td className="px-2 py-2 text-slate-600">
-                          {new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))}
-                        </td>
-                        <td className="px-2 py-2 text-slate-700">{item.requestType}</td>
-                        <td className="px-2 py-2 text-slate-700">{item.provider}/{item.model}</td>
-                        <td className="px-2 py-2 text-slate-700">{item.inputTokens.toLocaleString()}</td>
-                        <td className="px-2 py-2 text-slate-700">{item.outputTokens.toLocaleString()}</td>
-                        <td className="px-2 py-2 text-slate-700">{item.estimatedCostUsd.toFixed(6)}</td>
+              <div className="mt-3">
+                <div className="space-y-2 md:hidden">
+                  {user.aiRequests.map((item) => (
+                    <article key={item.id} className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs">
+                      <p className="font-semibold text-slate-900">
+                        {item.provider}/{item.model}
+                      </p>
+                      <p className="mt-1 text-slate-500">
+                        {new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))}
+                      </p>
+                      <div className="mt-2 grid gap-1 text-slate-600">
+                        <p>Type: {item.requestType}</p>
+                        <p>Input: {item.inputTokens.toLocaleString()}</p>
+                        <p>Output: {item.outputTokens.toLocaleString()}</p>
+                        <p>Cost($): {item.estimatedCostUsd.toFixed(6)}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="min-w-full text-left text-xs">
+                    <thead className="text-slate-500">
+                      <tr>
+                        <th className="px-2 py-2">Time</th>
+                        <th className="px-2 py-2">Type</th>
+                        <th className="px-2 py-2">Model</th>
+                        <th className="px-2 py-2">Input</th>
+                        <th className="px-2 py-2">Output</th>
+                        <th className="px-2 py-2">Cost($)</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {user.aiRequests.map((item) => (
+                        <tr key={item.id} className="border-t border-slate-100">
+                          <td className="px-2 py-2 text-slate-600">
+                            {new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(item.createdAt))}
+                          </td>
+                          <td className="px-2 py-2 text-slate-700">{item.requestType}</td>
+                          <td className="px-2 py-2 text-slate-700">{item.provider}/{item.model}</td>
+                          <td className="px-2 py-2 text-slate-700">{item.inputTokens.toLocaleString()}</td>
+                          <td className="px-2 py-2 text-slate-700">{item.outputTokens.toLocaleString()}</td>
+                          <td className="px-2 py-2 text-slate-700">{item.estimatedCostUsd.toFixed(6)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : (
               <p className="mt-3 text-sm text-slate-600">{t.noUsageLogs}</p>
