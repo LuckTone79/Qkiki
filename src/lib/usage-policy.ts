@@ -1035,6 +1035,13 @@ export async function recordUsageSuccess(input: {
       },
     });
 
+    // Keep lastActiveAt in sync with real usage so the admin console reflects
+    // the user's most recent activity immediately, not just their last sign-in.
+    await tx.user.update({
+      where: { id: input.userId },
+      data: { lastActiveAt: new Date() },
+    });
+
     return usage;
   });
   void updatedUsage;
