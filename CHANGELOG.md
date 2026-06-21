@@ -1,5 +1,12 @@
 # Changelog
 
+## Patch 34 (v1.33.0-20260621)
+
+- Rebuilt the admin Users tab around live usage visibility: filters for status/role, sorting by latest use, task count, credit use, token use, and account creation.
+- Added per-user task totals, active task counts, credit totals, token totals, estimated cost, and recent task usage rows directly in the user list.
+- Shared the same admin user list aggregation between the page and `/api/admin/users`, with dynamic/no-store behavior so recent work is reflected immediately.
+- Updated usage settlement paths to refresh `User.lastActiveAt` when credit usage is recorded.
+
 ## Patch 33 (v1.32.12-20260620)
 
 - Replaced the landing hero's external stock image with the provided network animation as an optimized local background.

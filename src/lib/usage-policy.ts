@@ -856,6 +856,7 @@ export async function settleUsageReservation(input: {
   await withSerializableRetries(() =>
     prisma.$transaction(
       async (tx) => {
+        const settledAt = new Date();
         const reservation = await tx.usageReservation.findUnique({
           where: reservationWhere,
           include: {
@@ -894,7 +895,7 @@ export async function settleUsageReservation(input: {
           userId: input.userId,
           policy,
           creditsUsed,
-          now: new Date(),
+          now: settledAt,
         });
 
         await tx.usageLimit.update({
@@ -927,9 +928,14 @@ export async function settleUsageReservation(input: {
           where: { id: reservation.id },
           data: {
             status: "settled",
-            settledAt: new Date(),
+            settledAt,
             settledCreditCount: creditsUsed,
           },
+        });
+
+        await tx.user.update({
+          where: { id: input.userId },
+          data: { lastActiveAt: settledAt },
         });
 
         return reservation;
@@ -1000,13 +1006,14 @@ export async function recordUsageSuccess(input: {
     }));
 
   const updatedUsage = await prisma.$transaction(async (tx) => {
+    const recordedAt = new Date();
     const creditsUsed = input.creditsUsed ?? costUsdToCredits(input.estimatedCostUsd);
 
     await applyCreditCharge(tx, {
       userId: input.userId,
       policy: context.policy,
       creditsUsed,
-      now: new Date(),
+      now: recordedAt,
     });
 
     const usage = await tx.usageLimit.update({
@@ -1033,6 +1040,11 @@ export async function recordUsageSuccess(input: {
         estimatedCostUsd: decimal(input.estimatedCostUsd),
         creditsUsed,
       },
+    });
+
+    await tx.user.update({
+      where: { id: input.userId },
+      data: { lastActiveAt: recordedAt },
     });
 
     return usage;
