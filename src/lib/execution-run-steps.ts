@@ -1126,6 +1126,24 @@ async function transitionStepToCompleted(input: {
       rawResponse: input.providerResult.rawResponse,
     });
 
+    await tx.aiRequest.create({
+      data: {
+        userId: input.step.executionRun.userId,
+        conversationId: input.step.executionRun.sessionId,
+        messageId: result.id,
+        provider: input.providerResult.provider,
+        model: input.providerResult.model,
+        requestType: input.step.actionType,
+        status: "completed",
+        inputTokens: input.providerResult.usage?.promptTokens ?? null,
+        outputTokens: input.providerResult.usage?.completionTokens ?? null,
+        estimatedCostUsd: input.providerResult.estimatedCost ?? null,
+        latencyMs: input.providerResult.latencyMs,
+        errorCode: null,
+        errorMessage: null,
+      },
+    });
+
     await tx.executionRunStep.updateMany({
       where: {
         id: input.step.id,

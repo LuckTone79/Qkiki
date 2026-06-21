@@ -56,6 +56,7 @@ import {
   canAutoResumeFromSearch,
   pickLatestActiveSessionId,
   resolveWorkbenchEntryAction,
+  shouldRevalidateWorkbenchOnPageResume,
 } from "@/lib/workbench-resume";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { UsageErrorPayload, UsageStatus as UsageStatusType } from "@/lib/usage-types";
@@ -309,6 +310,7 @@ type RunStepSnapshot = {
 };
 
 type RunStatusSnapshot = {
+  mode?: "parallel" | "sequential";
   status?: string;
   errorMessage?: string | null;
   streamError?: string | null;
@@ -1632,8 +1634,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     return false;
   }
 
-  async function loadUsageStatus() {
-    const cached = readUsageCache<UsageStatusType>();
+  async function loadUsageStatus(options?: { preferCache?: boolean }) {
+    const preferCache = options?.preferCache ?? true;
+    const cached = preferCache ? readUsageCache<UsageStatusType>() : null;
     if (cached) {
       setUsage(cached.data);
       setUsageLoading(false);
@@ -2166,6 +2169,108 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     // Keep the workbench in sync with sidebar and in-app query navigation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let refreshInFlight = false;
+
+    const refreshCurrentWorkbenchState = async (event?: PageTransitionEvent) => {
+      if (
+        refreshInFlight ||
+        !shouldRevalidateWorkbenchOnPageResume({
+          activeRunId: activeRunIdRef.current,
+          sessionId,
+          pagePersisted: event?.persisted,
+          visibilityState: document.visibilityState,
+        })
+      ) {
+        return;
+      }
+
+      refreshInFlight = true;
+      try {
+        const runId = activeRunIdRef.current;
+        if (runId) {
+          const status = await fetchRunStatus(runId);
+          if (status?.runSteps?.length) {
+            setRunMonitor((current) =>
+              buildRunMonitorFromRunSteps({
+                runSteps: status.runSteps || [],
+                language,
+                uiText,
+                startedAt: current?.startedAt ?? Date.now(),
+              }),
+            );
+          }
+
+          if (
+            status?.status &&
+            ["completed", "partial", "failed", "canceled", "cancelled"].includes(
+              status.status,
+            )
+          ) {
+            applyCompletedRun(
+              {
+                session: sessionId
+                  ? {
+                      id: sessionId,
+                      title: sessionTitle,
+                      finalResultId: status.finalResultId,
+                    }
+                  : undefined,
+                results: status.results || [],
+                executionSummary: status.executionSummary ?? undefined,
+                streamError: status.streamError || status.errorMessage || undefined,
+              },
+              status.mode === "sequential" ? "sequential" : "parallel",
+            );
+            setCurrentRunId(null);
+            setCancelingRun(false);
+            setRunning(false);
+            void loadUsageStatus({ preferCache: false });
+            return;
+          }
+        }
+
+        if (sessionId && !activeRunIdRef.current) {
+          const response = await fetch(`/api/sessions/${sessionId}`, {
+            headers: { Accept: "application/json" },
+          });
+          const data = (await response.json().catch(() => ({}))) as {
+            session?: LoadedSession;
+          };
+          if (response.ok && data.session) {
+            applySessionToState(data.session);
+            writeSessionCache(sessionId, data.session);
+            void resumeActiveRun(data.session);
+          }
+        }
+      } finally {
+        refreshInFlight = false;
+      }
+    };
+
+    const handlePageshow = (event: PageTransitionEvent) => {
+      void refreshCurrentWorkbenchState(event);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void refreshCurrentWorkbenchState();
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageshow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("pageshow", handlePageshow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+    // Re-sync after browser/tab restore using the current run token ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, sessionId, sessionTitle, uiText]);
 
   useEffect(() => {
     const handleNewWorkbench = () => {
@@ -3489,6 +3594,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     if (data.usage) {
       setUsage(data.usage);
       writeUsageCache(data.usage);
+    } else {
+      void loadUsageStatus({ preferCache: false });
     }
     setResults((current) => mergeResults(current, data.results || []));
     setActiveMobilePanel("results");
