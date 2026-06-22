@@ -1,3 +1,5 @@
+import { costUsdToCredits } from "./credits.ts";
+
 type AiRequestUsageRow = {
   userId?: string | null;
   provider: string;
@@ -23,6 +25,28 @@ type UsageRow = {
   estimatedCost: number;
   inputTokens: number;
   outputTokens: number;
+};
+
+type ConversationResultUsageRow = {
+  sessionId: string;
+  estimatedCost: number | null;
+  tokenUsagePrompt: number | null;
+  tokenUsageCompletion: number | null;
+};
+
+type ConversationAiRequestUsageRow = {
+  conversationId: string | null;
+  messageId: string | null;
+  estimatedCostUsd: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+};
+
+export type AdminConversationUsageSummary = {
+  totalCreditsUsed: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalEstimatedCostUsd: number;
 };
 
 export type AdminUserSort = "created" | "latest" | "tasks" | "credits" | "tokens";
@@ -118,6 +142,68 @@ function createEmptyUserActivitySummary(user: AdminUserActivityBaseRow) {
     lastUsageAt: user.lastActiveAt ?? user.createdAt,
     recentTasks: [],
   } satisfies AdminUserActivitySummary;
+}
+
+function createEmptyConversationUsageSummary() {
+  return {
+    totalCreditsUsed: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalEstimatedCostUsd: 0,
+  } satisfies AdminConversationUsageSummary;
+}
+
+function addConversationUsage(
+  summaries: Map<string, AdminConversationUsageSummary>,
+  conversationId: string,
+  input: {
+    estimatedCostUsd: number;
+    inputTokens: number;
+    outputTokens: number;
+  },
+) {
+  const summary =
+    summaries.get(conversationId) ?? createEmptyConversationUsageSummary();
+  summary.totalInputTokens += input.inputTokens;
+  summary.totalOutputTokens += input.outputTokens;
+  summary.totalEstimatedCostUsd = Number(
+    (summary.totalEstimatedCostUsd + input.estimatedCostUsd).toFixed(6),
+  );
+  summaries.set(conversationId, summary);
+}
+
+export function buildConversationUsageSummaries(input: {
+  results: ConversationResultUsageRow[];
+  aiRequests: ConversationAiRequestUsageRow[];
+  costToCredits?: (costUsd: number) => number;
+}) {
+  const summaries = new Map<string, AdminConversationUsageSummary>();
+  const costToCredits = input.costToCredits ?? costUsdToCredits;
+
+  for (const result of input.results) {
+    addConversationUsage(summaries, result.sessionId, {
+      estimatedCostUsd: result.estimatedCost ?? 0,
+      inputTokens: result.tokenUsagePrompt ?? 0,
+      outputTokens: result.tokenUsageCompletion ?? 0,
+    });
+  }
+
+  for (const request of input.aiRequests) {
+    if (!request.conversationId || request.messageId) {
+      continue;
+    }
+    addConversationUsage(summaries, request.conversationId, {
+      estimatedCostUsd: request.estimatedCostUsd ?? 0,
+      inputTokens: request.inputTokens ?? 0,
+      outputTokens: request.outputTokens ?? 0,
+    });
+  }
+
+  for (const summary of summaries.values()) {
+    summary.totalCreditsUsed = costToCredits(summary.totalEstimatedCostUsd);
+  }
+
+  return summaries;
 }
 
 export function buildUserActivitySummaries(input: {

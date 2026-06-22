@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildConversationUsageSummaries,
   buildUserActivitySummaries,
   mergeModelUsageRows,
   mergeProviderUsageRows,
@@ -79,6 +80,61 @@ test("admin user cost rows merge ai_requests and orphan V2 result usage", () => 
       outputTokens: 250,
     },
   ]);
+});
+
+test("admin conversation usage summaries merge result usage and request-only usage", () => {
+  const summaries = buildConversationUsageSummaries({
+    results: [
+      {
+        sessionId: "session-a",
+        estimatedCost: 0.02,
+        tokenUsagePrompt: 120,
+        tokenUsageCompletion: 80,
+      },
+      {
+        sessionId: "session-a",
+        estimatedCost: null,
+        tokenUsagePrompt: 30,
+        tokenUsageCompletion: null,
+      },
+      {
+        sessionId: "session-b",
+        estimatedCost: 0.01,
+        tokenUsagePrompt: 40,
+        tokenUsageCompletion: 20,
+      },
+    ],
+    aiRequests: [
+      {
+        conversationId: "session-a",
+        messageId: "result-backed",
+        estimatedCostUsd: 0.99,
+        inputTokens: 999,
+        outputTokens: 999,
+      },
+      {
+        conversationId: "session-a",
+        messageId: null,
+        estimatedCostUsd: 0.03,
+        inputTokens: 200,
+        outputTokens: 100,
+      },
+    ],
+    costToCredits: (costUsd) => Math.ceil(costUsd * 100),
+  });
+
+  assert.deepEqual(summaries.get("session-a"), {
+    totalCreditsUsed: 5,
+    totalInputTokens: 350,
+    totalOutputTokens: 180,
+    totalEstimatedCostUsd: 0.05,
+  });
+  assert.deepEqual(summaries.get("session-b"), {
+    totalCreditsUsed: 1,
+    totalInputTokens: 40,
+    totalOutputTokens: 20,
+    totalEstimatedCostUsd: 0.01,
+  });
 });
 
 test("admin user activity summaries expose credits tokens latest use and recent tasks", () => {

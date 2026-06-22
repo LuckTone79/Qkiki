@@ -78,7 +78,7 @@ export function AdminShell({
     const active = isActiveHref(href);
     const pending = pendingHref === href;
     const base = mobile
-      ? "min-w-20 flex-1 rounded-md px-2 py-2 text-center text-xs font-semibold transition-colors"
+      ? "flex min-h-10 min-w-0 items-center justify-center rounded-md px-1.5 py-1.5 text-center text-[11px] font-semibold leading-tight transition-colors [overflow-wrap:anywhere]"
       : "rounded-md px-3 py-2 text-sm font-medium transition-colors";
 
     if (pending) {
@@ -164,7 +164,7 @@ export function AdminShell({
           </div>
         </aside>
 
-        <main className="flex-1 px-4 pb-40 pt-5 sm:px-6 lg:px-8 lg:pb-8">
+        <main className="min-w-0 flex-1 px-4 pb-48 pt-5 sm:px-6 lg:px-8 lg:pb-8">
           {children}
         </main>
       </div>
@@ -173,7 +173,7 @@ export function AdminShell({
         aria-label={t.mobileNavigation}
         className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden"
       >
-        <div className="mx-auto flex max-w-[620px] gap-1 overflow-x-auto">
+        <div className="mx-auto grid max-w-[620px] grid-cols-4 gap-1">
           {navItems.map((item) => (
             <Link
               key={item.href}
