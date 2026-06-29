@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AuthEntryLinks } from "@/components/AuthEntryLinks";
 import { SignOutButton } from "@/components/SignOutButton";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
 import {
   readBrowserStorageValue,
@@ -50,16 +50,31 @@ export function AppShell({
     );
   }, [sidebarCollapsed]);
 
-  const sidebarToggleLabel =
-    language === "ko"
-      ? sidebarCollapsed
-        ? "왼쪽 메뉴 펼치기"
-        : "왼쪽 메뉴 접기"
-      : sidebarCollapsed
-        ? "Expand left menu"
-        : "Collapse left menu";
-  const versionLabel = language === "ko" ? "버전" : "Version";
-  const recentSessionsLabel = language === "ko" ? "최근 작업" : "Recent work";
+  const sidebarToggleLabel = sidebarCollapsed
+    ? localize(language, {
+        en: "Expand left menu",
+        ko: "왼쪽 메뉴 펼치기",
+        ja: "左メニューを展開",
+        es: "Expandir el menú izquierdo",
+      })
+    : localize(language, {
+        en: "Collapse left menu",
+        ko: "왼쪽 메뉴 접기",
+        ja: "左メニューを折りたたむ",
+        es: "Contraer el menú izquierdo",
+      });
+  const versionLabel = localize(language, {
+    en: "Version",
+    ko: "버전",
+    ja: "バージョン",
+    es: "Versión",
+  });
+  const recentSessionsLabel = localize(language, {
+    en: "Recent work",
+    ko: "최근 작업",
+    ja: "最近の作業",
+    es: "Trabajo reciente",
+  });
   const visibleRecentSessions = recentSessions.slice(0, 10);
   const hasMoreRecentSessions = recentSessions.length > 10;
   const showAuthEntryLinks = shouldShowAuthEntryPoints(user);

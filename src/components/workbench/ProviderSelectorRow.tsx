@@ -1,7 +1,7 @@
 "use client";
 
 import { StatusBadge } from "@/components/StatusBadge";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
 import { getModelGuidance } from "@/lib/workbench-model-guidance";
@@ -78,28 +78,50 @@ export function ProviderSelectorRow({
       <div className="mt-3 rounded-md border border-stone-200 bg-[#f7f6f3] p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs font-medium text-stone-500">
-            {language === "ko" ? "선택 모델" : "Selected models"}
+            {localize(language, {
+              en: "Selected models",
+              ko: "선택 모델",
+              ja: "選択モデル",
+              es: "Modelos seleccionados",
+            })}
           </p>
           <span className="text-[11px] text-stone-400">
             {selectedModels.length
-              ? `${selectedModels.length}${language === "ko" ? "개 선택" : " selected"}`
-              : language === "ko"
-                ? "선택 없음"
-                : "None selected"}
+              ? `${selectedModels.length}${localize(language, {
+                  en: " selected",
+                  ko: "개 선택",
+                  ja: "件選択",
+                  es: " seleccionados",
+                })}`
+              : localize(language, {
+                  en: "None selected",
+                  ko: "선택 없음",
+                  ja: "選択なし",
+                  es: "Ninguno seleccionado",
+                })}
           </span>
         </div>
         <p className="mb-2 text-[11px] leading-5 text-stone-500">
           {isImageVariant
-            ? language === "ko"
-              ? "선택한 이미지 생성 모델로 이미지를 만듭니다."
-              : "Generates images with the image models you select."
+            ? localize(language, {
+                en: "Generates images with the image models you select.",
+                ko: "선택한 이미지 생성 모델로 이미지를 만듭니다.",
+                ja: "選択した画像生成モデルで画像を作成します。",
+                es: "Genera imágenes con los modelos de imagen que selecciones.",
+              })
             : provider.fallbackProvider
-              ? language === "ko"
-                ? `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`
-                : `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`
-              : language === "ko"
-                ? "선택한 모델 그대로 실행합니다."
-                : "Runs with the exact model you selected."}
+              ? localize(language, {
+                  en: `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`,
+                  ko: `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`,
+                  ja: `プロバイダーエラー時は管理者指定のフォールバック ${fallbackProviderLabel} に引き継がれることがあります。`,
+                  es: `Los errores del proveedor pueden continuar con el proveedor de respaldo del administrador ${fallbackProviderLabel}.`,
+                })
+              : localize(language, {
+                  en: "Runs with the exact model you selected.",
+                  ko: "선택한 모델 그대로 실행합니다.",
+                  ja: "選択したモデルそのままで実行します。",
+                  es: "Se ejecuta con el modelo exacto que seleccionaste.",
+                })}
         </p>
         <div className="flex flex-wrap gap-2">
           {models.map((option) => {

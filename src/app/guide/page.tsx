@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 import { APP_VERSION } from "@/lib/version";
 
 /* ------------------------------------------------------------------ */
@@ -224,7 +224,7 @@ const guide = {
       { label: "Workflow modes", value: "Parallel Compare & Sequential Review Chain" },
       { label: "Actions", value: "Generate, Brainstorm, Critique, Fact-check, Improve, Summarize, Simplify, Consistency Review, Code Review, Follow-up" },
       { label: "Attachments", value: "Text, Word, Image, PDF — server-side processing" },
-      { label: "Languages", value: "English & Korean (switchable anytime)" },
+      { label: "Languages", value: "English, Korean, Japanese & Spanish (switchable anytime)" },
       { label: "Security", value: "Encrypted credentials, HttpOnly cookies, server-side only provider calls" },
     ],
 
@@ -474,7 +474,7 @@ const guide = {
       { label: "워크플로우 모드", value: "병렬 비교 & 순차 검토 체인" },
       { label: "작업 유형", value: "생성, 브레인스토밍, 비판, 팩트체크, 개선, 요약, 단순화, 일관성 검토, 코드 리뷰, 후속 질문" },
       { label: "첨부 파일", value: "텍스트, Word, 이미지, PDF — 서버 측 처리" },
-      { label: "언어", value: "영어 & 한국어 (언제든 전환 가능)" },
+      { label: "언어", value: "영어, 한국어, 일본어 & 스페인어 (언제든 전환 가능)" },
       { label: "보안", value: "자격 증명 암호화, HttpOnly 쿠키, 서버 측 전용 AI 호출" },
     ],
 
@@ -506,6 +506,506 @@ const guide = {
 
     /* footer */
     version: "버전",
+    copyright: "Yapp by Wideget",
+  },
+
+  ja: {
+    /* hero */
+    eyebrow: "Yapp ガイドブック",
+    heroTitle: "Yapp をはじめよう",
+    heroSubtitle:
+      "複数の AI モデルの出力を比較・ルーティング・分岐する方法を、1つのワークスペースから順を追って案内します。",
+
+    /* CTA */
+    getStarted: "Yapp を使ってみる",
+    backToHome: "ホームに戻る",
+
+    /* why different */
+    diffTitle: "Yapp は何が違うの？",
+    diffSubtitle:
+      "Yapp はただのチャットボットではありません。複数の AI モデルを構造化されたレビューパイプラインに変えるオーケストレーションワークベンチです。",
+
+    diffItems: [
+      {
+        icon: "parallel",
+        title: "並列比較",
+        desc: "1つのタスクを GPT、Claude、Gemini、Grok に同時に送信。結果カードですべての回答を並べて確認できます。別々のチャット画面に埋もれません。",
+        vs: "他のプラットフォーム: 4つのタブを開き、同じプロンプトを4回貼り付けて手動で比較。",
+      },
+      {
+        icon: "chain",
+        title: "順次レビューチェーン",
+        desc: "あるモデルの出力を次のモデルに渡します。例: GPT が下書き → Grok が批評 → Gemini が改善 → Claude が最終回答を仕上げ。",
+        vs: "他のプラットフォーム: チャット間でコピペし、各ステップで文脈を失う。",
+      },
+      {
+        icon: "branch",
+        title: "分岐とフォローアップ",
+        desc: "すべての結果カードが操作可能です。別のモデルに分岐して批評・改善・ファクトチェック・要約させ、進化する回答のツリーを構築します。",
+        vs: "他のプラットフォーム: 結果は最終テキストのみ。連結や分岐の手段がない。",
+      },
+      {
+        icon: "project",
+        title: "プロジェクトフォルダー",
+        desc: "関連するセッションを1つのプロジェクトにまとめます。共有メモと最近の出力がプロジェクト内のすべての実行に引き継がれます。",
+        vs: "他のプラットフォーム: 各会話が独立し、チャット間で共有メモリがない。",
+      },
+      {
+        icon: "preset",
+        title: "再利用プリセット",
+        desc: "良いレビューチェーンをプリセットとして保存。同じマルチモデルのワークフローが必要なときにいつでも読み込めます。一から作り直す必要はありません。",
+        vs: "他のプラットフォーム: 毎回同じプロンプト手順を最初から作り直す。",
+      },
+      {
+        icon: "attach",
+        title: "ファイル添付",
+        desc: "テキスト、Word、画像、PDF をタスクに添付。ファイルはサーバー側で処理され、すべてのモデルのプロンプトに自動で挿入されます。",
+        vs: "他のプラットフォーム: モデルごとに対応がバラバラで、モデル間のファイル共有ができない。",
+      },
+    ],
+
+    /* step-by-step guide */
+    guideTitle: "ステップバイステップガイド",
+    guideSubtitle: "サインアップから最初のマルチ AI ワークフローまで8ステップで。",
+
+    steps: [
+      {
+        num: "01",
+        title: "サインアップまたはログイン",
+        desc: "メール/パスワードまたは Google ログインでアカウントを作成します。プロバイダー設定、セッション、結果、プリセットはすべてアカウントごとに分離されます。",
+        tip: 'ランディングページで「始める」をクリックすると、すぐに無料トライアルを開始できます。',
+      },
+      {
+        num: "02",
+        title: "利用可能な AI モデルを確認",
+        desc: "AI プロバイダー（GPT、Claude、Gemini、Grok）はプラットフォーム側で事前設定済みです。ワークベンチを開き、モデル選択パネルで「準備完了」と表示されたモデルをすぐに使えます。",
+        tip: "すべてのプロバイダーキーと認証情報は管理者がサーバー側で管理します。API キーを自分で設定する必要はありません。",
+      },
+      {
+        num: "03",
+        title: "ワークベンチを開く",
+        desc: '左メニューの「ワークベンチ」をクリックします。ここがメインの作業空間で、タスクの入力、モデルの選択、ワークフローの構築、結果の確認をすべて行います。',
+        tip: null,
+      },
+      {
+        num: "04",
+        title: "タスクを入力してモデルを選択",
+        desc: 'テキストエリアに質問、分析依頼、指示を入力します。次に「モデル選択」パネルで比較したい AI モデルをトグルで有効化します。出力スタイル（詳細、簡潔、箇条書き、表、要約）を選んで結果の形式を調整することもできます。',
+        tip: "追加指示フィールドに任意の文脈、制約、評価基準を加えられます。テキスト、Word、画像、PDF も添付できます。",
+      },
+      {
+        num: "05",
+        title: "並列比較を実行",
+        desc: '「並列比較」モードを選択して実行をクリックします。有効なすべてのモデルが同じタスクを同時に処理します。結果は出力、トークン使用量、レイテンシー、概算コストを示す個別カードとして表示されます。',
+        tip: "あるモデルが失敗しても他の結果はそのまま残ります。失敗したモデルは再実行できるエラーカードで表示されます。",
+      },
+      {
+        num: "06",
+        title: "順次レビューチェーンを構築",
+        desc: '「順次レビューチェーン」モードに切り替えます。各ステップで特定のモデルとアクション（生成、批評、改善、要約、ファクトチェック）を指定します。各ステップは元の入力、前のステップ、または選択した結果をソースにできます。',
+        tip: '例: ステップ1 GPT「下書き」→ ステップ2 Grok「批評」→ ステップ3 Gemini「改善」→ ステップ4 Claude「仕上げ」。',
+      },
+      {
+        num: "07",
+        title: "結果を活用する",
+        desc: '各結果カードは操作可能です。「別のモデルでレビュー」で分岐、「追加質問」で会話を継続、「最終としてマーク」で最良の回答を指定、「再実行」で再生成できます。',
+        tip: "結果はツリー状に積み上がります。すべての分岐が次の作業の起点になります。",
+      },
+      {
+        num: "08",
+        title: "プロジェクトとプリセットで整理",
+        desc: "プロジェクトフォルダーを作って関連セッションをまとめます。便利なワークフローチェーンはプリセットとして保存します。プロジェクト内のセッションは文脈と最近の出力を自動で共有します。",
+        tip: "保存したプリセットをワークベンチから読み込めば、実証済みのレビューチェーンを新しいタスクにすぐ適用できます。",
+      },
+    ],
+
+    /* parallel compare tutorial */
+    parallelTutorial: {
+      title: "並列比較 — ステップバイステップ チュートリアル",
+      subtitle:
+        "あなたの質問を複数の AI モデルに同時に送り、回答を並べて比較しましょう！",
+      steps: [
+        {
+          num: "1",
+          title: "並列比較モードを選ぶ",
+          desc: 'ワークベンチの上部で「並列比較」をクリックします。ボタンが点灯して選択中だとわかります。',
+        },
+        {
+          num: "2",
+          title: "AI モデルをオンにする",
+          desc: "モデル一覧に GPT、Claude、Gemini、Grok が表示されます。使いたいモデルの横のチェックボックスをクリックします。まずは2〜3個選んでみましょう！",
+        },
+        {
+          num: "3",
+          title: "質問を入力する",
+          desc: '大きなテキストボックスをクリックして質問を入力します。例:「空が青い理由をわかりやすく説明して。」',
+        },
+        {
+          num: "4",
+          title: "出力スタイルを選ぶ（任意）",
+          desc: '回答の形式を選びます: 詳細（長め）、簡潔（短め）、箇条書き（リスト）、表（グリッド）、要約（要点）。迷ったら「詳細」のままで大丈夫です。',
+        },
+        {
+          num: "5",
+          title: "必要ならファイルを添付（任意）",
+          desc: "添付ボタンをクリックして Word 文書、画像、PDF、テキストファイルを追加できます。選択したすべての AI モデルがファイルを自動で読み込みます。",
+        },
+        {
+          num: "6",
+          title: "実行ボタンを押す",
+          desc: '緑色の「▶ 実行」ボタンをクリックします。選択したすべての AI モデルが同時に質問の処理を開始します！',
+        },
+        {
+          num: "7",
+          title: "少し待つ",
+          desc: "各モデルに進行状況が表示されます。すべて同時に考えるので、通常は数秒で終わります。",
+        },
+        {
+          num: "8",
+          title: "結果を比較する！",
+          desc: "結果が AI モデルごとにカードとして表示されます。並べて読み、各 AI がどう違う回答をしたか比較しましょう。各カードには所要時間と使用トークン数も表示されます。",
+        },
+      ],
+    },
+
+    /* sequential review chain tutorial */
+    sequentialTutorial: {
+      title: "順次レビューチェーン — ステップバイステップ チュートリアル",
+      subtitle:
+        "AI モデルがリレーチームのように協力します — それぞれが前の回答を読んで改善します！",
+      steps: [
+        {
+          num: "1",
+          title: "順次レビューチェーンモードを選ぶ",
+          desc: 'ワークベンチの上部で「順次レビューチェーン」をクリックします。画面が連結されたステップのチェーン表示に変わります。',
+        },
+        {
+          num: "2",
+          title: "デフォルトのチェーンを見る",
+          desc: "すでに3つのステップが設定されています: ステップ1（GPT → 生成）→ ステップ2（Grok → 批評）→ ステップ3（Gemini → 改善）。これが出発点のチェーンです！",
+        },
+        {
+          num: "3",
+          title: "各ステップをカスタマイズ",
+          desc: '各ステップで選べます: どの AI モデルを使うか（ドロップダウン）、何をするか（生成、批評、改善、要約、ファクトチェック、簡潔化）、そして「文法ミスに注目して」などの特別な指示。',
+        },
+        {
+          num: "4",
+          title: "ステップを追加・削除",
+          desc: '「+」をクリックすると末尾に新しいステップを追加できます。ゴミ箱アイコンでステップを削除できます。好きなだけ自由に調整できます！',
+        },
+        {
+          num: "5",
+          title: "最初の質問を入力",
+          desc: 'テキストボックスにステップ1が処理する質問を入力します。例:「絵を描くことを学ぶロボットについての短い物語を書いて。」',
+        },
+        {
+          num: "6",
+          title: "実行ボタンを押す",
+          desc: '緑色の「▶ 実行」ボタンをクリックします。ステップ1からチェーンが始まります。',
+        },
+        {
+          num: "7",
+          title: "チェーンの動きを見る",
+          desc: "ステップ1がまず実行されて回答を作ります。その回答が自動でステップ2に渡され、ステップ2が作業（批評など）をします。ステップ2の結果がステップ3へ…リレー競走のように続きます！",
+        },
+        {
+          num: "8",
+          title: "すべての結果を確認！",
+          desc: "チェーンが終わると、すべてのステップの出力を読めます。最後のステップに最終的に仕上がった回答があります。どのステップをクリックしても、その AI が書いた内容を見られます。",
+        },
+      ],
+    },
+
+    /* features overview */
+    featuresTitle: "機能の概要",
+    features: [
+      { label: "対応モデル", value: "GPT、Claude、Gemini、Grok（16のモデルバリアント）" },
+      { label: "ワークフローモード", value: "並列比較 & 順次レビューチェーン" },
+      { label: "アクション", value: "生成、ブレインストーミング、批評、ファクトチェック、改善、要約、簡潔化、一貫性レビュー、コードレビュー、追加質問" },
+      { label: "添付ファイル", value: "テキスト、Word、画像、PDF — サーバー側処理" },
+      { label: "言語", value: "英語、韓国語、日本語 & スペイン語（いつでも切替可能）" },
+      { label: "セキュリティ", value: "認証情報の暗号化、HttpOnly Cookie、サーバー側専用の AI 呼び出し" },
+    ],
+
+    /* FAQ */
+    faqTitle: "よくある質問",
+    faqs: [
+      {
+        q: "私のデータは安全ですか？",
+        a: "はい。すべての AI 呼び出しはサーバー側のみで行われ、入力内容がブラウザーから外部プロバイダーに直接送信されることはありません。セッションは HttpOnly Cookie を使用し、すべての認証情報は暗号化されます。",
+      },
+      {
+        q: "モバイルでも使えますか？",
+        a: "はい。ワークベンチは完全レスポンシブで、モバイル最適化された下部ナビゲーションバーと、モデル・入力・ワークフロー・結果の折りたたみパネルを備えています。",
+      },
+      {
+        q: "どんなファイルを添付できますか？",
+        a: "テキストファイル（.txt、.md、.csv）、JSON、Word 文書（.docx）、PDF 文書、画像（.png、.jpg、.webp、.gif）。ファイルはサーバー側で処理され、すべてのモデルのプロンプトに含まれます。",
+      },
+      {
+        q: "実行中に AI モデルが1つ失敗したらどうなりますか？",
+        a: "他のモデルは通常どおり続行します。失敗したモデルはエラーカードとして表示され、ワークフロー全体を再実行せずに個別に再実行できます。",
+      },
+    ],
+
+    /* bottom CTA */
+    ctaTitle: "始める準備はできましたか？",
+    ctaSubtitle:
+      "複数の AI モデルを1つの統合ワークフローでオーケストレーションする体験をしてみましょう。",
+
+    /* footer */
+    version: "バージョン",
+    copyright: "Yapp by Wideget",
+  },
+
+  es: {
+    /* hero */
+    eyebrow: "Guía de Yapp",
+    heroTitle: "Tus primeros pasos con Yapp",
+    heroSubtitle:
+      "Una guía paso a paso para comparar, enrutar y ramificar las salidas de modelos de IA, todo desde un solo espacio de trabajo.",
+
+    /* CTA */
+    getStarted: "Empezar a usar Yapp",
+    backToHome: "Volver al inicio",
+
+    /* why different */
+    diffTitle: "¿En qué se diferencia Yapp?",
+    diffSubtitle:
+      "Yapp no es otro chatbot. Es un banco de trabajo de orquestación que convierte varios modelos de IA en una canalización de revisión estructurada.",
+
+    diffItems: [
+      {
+        icon: "parallel",
+        title: "Comparación paralela",
+        desc: "Envía una tarea a GPT, Claude, Gemini y Grok a la vez. Mira cada respuesta una al lado de la otra en tarjetas de resultados, no enterradas en ventanas de chat separadas.",
+        vs: "Otras plataformas: abre 4 pestañas, pega el mismo prompt 4 veces y compara manualmente.",
+      },
+      {
+        icon: "chain",
+        title: "Cadena de revisión secuencial",
+        desc: "Enruta la salida de un modelo al siguiente. Por ejemplo: GPT redacta → Grok critica → Gemini mejora → Claude pule la respuesta final.",
+        vs: "Otras plataformas: copia y pega entre chats, perdiendo contexto en cada paso.",
+      },
+      {
+        icon: "branch",
+        title: "Ramificación y seguimiento",
+        desc: "Cada tarjeta de resultado es accionable. Ramifícala a otro modelo para crítica, mejora, verificación o resumen, construyendo un árbol de respuestas en evolución.",
+        vs: "Otras plataformas: los resultados son texto final. Sin forma integrada de encadenar o ramificar.",
+      },
+      {
+        icon: "project",
+        title: "Carpetas de proyecto",
+        desc: "Agrupa sesiones relacionadas bajo un proyecto. Las notas compartidas y los resultados recientes viajan con cada ejecución dentro de ese proyecto.",
+        vs: "Otras plataformas: cada conversación está aislada, sin memoria compartida entre chats.",
+      },
+      {
+        icon: "preset",
+        title: "Preajustes reutilizables",
+        desc: "Guarda una buena cadena de revisión como preajuste. Cárgala cuando necesites el mismo flujo de trabajo multimodelo de nuevo, sin reconstruir desde cero.",
+        vs: "Otras plataformas: recrea la misma secuencia de prompts cada vez.",
+      },
+      {
+        icon: "attach",
+        title: "Archivos adjuntos",
+        desc: "Adjunta texto, Word, imágenes o PDF a tu tarea. Los archivos se procesan en el servidor y se inyectan automáticamente en los prompts de todos los modelos.",
+        vs: "Otras plataformas: el soporte de subida de archivos varía según el modelo, sin compartir archivos entre modelos.",
+      },
+    ],
+
+    /* step-by-step guide */
+    guideTitle: "Guía paso a paso",
+    guideSubtitle: "Del registro a tu primer flujo de trabajo multi-IA en 8 pasos.",
+
+    steps: [
+      {
+        num: "01",
+        title: "Regístrate o inicia sesión",
+        desc: "Crea tu cuenta con correo/contraseña o inicio de sesión de Google. Tus ajustes de proveedor, sesiones, resultados y preajustes están todos acotados a tu cuenta.",
+        tip: 'Haz clic en "Comenzar" en la página de inicio para empezar una prueba gratuita al instante.',
+      },
+      {
+        num: "02",
+        title: "Revisa los modelos de IA disponibles",
+        desc: "Los proveedores de IA (GPT, Claude, Gemini, Grok) están preconfigurados por la plataforma. Abre el banco de trabajo y revisa el panel de selección de modelos: los marcados como \"listo\" están disponibles para tus tareas de inmediato.",
+        tip: "Todas las claves y credenciales de los proveedores las gestiona el administrador en el servidor. No necesitas configurar ninguna clave de API tú mismo.",
+      },
+      {
+        num: "03",
+        title: "Abre el banco de trabajo",
+        desc: 'Haz clic en "Banco de trabajo" en el menú izquierdo. Este es tu espacio de trabajo principal, donde escribes tareas, seleccionas modelos, construyes flujos de trabajo y ves resultados.',
+        tip: null,
+      },
+      {
+        num: "04",
+        title: "Escribe una tarea y selecciona modelos",
+        desc: 'Escribe tu pregunta, solicitud de análisis o instrucción en el área de texto. Luego habilita los modelos de IA que quieras comparar activándolos en el panel "Selección de modelos". También puedes elegir un estilo de salida (detallado, breve, viñetas, tabla o centrado en resultados) para controlar el formato.',
+        tip: "Usa el campo de instrucción adicional para añadir contexto, restricciones o criterios de evaluación opcionales. Adjunta archivos (texto, Word, imágenes, PDF) para entradas más ricas.",
+      },
+      {
+        num: "05",
+        title: "Ejecuta la comparación paralela",
+        desc: 'Con el modo "Comparación paralela" seleccionado, haz clic en Ejecutar. Todos los modelos habilitados procesan la misma tarea simultáneamente. Los resultados aparecen como tarjetas individuales que muestran la salida, el uso de tokens, la latencia y el costo estimado.',
+        tip: "Si un modelo falla, los demás resultados permanecen intactos. Los modelos fallidos muestran una tarjeta de error que puedes volver a ejecutar.",
+      },
+      {
+        num: "06",
+        title: "Construye una cadena de revisión secuencial",
+        desc: 'Cambia al modo "Cadena de revisión secuencial". Agrega pasos donde cada uno apunta a un modelo y una acción específicos (generar, criticar, mejorar, resumir, verificar). Cada paso puede consumir la entrada original, el paso anterior o un resultado seleccionado.',
+        tip: 'Cadena de ejemplo: Paso 1 GPT "Redactar" → Paso 2 Grok "Criticar" → Paso 3 Gemini "Mejorar" → Paso 4 Claude "Pulir".',
+      },
+      {
+        num: "07",
+        title: "Trabaja con los resultados",
+        desc: 'Cada tarjeta de resultado es accionable. Haz clic en "Revisar con otro modelo" para ramificar, "Seguimiento" para continuar la conversación, "Marcar como final" para designar la mejor respuesta o "Volver a ejecutar" para regenerar.',
+        tip: "Los resultados forman un árbol. Cada rama se convierte en un nuevo punto de partida para más trabajo.",
+      },
+      {
+        num: "08",
+        title: "Organiza con proyectos y preajustes",
+        desc: "Crea carpetas de proyecto para agrupar sesiones relacionadas. Guarda cadenas de trabajo útiles como preajustes. Las sesiones dentro de un proyecto comparten contexto y resultados recientes automáticamente.",
+        tip: "Carga un preajuste guardado desde el banco de trabajo para aplicar al instante una cadena de revisión probada a una nueva tarea.",
+      },
+    ],
+
+    /* parallel compare tutorial */
+    parallelTutorial: {
+      title: "Comparación paralela — Tutorial paso a paso",
+      subtitle:
+        "¡Envía tu pregunta a varios modelos de IA a la vez y compara sus respuestas lado a lado!",
+      steps: [
+        {
+          num: "1",
+          title: "Selecciona el modo Comparación paralela",
+          desc: 'En la parte superior del banco de trabajo, haz clic en "Comparación paralela". El botón se ilumina para mostrar que está seleccionado.',
+        },
+        {
+          num: "2",
+          title: "Activa tus modelos de IA",
+          desc: "En la lista de modelos verás: GPT, Claude, Gemini y Grok. Haz clic en la casilla junto a cada modelo que quieras usar. ¡Prueba a elegir 2 o 3!",
+        },
+        {
+          num: "3",
+          title: "Escribe tu pregunta",
+          desc: 'Haz clic en el cuadro de texto grande y escribe tu pregunta. Ejemplo: "Explica por qué el cielo es azul con palabras sencillas."',
+        },
+        {
+          num: "4",
+          title: "Elige un estilo de salida (opcional)",
+          desc: 'Elige cómo quieres el formato de las respuestas: Detallado (largo), Breve (corto), Viñetas (lista), Tabla (cuadrícula) o Centrado en resultados (resumen). ¿No estás seguro? Déjalo en "Detallado".',
+        },
+        {
+          num: "5",
+          title: "Adjunta archivos si lo necesitas (opcional)",
+          desc: "Haz clic en el botón de adjuntar para añadir documentos de Word, imágenes, PDF o archivos de texto. Todos los modelos de IA seleccionados leerán tus archivos automáticamente.",
+        },
+        {
+          num: "6",
+          title: "Pulsa el botón Ejecutar",
+          desc: '¡Haz clic en el botón verde "▶ Ejecutar". Todos tus modelos de IA seleccionados empiezan a trabajar en tu pregunta al mismo tiempo!',
+        },
+        {
+          num: "7",
+          title: "Espera un momento",
+          desc: "Cada modelo muestra un indicador de progreso. Todos piensan simultáneamente: normalmente solo toma unos segundos.",
+        },
+        {
+          num: "8",
+          title: "¡Compara los resultados!",
+          desc: "Los resultados aparecen como tarjetas, una por modelo de IA. Léelas lado a lado para ver cómo respondió cada IA de forma diferente. Cada tarjeta también muestra el tiempo empleado y los tokens usados.",
+        },
+      ],
+    },
+
+    /* sequential review chain tutorial */
+    sequentialTutorial: {
+      title: "Cadena de revisión secuencial — Tutorial paso a paso",
+      subtitle:
+        "¡Los modelos de IA trabajan como un equipo de relevos: cada uno lee y mejora la respuesta anterior!",
+      steps: [
+        {
+          num: "1",
+          title: "Selecciona el modo Cadena de revisión secuencial",
+          desc: 'En la parte superior del banco de trabajo, haz clic en "Cadena de revisión secuencial". La pantalla cambia para mostrar una cadena de pasos conectados.',
+        },
+        {
+          num: "2",
+          title: "Mira la cadena predeterminada",
+          desc: "Verás 3 pasos ya configurados: Paso 1 (GPT → Generar) → Paso 2 (Grok → Criticar) → Paso 3 (Gemini → Mejorar). ¡Esta es tu cadena inicial!",
+        },
+        {
+          num: "3",
+          title: "Personaliza cada paso",
+          desc: 'Para cada paso puedes elegir: qué modelo de IA (menú desplegable), qué acción (Generar, Criticar, Mejorar, Resumir, Verificar, Simplificar) y añadir instrucciones especiales como "Concéntrate en errores gramaticales."',
+        },
+        {
+          num: "4",
+          title: "Agrega o quita pasos",
+          desc: '¡Haz clic en "+" para añadir un nuevo paso al final. Haz clic en el icono de papelera para quitar un paso. Puedes tener tantos como quieras!',
+        },
+        {
+          num: "5",
+          title: "Escribe tu pregunta inicial",
+          desc: 'En el cuadro de texto, escribe la pregunta para que el Paso 1 trabaje en ella. Ejemplo: "Escribe un cuento corto sobre un robot que aprende a pintar."',
+        },
+        {
+          num: "6",
+          title: "Pulsa el botón Ejecutar",
+          desc: 'Haz clic en el botón verde "▶ Ejecutar". La cadena empieza a ejecutarse desde el Paso 1.',
+        },
+        {
+          num: "7",
+          title: "Observa cómo trabaja la cadena",
+          desc: "El Paso 1 se ejecuta primero y crea una respuesta. Esa respuesta pasa automáticamente al Paso 2, que hace su trabajo (como criticar). Luego el resultado del Paso 2 pasa al Paso 3, y así sucesivamente, ¡como una carrera de relevos!",
+        },
+        {
+          num: "8",
+          title: "¡Mira todos los resultados!",
+          desc: "Cuando la cadena termina, puedes leer la salida de cada paso. El último paso tiene la respuesta final y pulida. Haz clic en cualquier paso para ver lo que escribió esa IA.",
+        },
+      ],
+    },
+
+    /* features overview */
+    featuresTitle: "Resumen de funciones",
+    features: [
+      { label: "Modelos compatibles", value: "GPT, Claude, Gemini, Grok (16 variantes de modelo)" },
+      { label: "Modos de flujo de trabajo", value: "Comparación paralela y cadena de revisión secuencial" },
+      { label: "Acciones", value: "Generar, lluvia de ideas, criticar, verificar, mejorar, resumir, simplificar, revisión de consistencia, revisión de código, seguimiento" },
+      { label: "Adjuntos", value: "Texto, Word, imagen, PDF — procesamiento en el servidor" },
+      { label: "Idiomas", value: "Inglés, coreano, japonés y español (cambiables en cualquier momento)" },
+      { label: "Seguridad", value: "Credenciales cifradas, cookies HttpOnly, llamadas a IA solo del lado del servidor" },
+    ],
+
+    /* FAQ */
+    faqTitle: "Preguntas frecuentes",
+    faqs: [
+      {
+        q: "¿Mis datos están seguros?",
+        a: "Sí. Todas las llamadas a la IA ocurren solo en el servidor: tus entradas nunca van directamente a proveedores externos desde tu navegador. Las sesiones usan cookies HttpOnly y todas las credenciales están cifradas.",
+      },
+      {
+        q: "¿Puedo usar Yapp en el móvil?",
+        a: "Sí. El banco de trabajo es totalmente adaptable, con una barra de navegación inferior optimizada para móvil y paneles plegables para modelos, entrada, flujo de trabajo y resultados.",
+      },
+      {
+        q: "¿Qué tipos de archivos puedo adjuntar?",
+        a: "Archivos de texto (.txt, .md, .csv), JSON, documentos de Word (.docx), documentos PDF e imágenes (.png, .jpg, .webp, .gif). Los archivos se procesan en el servidor y se incluyen en los prompts de todos los modelos.",
+      },
+      {
+        q: "¿Qué pasa si un modelo de IA falla durante una ejecución?",
+        a: "Los demás modelos continúan normalmente. El modelo fallido muestra una tarjeta de error que puedes volver a ejecutar individualmente sin repetir todo el flujo de trabajo.",
+      },
+    ],
+
+    /* bottom CTA */
+    ctaTitle: "¿Listo para empezar?",
+    ctaSubtitle:
+      "Experimenta la orquestación de varios modelos de IA en un flujo de trabajo unificado.",
+
+    /* footer */
+    version: "Versión",
     copyright: "Yapp by Wideget",
   },
 } as const;
@@ -735,12 +1235,20 @@ export default function GuidePage() {
                 {/* Mode selector */}
                 <div className="flex gap-2">
                   <span className="rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
-                    {language === "ko" ? "● 병렬 비교" : "● Parallel Compare"}
+                    {localize(language, {
+                      en: "● Parallel Compare",
+                      ko: "● 병렬 비교",
+                      ja: "● 並列比較",
+                      es: "● Comparación paralela",
+                    })}
                   </span>
                   <span className="rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs text-stone-400">
-                    {language === "ko"
-                      ? "순차 검토 체인"
-                      : "Sequential Review Chain"}
+                    {localize(language, {
+                      en: "Sequential Review Chain",
+                      ko: "순차 검토 체인",
+                      ja: "順次レビューチェーン",
+                      es: "Cadena de revisión secuencial",
+                    })}
                   </span>
                 </div>
 
@@ -762,15 +1270,23 @@ export default function GuidePage() {
 
                 {/* Input area */}
                 <div className="rounded-lg border border-stone-200 bg-[#fafbf7] px-3.5 py-2.5 text-xs italic text-stone-400">
-                  {language === "ko"
-                    ? '"하늘이 파란 이유를 쉽게 설명해줘."'
-                    : '"Explain why the sky is blue in simple words."'}
+                  {localize(language, {
+                    en: '"Explain why the sky is blue in simple words."',
+                    ko: '"하늘이 파란 이유를 쉽게 설명해줘."',
+                    ja: '"空が青い理由をわかりやすく説明して。"',
+                    es: '"Explica por qué el cielo es azul con palabras sencillas."',
+                  })}
                 </div>
 
                 {/* Output style */}
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-medium text-stone-500">
-                    {language === "ko" ? "출력 스타일:" : "Output Style:"}
+                    {localize(language, {
+                      en: "Output Style:",
+                      ko: "출력 스타일:",
+                      ja: "出力スタイル:",
+                      es: "Estilo de salida:",
+                    })}
                   </span>
                   <span className="rounded border border-stone-200 bg-white px-2 py-0.5 text-[10px] text-stone-600">
                     Detailed ▾
@@ -780,7 +1296,12 @@ export default function GuidePage() {
                 {/* Run button */}
                 <div className="text-center">
                   <span className="inline-block rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-sm">
-                    {language === "ko" ? "▶ 실행" : "▶ Run"}
+                    {localize(language, {
+                      en: "▶ Run",
+                      ko: "▶ 실행",
+                      ja: "▶ 実行",
+                      es: "▶ Ejecutar",
+                    })}
                   </span>
                 </div>
 
@@ -885,44 +1406,84 @@ export default function GuidePage() {
                 {/* Mode selector */}
                 <div className="flex gap-2">
                   <span className="rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs text-stone-400">
-                    {language === "ko" ? "병렬 비교" : "Parallel Compare"}
+                    {localize(language, {
+                      en: "Parallel Compare",
+                      ko: "병렬 비교",
+                      ja: "並列比較",
+                      es: "Comparación paralela",
+                    })}
                   </span>
                   <span className="rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
-                    {language === "ko"
-                      ? "● 순차 검토 체인"
-                      : "● Sequential Review Chain"}
+                    {localize(language, {
+                      en: "● Sequential Review Chain",
+                      ko: "● 순차 검토 체인",
+                      ja: "● 順次レビューチェーン",
+                      es: "● Cadena de revisión secuencial",
+                    })}
                   </span>
                 </div>
 
                 {/* Chain diagram */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-medium text-blue-800">
-                    GPT: {language === "ko" ? "생성" : "Generate"}
+                    GPT:{" "}
+                    {localize(language, {
+                      en: "Generate",
+                      ko: "생성",
+                      ja: "生成",
+                      es: "Generar",
+                    })}
                   </span>
                   <span className="text-lg text-stone-300">→</span>
                   <span className="rounded-md border border-orange-300 bg-orange-50 px-2.5 py-1.5 text-[11px] font-medium text-orange-800">
-                    Grok: {language === "ko" ? "비판" : "Critique"}
+                    Grok:{" "}
+                    {localize(language, {
+                      en: "Critique",
+                      ko: "비판",
+                      ja: "批評",
+                      es: "Crítica",
+                    })}
                   </span>
                   <span className="text-lg text-stone-300">→</span>
                   <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800">
-                    Gemini: {language === "ko" ? "개선" : "Improve"}
+                    Gemini:{" "}
+                    {localize(language, {
+                      en: "Improve",
+                      ko: "개선",
+                      ja: "改善",
+                      es: "Mejorar",
+                    })}
                   </span>
                   <span className="rounded-md border border-dashed border-stone-300 px-2.5 py-1.5 text-[11px] text-stone-400">
-                    + {language === "ko" ? "추가" : "Add"}
+                    +{" "}
+                    {localize(language, {
+                      en: "Add",
+                      ko: "추가",
+                      ja: "追加",
+                      es: "Agregar",
+                    })}
                   </span>
                 </div>
 
                 {/* Input area */}
                 <div className="rounded-lg border border-stone-200 bg-[#fafbf7] px-3.5 py-2.5 text-xs italic text-stone-400">
-                  {language === "ko"
-                    ? '"그림 그리는 법을 배우는 로봇에 대한 짧은 이야기를 써줘."'
-                    : '"Write a short story about a robot who learns to paint."'}
+                  {localize(language, {
+                    en: '"Write a short story about a robot who learns to paint."',
+                    ko: '"그림 그리는 법을 배우는 로봇에 대한 짧은 이야기를 써줘."',
+                    ja: '"絵を描くことを学ぶロボットについての短い物語を書いて。"',
+                    es: '"Escribe un cuento corto sobre un robot que aprende a pintar."',
+                  })}
                 </div>
 
                 {/* Run button */}
                 <div className="text-center">
                   <span className="inline-block rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-sm">
-                    {language === "ko" ? "▶ 실행" : "▶ Run"}
+                    {localize(language, {
+                      en: "▶ Run",
+                      ko: "▶ 실행",
+                      ja: "▶ 実行",
+                      es: "▶ Ejecutar",
+                    })}
                   </span>
                 </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 
 const text = {
   en: {
@@ -87,7 +87,7 @@ export function AdminDashboardClient({
   monthlyUserCostRows,
 }: AdminDashboardClientProps) {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[adminTextKey(language)];
 
   const metricCards = [
     { label: t.todayTotalRequests, value: metrics.todayTotalRequests },

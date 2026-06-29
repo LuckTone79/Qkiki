@@ -15,20 +15,35 @@ export type FeedbackStatusValue =
 
 const categoryLabels: Record<
   FeedbackCategoryValue,
-  { ko: string; en: string }
+  Record<AppLanguage, string>
 > = {
-  BUG: { ko: "버그/오류", en: "Bug" },
-  FEATURE: { ko: "기능 요청", en: "Feature request" },
-  IMPROVEMENT: { ko: "개선 제안", en: "Improvement" },
-  QUESTION: { ko: "문의", en: "Question" },
-  OTHER: { ko: "기타", en: "Other" },
+  BUG: { ko: "버그/오류", en: "Bug", ja: "バグ/エラー", es: "Error" },
+  FEATURE: {
+    ko: "기능 요청",
+    en: "Feature request",
+    ja: "機能リクエスト",
+    es: "Solicitud de función",
+  },
+  IMPROVEMENT: {
+    ko: "개선 제안",
+    en: "Improvement",
+    ja: "改善提案",
+    es: "Mejora",
+  },
+  QUESTION: { ko: "문의", en: "Question", ja: "問い合わせ", es: "Pregunta" },
+  OTHER: { ko: "기타", en: "Other", ja: "その他", es: "Otro" },
 };
 
-const statusLabels: Record<FeedbackStatusValue, { ko: string; en: string }> = {
-  OPEN: { ko: "접수됨", en: "Open" },
-  IN_PROGRESS: { ko: "처리 중", en: "In progress" },
-  RESOLVED: { ko: "해결됨", en: "Resolved" },
-  CLOSED: { ko: "종료됨", en: "Closed" },
+const statusLabels: Record<FeedbackStatusValue, Record<AppLanguage, string>> = {
+  OPEN: { ko: "접수됨", en: "Open", ja: "受付済み", es: "Abierto" },
+  IN_PROGRESS: {
+    ko: "처리 중",
+    en: "In progress",
+    ja: "対応中",
+    es: "En progreso",
+  },
+  RESOLVED: { ko: "해결됨", en: "Resolved", ja: "解決済み", es: "Resuelto" },
+  CLOSED: { ko: "종료됨", en: "Closed", ja: "クローズ", es: "Cerrado" },
 };
 
 const statusBadgeClass: Record<FeedbackStatusValue, string> = {
@@ -69,7 +84,14 @@ export function statusBadgeClassName(value: FeedbackStatusValue) {
 }
 
 export function formatFeedbackDate(value: string, language: AppLanguage) {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+  const localeMap: Record<AppLanguage, string> = {
+    en: "en-US",
+    ko: "ko-KR",
+    ja: "ja-JP",
+    es: "es-ES",
+  };
+
+  return new Intl.DateTimeFormat(localeMap[language], {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));

@@ -6,7 +6,12 @@ import Link from "next/link";
 import { UsageStatus } from "@/components/billing/UsageStatus";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SignOutButton } from "@/components/SignOutButton";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  intlLocale,
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 import { readUsageCache, writeUsageCache } from "@/lib/local-cache";
 import type { UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
@@ -26,30 +31,42 @@ type SubscriptionState = {
   activeCoupon: ActiveCoupon | null;
 };
 
-function activeCouponLabel(coupon: ActiveCoupon, language: "en" | "ko") {
+function activeCouponLabel(coupon: ActiveCoupon, language: AppLanguage) {
   if (coupon.kind === "unlimited") {
-    return language === "ko"
-      ? coupon.isLifetime
-        ? "평생 무제한 크레딧"
-        : "무제한 크레딧"
-      : coupon.isLifetime
-        ? "Lifetime unlimited credits"
-        : "Unlimited credits";
+    return coupon.isLifetime
+      ? localize(language, {
+          en: "Lifetime unlimited credits",
+          ko: "평생 무제한 크레딧",
+          ja: "永久無制限クレジット",
+          es: "Créditos ilimitados de por vida",
+        })
+      : localize(language, {
+          en: "Unlimited credits",
+          ko: "무제한 크레딧",
+          ja: "無制限クレジット",
+          es: "Créditos ilimitados",
+        });
   }
-  return language === "ko"
-    ? coupon.isLifetime
-      ? "평생 크레딧"
-      : "크레딧 쿠폰"
-    : coupon.isLifetime
-      ? "Lifetime credits"
-      : "Credit coupon";
+  return coupon.isLifetime
+    ? localize(language, {
+        en: "Lifetime credits",
+        ko: "평생 크레딧",
+        ja: "永久クレジット",
+        es: "Créditos de por vida",
+      })
+    : localize(language, {
+        en: "Credit coupon",
+        ko: "크레딧 쿠폰",
+        ja: "クレジットクーポン",
+        es: "Cupón de créditos",
+      });
 }
 
-function formatCouponDate(value: string | null, language: "en" | "ko") {
+function formatCouponDate(value: string | null, language: AppLanguage) {
   if (!value) {
     return "-";
   }
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+  return new Intl.DateTimeFormat(intlLocale(language), {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -123,9 +140,9 @@ export function AccountClient({
 
     if (!response.ok) {
       setError(
-        language === "ko"
-          ? t("couldNotUpdateAccount")
-          : data.error || t("couldNotUpdateAccount"),
+        language === "en"
+          ? data.error || t("couldNotUpdateAccount")
+          : t("couldNotUpdateAccount"),
       );
       setSavingAccount(false);
       return;
@@ -156,19 +173,37 @@ export function AccountClient({
     };
 
     if (!response.ok) {
-      setError(data.error || (language === "ko" ? "쿠폰 적용에 실패했습니다." : "Coupon redemption failed."));
+      setError(
+        data.error ||
+          localize(language, {
+            en: "Coupon redemption failed.",
+            ko: "쿠폰 적용에 실패했습니다.",
+            ja: "クーポンの適用に失敗しました。",
+            es: "La aplicación del cupón falló.",
+          }),
+      );
       setRedeemingCoupon(false);
       return;
     }
 
     if (data.note === "already_lifetime") {
       setNotice(
-        language === "ko"
-          ? "이미 평생 무료 상태입니다. 사용 기록만 남겼습니다."
-          : "Already lifetime free. Redemption was recorded.",
+        localize(language, {
+          en: "Already lifetime free. Redemption was recorded.",
+          ko: "이미 평생 무료 상태입니다. 사용 기록만 남겼습니다.",
+          ja: "すでに永久無料です。利用記録のみ残しました。",
+          es: "Ya tienes acceso gratuito de por vida. Se registró el canje.",
+        }),
       );
     } else {
-      setNotice(language === "ko" ? "쿠폰이 적용되었습니다." : "Coupon applied.");
+      setNotice(
+        localize(language, {
+          en: "Coupon applied.",
+          ko: "쿠폰이 적용되었습니다.",
+          ja: "クーポンを適用しました。",
+          es: "Cupón aplicado.",
+        }),
+      );
     }
 
     setCouponCode("");
@@ -180,17 +215,31 @@ export function AccountClient({
     loadSubscription();
   }, []);
 
+  const planEndDate = subscription?.planEndsAt
+    ? new Intl.DateTimeFormat(intlLocale(language), {
+        dateStyle: "medium",
+      }).format(new Date(subscription.planEndsAt))
+    : "";
   const planLabel = subscription?.isLifetime
-    ? language === "ko"
-      ? "평생 무료"
-      : "Lifetime free"
+    ? localize(language, {
+        en: "Lifetime free",
+        ko: "평생 무료",
+        ja: "永久無料",
+        es: "Gratis de por vida",
+      })
     : subscription?.planEndsAt
-      ? language === "ko"
-        ? `무료 이용 종료: ${new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium" }).format(new Date(subscription.planEndsAt))}`
-        : `Free plan ends: ${new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(new Date(subscription.planEndsAt))}`
-      : language === "ko"
-        ? "이용권 없음"
-        : "No active free plan";
+      ? localize(language, {
+          en: `Free plan ends: ${planEndDate}`,
+          ko: `무료 이용 종료: ${planEndDate}`,
+          ja: `無料プラン終了: ${planEndDate}`,
+          es: `El plan gratuito termina: ${planEndDate}`,
+        })
+      : localize(language, {
+          en: "No active free plan",
+          ko: "이용권 없음",
+          ja: "有効な無料プランがありません",
+          es: "Sin plan gratuito activo",
+        });
 
   return (
     <div className="space-y-5">
@@ -241,9 +290,19 @@ export function AccountClient({
               className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${accountSavedAt ? "bg-teal-600" : "bg-stone-950 hover:bg-stone-800 disabled:opacity-60"}`}
             >
               {savingAccount
-                ? (language === "ko" ? "저장 중…" : "Saving…")
+                ? localize(language, {
+                    en: "Saving…",
+                    ko: "저장 중…",
+                    ja: "保存中…",
+                    es: "Guardando…",
+                  })
                 : accountSavedAt
-                  ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                  ? localize(language, {
+                      en: "Saved ✓",
+                      ko: "저장됨 ✓",
+                      ja: "保存しました ✓",
+                      es: "Guardado ✓",
+                    })
                   : t("saveAccount")}
             </button>
             <SignOutButton />
@@ -253,40 +312,75 @@ export function AccountClient({
 
       <section className="max-w-xl rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-stone-950">
-          {language === "ko" ? "이용권 및 쿠폰" : "Plan and coupons"}
+          {localize(language, {
+            en: "Plan and coupons",
+            ko: "이용권 및 쿠폰",
+            ja: "プランとクーポン",
+            es: "Plan y cupones",
+          })}
         </h2>
         <p className="mt-1 text-sm text-stone-600">{planLabel}</p>
         {subscription?.activeCoupon ? (
           <div className="mt-3 rounded-md border border-teal-200 bg-teal-50 px-3 py-3 text-sm text-teal-900">
             <p className="font-semibold">
-              {language === "ko" ? "적용된 쿠폰" : "Active coupon"}:{" "}
-              {activeCouponLabel(subscription.activeCoupon, language)}
+              {localize(language, {
+                en: "Active coupon",
+                ko: "적용된 쿠폰",
+                ja: "適用中のクーポン",
+                es: "Cupón activo",
+              })}
+              : {activeCouponLabel(subscription.activeCoupon, language)}
             </p>
             {subscription.activeCoupon.kind === "credit" &&
             subscription.activeCoupon.creditAmount ? (
               <p className="mt-1">
-                {language === "ko" ? "남은 크레딧" : "Credit balance"}:{" "}
+                {localize(language, {
+                  en: "Credit balance",
+                  ko: "남은 크레딧",
+                  ja: "残りクレジット",
+                  es: "Saldo de créditos",
+                })}
+                :{" "}
                 {subscription.activeCoupon.creditAmount.toLocaleString(
-                  language === "ko" ? "ko-KR" : "en-US",
+                  intlLocale(language),
                 )}
               </p>
             ) : null}
             <p className="mt-1">
-              {language === "ko" ? "적용일" : "Applied"}:{" "}
-              {formatCouponDate(subscription.activeCoupon.appliedAt, language)}
+              {localize(language, {
+                en: "Applied",
+                ko: "적용일",
+                ja: "適用日",
+                es: "Aplicado",
+              })}
+              : {formatCouponDate(subscription.activeCoupon.appliedAt, language)}
             </p>
             <p className="mt-1">
-              {language === "ko" ? "만료일" : "Expires"}:{" "}
+              {localize(language, {
+                en: "Expires",
+                ko: "만료일",
+                ja: "有効期限",
+                es: "Expira",
+              })}
+              :{" "}
               {subscription.activeCoupon.isLifetime
-                ? language === "ko"
-                  ? "무기한 (평생)"
-                  : "Never (lifetime)"
+                ? localize(language, {
+                    en: "Never (lifetime)",
+                    ko: "무기한 (평생)",
+                    ja: "無期限（永久）",
+                    es: "Nunca (de por vida)",
+                  })
                 : formatCouponDate(subscription.activeCoupon.expiresAt, language)}
             </p>
           </div>
         ) : subscription?.couponStatus === "DEACTIVATED" ? (
           <p className="mt-2 text-sm font-semibold text-rose-700">
-            {language === "ko" ? "쿠폰 비활성화" : "Coupon deactivated"}
+            {localize(language, {
+              en: "Coupon deactivated",
+              ko: "쿠폰 비활성화",
+              ja: "クーポンが無効化されました",
+              es: "Cupón desactivado",
+            })}
           </p>
         ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
@@ -294,32 +388,57 @@ export function AccountClient({
             href="/app/pricing?intent=monthly"
             className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
           >
-            {language === "ko" ? "월구독 시작하기" : "Start monthly plan"}
+            {localize(language, {
+              en: "Start monthly plan",
+              ko: "월구독 시작하기",
+              ja: "月額プランを開始",
+              es: "Iniciar plan mensual",
+            })}
           </Link>
           <Link
             href="/app/pricing?intent=yearly"
             className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
           >
-            {language === "ko" ? "연구독으로 할인받기" : "Get yearly discount"}
+            {localize(language, {
+              en: "Get yearly discount",
+              ko: "연구독으로 할인받기",
+              ja: "年額プランで割引",
+              es: "Obtener descuento anual",
+            })}
           </Link>
           <Link
             href="/app/pricing?intent=credit"
             className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
           >
-            {language === "ko" ? "필요한 만큼만 충전하기" : "Buy credit pack"}
+            {localize(language, {
+              en: "Buy credit pack",
+              ko: "필요한 만큼만 충전하기",
+              ja: "クレジットパックを購入",
+              es: "Comprar paquete de créditos",
+            })}
           </Link>
         </div>
 
         <form onSubmit={redeemCoupon} className="mt-4 space-y-3">
           <label className="block">
             <span className="text-sm font-medium text-stone-700">
-              {language === "ko" ? "쿠폰 코드" : "Coupon code"}
+              {localize(language, {
+                en: "Coupon code",
+                ko: "쿠폰 코드",
+                ja: "クーポンコード",
+                es: "Código de cupón",
+              })}
             </span>
             <input
               value={couponCode}
               onChange={(event) => setCouponCode(event.target.value)}
               className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
-              placeholder={language === "ko" ? "예: M30-ABCDEFGHJK" : "e.g. M30-ABCDEFGHJK"}
+              placeholder={localize(language, {
+                en: "e.g. M30-ABCDEFGHJK",
+                ko: "예: M30-ABCDEFGHJK",
+                ja: "例: M30-ABCDEFGHJK",
+                es: "p. ej. M30-ABCDEFGHJK",
+              })}
             />
           </label>
           <button
@@ -328,27 +447,50 @@ export function AccountClient({
             className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {redeemingCoupon
-              ? (language === "ko" ? "등록 중…" : "Redeeming…")
-              : (language === "ko" ? "쿠폰 등록" : "Redeem coupon")}
+              ? localize(language, {
+                  en: "Redeeming…",
+                  ko: "등록 중…",
+                  ja: "登録中…",
+                  es: "Canjeando…",
+                })
+              : localize(language, {
+                  en: "Redeem coupon",
+                  ko: "쿠폰 등록",
+                  ja: "クーポンを登録",
+                  es: "Canjear cupón",
+                })}
           </button>
         </form>
       </section>
 
       <section className="max-w-xl rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-stone-950">
-          {language === "ko" ? "피드백 게시판" : "Feedback board"}
+          {localize(language, {
+            en: "Feedback board",
+            ko: "피드백 게시판",
+            ja: "フィードバックボード",
+            es: "Tablero de comentarios",
+          })}
         </h2>
         <p className="mt-1 text-sm text-stone-600">
-          {language === "ko"
-            ? "불편 사항이나 개선 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있으며, 캡처 이미지도 첨부할 수 있습니다."
-            : "Report problems or suggest improvements. Only you and the Yapp team can see your posts, and you can attach screenshots."}
+          {localize(language, {
+            en: "Report problems or suggest improvements. Only you and the Yapp team can see your posts, and you can attach screenshots.",
+            ko: "불편 사항이나 개선 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있으며, 캡처 이미지도 첨부할 수 있습니다.",
+            ja: "問題の報告や改善の提案をお寄せください。投稿はご本人と運営チームのみが閲覧でき、スクリーンショットも添付できます。",
+            es: "Informa problemas o sugiere mejoras. Solo tú y el equipo de Yapp pueden ver tus publicaciones, y puedes adjuntar capturas de pantalla.",
+          })}
         </p>
         <div className="mt-4">
           <Link
             href="/app/account/feedback"
             className="inline-flex items-center gap-1 rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"
           >
-            {language === "ko" ? "피드백 게시판 열기" : "Open feedback board"}
+            {localize(language, {
+              en: "Open feedback board",
+              ko: "피드백 게시판 열기",
+              ja: "フィードバックボードを開く",
+              es: "Abrir tablero de comentarios",
+            })}
           </Link>
         </div>
       </section>

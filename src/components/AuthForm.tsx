@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { FormEvent, MouseEvent, useEffect, useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 import {
   buildOpenInBrowserPath,
   isLikelyEmbeddedBrowser,
@@ -25,45 +29,63 @@ function sanitizeNextPath(candidate: string | null | undefined) {
   return candidate;
 }
 
-function getOAuthErrorMessage(errorCode: string | null, language: "en" | "ko") {
+function getOAuthErrorMessage(errorCode: string | null, language: AppLanguage) {
   if (!errorCode) {
     return "";
   }
 
   if (errorCode === "google_not_configured") {
-    return language === "ko"
-      ? "\uad6c\uae00 \ub85c\uadf8\uc778 \uc124\uc815\uc774 \uc644\ub8cc\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \uad00\ub9ac\uc790\uc5d0\uac8c \ubb38\uc758\ud574\uc8fc\uc138\uc694."
-      : "Google sign-in is not configured yet. Contact your administrator.";
+    return localize(language, {
+      en: "Google sign-in is not configured yet. Contact your administrator.",
+      ko: "\uad6c\uae00 \ub85c\uadf8\uc778 \uc124\uc815\uc774 \uc644\ub8cc\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \uad00\ub9ac\uc790\uc5d0\uac8c \ubb38\uc758\ud574\uc8fc\uc138\uc694.",
+      ja: "Google \u30ed\u30b0\u30a4\u30f3\u306e\u8a2d\u5b9a\u304c\u307e\u3060\u5b8c\u4e86\u3057\u3066\u3044\u307e\u305b\u3093\u3002\u7ba1\u7406\u8005\u306b\u304a\u554f\u3044\u5408\u308f\u305b\u304f\u3060\u3055\u3044\u3002",
+      es: "El inicio de sesi\u00f3n con Google a\u00fan no est\u00e1 configurado. Contacta a tu administrador.",
+    });
   }
 
   if (errorCode === "account_suspended") {
-    return language === "ko"
-      ? "\uacc4\uc815\uc774 \uc815\uc9c0\ub418\uc5b4 \ub85c\uadf8\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4."
-      : "Your account is suspended.";
+    return localize(language, {
+      en: "Your account is suspended.",
+      ko: "\uacc4\uc815\uc774 \uc815\uc9c0\ub418\uc5b4 \ub85c\uadf8\uc778\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
+      ja: "\u30a2\u30ab\u30a6\u30f3\u30c8\u304c\u505c\u6b62\u3055\u308c\u3066\u3044\u308b\u305f\u3081\u30ed\u30b0\u30a4\u30f3\u3067\u304d\u307e\u305b\u3093\u3002",
+      es: "Tu cuenta est\u00e1 suspendida.",
+    });
   }
 
   if (errorCode === "google_secure_browser_required") {
-    return language === "ko"
-      ? "\uad6c\uae00 \ub85c\uadf8\uc778\uc740 \uce74\uce74\uc624\ud1a1 \uac19\uc740 \uc778\uc571 \ube0c\ub77c\uc6b0\uc800\uc5d0\uc11c \ucc28\ub2e8\ub420 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ud06c\ub86c \ub610\ub294 \uc0ac\ud30c\ub9ac \uac19\uc740 \uae30\ubcf8 \ube0c\ub77c\uc6b0\uc800\ub85c \uc5f4\uc5b4\uc11c \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694."
-      : "Google sign-in is blocked inside some in-app browsers. Open this page in Chrome, Safari, or another system browser and try again.";
+    return localize(language, {
+      en: "Google sign-in is blocked inside some in-app browsers. Open this page in Chrome, Safari, or another system browser and try again.",
+      ko: "\uad6c\uae00 \ub85c\uadf8\uc778\uc740 \uce74\uce74\uc624\ud1a1 \uac19\uc740 \uc778\uc571 \ube0c\ub77c\uc6b0\uc800\uc5d0\uc11c \ucc28\ub2e8\ub420 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ud06c\ub86c \ub610\ub294 \uc0ac\ud30c\ub9ac \uac19\uc740 \uae30\ubcf8 \ube0c\ub77c\uc6b0\uc800\ub85c \uc5f4\uc5b4\uc11c \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.",
+      ja: "Google \u30ed\u30b0\u30a4\u30f3\u306f\u4e00\u90e8\u306e\u30a2\u30d7\u30ea\u5185\u30d6\u30e9\u30a6\u30b6\u30fc\u3067\u30d6\u30ed\u30c3\u30af\u3055\u308c\u308b\u3053\u3068\u304c\u3042\u308a\u307e\u3059\u3002Chrome \u3084 Safari \u306a\u3069\u306e\u6a19\u6e96\u30d6\u30e9\u30a6\u30b6\u30fc\u3067\u958b\u3044\u3066\u518d\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002",
+      es: "El inicio de sesi\u00f3n con Google est\u00e1 bloqueado en algunos navegadores dentro de apps. Abre esta p\u00e1gina en Chrome, Safari u otro navegador del sistema e int\u00e9ntalo de nuevo.",
+    });
   }
 
-  return language === "ko"
-    ? "\uad6c\uae00 \ub85c\uadf8\uc778\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694."
-    : "Google sign-in failed. Please try again.";
+  return localize(language, {
+    en: "Google sign-in failed. Please try again.",
+    ko: "\uad6c\uae00 \ub85c\uadf8\uc778\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4. \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.",
+    ja: "Google \u30ed\u30b0\u30a4\u30f3\u306b\u5931\u6557\u3057\u307e\u3057\u305f\u3002\u3082\u3046\u4e00\u5ea6\u304a\u8a66\u3057\u304f\u3060\u3055\u3044\u3002",
+    es: "El inicio de sesi\u00f3n con Google fall\u00f3. Int\u00e9ntalo de nuevo.",
+  });
 }
 
-function getAuthReasonMessage(reason: string | null, language: "en" | "ko") {
+function getAuthReasonMessage(reason: string | null, language: AppLanguage) {
   if (reason === "trial_limit") {
-    return language === "ko"
-      ? "체험판 5회를 모두 사용했습니다. 계속 사용하려면 로그인해 주세요."
-      : "You have used all 5 trial conversations. Sign in to continue.";
+    return localize(language, {
+      en: "You have used all 5 trial conversations. Sign in to continue.",
+      ko: "체험판 5회를 모두 사용했습니다. 계속 사용하려면 로그인해 주세요.",
+      ja: "トライアルの5回をすべて使い切りました。続けるにはログインしてください。",
+      es: "Has usado las 5 conversaciones de prueba. Inicia sesión para continuar.",
+    });
   }
 
   if (reason === "trial_login_required") {
-    return language === "ko"
-      ? "같은 기기에서 체험판을 다시 시작할 수 없습니다. 계속하려면 로그인해 주세요."
-      : "This device cannot start another anonymous trial. Sign in to continue.";
+    return localize(language, {
+      en: "This device cannot start another anonymous trial. Sign in to continue.",
+      ko: "같은 기기에서 체험판을 다시 시작할 수 없습니다. 계속하려면 로그인해 주세요.",
+      ja: "この端末では別の匿名トライアルを開始できません。続けるにはログインしてください。",
+      es: "Este dispositivo no puede iniciar otra prueba anónima. Inicia sesión para continuar.",
+    });
   }
 
   return "";
@@ -86,9 +108,18 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const oauthError = getOAuthErrorMessage(oauthErrorCode, language);
   const authReason = getAuthReasonMessage(reasonCode, language);
-  const googleCta =
-    language === "ko" ? "\uad6c\uae00\ub85c \uacc4\uc18d\ud558\uae30" : "Continue with Google";
-  const dividerText = language === "ko" ? "\ub610\ub294 \uc774\uba54\uc77c\ub85c" : "or with email";
+  const googleCta = localize(language, {
+    en: "Continue with Google",
+    ko: "\uad6c\uae00\ub85c \uacc4\uc18d\ud558\uae30",
+    ja: "Google \u3067\u7d9a\u884c",
+    es: "Continuar con Google",
+  });
+  const dividerText = localize(language, {
+    en: "or with email",
+    ko: "\ub610\ub294 \uc774\uba54\uc77c\ub85c",
+    ja: "\u307e\u305f\u306f\u30e1\u30fc\u30eb\u3067",
+    es: "o con correo electr\u00f3nico",
+  });
   const googleAuthHref = `/api/auth/google/start?next=${encodeURIComponent(nextPath)}`;
 
   async function submit(event: FormEvent<HTMLFormElement>) {

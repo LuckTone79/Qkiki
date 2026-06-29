@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentAdmin } from "@/lib/admin-auth";
 
 const navItems = [
@@ -61,7 +61,7 @@ export function AdminShell({
   const { language } = useLanguage();
   const pathname = usePathname();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const t = adminText[language];
+  const t = adminText[adminTextKey(language)];
 
   useEffect(() => {
     setPendingHref(null);

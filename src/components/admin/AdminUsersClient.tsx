@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 import type { AdminUserListRow, UserSortOption } from "@/lib/admin-users";
 
 const text = {
@@ -113,8 +117,8 @@ export function AdminUsersClient({
 }) {
   const { language } = useLanguage();
   const router = useRouter();
-  const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const t = text[adminTextKey(language)];
+  const locale = intlLocale(language);
 
   function planLabel(subscription: UserRow["subscription"]) {
     if (!subscription) return t.planNone;

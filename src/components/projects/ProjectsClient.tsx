@@ -4,7 +4,11 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 type ProjectListItem = {
   id: string;
@@ -21,8 +25,15 @@ type ProjectListItem = {
   }>;
 };
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+const DATE_LOCALES: Record<AppLanguage, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  ja: "ja-JP",
+  es: "es-ES",
+};
+
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(DATE_LOCALES[language], {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -40,6 +51,16 @@ const projectSettingsText = {
     defaultGuideline: "AI \uAE30\uBCF8 \uC9C0\uCE68",
     defaultGuidelinePlaceholder:
       "\uC774 \uD504\uB85C\uC81D\uD2B8\uC5D0\uC11C AI\uAC00 \uAE30\uBCF8\uC73C\uB85C \uCC38\uACE0\uD560 \uC9C0\uCE68",
+  },
+  ja: {
+    defaultGuideline: "AI \u306E\u57FA\u672C\u30AC\u30A4\u30C9\u30E9\u30A4\u30F3",
+    defaultGuidelinePlaceholder:
+      "\u3053\u306E\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u3067 AI \u304C\u57FA\u672C\u7684\u306B\u5F93\u3046\u3079\u304D\u6307\u793A",
+  },
+  es: {
+    defaultGuideline: "Directriz de IA predeterminada",
+    defaultGuidelinePlaceholder:
+      "Instrucci\u00F3n base que la IA debe seguir en este proyecto",
   },
 } as const;
 
@@ -65,9 +86,9 @@ export function ProjectsClient() {
 
     if (!response.ok || !data.projects) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadProjects")
-          : data.error || t("couldNotLoadProjects"),
+        language === "en"
+          ? data.error || t("couldNotLoadProjects")
+          : t("couldNotLoadProjects"),
       );
       return;
     }
@@ -97,9 +118,9 @@ export function ProjectsClient() {
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotCreateProject")
-          : data.error || t("couldNotCreateProject"),
+        language === "en"
+          ? data.error || t("couldNotCreateProject")
+          : t("couldNotCreateProject"),
       );
       setCreatingProject(false);
       return;
@@ -205,7 +226,12 @@ export function ProjectsClient() {
               className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creatingProject
-                ? (language === "ko" ? "생성 중…" : "Creating…")
+                ? localize(language, {
+                    en: "Creating…",
+                    ko: "생성 중…",
+                    ja: "作成中…",
+                    es: "Creando…",
+                  })
                 : t("createProject")}
             </button>
             <button
@@ -215,7 +241,12 @@ export function ProjectsClient() {
               className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creatingProject
-                ? (language === "ko" ? "생성 중…" : "Creating…")
+                ? localize(language, {
+                    en: "Creating…",
+                    ko: "생성 중…",
+                    ja: "作成中…",
+                    es: "Creando…",
+                  })
                 : t("createAndStart")}
             </button>
           </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 
 const text = {
   en: { signOut: "Sign out", signingOut: "Signing out..." },
@@ -10,7 +10,7 @@ const text = {
 
 export function AdminSignOutButton({ compact = false }: { compact?: boolean }) {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[adminTextKey(language)];
   const [loading, setLoading] = useState(false);
 
   async function signOut() {

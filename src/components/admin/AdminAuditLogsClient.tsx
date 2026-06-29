@@ -1,6 +1,10 @@
 "use client";
 
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 const text = {
   en: {
@@ -60,8 +64,8 @@ export function AdminAuditLogsClient({
   contentAccessLogs: ContentAccessLogItem[];
 }) {
   const { language } = useLanguage();
-  const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const t = text[adminTextKey(language)];
+  const locale = intlLocale(language);
 
   function formatDetail(raw: string | null) {
     if (!raw) return "-";

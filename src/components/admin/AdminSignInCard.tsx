@@ -1,7 +1,7 @@
 "use client";
 
 import { AdminAuthForm } from "@/components/admin/AdminAuthForm";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 
 const signInCardText = {
   en: {
@@ -20,7 +20,7 @@ const signInCardText = {
 
 export function AdminSignInCard() {
   const { language } = useLanguage();
-  const t = signInCardText[language];
+  const t = signInCardText[adminTextKey(language)];
 
   return (
     <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">

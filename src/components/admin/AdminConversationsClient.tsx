@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 type ConversationUser = {
   id: string;
@@ -86,8 +90,8 @@ export function AdminConversationsClient({
   conversations,
 }: AdminConversationsClientProps) {
   const { language } = useLanguage();
-  const t = conversationText[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const t = conversationText[adminTextKey(language)];
+  const locale = intlLocale(language);
   const selectedUser =
     users.find((candidate) => candidate.id === userId) ?? null;
 

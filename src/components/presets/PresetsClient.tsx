@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 type Preset = {
   id: string;
@@ -14,25 +18,41 @@ type Preset = {
   updatedAt: string;
 };
 
-function actionLabel(value: string, language: "en" | "ko") {
-  const labels: Record<string, { en: string; ko: string }> = {
-    generate: { en: "Generate", ko: "\uc0dd\uc131" },
-    brainstorm: { en: "Brainstorm", ko: "\ube0c\ub808\uc778\uc2a4\ud1a0\ubc0d" },
-    critique: { en: "Critique", ko: "\ube44\ud310" },
+function actionLabel(value: string, language: AppLanguage) {
+  const labels: Record<string, Record<AppLanguage, string>> = {
+    generate: { en: "Generate", ko: "\uc0dd\uc131", ja: "\u751f\u6210", es: "Generar" },
+    brainstorm: {
+      en: "Brainstorm",
+      ko: "\ube0c\ub808\uc778\uc2a4\ud1a0\ubc0d",
+      ja: "\u30d6\u30ec\u30a4\u30f3\u30b9\u30c8\u30fc\u30df\u30f3\u30b0",
+      es: "Lluvia de ideas",
+    },
+    critique: { en: "Critique", ko: "\ube44\ud310", ja: "\u6279\u8a55", es: "Cr\u00edtica" },
     fact_check: {
       en: "Fact-check style review",
       ko: "\ud329\ud2b8\uccb4\ud06c\uc2dd \uac80\ud1a0",
+      ja: "\u30d5\u30a1\u30af\u30c8\u30c1\u30a7\u30c3\u30af\u5f62\u5f0f\u306e\u30ec\u30d3\u30e5\u30fc",
+      es: "Revisi\u00f3n tipo verificaci\u00f3n",
     },
-    improve: { en: "Improve", ko: "\uac1c\uc120" },
-    summarize: { en: "Summarize", ko: "\uc694\uc57d" },
-    simplify: { en: "Simplify", ko: "\uc27d\uac8c \uc815\ub9ac" },
+    improve: { en: "Improve", ko: "\uac1c\uc120", ja: "\u6539\u5584", es: "Mejorar" },
+    summarize: { en: "Summarize", ko: "\uc694\uc57d", ja: "\u8981\u7d04", es: "Resumir" },
+    simplify: {
+      en: "Simplify",
+      ko: "\uc27d\uac8c \uc815\ub9ac",
+      ja: "\u7c21\u6f54\u5316",
+      es: "Simplificar",
+    },
     consistency_review: {
       en: "Consistency review",
       ko: "\uc77c\uad00\uc131 \uac80\ud1a0",
+      ja: "\u4e00\u8cab\u6027\u30ec\u30d3\u30e5\u30fc",
+      es: "Revisi\u00f3n de consistencia",
     },
     code_review: {
       en: "Code review",
       ko: "\ucf54\ub4dc \ub9ac\ubdf0",
+      ja: "\u30b3\u30fc\u30c9\u30ec\u30d3\u30e5\u30fc",
+      es: "Revisi\u00f3n de c\u00f3digo",
     },
   };
 
@@ -57,7 +77,7 @@ function sourceLabel(
 
 function stepPreview(
   workflowJson: string,
-  language: "en" | "ko",
+  language: AppLanguage,
   t: ReturnType<typeof useLanguage>["t"],
 ) {
   try {
@@ -75,9 +95,13 @@ function stepPreview(
         ?.map((step, index) => {
           const action = actionLabel(step.actionType, language);
           const source = sourceLabel(step.sourceMode, t);
-          return language === "ko"
-            ? `${index + 1}. ${source} -> ${step.targetProvider}/${step.targetModel} ${action}`
-            : `${index + 1}. ${action} with ${step.targetProvider}/${step.targetModel} from ${source}`;
+          const target = `${step.targetProvider}/${step.targetModel}`;
+          return localize(language, {
+            en: `${index + 1}. ${action} with ${target} from ${source}`,
+            ko: `${index + 1}. ${source} -> ${target} ${action}`,
+            ja: `${index + 1}. ${source} → ${target} ${action}`,
+            es: `${index + 1}. ${action} con ${target} desde ${source}`,
+          });
         })
         .join(" -> ") || t("noSteps")
     );
@@ -104,9 +128,9 @@ export function PresetsClient() {
 
     if (!response.ok || !data.presets) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadPresets")
-          : data.error || t("couldNotLoadPresets"),
+        language === "en"
+          ? data.error || t("couldNotLoadPresets")
+          : t("couldNotLoadPresets"),
       );
       return;
     }
@@ -224,9 +248,19 @@ export function PresetsClient() {
                       className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${renamedId === preset.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                     >
                       {renamingId === preset.id
-                        ? (language === "ko" ? "저장 중…" : "Saving…")
+                        ? localize(language, {
+                            en: "Saving…",
+                            ko: "저장 중…",
+                            ja: "保存中…",
+                            es: "Guardando…",
+                          })
                         : renamedId === preset.id
-                          ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                          ? localize(language, {
+                              en: "Saved ✓",
+                              ko: "저장됨 ✓",
+                              ja: "保存しました ✓",
+                              es: "Guardado ✓",
+                            })
                           : t("rename")}
                     </button>
                     <Link
@@ -242,7 +276,12 @@ export function PresetsClient() {
                       className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {deletingPresetId === preset.id
-                        ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                        ? localize(language, {
+                            en: "Deleting…",
+                            ko: "삭제 중…",
+                            ja: "削除中…",
+                            es: "Eliminando…",
+                          })
                         : t("delete")}
                     </button>
                   </div>

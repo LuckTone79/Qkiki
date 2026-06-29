@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 
 const authText = {
   en: {
@@ -33,7 +33,7 @@ const authText = {
 
 export function AdminAuthForm() {
   const { language } = useLanguage();
-  const t = authText[language];
+  const t = authText[adminTextKey(language)];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mfaCode, setMfaCode] = useState("");

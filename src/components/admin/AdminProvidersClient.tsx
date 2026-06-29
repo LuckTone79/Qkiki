@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  localize,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 import type { ProviderName } from "@/lib/ai/types";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
 
@@ -93,8 +98,8 @@ type Drafts = Record<
 
 export function AdminProvidersClient() {
   const { language } = useLanguage();
-  const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const t = text[adminTextKey(language)];
+  const locale = intlLocale(language);
 
   const [providers, setProviders] = useState<AdminProviderOption[]>([]);
   const [drafts, setDrafts] = useState<Drafts>({});
@@ -389,9 +394,19 @@ export function AdminProvidersClient() {
                     className={`min-h-10 rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${savedProvider === provider.providerName ? "bg-teal-600" : "bg-slate-900 hover:bg-slate-800 disabled:opacity-60"}`}
                   >
                     {savingProvider === provider.providerName
-                      ? (language === "ko" ? "저장 중…" : "Saving…")
+                      ? localize(language, {
+                          en: "Saving…",
+                          ko: "저장 중…",
+                          ja: "保存中…",
+                          es: "Guardando…",
+                        })
                       : savedProvider === provider.providerName
-                        ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                        ? localize(language, {
+                            en: "Saved ✓",
+                            ko: "저장됨 ✓",
+                            ja: "保存しました ✓",
+                            es: "Guardado ✓",
+                          })
                         : t.saveProvider}
                   </button>
                   <button
@@ -401,7 +416,12 @@ export function AdminProvidersClient() {
                     className="min-h-10 rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {checkingProvider === provider.providerName
-                      ? (language === "ko" ? "점검 중…" : "Checking…")
+                      ? localize(language, {
+                          en: "Checking…",
+                          ko: "점검 중…",
+                          ja: "確認中…",
+                          es: "Comprobando…",
+                        })
                       : t.runHealthCheck}
                   </button>
                 </div>

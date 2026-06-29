@@ -4,7 +4,12 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  intlLocale,
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 type ProjectDetail = {
   id: string;
@@ -38,8 +43,8 @@ type ProjectDetail = {
   }>;
 };
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(intlLocale(language), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -68,6 +73,22 @@ const projectDetailText = {
     defaultGuidelinePlaceholder:
       "\uC774 \uD504\uB85C\uC81D\uD2B8\uC5D0\uC11C AI\uAC00 \uD56D\uC0C1 \uCC38\uACE0\uD560 \uC9C0\uCE68",
   },
+  ja: {
+    settingsTitle: "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u8A2D\u5B9A",
+    settingsDescription:
+      "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u540D\u3068\u3001\u3053\u306E\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u3067 AI \u304C\u53C2\u7167\u3059\u308B\u57FA\u672C\u30AC\u30A4\u30C9\u30E9\u30A4\u30F3\u3092\u8A2D\u5B9A\u3057\u307E\u3059\u3002",
+    defaultGuideline: "AI \u306E\u57FA\u672C\u30AC\u30A4\u30C9\u30E9\u30A4\u30F3",
+    defaultGuidelinePlaceholder:
+      "\u3053\u306E\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u3067 AI \u304C\u5E38\u306B\u53C2\u7167\u3059\u308B\u6052\u4E45\u7684\u306A\u6307\u793A",
+  },
+  es: {
+    settingsTitle: "Ajustes del proyecto",
+    settingsDescription:
+      "Actualiza el nombre del proyecto y la directriz base que la IA debe consultar en este proyecto.",
+    defaultGuideline: "Directriz de IA predeterminada",
+    defaultGuidelinePlaceholder:
+      "Instrucci\u00F3n persistente que la IA debe consultar siempre en este proyecto",
+  },
 } as const;
 
 export function ProjectDetailClient({ projectId }: { projectId: string }) {
@@ -92,9 +113,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadProject")
-          : data.error || t("couldNotLoadProject"),
+        language === "en"
+          ? data.error || t("couldNotLoadProject")
+          : t("couldNotLoadProject"),
       );
       return;
     }
@@ -124,9 +145,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotSaveProject")
-          : data.error || t("couldNotSaveProject"),
+        language === "en"
+          ? data.error || t("couldNotSaveProject")
+          : t("couldNotSaveProject"),
       );
       setSavingProject(false);
       return;
@@ -142,9 +163,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   async function removeItem(itemId: string) {
     if (
       !window.confirm(
-        language === "ko"
-          ? "이 항목을 프로젝트에서 제거할까요? 원본 대화/결과는 세션에 그대로 남습니다."
-          : "Remove this item from the project? The original stays in your session.",
+        localize(language, {
+          en: "Remove this item from the project? The original stays in your session.",
+          ko: "이 항목을 프로젝트에서 제거할까요? 원본 대화/결과는 세션에 그대로 남습니다.",
+          ja: "この項目をプロジェクトから削除しますか？元の会話/結果はセッションに残ります。",
+          es: "¿Quitar este elemento del proyecto? El original permanece en tu sesión.",
+        }),
       )
     ) {
       return;
@@ -287,9 +311,19 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${projectSavedAt ? "bg-teal-500" : "bg-teal-700 hover:bg-teal-800 disabled:opacity-60"}`}
             >
               {savingProject
-                ? (language === "ko" ? "저장 중…" : "Saving…")
+                ? localize(language, {
+                    en: "Saving…",
+                    ko: "저장 중…",
+                    ja: "保存中…",
+                    es: "Guardando…",
+                  })
                 : projectSavedAt
-                  ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                  ? localize(language, {
+                      en: "Saved ✓",
+                      ko: "저장됨 ✓",
+                      ja: "保存しました ✓",
+                      es: "Guardado ✓",
+                    })
                   : t("saveProject")}
             </button>
             <button
@@ -299,7 +333,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               className="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {deletingProject
-                ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                ? localize(language, {
+                    en: "Deleting…",
+                    ko: "삭제 중…",
+                    ja: "削除中…",
+                    es: "Eliminando…",
+                  })
                 : t("deleteFolder")}
             </button>
           </div>
@@ -308,12 +347,20 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         <section className="order-1 space-y-3 xl:order-2">
           <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
             <h2 className="text-base font-semibold text-stone-950">
-              {language === "ko" ? "추가된 대화/결과" : "Collected items"}
+              {localize(language, {
+                en: "Collected items",
+                ko: "추가된 대화/결과",
+                ja: "収集した項目",
+                es: "Elementos recopilados",
+              })}
             </h2>
             <p className="mt-1 text-sm text-stone-600">
-              {language === "ko"
-                ? `세션에서 추가한 대화와 개별 결과 ${project.items.length}개. 원본은 세션에 그대로 남아 있습니다.`
-                : `${project.items.length} conversations and individual results added from your sessions. Originals stay in their sessions.`}
+              {localize(language, {
+                en: `${project.items.length} conversations and individual results added from your sessions. Originals stay in their sessions.`,
+                ko: `세션에서 추가한 대화와 개별 결과 ${project.items.length}개. 원본은 세션에 그대로 남아 있습니다.`,
+                ja: `セッションから追加した会話と個別の結果 ${project.items.length} 件。元はセッションに残ります。`,
+                es: `${project.items.length} conversaciones y resultados individuales añadidos desde tus sesiones. Los originales permanecen en sus sesiones.`,
+              })}
             </p>
           </div>
 
@@ -335,12 +382,18 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                           }`}
                         >
                           {item.kind === "RESULT"
-                            ? language === "ko"
-                              ? "단일 결과"
-                              : "Single result"
-                            : language === "ko"
-                              ? "대화 전체"
-                              : "Full conversation"}
+                            ? localize(language, {
+                                en: "Single result",
+                                ko: "단일 결과",
+                                ja: "単一の結果",
+                                es: "Resultado único",
+                              })
+                            : localize(language, {
+                                en: "Full conversation",
+                                ko: "대화 전체",
+                                ja: "会話全体",
+                                es: "Conversación completa",
+                              })}
                         </span>
                       </div>
                       <h3 className="mt-2 line-clamp-2 break-words text-base font-semibold text-stone-950">
@@ -358,8 +411,13 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                       ) : null}
                       {item.session ? (
                         <p className="mt-2 break-words text-xs text-stone-500">
-                          {language === "ko" ? "출처 세션" : "From session"}:{" "}
-                          {item.session.title}
+                          {localize(language, {
+                            en: "From session",
+                            ko: "출처 세션",
+                            ja: "出典セッション",
+                            es: "De la sesión",
+                          })}
+                          : {item.session.title}
                         </p>
                       ) : null}
                     </div>
@@ -377,7 +435,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                         onClick={() => removeItem(item.id)}
                         className="flex-1 rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 lg:flex-none"
                       >
-                        {language === "ko" ? "제거" : "Remove"}
+                        {localize(language, {
+                          en: "Remove",
+                          ko: "제거",
+                          ja: "削除",
+                          es: "Quitar",
+                        })}
                       </button>
                     </div>
                   </div>

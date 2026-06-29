@@ -1,10 +1,21 @@
 "use client";
 
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 import type { UsageStatus as UsageStatusType } from "@/lib/usage-types";
 
-function formatResetAt(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+const DATE_LOCALES: Record<AppLanguage, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  ja: "ja-JP",
+  es: "es-ES",
+};
+
+function formatResetAt(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(DATE_LOCALES[language], {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -20,100 +31,175 @@ export function UsageStatus({
   compact?: boolean;
 }) {
   const { language } = useLanguage();
-  const locale = language === "ko" ? "ko-KR" : "en-US";
-  const creditUnit = language === "ko" ? "크레딧" : "credits";
+  const locale = DATE_LOCALES[language];
+  const creditUnit = localize(language, {
+    en: "credits",
+    ko: "크레딧",
+    ja: "クレジット",
+    es: "créditos",
+  });
 
-  const title =
-    language === "ko"
-      ? usage.isAnonymous
-        ? "Yapp 체험 (비로그인)"
-        : usage.isBoostActive
-          ? "Yapp Boost 사용 중"
-          : usage.planType === "PRO"
-            ? "Yapp Pro 플랜"
-            : usage.planType === "STARTER"
-              ? "Yapp Starter 플랜"
-              : usage.planType === "TEAM"
-                ? "Yapp Team 플랜"
-                : "Yapp 무료 사용량"
-      : usage.isAnonymous
-        ? "Yapp trial (signed out)"
-        : usage.isBoostActive
-          ? "Yapp Boost active"
-          : usage.planType === "PRO"
-            ? "Yapp Pro plan"
-            : usage.planType === "STARTER"
-              ? "Yapp Starter plan"
-              : usage.planType === "TEAM"
-                ? "Yapp Team plan"
-                : "Yapp free usage";
+  const title = usage.isAnonymous
+    ? localize(language, {
+        en: "Yapp trial (signed out)",
+        ko: "Yapp 체험 (비로그인)",
+        ja: "Yapp トライアル（未ログイン）",
+        es: "Prueba de Yapp (sin sesión)",
+      })
+    : usage.isBoostActive
+      ? localize(language, {
+          en: "Yapp Boost active",
+          ko: "Yapp Boost 사용 중",
+          ja: "Yapp Boost 利用中",
+          es: "Yapp Boost activo",
+        })
+      : usage.planType === "PRO"
+        ? localize(language, {
+            en: "Yapp Pro plan",
+            ko: "Yapp Pro 플랜",
+            ja: "Yapp Pro プラン",
+            es: "Plan Yapp Pro",
+          })
+        : usage.planType === "STARTER"
+          ? localize(language, {
+              en: "Yapp Starter plan",
+              ko: "Yapp Starter 플랜",
+              ja: "Yapp Starter プラン",
+              es: "Plan Yapp Starter",
+            })
+          : usage.planType === "TEAM"
+            ? localize(language, {
+                en: "Yapp Team plan",
+                ko: "Yapp Team 플랜",
+                ja: "Yapp Team プラン",
+                es: "Plan Yapp Team",
+              })
+            : localize(language, {
+                en: "Yapp free usage",
+                ko: "Yapp 무료 사용량",
+                ja: "Yapp 無料利用枠",
+                es: "Uso gratuito de Yapp",
+              });
 
+  const creditsAmount = usage.totalCreditsAvailable.toLocaleString(locale);
   const primary = usage.isUnlimitedCredits
-    ? language === "ko"
-      ? "남은 크레딧: 무제한"
-      : "Credits available: Unlimited"
-    : language === "ko"
-      ? `남은 크레딧: ${usage.totalCreditsAvailable.toLocaleString(locale)} ${creditUnit}`
-      : `Credits available: ${usage.totalCreditsAvailable.toLocaleString(locale)} ${creditUnit}`;
+    ? localize(language, {
+        en: "Credits available: Unlimited",
+        ko: "남은 크레딧: 무제한",
+        ja: "残りクレジット: 無制限",
+        es: "Créditos disponibles: Ilimitados",
+      })
+    : localize(language, {
+        en: `Credits available: ${creditsAmount} ${creditUnit}`,
+        ko: `남은 크레딧: ${creditsAmount} ${creditUnit}`,
+        ja: `残りクレジット: ${creditsAmount} ${creditUnit}`,
+        es: `Créditos disponibles: ${creditsAmount} ${creditUnit}`,
+      });
 
-  const secondary =
-    language === "ko"
-      ? usage.isAnonymous
-        ? `비로그인은 하루 ${usage.dailyCreditLimit.toLocaleString(locale)}크레딧입니다. 로그인하면 하루 70크레딧이 적용돼요.`
-        : usage.isUnlimitedCredits
-          ? "무제한 크레딧 쿠폰이 적용 중이에요."
-          : usage.isBoostActive
-            ? `Boost 종료까지 ${usage.boostDaysRemaining}일 남았어요.`
-            : `오늘 남은 크레딧 ${usage.totalDailyCreditsAvailable.toLocaleString(locale)} / 일일 한도 ${usage.dailyCreditLimit.toLocaleString(locale)}`
-      : usage.isAnonymous
-        ? `Signed-out visitors get ${usage.dailyCreditLimit.toLocaleString(locale)} credits/day. Sign in to get 70 credits/day.`
-        : usage.isUnlimitedCredits
-          ? "An unlimited-credit coupon is active."
-          : usage.isBoostActive
-            ? `${usage.boostDaysRemaining} day(s) left in Boost.`
-            : `Today ${usage.totalDailyCreditsAvailable.toLocaleString(locale)} left / daily cap ${usage.dailyCreditLimit.toLocaleString(locale)}`;
+  const dailyCap = usage.dailyCreditLimit.toLocaleString(locale);
+  const dailyLeft = usage.totalDailyCreditsAvailable.toLocaleString(locale);
+  const secondary = usage.isAnonymous
+    ? localize(language, {
+        en: `Signed-out visitors get ${dailyCap} credits/day. Sign in to get 70 credits/day.`,
+        ko: `비로그인은 하루 ${dailyCap}크레딧입니다. 로그인하면 하루 70크레딧이 적용돼요.`,
+        ja: `未ログインの訪問者は1日 ${dailyCap} クレジットです。ログインすると1日70クレジットになります。`,
+        es: `Los visitantes sin sesión reciben ${dailyCap} créditos/día. Inicia sesión para obtener 70 créditos/día.`,
+      })
+    : usage.isUnlimitedCredits
+      ? localize(language, {
+          en: "An unlimited-credit coupon is active.",
+          ko: "무제한 크레딧 쿠폰이 적용 중이에요.",
+          ja: "無制限クレジットのクーポンが適用中です。",
+          es: "Hay un cupón de créditos ilimitados activo.",
+        })
+      : usage.isBoostActive
+        ? localize(language, {
+            en: `${usage.boostDaysRemaining} day(s) left in Boost.`,
+            ko: `Boost 종료까지 ${usage.boostDaysRemaining}일 남았어요.`,
+            ja: `Boost 終了まであと ${usage.boostDaysRemaining} 日です。`,
+            es: `Quedan ${usage.boostDaysRemaining} día(s) de Boost.`,
+          })
+        : localize(language, {
+            en: `Today ${dailyLeft} left / daily cap ${dailyCap}`,
+            ko: `오늘 남은 크레딧 ${dailyLeft} / 일일 한도 ${dailyCap}`,
+            ja: `本日の残り ${dailyLeft} / 1日の上限 ${dailyCap}`,
+            es: `Hoy quedan ${dailyLeft} / límite diario ${dailyCap}`,
+          });
 
-  const guidance =
-    language === "ko"
-      ? "실행 전 예상 크레딧을 먼저 확인하세요. 반복 구간·긴 첨부·이미지 생성은 크레딧을 더 빠르게 소모합니다."
-      : "Check the estimated credits before you run. Repeat blocks, large attachments, and image generation consume credits faster.";
+  const guidance = localize(language, {
+    en: "Check the estimated credits before you run. Repeat blocks, large attachments, and image generation consume credits faster.",
+    ko: "실행 전 예상 크레딧을 먼저 확인하세요. 반복 구간·긴 첨부·이미지 생성은 크레딧을 더 빠르게 소모합니다.",
+    ja: "実行前に予想クレジットを確認してください。繰り返し区間・大きな添付・画像生成はクレジットをより速く消費します。",
+    es: "Revisa los créditos estimados antes de ejecutar. Los bloques de repetición, los adjuntos grandes y la generación de imágenes consumen créditos más rápido.",
+  });
 
   const warning =
     !usage.isUnlimitedCredits && usage.isCreditLimitReached
-      ? language === "ko"
-        ? "사용 가능한 크레딧을 모두 사용했어요."
-        : "Available credits have been exhausted."
+      ? localize(language, {
+          en: "Available credits have been exhausted.",
+          ko: "사용 가능한 크레딧을 모두 사용했어요.",
+          ja: "利用可能なクレジットをすべて使い切りました。",
+          es: "Se han agotado los créditos disponibles.",
+        })
       : !usage.isUnlimitedCredits && usage.warningThresholdReached
-        ? language === "ko"
-          ? `크레딧이 거의 다 찼어요. 남은 크레딧: ${usage.totalCreditsAvailable.toLocaleString(locale)}`
-          : `You're close to the limit. Credits left: ${usage.totalCreditsAvailable.toLocaleString(locale)}`
+        ? localize(language, {
+            en: `You're close to the limit. Credits left: ${creditsAmount}`,
+            ko: `크레딧이 거의 다 찼어요. 남은 크레딧: ${creditsAmount}`,
+            ja: `上限に近づいています。残りクレジット: ${creditsAmount}`,
+            es: `Estás cerca del límite. Créditos restantes: ${creditsAmount}`,
+          })
         : null;
 
   const cards: { label: string; value: string }[] = [
     {
-      label: language === "ko" ? "월 크레딧" : "Month credits",
+      label: localize(language, {
+        en: "Month credits",
+        ko: "월 크레딧",
+        ja: "月間クレジット",
+        es: "Créditos del mes",
+      }),
       value: usage.isUnlimitedCredits
         ? "∞"
         : usage.monthlyCreditsRemaining.toLocaleString(locale),
     },
     {
-      label: language === "ko" ? "오늘 남은" : "Today left",
+      label: localize(language, {
+        en: "Today left",
+        ko: "오늘 남은",
+        ja: "本日の残り",
+        es: "Restante hoy",
+      }),
       value: usage.isUnlimitedCredits
         ? "∞"
         : usage.totalDailyCreditsAvailable.toLocaleString(locale),
     },
     {
-      label: language === "ko" ? "일일 한도" : "Daily cap",
+      label: localize(language, {
+        en: "Daily cap",
+        ko: "일일 한도",
+        ja: "1日の上限",
+        es: "Límite diario",
+      }),
       value: usage.isUnlimitedCredits
         ? "∞"
         : usage.dailyCreditLimit.toLocaleString(locale),
     },
     {
-      label: language === "ko" ? "쿠폰" : "Coupon",
+      label: localize(language, {
+        en: "Coupon",
+        ko: "쿠폰",
+        ja: "クーポン",
+        es: "Cupón",
+      }),
       value: usage.couponCreditBalance.toLocaleString(locale),
     },
     {
-      label: language === "ko" ? "지갑" : "Wallet",
+      label: localize(language, {
+        en: "Wallet",
+        ko: "지갑",
+        ja: "ウォレット",
+        es: "Billetera",
+      }),
       value: usage.walletCreditsAvailable.toLocaleString(locale),
     },
   ];
@@ -156,7 +242,13 @@ export function UsageStatus({
       </div>
 
       <p className="mt-4 text-xs text-stone-500">
-        {language === "ko" ? "다음 초기화" : "Next reset"}:{" "}
+        {localize(language, {
+          en: "Next reset",
+          ko: "다음 초기화",
+          ja: "次回リセット",
+          es: "Próximo reinicio",
+        })}
+        :{" "}
         {formatResetAt(usage.resetAt, language)}
       </p>
     </section>

@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 import { AdminUserActions } from "@/components/admin/AdminUserActions";
 
 const text = {
@@ -129,8 +133,8 @@ function formatCost(value: number) {
 
 export function AdminUserDetailClient({ user }: { user: UserDetailData }) {
   const { language } = useLanguage();
-  const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const t = text[adminTextKey(language)];
+  const locale = intlLocale(language);
 
   const summaryCards = [
     { label: t.totalConversations, value: user.totals.totalConversations.toLocaleString() },
