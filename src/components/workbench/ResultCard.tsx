@@ -5,7 +5,12 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { AddToProjectButton } from "@/components/projects/AddToProjectButton";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
-import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
+import {
+  BRANCH_REVIEW_ACTION_TYPES,
+  type ActionType,
+  type ProviderName,
+  type TargetModelInput,
+} from "@/lib/ai/types";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import { buildResultDomId } from "@/lib/workbench-sharing";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
@@ -76,25 +81,6 @@ type ResultCardProps = {
   onShare?: (resultId: string) => Promise<{ url: string; copied: boolean }>;
   onToggleExpanded: (resultId: string) => void;
 };
-
-const reviewTypes: { value: ActionType; en: string; ko: string }[] = [
-  { value: "brainstorm", en: "Brainstorm", ko: "브레인스토밍" },
-  { value: "critique", en: "Critique", ko: "비판" },
-  {
-    value: "fact_check",
-    en: "Fact-check style review",
-    ko: "팩트체크식 검토",
-  },
-  { value: "improve", en: "Improve", ko: "개선" },
-  { value: "summarize", en: "Summarize", ko: "요약" },
-  { value: "simplify", en: "Simplify", ko: "쉽게 정리" },
-  {
-    value: "consistency_review",
-    en: "Consistency review",
-    ko: "일관성 검토",
-  },
-  { value: "code_review", en: "Code review", ko: "코드 리뷰" },
-];
 
 const providerOrder: ProviderName[] = ["openai", "anthropic", "google", "xai"];
 
@@ -579,9 +565,9 @@ function BranchComposer({
             {mode === "follow_up" ? (
               <option value="follow_up">{t("followUp")}</option>
             ) : (
-              reviewTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {language === "ko" ? type.ko : type.en}
+              BRANCH_REVIEW_ACTION_TYPES.map((actionType) => (
+                <option key={actionType} value={actionType}>
+                  {getActionTypeDisplayLabel(actionType, language)}
                 </option>
               ))
             )}

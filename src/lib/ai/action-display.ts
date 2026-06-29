@@ -16,6 +16,8 @@ const ACTION_DISPLAY_LABELS: Record<
   consistency_review: { en: "Consistency review", ko: "일관성 검토" },
   code_review: { en: "Code review", ko: "코드 리뷰" },
   follow_up: { en: "Follow-up", ko: "후속 질문" },
+  scenario_develop: { en: "Scenario development", ko: "시나리오 발전" },
+  deep_dive: { en: "Deep dive", ko: "딥 다이브" },
 };
 
 export function getActionTypeDisplayLabel(

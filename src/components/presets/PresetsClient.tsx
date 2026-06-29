@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
+import { ACTION_TYPES } from "@/lib/ai/types";
 
 type Preset = {
   id: string;
@@ -20,28 +22,8 @@ type PresetsClientProps = {
 };
 
 function actionLabel(value: string, language: "en" | "ko") {
-  const labels: Record<string, { en: string; ko: string }> = {
-    generate: { en: "Generate", ko: "\uc0dd\uc131" },
-    brainstorm: { en: "Brainstorm", ko: "\ube0c\ub808\uc778\uc2a4\ud1a0\ubc0d" },
-    critique: { en: "Critique", ko: "\ube44\ud310" },
-    fact_check: {
-      en: "Fact-check style review",
-      ko: "\ud329\ud2b8\uccb4\ud06c\uc2dd \uac80\ud1a0",
-    },
-    improve: { en: "Improve", ko: "\uac1c\uc120" },
-    summarize: { en: "Summarize", ko: "\uc694\uc57d" },
-    simplify: { en: "Simplify", ko: "\uc27d\uac8c \uc815\ub9ac" },
-    consistency_review: {
-      en: "Consistency review",
-      ko: "\uc77c\uad00\uc131 \uac80\ud1a0",
-    },
-    code_review: {
-      en: "Code review",
-      ko: "\ucf54\ub4dc \ub9ac\ubdf0",
-    },
-  };
-
-  return labels[value]?.[language] ?? value;
+  const actionType = ACTION_TYPES.find((candidate) => candidate === value);
+  return actionType ? getActionTypeDisplayLabel(actionType, language) : value;
 }
 
 function sourceLabel(

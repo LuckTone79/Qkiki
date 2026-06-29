@@ -252,6 +252,15 @@ export function estimateOutputTokensForAction(actionType: string) {
   if (actionType === "brainstorm") {
     return 1800;
   }
+  if (actionType === "code_review") {
+    return 2600;
+  }
+  if (actionType === "scenario_develop") {
+    return 3000;
+  }
+  if (actionType === "deep_dive") {
+    return 2400;
+  }
   if (actionType === "summarize" || actionType === "simplify") {
     return 900;
   }

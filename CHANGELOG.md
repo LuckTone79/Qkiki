@@ -1,5 +1,14 @@
 # Changelog
 
+## Patch 35 (v1.35.0-20260630)
+
+- Added `Scenario development` and `Deep dive` as first-class sequential and branch actions.
+- Scenario passes now carry a compact canon snapshot, stable thread IDs, an actual next scene, classified state deltas, and explicit continuity/conflict handling between models.
+- Deep-dive passes now compare competing hypotheses, descend through mechanism/implication/boundary layers, label evidence versus inference, stress-test prior stopping points, and end with one discriminating question.
+- Added semantic source provenance so original input and failed-source fallbacks cannot be mistaken for a real multi-model continuation.
+- Preserved the latest handoff under token pressure, corrected provider search activation for separately attached prior context, and centralized action lists/labels across validation, UI, presets, and guides.
+- Added focused regression coverage, a repository `npm test` command, updated credit estimates, and two rounds of pre-implementation model review using GPT-5.5 and GPT-5.4.
+
 ## Patch 34 (v1.33.0-20260621)
 
 - Rebuilt the admin Users tab around live usage visibility: filters for status/role, sorting by latest use, task count, credit use, token use, and account creation.

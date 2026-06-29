@@ -6,6 +6,7 @@ import {
   costUsdToCredits,
   estimateComparisonSummaryCredits,
   estimateImageGenerationCostUsd,
+  estimateOutputTokensForAction,
   estimateWorkbenchRunCredits,
 } from "./credits.ts";
 
@@ -131,6 +132,15 @@ test("repeated image generation steps scale by generated image count", () => {
     estimate.estimatedCredits,
     costUsdToCredits(0.04) * 3,
   );
+});
+
+test("code review output estimate allows findings plus complete improved code", () => {
+  assert.equal(estimateOutputTokensForAction("code_review"), 2600);
+});
+
+test("scenario and deep-dive output estimates match their structured protocols", () => {
+  assert.equal(estimateOutputTokensForAction("scenario_develop"), 3000);
+  assert.equal(estimateOutputTokensForAction("deep_dive"), 2400);
 });
 
 test("comparison summary estimate is a single model call with result text risk", () => {

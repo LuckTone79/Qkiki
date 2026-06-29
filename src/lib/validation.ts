@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { isImageModel, isProviderName, PROVIDERS } from "./ai/provider-catalog";
+import { isImageModel, isProviderName, PROVIDERS } from "./ai/provider-catalog.ts";
+import { BRANCH_ACTION_TYPES, WORKFLOW_STEP_ACTION_TYPES } from "./ai/types.ts";
 
 const providerNames = PROVIDERS.map((provider) => provider.name) as [
   string,
@@ -42,18 +43,7 @@ export const targetModelSchema = z.object({
 
 export const workflowStepSchema = z.object({
   orderIndex: z.number().int().min(1).max(50),
-  actionType: z.enum([
-    "generate",
-    "brainstorm",
-    "critique",
-    "fact_check",
-    "improve",
-    "summarize",
-    "simplify",
-    "consistency_review",
-    "code_review",
-    "follow_up",
-  ]),
+  actionType: z.enum(WORKFLOW_STEP_ACTION_TYPES),
   targetProvider: z.enum(providerNames),
   targetModel: z.string().min(1).max(100),
   sourceMode: z.enum(["original", "previous", "selected_result", "all_results"]),
@@ -127,17 +117,7 @@ export const runWorkbenchSchema = z.object({
 export const branchRunSchema = z.object({
   parentResultId: z.string().min(1),
   outputLanguage: z.enum(["en", "ko", "ja", "zh", "hi"]).nullable().optional(),
-  actionType: z.enum([
-    "brainstorm",
-    "critique",
-    "fact_check",
-    "improve",
-    "summarize",
-    "simplify",
-    "consistency_review",
-    "code_review",
-    "follow_up",
-  ]),
+  actionType: z.enum(BRANCH_ACTION_TYPES),
   instruction: z.string().min(1).max(8000),
   targets: z.array(targetModelSchema).min(1).max(4),
 });

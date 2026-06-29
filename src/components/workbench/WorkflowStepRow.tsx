@@ -1,7 +1,13 @@
 "use client";
 
 import { useLanguage } from "@/components/i18n/LanguageProvider";
-import type { ActionType, ProviderName, SourceMode } from "@/lib/ai/types";
+import {
+  WORKFLOW_ACTION_TYPES,
+  type ActionType,
+  type ProviderName,
+  type SourceMode,
+} from "@/lib/ai/types";
+import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
 
@@ -25,18 +31,6 @@ type WorkflowStepRowProps = {
   /** True when this step falls inside a configured repeat block. */
   insideRepeatBlock?: boolean;
 };
-
-const actionOptions: { value: ActionType; en: string; ko: string }[] = [
-  { value: "generate", en: "Generate", ko: "\uc0dd\uc131" },
-  { value: "brainstorm", en: "Brainstorm", ko: "\ube0c\ub808\uc778\uc2a4\ud1a0\ubc0d" },
-  { value: "critique", en: "Critique", ko: "\ube44\ud310" },
-  { value: "fact_check", en: "Fact-check style review", ko: "\ud329\ud2b8\uccb4\ud06c\uc2dd \uac80\ud1a0" },
-  { value: "improve", en: "Improve", ko: "\uac1c\uc120" },
-  { value: "summarize", en: "Summarize", ko: "\uc694\uc57d" },
-  { value: "simplify", en: "Simplify", ko: "\uc27d\uac8c \uc815\ub9ac" },
-  { value: "consistency_review", en: "Consistency review", ko: "\uc77c\uad00\uc131 \uac80\ud1a0" },
-  { value: "code_review", en: "Code review", ko: "\ucf54\ub4dc \ub9ac\ubdf0" },
-];
 
 const sourceOptions: { value: SourceMode; key: "originalInput" | "previousStep" | "selectedResult" | "allCurrentResults" }[] = [
   { value: "original", key: "originalInput" },
@@ -82,9 +76,9 @@ export function WorkflowStepRow({
             }
             className="mt-1 w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
           >
-            {actionOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {language === "ko" ? option.ko : option.en}
+            {WORKFLOW_ACTION_TYPES.map((actionType) => (
+              <option key={actionType} value={actionType}>
+                {getActionTypeDisplayLabel(actionType, language)}
               </option>
             ))}
           </select>
