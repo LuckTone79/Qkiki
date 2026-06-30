@@ -82,9 +82,12 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
   async function deletePost() {
     if (
       !window.confirm(
-        ko
-          ? "이 글을 삭제할까요? 되돌릴 수 없습니다."
-          : "Delete this post? This cannot be undone.",
+        tt({
+          en: "Delete this post? This cannot be undone.",
+          ko: "이 글을 삭제할까요? 되돌릴 수 없습니다.",
+          ja: "この投稿を削除しますか？元に戻せません。",
+          es: "¿Eliminar esta publicación? No se puede deshacer.",
+        }),
       )
     ) {
       return;
@@ -202,9 +205,12 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
         </h2>
         {comments.length === 0 ? (
           <p className="text-sm text-stone-500">
-            {ko
-              ? "아직 답변이 없습니다. 운영팀이 확인 후 답변드립니다."
-              : "No replies yet. The team will respond after reviewing."}
+            {tt({
+              en: "No replies yet. The team will respond after reviewing.",
+              ko: "아직 답변이 없습니다. 운영팀이 확인 후 답변드립니다.",
+              ja: "まだ返信がありません。運営チームが確認後に返信します。",
+              es: "Aún no hay respuestas. El equipo responderá tras revisarlo.",
+            })}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -220,9 +226,12 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
                 <div className="mb-1 flex items-center gap-2">
                   <span className="text-sm font-semibold text-stone-900">
                     {comment.isAdmin
-                      ? ko
-                        ? "운영팀"
-                        : "Yapp team"
+                      ? tt({
+                          en: "Yapp team",
+                          ko: "운영팀",
+                          ja: "運営チーム",
+                          es: "Equipo de Yapp",
+                        })
                       : comment.authorName}
                   </span>
                   <span className="text-xs text-stone-500">
@@ -273,12 +282,13 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
             className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
           >
             {submitting
-              ? ko
-                ? "전송 중..."
-                : "Sending..."
-              : ko
-                ? "전송"
-                : "Send"}
+              ? tt({
+                  en: "Sending...",
+                  ko: "전송 중...",
+                  ja: "送信中...",
+                  es: "Enviando...",
+                })
+              : tt({ en: "Send", ko: "전송", ja: "送信", es: "Enviar" })}
           </button>
         </div>
       </form>

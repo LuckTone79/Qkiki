@@ -68,9 +68,12 @@ export function FeedbackBoardClient() {
   async function uploadImage(file: File) {
     if (attachments.length >= MAX_PENDING) {
       setError(
-        ko
-          ? `이미지는 최대 ${MAX_PENDING}개까지 첨부할 수 있습니다.`
-          : `You can attach up to ${MAX_PENDING} images.`,
+        tt({
+          en: `You can attach up to ${MAX_PENDING} images.`,
+          ko: `이미지는 최대 ${MAX_PENDING}개까지 첨부할 수 있습니다.`,
+          ja: `画像は最大 ${MAX_PENDING} 個まで添付できます。`,
+          es: `Puedes adjuntar hasta ${MAX_PENDING} imágenes.`,
+        }),
       );
       return null;
     }
@@ -250,12 +253,13 @@ export function FeedbackBoardClient() {
           className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
         >
           {showForm
-            ? ko
-              ? "닫기"
-              : "Close"
-            : ko
-              ? "새 글 작성"
-              : "New post"}
+            ? tt({ en: "Close", ko: "닫기", ja: "閉じる", es: "Cerrar" })
+            : tt({
+                en: "New post",
+                ko: "새 글 작성",
+                ja: "新規投稿",
+                es: "Nueva publicación",
+              })}
         </button>
       </div>
 
@@ -328,11 +332,12 @@ export function FeedbackBoardClient() {
                 onPaste={handlePaste}
                 rows={10}
                 className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm leading-relaxed outline-none focus:border-teal-600"
-                placeholder={
-                  ko
-                    ? "무엇이 불편했는지 자세히 알려주세요. 캡처한 이미지를 이 영역에 바로 붙여넣으면(Ctrl/⌘+V) 아래에 미리보기로 첨부됩니다."
-                    : "Describe the issue. Paste a screenshot here (Ctrl/⌘+V) and it will be attached as a preview below."
-                }
+                placeholder={tt({
+                  en: "Describe the issue. Paste a screenshot here (Ctrl/⌘+V) and it will be attached as a preview below.",
+                  ko: "무엇이 불편했는지 자세히 알려주세요. 캡처한 이미지를 이 영역에 바로 붙여넣으면(Ctrl/⌘+V) 아래에 미리보기로 첨부됩니다.",
+                  ja: "問題の内容を詳しく教えてください。スクリーンショットをこの欄に貼り付ける（Ctrl/⌘+V）と、下にプレビューとして添付されます。",
+                  es: "Describe el problema. Pega una captura aquí (Ctrl/⌘+V) y se adjuntará como vista previa abajo.",
+                })}
               />
             </label>
 
@@ -344,12 +349,18 @@ export function FeedbackBoardClient() {
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
               >
                 {uploading
-                  ? ko
-                    ? "업로드 중..."
-                    : "Uploading..."
-                  : ko
-                    ? "🖼 이미지 첨부"
-                    : "🖼 Attach image"}
+                  ? tt({
+                      en: "Uploading...",
+                      ko: "업로드 중...",
+                      ja: "アップロード中...",
+                      es: "Subiendo...",
+                    })
+                  : tt({
+                      en: "🖼 Attach image",
+                      ko: "🖼 이미지 첨부",
+                      ja: "🖼 画像を添付",
+                      es: "🖼 Adjuntar imagen",
+                    })}
               </button>
               <input
                 ref={fileInputRef}
@@ -360,18 +371,24 @@ export function FeedbackBoardClient() {
                 className="hidden"
               />
               <span className="text-xs text-stone-500">
-                {ko
-                  ? "PNG·JPEG·WebP·GIF, 최대 10MB"
-                  : "PNG, JPEG, WebP, GIF · up to 10MB"}
+                {tt({
+                  en: "PNG, JPEG, WebP, GIF · up to 10MB",
+                  ko: "PNG·JPEG·WebP·GIF, 최대 10MB",
+                  ja: "PNG・JPEG・WebP・GIF、最大10MB",
+                  es: "PNG, JPEG, WebP, GIF · hasta 10MB",
+                })}
               </span>
             </div>
 
             {attachments.length ? (
               <div>
                 <p className="mb-2 text-xs font-medium text-stone-500">
-                  {ko
-                    ? `첨부 이미지 ${attachments.length}장`
-                    : `${attachments.length} attached image${attachments.length > 1 ? "s" : ""}`}
+                  {tt({
+                    en: `${attachments.length} attached image${attachments.length > 1 ? "s" : ""}`,
+                    ko: `첨부 이미지 ${attachments.length}장`,
+                    ja: `添付画像 ${attachments.length} 枚`,
+                    es: `${attachments.length} imagen${attachments.length > 1 ? "es" : ""} adjunta${attachments.length > 1 ? "s" : ""}`,
+                  })}
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {attachments.map((item) => (
@@ -408,12 +425,13 @@ export function FeedbackBoardClient() {
                 className="rounded-md bg-teal-700 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
               >
                 {submitting
-                  ? ko
-                    ? "등록 중..."
-                    : "Submitting..."
-                  : ko
-                    ? "등록하기"
-                    : "Submit"}
+                  ? tt({
+                      en: "Submitting...",
+                      ko: "등록 중...",
+                      ja: "送信中...",
+                      es: "Enviando...",
+                    })
+                  : tt({ en: "Submit", ko: "등록하기", ja: "送信", es: "Enviar" })}
               </button>
             </div>
           </form>
@@ -442,9 +460,12 @@ export function FeedbackBoardClient() {
           </p>
         ) : posts.length === 0 ? (
           <p className="px-5 py-6 text-sm text-stone-500">
-            {ko
-              ? "아직 작성한 글이 없습니다."
-              : "You have not posted any feedback yet."}
+            {tt({
+              en: "You have not posted any feedback yet.",
+              ko: "아직 작성한 글이 없습니다.",
+              ja: "まだ投稿した内容がありません。",
+              es: "Aún no has publicado ningún comentario.",
+            })}
           </p>
         ) : (
           <ul className="divide-y divide-stone-100">
