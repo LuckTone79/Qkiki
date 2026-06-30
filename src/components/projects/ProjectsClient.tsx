@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { resolveApiAuthRedirect } from "@/lib/api-auth-navigation";
 
 type ProjectListItem = {
   id: string;
@@ -70,7 +71,18 @@ export function ProjectsClient({
     const data = (await response.json().catch(() => ({}))) as {
       projects?: ProjectListItem[];
       error?: string;
+      redirectUrl?: string;
     };
+
+    const authRedirect = resolveApiAuthRedirect({
+      status: response.status,
+      redirectUrl: data.redirectUrl,
+      returnTo: "/app/projects",
+    });
+    if (authRedirect) {
+      window.location.href = authRedirect;
+      return;
+    }
 
     if (!response.ok || !data.projects) {
       setError(
@@ -102,7 +114,18 @@ export function ProjectsClient({
     const data = (await response.json().catch(() => ({}))) as {
       project?: { id: string; name: string };
       error?: string;
+      redirectUrl?: string;
     };
+
+    const authRedirect = resolveApiAuthRedirect({
+      status: response.status,
+      redirectUrl: data.redirectUrl,
+      returnTo: "/app/projects?create=1",
+    });
+    if (authRedirect) {
+      window.location.href = authRedirect;
+      return;
+    }
 
     if (!response.ok || !data.project) {
       setError(

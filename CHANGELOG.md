@@ -1,5 +1,11 @@
 # Changelog
 
+## Patch 36 (v1.35.1-20260630)
+
+- Fixed project creation after an authenticated page becomes stale because the user session has expired.
+- Project list and create requests now redirect `401 Unauthorized` responses to sign-in and return users to the project page afterward.
+- Added a safe internal-redirect guard and focused regression coverage for expired API authentication.
+
 ## Patch 35 (v1.35.0-20260630)
 
 - Added `Scenario development` and `Deep dive` as first-class sequential and branch actions.
