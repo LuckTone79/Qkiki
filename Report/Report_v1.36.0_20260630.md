@@ -57,6 +57,18 @@
 
 - `npm install`의 기존 의존성 감사 결과 24건(낮음 7, 중간 4, 높음 13)이 보고됐다. 번역 릴리스와 분리해 의존성 호환성을 검토한 뒤 처리한다.
 
+## 배포 결과
+
+- **Vercel 배포 ID**: `dpl_G5GGotBDjmRpSHkbpYxgubuWGr22`
+- **프로덕션 URL**: `https://qkiki-adh8o8f0z-lucktone79s-projects.vercel.app`
+- **공개 도메인**: `https://yapp.wideget.net`
+- **상태**: Ready
+- `qkiki.vercel.app` → `yapp.wideget.net` 307 리다이렉트 확인
+- `yapp.wideget.net`, `yapp.wideget.net/guide` 200 확인
+- 프로덕션 체험 세션에서 일본어 메뉴 7개·스페인어 메뉴 7개 확인
+- 프로덕션 가이드북과 `v1.36.0-20260630` 표시 확인
+- 브라우저 콘솔 오류·Next 오류 오버레이 0건, 배포 후 Vercel 오류 로그 없음
+
 ## 버전 히스토리 요약
 
 | 버전 | 날짜 | 주요 변경 |
