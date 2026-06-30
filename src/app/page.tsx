@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -33,16 +35,12 @@ export default function LandingPage() {
       }
       setTrialError(
         data.error ||
-          (language === "ko"
-            ? "체험판을 시작할 수 없습니다."
-            : "Unable to start the trial."),
+          (localize(language, { en: "Unable to start the trial.", ko: "체험판을 시작할 수 없습니다.", ja: "\u30C8\u30E9\u30A4\u30A2\u30EB\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3002", es: "No se puede iniciar la prueba." })),
       );
     } catch (error) {
       console.error("Trial start error:", error);
       setTrialError(
-        language === "ko"
-          ? "체험판을 시작할 수 없습니다."
-          : "Unable to start the trial.",
+        localize(language, { en: "Unable to start the trial.", ko: "체험판을 시작할 수 없습니다.", ja: "\u30C8\u30E9\u30A4\u30A2\u30EB\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3002", es: "No se puede iniciar la prueba." }),
       );
     } finally {
       setIsLoading(false);
@@ -63,31 +61,27 @@ export default function LandingPage() {
   // Sequential chain: each model plays a specialized role and its output
   // is auto-fed as the next step's input.
   const chainFlow: Array<{ model: string; action: string; desc: string }> = [
-    { model: "GPT", action: language === "ko" ? "초안 생성" : "Draft", desc: t("stepDraftAnswer") },
-    { model: "Grok", action: language === "ko" ? "비판" : "Critique", desc: t("stepCritiqueFlaws") },
-    { model: "Gemini", action: language === "ko" ? "개선" : "Improve", desc: t("stepImproveCritique") },
-    { model: "Claude", action: language === "ko" ? "최종 완성" : "Finalize", desc: t("stepFinalAnswer") },
+    { model: "GPT", action: localize(language, { en: "Draft", ko: "초안 생성", ja: "\u4E0B\u66F8\u304D", es: "Borrador" }), desc: t("stepDraftAnswer") },
+    { model: "Grok", action: localize(language, { en: "Critique", ko: "비판", ja: "\u6279\u8A55", es: "Cr\u00EDtica" }), desc: t("stepCritiqueFlaws") },
+    { model: "Gemini", action: localize(language, { en: "Improve", ko: "개선", ja: "\u6539\u5584\u3059\u308B", es: "Mejorar" }), desc: t("stepImproveCritique") },
+    { model: "Claude", action: localize(language, { en: "Finalize", ko: "최종 완성", ja: "\u30D5\u30A1\u30A4\u30CA\u30E9\u30A4\u30BA", es: "Finalizar" }), desc: t("stepFinalAnswer") },
   ];
   const quickStarts = [
     {
       key: "parallel",
-      title: language === "ko" ? "빠르게 비교하기" : "Quick compare",
+      title: localize(language, { en: "Quick compare", ko: "빠르게 비교하기", ja: "\u7C21\u5358\u306A\u6BD4\u8F03", es: "Comparaci\u00F3n r\u00E1pida" }),
       description:
-        language === "ko"
-          ? "같은 질문을 여러 모델에 보내고 답변 차이를 바로 비교합니다."
-          : "Send one prompt to multiple models and compare the differences right away.",
+        localize(language, { en: "Send one prompt to multiple models and compare the differences right away.", ko: "같은 질문을 여러 모델에 보내고 답변 차이를 바로 비교합니다.", ja: "1 \u3064\u306E\u30D7\u30ED\u30F3\u30D7\u30C8\u3092\u8907\u6570\u306E\u30E2\u30C7\u30EB\u306B\u9001\u4FE1\u3057\u3001\u9055\u3044\u3092\u3059\u3050\u306B\u6BD4\u8F03\u3057\u307E\u3059\u3002", es: "Env\u00EDe un mensaje a varios modelos y compare las diferencias de inmediato." }),
     },
     {
       key: "sequential",
-      title: language === "ko" ? "단계별 개선하기" : "Step-by-step improve",
+      title: localize(language, { en: "Step-by-step improve", ko: "단계별 개선하기", ja: "\u6BB5\u968E\u7684\u306B\u6539\u5584\u3059\u308B", es: "Mejora paso a paso" }),
       description:
-        language === "ko"
-          ? "초안 생성, 비판, 개선을 체인으로 묶어 끝까지 다듬습니다."
-          : "Chain drafting, critique, and improvement into one guided run.",
+        localize(language, { en: "Chain drafting, critique, and improvement into one guided run.", ko: "초안 생성, 비판, 개선을 체인으로 묶어 끝까지 다듬습니다.", ja: "\u8D77\u8349\u3001\u6279\u8A55\u3001\u6539\u5584\u3092 1 \u3064\u306E\u30AC\u30A4\u30C9\u4ED8\u304D\u5B9F\u884C\u306B\u9023\u9396\u3055\u305B\u307E\u3059\u3002", es: "Encadene redacci\u00F3n, cr\u00EDtica y mejora en una sola ejecuci\u00F3n guiada." }),
     },
   ];
 
-  const guideLabel = language === "ko" ? "가이드북" : "Guidebook";
+  const guideLabel = localize(language, { en: "Guidebook", ko: "가이드북", ja: "\u30AC\u30A4\u30C9\u30D6\u30C3\u30AF", es: "Gu\u00EDa" });
 
   return (
     <main className="bg-white text-[#171a20]">
@@ -173,17 +167,13 @@ export default function LandingPage() {
       <section className="relative flex min-h-[100svh] flex-col items-center justify-between gap-12 bg-[#f4f4f4] py-16">
         <div className="px-5 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#171a20]/55">
-            {language === "ko" ? "병렬 비교" : "Parallel compare"}
+            {localize(language, { en: "Parallel compare", ko: "병렬 비교", ja: "\u4E26\u5217\u6BD4\u8F03", es: "comparaci\u00F3n paralela" })}
           </p>
           <h2 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-            {language === "ko"
-              ? "한 번에, 나란히."
-              : "All at once. Side by side."}
+            {localize(language, { en: "All at once. Side by side.", ko: "한 번에, 나란히.", ja: "\u4E00\u6C17\u306B\u3002\u4E26\u3093\u3067\u3002", es: "De repente. Juntos." })}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#171a20]/70 sm:text-lg">
-            {language === "ko"
-              ? "하나의 작업을 여러 모델에 동시에 보내고 한 화면에서 차이를 비교하세요."
-              : "Send one task to multiple models simultaneously and compare differences on a single screen."}
+            {localize(language, { en: "Send one task to multiple models simultaneously and compare differences on a single screen.", ko: "하나의 작업을 여러 모델에 동시에 보내고 한 화면에서 차이를 비교하세요.", ja: "1\u3064\u306E\u30BF\u30B9\u30AF\u3092\u8907\u6570\u306E\u30E2\u30C7\u30EB\u306B\u540C\u6642\u306B\u9001\u4FE1\u3057\u30011\u3064\u306E\u753B\u9762\u4E0A\u3067\u5DEE\u7570\u3092\u6BD4\u8F03\u3057\u307E\u3059\u3002", es: "Env\u00EDe una tarea a varios modelos simult\u00E1neamente y compare las diferencias en una sola pantalla." })}
           </p>
         </div>
 
@@ -192,17 +182,13 @@ export default function LandingPage() {
           <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-md sm:p-8">
             {/* one prompt */}
             <div className="mx-auto max-w-md rounded-xl border border-[#171a20]/10 bg-[#fafafa] px-4 py-3 text-center text-sm italic text-[#171a20]/60">
-              {language === "ko"
-                ? '"신제품 출시 카피를 써줘"'
-                : '"Write a launch copy for our new product"'}
+              {localize(language, { en: '"Write a launch copy for our new product"', ko: '"신제품 출시 카피를 써줘"', ja: "\u300C\u65B0\u88FD\u54C1\u306E\u30ED\u30FC\u30F3\u30C1\u30B3\u30D4\u30FC\u3092\u66F8\u3044\u3066\u304F\u3060\u3055\u3044\u300D", es: "\"Escribe una copia de lanzamiento de nuestro nuevo producto\"" })}
             </div>
 
             {/* fan-out indicator */}
             <div className="my-3 flex flex-col items-center">
               <span className="text-[11px] font-semibold uppercase tracking-wide text-teal-600">
-                {language === "ko"
-                  ? "4개 모델에 동시 전송"
-                  : "Sent to 4 models at once"}
+                {localize(language, { en: "Sent to 4 models at once", ko: "4개 모델에 동시 전송", ja: "4\u3064\u306E\u30E2\u30C7\u30EB\u306B\u4E00\u5EA6\u306B\u9001\u4FE1", es: "Enviado a 4 modelos a la vez" })}
               </span>
               <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 text-teal-500" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 5v14M19 12l-7 7-7-7" />
@@ -236,9 +222,7 @@ export default function LandingPage() {
             </div>
 
             <p className="mt-5 text-center text-xs text-[#171a20]/45">
-              {language === "ko"
-                ? "탭을 4개 열 필요 없이, 답변 · 속도 · 비용을 한 화면에서 비교합니다."
-                : "No more juggling 4 tabs — compare answers, speed, and cost on one screen."}
+              {localize(language, { en: "No more juggling 4 tabs — compare answers, speed, and cost on one screen.", ko: "탭을 4개 열 필요 없이, 답변 · 속도 · 비용을 한 화면에서 비교합니다.", ja: "4 \u3064\u306E\u30BF\u30D6\u3092\u64CD\u4F5C\u3059\u308B\u5FC5\u8981\u306F\u3082\u3046\u3042\u308A\u307E\u305B\u3093\u3002\u56DE\u7B54\u3001\u901F\u5EA6\u3001\u30B3\u30B9\u30C8\u3092 1 \u3064\u306E\u753B\u9762\u3067\u6BD4\u8F03\u3067\u304D\u307E\u3059\u3002", es: "No m\u00E1s malabarismos con 4 pesta\u00F1as: compare respuestas, velocidad y costos en una sola pantalla." })}
             </p>
           </div>
         </div>
@@ -274,12 +258,10 @@ export default function LandingPage() {
       <section className="relative flex min-h-[100svh] flex-col items-center justify-between gap-12 bg-[#171a20] py-16 text-white">
         <div className="px-5 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-white/55">
-            {language === "ko" ? "순차 검토 체인" : "Sequential review chain"}
+            {localize(language, { en: "Sequential review chain", ko: "순차 검토 체인", ja: "\u9010\u6B21\u30EC\u30D3\u30E5\u30FC\u30C1\u30A7\u30FC\u30F3", es: "Cadena de revisi\u00F3n secuencial" })}
           </p>
           <h2 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-            {language === "ko"
-              ? "한 출력이 다음 입력이 됩니다."
-              : "One output becomes the next input."}
+            {localize(language, { en: "One output becomes the next input.", ko: "한 출력이 다음 입력이 됩니다.", ja: "1 \u3064\u306E\u51FA\u529B\u304C\u6B21\u306E\u5165\u529B\u306B\u306A\u308A\u307E\u3059\u3002", es: "Una salida se convierte en la siguiente entrada." })}
           </h2>
         </div>
 
@@ -303,7 +285,7 @@ export default function LandingPage() {
                       </span>
                       {isFinal ? (
                         <span className="rounded-full bg-teal-400/20 px-2 py-0.5 text-[10px] font-semibold text-teal-200">
-                          {language === "ko" ? "최종" : "Final"}
+                          {localize(language, { en: "Final", ko: "최종", ja: "\u30D5\u30A1\u30A4\u30CA\u30EB", es: "Final" })}
                         </span>
                       ) : null}
                     </div>
@@ -332,9 +314,7 @@ export default function LandingPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-white/45">
-            {language === "ko"
-              ? "각 단계의 출력이 다음 단계의 입력으로 자동 전달됩니다 — 복사·붙여넣기 없이."
-              : "Each step's output is auto-passed as the next step's input — no copy-paste."}
+            {localize(language, { en: "Each step's output is auto-passed as the next step's input — no copy-paste.", ko: "각 단계의 출력이 다음 단계의 입력으로 자동 전달됩니다 — 복사·붙여넣기 없이.", ja: "\u5404\u30B9\u30C6\u30C3\u30D7\u306E\u51FA\u529B\u306F\u3001\u30B3\u30D4\u30FC\uFF06\u30DA\u30FC\u30B9\u30C8\u3059\u308B\u3053\u3068\u306A\u304F\u3001\u6B21\u306E\u30B9\u30C6\u30C3\u30D7\u306E\u5165\u529B\u3068\u3057\u3066\u81EA\u52D5\u7684\u306B\u6E21\u3055\u308C\u307E\u3059\u3002", es: "La salida de cada paso se pasa autom\u00E1ticamente como entrada del siguiente paso, sin copiar y pegar." })}
           </p>
 
           {/* Repeat-loop highlight — re-run a step range until quality converges */}
@@ -347,13 +327,13 @@ export default function LandingPage() {
                 <path d="M21 13v2a4 4 0 0 1-4 4H3" />
               </svg>
               <span className="text-sm font-semibold text-teal-200">
-                {language === "ko" ? "반복 루프 설정" : "Repeat-loop setting"}
+                {localize(language, { en: "Repeat-loop setting", ko: "반복 루프 설정", ja: "\u30EA\u30D4\u30FC\u30C8\u30EB\u30FC\u30D7\u8A2D\u5B9A", es: "Configuraci\u00F3n de bucle de repetici\u00F3n" })}
               </span>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-white/75">
-                Grok · {language === "ko" ? "비판" : "Critique"}
+                Grok · {localize(language, { en: "Critique", ko: "비판", ja: "\u6279\u8A55", es: "Cr\u00EDtica" })}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full border border-teal-400/40 bg-teal-400/10 px-2.5 py-1 text-[11px] font-semibold text-teal-200">
                 <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -365,14 +345,12 @@ export default function LandingPage() {
                 ×3
               </span>
               <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-white/75">
-                Gemini · {language === "ko" ? "개선" : "Improve"}
+                Gemini · {localize(language, { en: "Improve", ko: "개선", ja: "\u6539\u5584\u3059\u308B", es: "Mejorar" })}
               </span>
             </div>
 
             <p className="mt-4 text-center text-xs leading-5 text-white/60">
-              {language === "ko"
-                ? "원하는 단계 구간(시작~종료)을 반복 횟수만큼 자동으로 돌려, 품질이 수렴할 때까지 다듬습니다. 최대 10개 구간 · 총 50단계까지."
-                : "Loop any step range (start–end) for as many passes as you set, refining until quality converges. Up to 10 ranges · 50 total steps."}
+              {localize(language, { en: "Loop any step range (start–end) for as many passes as you set, refining until quality converges. Up to 10 ranges · 50 total steps.", ko: "원하는 단계 구간(시작~종료)을 반복 횟수만큼 자동으로 돌려, 품질이 수렴할 때까지 다듬습니다. 최대 10개 구간 · 총 50단계까지.", ja: "\u8A2D\u5B9A\u3057\u305F\u30D1\u30B9\u306E\u6570\u3060\u3051\u4EFB\u610F\u306E\u30B9\u30C6\u30C3\u30D7\u7BC4\u56F2 (\u958B\u59CB\u304B\u3089\u7D42\u4E86) \u3092\u30EB\u30FC\u30D7\u3057\u3001\u54C1\u8CEA\u304C\u53CE\u675F\u3059\u308B\u307E\u3067\u8ABF\u6574\u3057\u307E\u3059\u3002\u6700\u592710\u30EC\u30F3\u30B8\u30FB\u5408\u8A0850\u30B9\u30C6\u30C3\u30D7\u3002", es: "Repita cualquier rango de pasos (inicio-fin) para tantas pasadas como establezca, refinando hasta que la calidad converja. Hasta 10 rangos \u00B7 50 pasos en total." })}
             </p>
           </div>
         </div>
@@ -382,7 +360,7 @@ export default function LandingPage() {
             href="/sign-in"
             className="rounded bg-white px-12 py-3 text-sm font-semibold tracking-wide text-[#171a20] transition hover:bg-stone-200"
           >
-            {language === "ko" ? "자세히" : "Learn more"}
+            {localize(language, { en: "Learn more", ko: "자세히", ja: "\u3082\u3063\u3068\u8A73\u3057\u304F\u77E5\u308B", es: "M\u00E1s informaci\u00F3n" })}
           </Link>
         </div>
       </section>
@@ -391,14 +369,10 @@ export default function LandingPage() {
       <section className="relative flex min-h-[100svh] flex-col items-center justify-center gap-10 bg-white py-16 text-center">
         <div className="px-5">
           <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            {language === "ko"
-              ? "모든 결과가 새로운 시작점."
-              : "Every result is a new beginning."}
+            {localize(language, { en: "Every result is a new beginning.", ko: "모든 결과가 새로운 시작점.", ja: "\u3059\u3079\u3066\u306E\u7D50\u679C\u306F\u65B0\u305F\u306A\u59CB\u307E\u308A\u3067\u3059\u3002", es: "Cada resultado es un nuevo comienzo." })}
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[#171a20]/70 sm:text-lg">
-            {language === "ko"
-              ? "분기 · 프로젝트 · 프리셋 · 파일 첨부까지, 한 작업대에서."
-              : "Branch · projects · presets · file attachments — all in one workbench."}
+            {localize(language, { en: "Branch · projects · presets · file attachments — all in one workbench.", ko: "분기 · 프로젝트 · 프리셋 · 파일 첨부까지, 한 작업대에서.", ja: "\u30D6\u30E9\u30F3\u30C1\u3001\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u3001\u30D7\u30EA\u30BB\u30C3\u30C8\u3001\u6DFB\u4ED8\u30D5\u30A1\u30A4\u30EB \u2014 \u3059\u3079\u3066\u304C 1 \u3064\u306E\u30EF\u30FC\u30AF\u30D9\u30F3\u30C1\u306B\u3042\u308A\u307E\u3059\u3002", es: "Rama \u00B7 proyectos \u00B7 ajustes preestablecidos \u00B7 archivos adjuntos: todo en un solo banco de trabajo." })}
           </p>
         </div>
 

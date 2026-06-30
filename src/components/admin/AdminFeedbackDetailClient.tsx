@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
@@ -40,7 +42,6 @@ export function AdminFeedbackDetailClient({
   post: AdminFeedbackDetailData;
 }) {
   const { language } = useLanguage();
-  const ko = language === "ko";
 
   const [status, setStatus] = useState<FeedbackStatusValue>(post.status);
   const [savingStatus, setSavingStatus] = useState(false);
@@ -62,9 +63,9 @@ export function AdminFeedbackDetailClient({
     });
     setSavingStatus(false);
     if (response.ok) {
-      setNotice(ko ? "상태가 변경되었습니다." : "Status updated.");
+      setNotice(localize(language, { en: "Status updated.", ko: "상태가 변경되었습니다.", ja: "\u30B9\u30C6\u30FC\u30BF\u30B9\u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\u3002", es: "Estado actualizado." }));
     } else {
-      setError(ko ? "상태 변경에 실패했습니다." : "Could not update status.");
+      setError(localize(language, { en: "Could not update status.", ko: "상태 변경에 실패했습니다.", ja: "\u30B9\u30C6\u30FC\u30BF\u30B9\u3092\u66F4\u65B0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo actualizar el estado." }));
     }
   }
 
@@ -84,7 +85,7 @@ export function AdminFeedbackDetailClient({
         error?: string;
       };
       if (!response.ok || !data.comment) {
-        setError(data.error || (ko ? "전송에 실패했습니다." : "Could not send."));
+        setError(data.error || (localize(language, { en: "Could not send.", ko: "전송에 실패했습니다.", ja: "\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo enviar." })));
         return;
       }
       setComments((current) => [...current, data.comment!]);
@@ -100,7 +101,7 @@ export function AdminFeedbackDetailClient({
         href="/admin/feedback"
         className="text-sm font-medium text-slate-500 hover:text-slate-800"
       >
-        ← {ko ? "피드백 목록" : "Back to feedback"}
+        ← {localize(language, { en: "Back to feedback", ko: "피드백 목록", ja: "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u306B\u623B\u308B", es: "Volver a comentarios" })}
       </Link>
 
       {notice ? (
@@ -158,7 +159,7 @@ export function AdminFeedbackDetailClient({
         {post.attachments.length ? (
           <div className="mt-4 border-t border-slate-100 pt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {ko ? "첨부 이미지" : "Attachments"}
+              {localize(language, { en: "Attachments", ko: "첨부 이미지", ja: "\u6DFB\u4ED8\u30D5\u30A1\u30A4\u30EB", es: "Adjuntos" })}
             </p>
             <div className="flex flex-wrap gap-2">
               {post.attachments.map((attachment) => (
@@ -183,11 +184,11 @@ export function AdminFeedbackDetailClient({
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-slate-700">
-          {ko ? "대화" : "Conversation"}
+          {localize(language, { en: "Conversation", ko: "대화", ja: "\u4F1A\u8A71", es: "Conversaci\u00F3n" })}
         </h2>
         {comments.length === 0 ? (
           <p className="text-sm text-slate-500">
-            {ko ? "아직 답변이 없습니다." : "No replies yet."}
+            {localize(language, { en: "No replies yet.", ko: "아직 답변이 없습니다.", ja: "\u307E\u3060\u8FD4\u4FE1\u306F\u3042\u308A\u307E\u305B\u3093\u3002", es: "A\u00FAn no hay respuestas." })}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -203,9 +204,7 @@ export function AdminFeedbackDetailClient({
                 <div className="mb-1 flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-900">
                     {comment.isAdmin
-                      ? ko
-                        ? "운영팀"
-                        : "Yapp team"
+                      ? localize(language, { en: "Yapp team", ko: "운영팀", ja: "\u30E4\u30C3\u30D7\u30C1\u30FC\u30E0", es: "equipo yapp" })
                       : comment.authorName}
                   </span>
                   <span className="text-xs text-slate-500">
@@ -225,7 +224,7 @@ export function AdminFeedbackDetailClient({
       >
         <label className="block">
           <span className="text-sm font-medium text-slate-700">
-            {ko ? "답변 작성" : "Reply to user"}
+            {localize(language, { en: "Reply to user", ko: "답변 작성", ja: "\u30E6\u30FC\u30B6\u30FC\u3078\u306E\u8FD4\u4FE1", es: "Responder al usuario" })}
           </span>
           <textarea
             value={reply}
@@ -233,7 +232,7 @@ export function AdminFeedbackDetailClient({
             rows={4}
             className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
             placeholder={
-              ko ? "사용자에게 전달할 답변을 입력하세요." : "Write a reply to the user."
+              localize(language, { en: "Write a reply to the user.", ko: "사용자에게 전달할 답변을 입력하세요.", ja: "\u30E6\u30FC\u30B6\u30FC\u306B\u8FD4\u4FE1\u3092\u66F8\u304D\u307E\u3059\u3002", es: "Escribe una respuesta al usuario." })
             }
           />
         </label>
@@ -244,12 +243,8 @@ export function AdminFeedbackDetailClient({
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
           >
             {submitting
-              ? ko
-                ? "전송 중..."
-                : "Sending..."
-              : ko
-                ? "답변 전송"
-                : "Send reply"}
+              ? localize(language, { en: "Sending...", ko: "전송 중...", ja: "\u9001\u4FE1\u4E2D...", es: "Enviando..." })
+              : localize(language, { en: "Send reply", ko: "답변 전송", ja: "\u8FD4\u4FE1\u3092\u9001\u4FE1", es: "Enviar respuesta" })}
           </button>
         </div>
       </form>

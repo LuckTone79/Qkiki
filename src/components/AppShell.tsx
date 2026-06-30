@@ -1,5 +1,7 @@
 "use client";
 
+import { localize, normalizeAppLanguage } from "@/lib/i18n";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,15 +59,13 @@ export function AppShell({
   }, [sidebarCollapsed]);
 
   const sidebarToggleLabel =
-    language === "ko"
-      ? sidebarCollapsed
-        ? "왼쪽 메뉴 펼치기"
-        : "왼쪽 메뉴 접기"
-      : sidebarCollapsed
+    localize(language, { en: sidebarCollapsed
         ? "Expand left menu"
-        : "Collapse left menu";
-  const versionLabel = language === "ko" ? "버전" : "Version";
-  const recentSessionsLabel = language === "ko" ? "최근 작업" : "Recent work";
+        : "Collapse left menu", ko: sidebarCollapsed
+        ? "왼쪽 메뉴 펼치기"
+        : "왼쪽 메뉴 접기", ja: sidebarCollapsed ? "\u5DE6\u5074\u306E\u30E1\u30CB\u30E5\u30FC\u3092\u5C55\u958B\u3057\u307E\u3059" : "\u5DE6\u5074\u306E\u30E1\u30CB\u30E5\u30FC\u3092\u6298\u308A\u305F\u305F\u3080", es: sidebarCollapsed ? "Expandir el men\u00FA de la izquierda" : "Contraer men\u00FA de la izquierda" });
+  const versionLabel = localize(language, { en: "Version", ko: "버전", ja: "\u30D0\u30FC\u30B8\u30E7\u30F3", es: "Versi\u00F3n" });
+  const recentSessionsLabel = localize(language, { en: "Recent work", ko: "최근 작업", ja: "\u6700\u8FD1\u306E\u4F5C\u696D", es: "Trabajo reciente" });
   const visibleRecentSessions = recentSessions.slice(0, 10);
   const hasMoreRecentSessions = recentSessions.length > 10;
   const showAuthEntryLinks = shouldShowAuthEntryPoints(user);
@@ -117,7 +117,7 @@ export function AppShell({
                     value={language}
                     onChange={(event) =>
                       setLanguage(
-                        event.target.value === "ko" ? "ko" : "en",
+                        normalizeAppLanguage(event.target.value),
                       )
                     }
                     className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 outline-none focus:border-stone-900"
@@ -125,6 +125,8 @@ export function AppShell({
                   >
                     <option value="en">{t("english")}</option>
                     <option value="ko">{t("korean")}</option>
+                    <option value="ja">{t("japanese")}</option>
+                    <option value="es">{t("spanish")}</option>
                   </select>
                 </label>
               </div>

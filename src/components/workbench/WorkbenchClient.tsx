@@ -1,5 +1,9 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -219,7 +223,7 @@ type RunMonitor = {
   entries: RunProgressEntry[];
 };
 
-type OutputLanguage = "en" | "ko" | "ja" | "zh" | "hi";
+type OutputLanguage = AppLanguage | "zh" | "hi";
 
 type WorkbenchRunStreamEvent =
   | {
@@ -371,18 +375,19 @@ type ShareLinkOutcome = {
 
 const outputStyles = ["detailed", "short", "bullet", "table", "executive"];
 const outputStyleLabels: Record<string, Record<AppLanguage, string>> = {
-  detailed: { en: "detailed", ko: "\uc790\uc138\ud788" },
-  short: { en: "short", ko: "\uc9e7\uac8c" },
-  bullet: { en: "bullet", ko: "\uae00\uba38\ub9ac\ud45c" },
-  table: { en: "table", ko: "\ud45c" },
-  executive: { en: "results-focused", ko: "\uacb0\uacfc\uc911\uc2ec" },
+  detailed: withAdditionalLanguages({ en: "detailed", ko: "\uc790\uc138\ud788" }),
+  short: withAdditionalLanguages({ en: "short", ko: "\uc9e7\uac8c" }),
+  bullet: withAdditionalLanguages({ en: "bullet", ko: "\uae00\uba38\ub9ac\ud45c" }),
+  table: withAdditionalLanguages({ en: "table", ko: "\ud45c" }),
+  executive: withAdditionalLanguages({ en: "results-focused", ko: "\uacb0\uacfc\uc911\uc2ec" }),
 };
 
-const outputLanguages: OutputLanguage[] = ["en", "ko", "ja", "zh", "hi"];
+const outputLanguages: OutputLanguage[] = ["en", "ko", "ja", "es", "zh", "hi"];
 const outputLanguageLabels: Record<OutputLanguage, string> = {
   en: "English",
   ko: "\ud55c\uad6d\uc5b4",
   ja: "\u65e5\u672c\u8a9e",
+  es: "Español",
   zh: "\u4e2d\u6587",
   hi: "\u0939\u093f\u0928\u094d\u0926\u0940",
 };
@@ -392,7 +397,7 @@ const ATTACHMENT_ACCEPT =
   ".txt,.md,.csv,.json,.docx,.pdf,image/png,image/jpeg,image/webp,image/gif";
 const MAX_ATTACHMENTS_PER_RUN = 8;
 
-const draftText = {
+const draftText = withAdditionalLanguages({
   en: {
     restored: "Unsaved draft restored",
     dismiss: "Dismiss",
@@ -401,7 +406,7 @@ const draftText = {
     restored: "\uc784\uc2dc \uc800\uc7a5\ub41c \uc791\uc5c5\uc744 \ubcf5\uc6d0\ud588\uc2b5\ub2c8\ub2e4",
     dismiss: "\ub2eb\uae30",
   },
-} as const;
+});
 
 const workflowBuilderText: Record<
   AppLanguage,
@@ -425,7 +430,7 @@ const workflowBuilderText: Record<
     stopConditionHint: string;
     repeatedBlock: string;
   }
-> = {
+> = withAdditionalLanguages({
   en: {
     repeatSettings: "Repeat settings",
     repeatRange: "Repeat range",
@@ -472,9 +477,9 @@ const workflowBuilderText: Record<
       "\uCF1C\uB450\uBA74 \uC120\uD0DD\uD55C \uB2E8\uACC4\uAC00 \uC790\uCCB4 \uD488\uC9C8\uC810\uC218\uB97C \uD310\uB2E8\uD558\uACE0 \uC870\uAE30 \uC885\uB8CC\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     repeatedBlock: "\uBC18\uBCF5 \uAD6C\uAC04",
   },
-};
+});
 
-const workbenchUiText = {
+const workbenchUiText = withAdditionalLanguages({
   en: {
     progressTitle: "AI progress",
     progressDescription:
@@ -565,7 +570,7 @@ const workbenchUiText = {
     compareCloseDetached: "별도 보기 닫기",
     compareDetachedHint: "별도 보기 창이 열려 있습니다.",
   },
-} as const;
+});
 
 function newUid() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -574,15 +579,11 @@ function newUid() {
 }
 
 function defaultPresetName(language: AppLanguage) {
-  return language === "ko"
-    ? "3\ub2e8\uacc4 \uac80\ud1a0 \uccb4\uc778"
-    : "Three-step review chain";
+  return localize(language, { en: "Three-step review chain", ko: "3\ub2e8\uacc4 \uac80\ud1a0 \uccb4\uc778", ja: "3 \u6BB5\u968E\u306E\u30EC\u30D3\u30E5\u30FC \u30C1\u30A7\u30FC\u30F3", es: "Cadena de revisi\u00F3n de tres pasos" });
 }
 
 function defaultPresetDescription(language: AppLanguage) {
-  return language === "ko"
-    ? "\uc0dd\uc131, \ube44\ud310, \uac1c\uc120."
-    : "Generate, critique, and improve.";
+  return localize(language, { en: "Generate, critique, and improve.", ko: "\uc0dd\uc131, \ube44\ud310, \uac1c\uc120.", ja: "\u751F\u6210\u3057\u3001\u6279\u8A55\u3057\u3001\u6539\u5584\u3057\u307E\u3059\u3002", es: "Generar, criticar y mejorar." });
 }
 
 function initialSteps(language: AppLanguage): WorkflowStepState[] {
@@ -595,9 +596,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       targetModel: "gpt-5.4-mini",
       sourceMode: "original",
       instructionTemplate:
-        language === "ko"
-          ? "\uac15\ud55c \uccab \ub2f5\ubcc0\uc744 \uc791\uc131\ud558\uc138\uc694."
-          : "Draft a strong first answer.",
+        localize(language, { en: "Draft a strong first answer.", ko: "\uac15\ud55c \uccab \ub2f5\ubcc0\uc744 \uc791\uc131\ud558\uc138\uc694.", ja: "\u5F37\u529B\u306A\u6700\u521D\u306E\u56DE\u7B54\u306E\u8349\u6848\u3092\u4F5C\u6210\u3057\u307E\u3059\u3002", es: "Redacte una primera respuesta s\u00F3lida." }),
     },
     {
       uid: newUid(),
@@ -607,9 +606,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       targetModel: "grok-4.3",
       sourceMode: "previous",
       instructionTemplate:
-        language === "ko"
-          ? "\uacb0\ud568\uacfc \ube60\uc9c4 \uad00\uc810\uc744 \uad6c\uccb4\uc801\uc73c\ub85c \uc9da\uc5b4\uc8fc\uc138\uc694."
-          : "Be concrete about flaws and missing angles.",
+        localize(language, { en: "Be concrete about flaws and missing angles.", ko: "\uacb0\ud568\uacfc \ube60\uc9c4 \uad00\uc810\uc744 \uad6c\uccb4\uc801\uc73c\ub85c \uc9da\uc5b4\uc8fc\uc138\uc694.", ja: "\u6B20\u9665\u3084\u6B20\u3051\u3066\u3044\u308B\u89D2\u5EA6\u306B\u3064\u3044\u3066\u5177\u4F53\u7684\u306B\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u3002", es: "Sea concreto acerca de los defectos y los \u00E1ngulos faltantes." }),
     },
     {
       uid: newUid(),
@@ -619,9 +616,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       targetModel: "gemini-3-flash-preview",
       sourceMode: "previous",
       instructionTemplate:
-        language === "ko"
-          ? "\ube44\ud310 \ub0b4\uc6a9\uc744 \ub354 \ub098\uc740 \ubc84\uc804\uc73c\ub85c \ubc14\uafb8\uc138\uc694."
-          : "Turn the critique into a better version.",
+        localize(language, { en: "Turn the critique into a better version.", ko: "\ube44\ud310 \ub0b4\uc6a9\uc744 \ub354 \ub098\uc740 \ubc84\uc804\uc73c\ub85c \ubc14\uafb8\uc138\uc694.", ja: "\u6279\u8A55\u3092\u3088\u308A\u826F\u3044\u3082\u306E\u306B\u5909\u3048\u307E\u3057\u3087\u3046\u3002", es: "Convierte la cr\u00EDtica en una mejor versi\u00F3n." }),
     },
   ];
 }
@@ -728,7 +723,7 @@ function mergeAttachments(
 }
 
 function formatFileSize(sizeBytes: number, language: AppLanguage) {
-  const units = language === "ko" ? ["B", "KB", "MB", "GB"] : ["B", "KB", "MB", "GB"];
+  const units = localize(language, { en: ["B", "KB", "MB", "GB"], ko: ["B", "KB", "MB", "GB"], ja: ["B", "KB", "MB", "GB"], es: ["B", "KB", "MB", "GB"] });
   let value = sizeBytes;
   let unitIndex = 0;
 
@@ -745,14 +740,12 @@ function attachmentKindLabel(
   kind: WorkbenchAttachment["kind"],
   language: AppLanguage,
 ) {
-  if (language === "ko") {
-    if (kind === "TEXT") return "텍스트";
-    if (kind === "IMAGE") return "이미지";
-    return "PDF";
+  if (kind === "TEXT") {
+    return localize(language, { en: "Text", ko: "텍스트", ja: "Text", es: "Text" });
   }
-
-  if (kind === "TEXT") return "Text";
-  if (kind === "IMAGE") return "Image";
+  if (kind === "IMAGE") {
+    return localize(language, { en: "Image", ko: "이미지", ja: "Image", es: "Image" });
+  }
   return "PDF";
 }
 
@@ -1049,17 +1042,11 @@ function buildRunMonitorFromRunSteps(input: {
       const progressStatus = mapRunStepStatusToProgressStatus(step.status);
       const repeatLabel =
         step.repeatIteration && step.repeatIteration > 0
-          ? input.language === "ko"
-            ? `${step.repeatIteration}회차`
-            : `Iteration ${step.repeatIteration}`
+          ? localize(input.language, { en: `Iteration ${step.repeatIteration}`, ko: `${step.repeatIteration}회차`, ja: `\u53CD\u5FA9${step.repeatIteration}`, es: `Iteraci\u00F3n${step.repeatIteration}` })
           : null;
       const subtitleParts = [
-        input.language === "ko"
-          ? `실행 ${step.orderIndex}단계`
-          : `Step ${step.orderIndex}`,
-        input.language === "ko"
-          ? `템플릿 ${step.templateStepIndex}단계`
-          : `Template ${step.templateStepIndex}`,
+        localize(input.language, { en: `Step ${step.orderIndex}`, ko: `실행 ${step.orderIndex}단계`, ja: `\u30B9\u30C6\u30C3\u30D7${step.orderIndex}`, es: `Paso${step.orderIndex}` }),
+        localize(input.language, { en: `Template ${step.templateStepIndex}`, ko: `템플릿 ${step.templateStepIndex}단계`, ja: `\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8${step.templateStepIndex}`, es: `Plantilla${step.templateStepIndex}` }),
         getActionTypeDisplayLabel(step.actionType, input.language),
         repeatLabel,
       ].filter(Boolean);
@@ -1091,20 +1078,16 @@ function buildRunMonitorFromRunSteps(input: {
 function formatElapsedTime(startedAt: number, now: number, language: AppLanguage) {
   const elapsedSeconds = Math.max(0, Math.floor((now - startedAt) / 1000));
   if (elapsedSeconds < 60) {
-    return language === "ko"
-      ? `${elapsedSeconds}초 경과`
-      : `${elapsedSeconds}s elapsed`;
+    return localize(language, { en: `${elapsedSeconds}s elapsed`, ko: `${elapsedSeconds}초 경과`, ja: `${elapsedSeconds}\u79D2\u304C\u7D4C\u904E\u3057\u307E\u3057\u305F`, es: `${elapsedSeconds}ha transcurrido` });
   }
 
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
-  return language === "ko"
-    ? `${minutes}분 ${seconds}초 경과`
-    : `${minutes}m ${seconds}s elapsed`;
+  return localize(language, { en: `${minutes}m ${seconds}s elapsed`, ko: `${minutes}분 ${seconds}초 경과`, ja: `${minutes}\u30E1\u30FC\u30C8\u30EB${seconds}\u79D2\u304C\u7D4C\u904E\u3057\u307E\u3057\u305F`, es: `${minutes}metro${seconds}ha transcurrido` });
 }
 
 function defaultOutputLanguageForAppLanguage(language: AppLanguage): OutputLanguage {
-  return language === "ko" ? "ko" : "en";
+  return language;
 }
 
 function compactPreview(value: string | null | undefined, fallback: string) {
@@ -1120,17 +1103,7 @@ function buildWorkLines(input: {
   primary: string;
   secondary: string;
 }) {
-  if (input.language === "ko") {
-    return [
-      `현재 작업: ${input.primary}`,
-      `실제 입력/출력: ${input.secondary}`,
-    ] as [string, string];
-  }
-
-  return [
-    `Current work: ${input.primary}`,
-    `Actual input/output: ${input.secondary}`,
-  ] as [string, string];
+  return localize(input.language, { en: [`Current work: ${input.primary}`, `Actual input/output: ${input.secondary}`], ko: [`현재 작업: ${input.primary}`, `실제 입력/출력: ${input.secondary}`], ja: [`Current work: ${input.primary}`, `Actual input/output: ${input.secondary}`], es: [`Current work: ${input.primary}`, `Actual input/output: ${input.secondary}`] }) as [string, string];
 }
 
 function activeWorkLines(
@@ -1143,10 +1116,8 @@ function activeWorkLines(
   }
 
   return entry.workLines ?? [
-    language === "ko" ? "모델 응답 대기 중" : "Waiting for the model response",
-    language === "ko"
-      ? "아직 모델 출력이 도착하지 않았습니다."
-      : "No model output has arrived yet.",
+    localize(language, { en: "Waiting for the model response", ko: "모델 응답 대기 중", ja: "\u30E2\u30C7\u30EB\u306E\u5FDC\u7B54\u3092\u5F85\u3063\u3066\u3044\u307E\u3059", es: "Esperando la respuesta del modelo." }),
+    localize(language, { en: "No model output has arrived yet.", ko: "아직 모델 출력이 도착하지 않았습니다.", ja: "\u30E2\u30C7\u30EB\u51FA\u529B\u306F\u307E\u3060\u5230\u7740\u3057\u3066\u3044\u307E\u305B\u3093\u3002", es: "A\u00FAn no ha llegado ning\u00FAn modelo." }),
   ];
 }
 
@@ -1471,9 +1442,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               workLines: buildWorkLines({
                 language,
                 primary:
-                  language === "ko"
-                    ? "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131"
-                    : "Generating a parallel answer for the original task",
+                  localize(language, { en: "Generating a parallel answer for the original task", ko: "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131", ja: "\u5143\u306E\u30BF\u30B9\u30AF\u306B\u5BFE\u3059\u308B\u4E26\u5217\u56DE\u7B54\u306E\u751F\u6210", es: "Generar una respuesta paralela para la tarea original." }),
                 secondary: compactPreview(originalInput, uiText.preparing),
               }),
             }))
@@ -1490,9 +1459,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               workLines: buildWorkLines({
                 language,
                 primary:
-                  language === "ko"
-                    ? "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131"
-                    : "Generating a parallel answer for the original task",
+                  localize(language, { en: "Generating a parallel answer for the original task", ko: "\uc6d0\ubcf8 \uc9c8\ubb38\uc5d0 \ub300\ud55c \ubcd1\ub82c \ub2f5\ubcc0 \uc0dd\uc131", ja: "\u5143\u306E\u30BF\u30B9\u30AF\u306B\u5BFE\u3059\u308B\u4E26\u5217\u56DE\u7B54\u306E\u751F\u6210", es: "Generar una respuesta paralela para la tarea original." }),
                 secondary: compactPreview(originalInput, uiText.preparing),
               }),
             }));
@@ -1530,9 +1497,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           language,
           primary: compactPreview(
             step.instructionTemplate,
-            language === "ko"
-              ? "\uc21c\ucc28 \ub2e8\uacc4 \uc9c0\uc2dc\uc0ac\ud56d \uc801\uc6a9"
-              : "Applying the sequential step instruction",
+            localize(language, { en: "Applying the sequential step instruction", ko: "\uc21c\ucc28 \ub2e8\uacc4 \uc9c0\uc2dc\uc0ac\ud56d \uc801\uc6a9", ja: "\u30B7\u30FC\u30B1\u30F3\u30B7\u30E3\u30EB\u30B9\u30C6\u30C3\u30D7\u547D\u4EE4\u306E\u9069\u7528", es: "Aplicar la instrucci\u00F3n de pasos secuenciales" }),
           ),
           secondary: compactPreview(originalInput, uiText.preparing),
         }),
@@ -1737,7 +1702,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     };
 
     if (!response.ok || !data.project) {
-      setError(language === "ko" ? t("runFailed") : data.error || t("runFailed"));
+      setError(localize(language, { en: data.error || t("runFailed"), ko: t("runFailed"), ja: data.error || t("runFailed"), es: data.error || t("runFailed") }));
       return;
     }
 
@@ -1895,9 +1860,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     setError("");
     setNotice(
-      language === "ko"
-        ? "진행 중인 실행을 이어받는 중입니다."
-        : "Resuming the active run.",
+      localize(language, { en: "Resuming the active run.", ko: "진행 중인 실행을 이어받는 중입니다.", ja: "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u5B9F\u884C\u3092\u518D\u958B\u3057\u307E\u3059\u3002", es: "Reanudando la ejecuci\u00F3n activa." }),
     );
     setProgressNow(Date.now());
     focusProgressPanel();
@@ -1939,9 +1902,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     } catch (resumeError) {
       console.warn("Failed to resume active run", resumeError);
       setNotice(
-        language === "ko"
-          ? "세션 내용은 불러왔지만 이전 실행 복구에는 실패했습니다."
-          : "The session loaded, but the previous active run could not be resumed.",
+        localize(language, { en: "The session loaded, but the previous active run could not be resumed.", ko: "세션 내용은 불러왔지만 이전 실행 복구에는 실패했습니다.", ja: "\u30BB\u30C3\u30B7\u30E7\u30F3\u306F\u30ED\u30FC\u30C9\u3055\u308C\u307E\u3057\u305F\u304C\u3001\u4EE5\u524D\u306E\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u5B9F\u884C\u3092\u518D\u958B\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "La sesi\u00F3n se carg\u00F3, pero no se pudo reanudar la ejecuci\u00F3n activa anterior." }),
       );
     } finally {
       cancelRequestedRef.current = false;
@@ -2000,7 +1961,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         router.replace(nextUrl, { scroll: false });
         restoreDraftOrDefaultState();
       }
-      setError(language === "ko" ? t("runFailed") : data.error || t("runFailed"));
+      setError(localize(language, { en: data.error || t("runFailed"), ko: t("runFailed"), ja: data.error || t("runFailed"), es: data.error || t("runFailed") }));
       return;
     }
 
@@ -2608,7 +2569,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       workflowSteps,
     ],
   );
-  const numberLocale = language === "ko" ? "ko-KR" : "en-US";
+  const numberLocale = localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" });
   // The server reserves credits against BOTH the total balance and the daily
   // allowance, so a run is only feasible up to the smaller of the two. The UI
   // previously showed only the total balance, which made daily-capped runs look
@@ -2750,13 +2711,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           ...result,
           searchTokens: [
             result.workflowStep?.orderIndex
-              ? `${language === "ko" ? "단계" : "step"} ${result.workflowStep.orderIndex}`
+              ? `${localize(language, { en: "step", ko: "단계", ja: "\u30B9\u30C6\u30C3\u30D7", es: "paso" })} ${result.workflowStep.orderIndex}`
               : null,
             result.executionRunStep?.orderIndex
-              ? `${language === "ko" ? "단계" : "step"} ${result.executionRunStep.orderIndex}`
+              ? `${localize(language, { en: "step", ko: "단계", ja: "\u30B9\u30C6\u30C3\u30D7", es: "paso" })} ${result.executionRunStep.orderIndex}`
               : null,
             result.executionRunStep?.templateStepIndex
-              ? `${language === "ko" ? "템플릿" : "template"} ${result.executionRunStep.templateStepIndex}`
+              ? `${localize(language, { en: "template", ko: "템플릿", ja: "\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8", es: "plantilla" })} ${result.executionRunStep.templateStepIndex}`
               : null,
             result.executionRunStep?.actionType ?? null,
             result.executionRunStep?.sourceMode ?? null,
@@ -2859,13 +2820,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       const runningCount = results.filter((result) => result.status === "running").length;
       return {
         title:
-          language === "ko"
-            ? "병렬 실행 요약"
-            : "Parallel run summary",
+          localize(language, { en: "Parallel run summary", ko: "병렬 실행 요약", ja: "\u4E26\u5217\u5B9F\u884C\u306E\u6982\u8981", es: "Resumen de ejecuci\u00F3n paralela" }),
         detail:
-          language === "ko"
-            ? `${completed}개 완료, ${runningCount}개 진행 중`
-            : `${completed} completed, ${runningCount} running`,
+          localize(language, { en: `${completed} completed, ${runningCount} running`, ko: `${completed}개 완료, ${runningCount}개 진행 중`, ja: `${completed}\u5B8C\u6210\u3057\u305F\u3001${runningCount}\u8D70\u3063\u3066\u3044\u308B`, es: `${completed}terminado,${runningCount}correr` }),
       };
     }
 
@@ -2877,13 +2834,9 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     return {
       title:
-        language === "ko"
-          ? "현재 작업 요약"
-          : "Current run summary",
+        localize(language, { en: "Current run summary", ko: "현재 작업 요약", ja: "\u73FE\u5728\u306E\u5B9F\u884C\u306E\u6982\u8981", es: "Resumen de ejecuci\u00F3n actual" }),
       detail:
-        language === "ko"
-          ? `총 ${total}단계 중 ${completed ?? 0}단계 완료${activeEntry?.orderIndex ? ` · 현재 ${activeEntry.orderIndex}단계` : ""}${queued ? ` · 대기 ${queued}단계` : ""}`
-          : `${completed ?? 0} of ${total} steps done${activeEntry?.orderIndex ? ` · step ${activeEntry.orderIndex} now` : ""}${queued ? ` · ${queued} queued` : ""}`,
+        localize(language, { en: `${completed ?? 0} of ${total} steps done${activeEntry?.orderIndex ? ` · step ${activeEntry.orderIndex} now` : ""}${queued ? ` · ${queued} queued` : ""}`, ko: `총 ${total}단계 중 ${completed ?? 0}단계 완료${activeEntry?.orderIndex ? ` · 현재 ${activeEntry.orderIndex}단계` : ""}${queued ? ` · 대기 ${queued}단계` : ""}`, ja: `${completed ?? 0}\u306E${total}\u5B8C\u4E86\u3057\u305F\u624B\u9806${activeEntry?.orderIndex ? `\u30FB \u30B9\u30C6\u30C3\u30D7${activeEntry.orderIndex}\u4ECA` : ""}${queued ? ` \u00B7 ${queued}\u5217\u306B\u4E26\u3093\u3060` : ""}`, es: `${completed ?? 0}de${total}pasos realizados${activeEntry?.orderIndex ? `\u00B7 paso${activeEntry.orderIndex}ahora` : ""}${queued ? ` \u00B7 ${queued}en cola` : ""}` }),
     };
   }, [language, mode, plannedSequentialSteps.length, results, runMonitor]);
 
@@ -3071,9 +3024,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             provider?.defaultModel ?? last?.targetModel ?? "gpt-5.4-mini",
           sourceMode: "previous",
           instructionTemplate:
-            language === "ko"
-              ? "\uc774\uc804 \ub2e8\uacc4\ub97c \uac1c\uc120\ud558\uc138\uc694."
-              : "Improve the previous step.",
+            localize(language, { en: "Improve the previous step.", ko: "\uc774\uc804 \ub2e8\uacc4\ub97c \uac1c\uc120\ud558\uc138\uc694.", ja: "\u524D\u306E\u30B9\u30C6\u30C3\u30D7\u3092\u6539\u5584\u3057\u307E\u3059\u3002", es: "Mejora el paso anterior." }),
         },
       ]),
     );
@@ -3097,9 +3048,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     if (attachments.length + fileList.length > MAX_ATTACHMENTS_PER_RUN) {
       setError(
-        language === "ko"
-          ? `파일은 최대 ${MAX_ATTACHMENTS_PER_RUN}개까지 첨부할 수 있습니다.`
-          : `You can attach up to ${MAX_ATTACHMENTS_PER_RUN} files.`,
+        localize(language, { en: `You can attach up to ${MAX_ATTACHMENTS_PER_RUN} files.`, ko: `파일은 최대 ${MAX_ATTACHMENTS_PER_RUN}개까지 첨부할 수 있습니다.`, ja: `\u307E\u3067\u6DFB\u4ED8\u3067\u304D\u307E\u3059${MAX_ATTACHMENTS_PER_RUN}\u30D5\u30A1\u30A4\u30EB\u3002`, es: `Puedes adjuntar hasta${MAX_ATTACHMENTS_PER_RUN}archivos.` }),
       );
       return;
     }
@@ -3135,9 +3084,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
       setAttachments((current) => mergeAttachments(current, uploaded));
       setNotice(
-        language === "ko"
-          ? `${uploaded.length}개 파일을 첨부했습니다.`
-          : `Attached ${uploaded.length} file(s).`,
+        localize(language, { en: `Attached ${uploaded.length} file(s).`, ko: `${uploaded.length}개 파일을 첨부했습니다.`, ja: `\u6DFB\u4ED8${uploaded.length}\u30D5\u30A1\u30A4\u30EB\u3002`, es: `Adjunto${uploaded.length}archivo(s).` }),
       );
     } catch (uploadError) {
       setError(
@@ -3625,9 +3572,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     }
     setNotice(
       data.streamError && completionNotice === t("runCompletedPartial")
-        ? language === "ko"
-          ? `${completionNotice} 실패 카드를 확인하세요.`
-          : `${completionNotice} Check the failed result cards.`
+        ? localize(language, { en: `${completionNotice} Check the failed result cards.`, ko: `${completionNotice} 실패 카드를 확인하세요.`, ja: `${completionNotice}\u5931\u6557\u3057\u305F\u7D50\u679C\u30AB\u30FC\u30C9\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002`, es: `${completionNotice}Verifique las tarjetas de resultados fallidos.` })
         : completionNotice,
     );
   }
@@ -3640,9 +3585,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     setCancelingRun(true);
     setNotice(
-      language === "ko"
-        ? "\uc804\uccb4 \uc911\uc9c0\ub97c \uc694\uccad\ud558\ub294 \uc911\uc785\ub2c8\ub2e4."
-        : "Requesting stop...",
+      localize(language, { en: "Requesting stop...", ko: "\uc804\uccb4 \uc911\uc9c0\ub97c \uc694\uccad\ud558\ub294 \uc911\uc785\ub2c8\ub2e4.", ja: "\u505C\u6B62\u3092\u8981\u6C42\u4E2D...", es: "Solicitando parada..." }),
     );
     setError("");
 
@@ -3761,9 +3704,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     if (imageMode && !selectedImageTargets.length) {
       setError(
-        language === "ko"
-          ? "이미지 생성 모델을 한 개 이상 선택하세요."
-          : "Select at least one image generation model.",
+        localize(language, { en: "Select at least one image generation model.", ko: "이미지 생성 모델을 한 개 이상 선택하세요.", ja: "\u5C11\u306A\u304F\u3068\u3082 1 \u3064\u306E\u30A4\u30E1\u30FC\u30B8\u751F\u6210\u30E2\u30C7\u30EB\u3092\u9078\u629E\u3057\u307E\u3059\u3002", es: "Seleccione al menos un modelo de generaci\u00F3n de im\u00E1genes." }),
       );
       return;
     }
@@ -3794,12 +3735,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     if (runExceedsAvailableCredits && usage) {
       setError(
         dailyIsBindingCredit
-          ? language === "ko"
-            ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}개입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString(numberLocale)}). 선택한 모델 수를 줄이거나 자정(KST) 초기화 후 다시 시도하세요.`
-            : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} of your daily ${usage.dailyCreditLimit.toLocaleString(numberLocale)} remain today. Select fewer models or try again after the midnight (KST) reset.`
-          : language === "ko"
-            ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`
-            : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`,
+          ? localize(language, { en: `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} of your daily ${usage.dailyCreditLimit.toLocaleString(numberLocale)} remain today. Select fewer models or try again after the midnight (KST) reset.`, ko: `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}개입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString(numberLocale)}). 선택한 모델 수를 줄이거나 자정(KST) 초기화 후 다시 시도하세요.`, ja: `\u3053\u306E\u5B9F\u884C\u306B\u306F\u7D04${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}\u30AF\u30EC\u30B8\u30C3\u30C8\u3067\u3059\u304C\u3001${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}\u3042\u306A\u305F\u306E\u6BCE\u65E5\u306E${usage.dailyCreditLimit.toLocaleString(numberLocale)}\u4ECA\u65E5\u3082\u6B8B\u308A\u307E\u3059\u3002\u9078\u629E\u3059\u308B\u30E2\u30C7\u30EB\u3092\u6E1B\u3089\u3059\u304B\u3001\u5348\u524D 0 \u6642 (KST) \u306E\u30EA\u30BB\u30C3\u30C8\u5F8C\u306B\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002`, es: `Esta carrera necesita aproximadamente${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}cr\u00E9ditos, pero s\u00F3lo${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}de tu diario${usage.dailyCreditLimit.toLocaleString(numberLocale)}permanecen hoy. Seleccione menos modelos o int\u00E9ntelo nuevamente despu\u00E9s del reinicio de medianoche (KST).` })
+          : localize(language, { en: `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`, ko: `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`, ja: `\u3053\u306E\u5B9F\u884C\u306B\u306F\u7D04${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}\u30AF\u30EC\u30B8\u30C3\u30C8\u3067\u3059\u304C\u3001${usage.totalCreditsAvailable.toLocaleString(numberLocale)}\u5229\u7528\u53EF\u80FD\u3067\u3059\u3002\u9078\u629E\u3059\u308B\u30E2\u30C7\u30EB\u3092\u6E1B\u3089\u3057\u307E\u3059\u3002`, es: `Esta carrera necesita aproximadamente${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}cr\u00E9ditos, pero s\u00F3lo${usage.totalCreditsAvailable.toLocaleString(numberLocale)}est\u00E1n disponibles. Seleccione menos modelos.` }),
       );
       focusCreditWarning();
       return;
@@ -3956,9 +3893,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     if (!response.ok) {
       setError(
-        language === "ko"
-          ? t("branchRunFailed")
-          : data.error || t("branchRunFailed"),
+        localize(language, { en: data.error || t("branchRunFailed"), ko: t("branchRunFailed"), ja: data.error || t("branchRunFailed"), es: data.error || t("branchRunFailed") }),
       );
       return;
     }
@@ -4059,7 +3994,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
     if (!response.ok) {
       setError(
-        language === "ko" ? t("deleteFailed") : data.error || t("deleteFailed"),
+        localize(language, { en: data.error || t("deleteFailed"), ko: t("deleteFailed"), ja: data.error || t("deleteFailed"), es: data.error || t("deleteFailed") }),
       );
       return;
     }
@@ -4076,9 +4011,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   async function createSharedLink(resultId?: string): Promise<ShareLinkOutcome | null> {
     if (!sessionId) {
       throw new Error(
-        language === "ko"
-          ? "공유할 저장 세션이 아직 없습니다."
-          : "There is no saved session to share yet.",
+        localize(language, { en: "There is no saved session to share yet.", ko: "공유할 저장 세션이 아직 없습니다.", ja: "\u5171\u6709\u3067\u304D\u308B\u4FDD\u5B58\u6E08\u307F\u30BB\u30C3\u30B7\u30E7\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002", es: "A\u00FAn no hay ninguna sesi\u00F3n guardada para compartir." }),
       );
     }
 
@@ -4101,9 +4034,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     if (!response.ok || !data.sessionPath) {
       throw new Error(
         data.error ||
-          (language === "ko"
-            ? "공유 링크를 만들지 못했습니다."
-            : "Could not create the share link."),
+          (localize(language, { en: "Could not create the share link.", ko: "공유 링크를 만들지 못했습니다.", ja: "\u5171\u6709\u30EA\u30F3\u30AF\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo crear el enlace para compartir." })),
       );
     }
 
@@ -4127,12 +4058,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       setSessionShareCopied(outcome.copied);
       setNotice(
         outcome.copied
-          ? language === "ko"
-            ? "전체 공유 링크를 복사했습니다."
-            : "Copied the full shared-view link."
-          : language === "ko"
-            ? "링크는 생성됐지만 브라우저가 자동 복사를 막았습니다. 아래 링크를 직접 열거나 선택해서 복사하세요."
-            : "The link was created, but the browser blocked automatic copying. Open it below or select it manually.",
+          ? localize(language, { en: "Copied the full shared-view link.", ko: "전체 공유 링크를 복사했습니다.", ja: "\u5B8C\u5168\u306A\u5171\u6709\u30D3\u30E5\u30FC \u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002", es: "Copi\u00E9 el enlace completo de vista compartida." })
+          : localize(language, { en: "The link was created, but the browser blocked automatic copying. Open it below or select it manually.", ko: "링크는 생성됐지만 브라우저가 자동 복사를 막았습니다. 아래 링크를 직접 열거나 선택해서 복사하세요.", ja: "\u30EA\u30F3\u30AF\u306F\u4F5C\u6210\u3055\u308C\u307E\u3057\u305F\u304C\u3001\u30D6\u30E9\u30A6\u30B6\u306B\u3088\u3063\u3066\u81EA\u52D5\u30B3\u30D4\u30FC\u304C\u30D6\u30ED\u30C3\u30AF\u3055\u308C\u307E\u3057\u305F\u3002\u4EE5\u4E0B\u3067\u958B\u304F\u304B\u3001\u624B\u52D5\u3067\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002", es: "El enlace fue creado, pero el navegador bloque\u00F3 la copia autom\u00E1tica. \u00C1bralo a continuaci\u00F3n o selecci\u00F3nelo manualmente." }),
       );
       if (outcome.copied) {
         window.setTimeout(() => setSessionShareCopied(false), 1200);
@@ -4141,9 +4068,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       setError(
         shareError instanceof Error
           ? shareError.message
-          : language === "ko"
-            ? "공유 링크를 만들지 못했습니다."
-            : "Could not create the share link.",
+          : localize(language, { en: "Could not create the share link.", ko: "공유 링크를 만들지 못했습니다.", ja: "\u5171\u6709\u30EA\u30F3\u30AF\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo crear el enlace para compartir." }),
       );
     } finally {
       setSharingSession(false);
@@ -4170,9 +4095,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       const outcome = await createSharedLink(resultId);
       if (!outcome) {
         throw new Error(
-          language === "ko"
-            ? "공유 링크를 만들지 못했습니다."
-            : "Could not create the share link.",
+          localize(language, { en: "Could not create the share link.", ko: "공유 링크를 만들지 못했습니다.", ja: "\u5171\u6709\u30EA\u30F3\u30AF\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo crear el enlace para compartir." }),
         );
       }
       return outcome;
@@ -4180,9 +4103,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       setError(
         shareError instanceof Error
           ? shareError.message
-          : language === "ko"
-            ? "공유 링크를 만들지 못했습니다."
-            : "Could not create the share link.",
+          : localize(language, { en: "Could not create the share link.", ko: "공유 링크를 만들지 못했습니다.", ja: "\u5171\u6709\u30EA\u30F3\u30AF\u3092\u4F5C\u6210\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo crear el enlace para compartir." }),
       );
       throw shareError;
     }
@@ -4219,7 +4140,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       };
 
       if (!response.ok || !data.preset) {
-        setError(language === "ko" ? t("runFailed") : data.error || t("runFailed"));
+        setError(localize(language, { en: data.error || t("runFailed"), ko: t("runFailed"), ja: data.error || t("runFailed"), es: data.error || t("runFailed") }));
         return;
       }
 
@@ -4302,12 +4223,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
             <div>
               <p className="font-semibold text-blue-950">
-                {language === "ko" ? "체험 모드 (비로그인)" : "Trial Mode (signed out)"}
+                {localize(language, { en: "Trial Mode (signed out)", ko: "체험 모드 (비로그인)", ja: "\u30C8\u30E9\u30A4\u30A2\u30EB\u30E2\u30FC\u30C9 (\u30B5\u30A4\u30F3\u30A2\u30A6\u30C8)", es: "Modo de prueba (desconectado)" })}
               </p>
               <p className="text-sm text-blue-800">
-                {language === "ko"
-                  ? "비로그인 사용자는 하루 30크레딧을 사용할 수 있습니다. 로그인하면 하루 70크레딧이 적용됩니다."
-                  : "Signed-out visitors get 30 credits per day. Sign in to get 70 credits per day."}
+                {localize(language, { en: "Signed-out visitors get 30 credits per day. Sign in to get 70 credits per day.", ko: "비로그인 사용자는 하루 30크레딧을 사용할 수 있습니다. 로그인하면 하루 70크레딧이 적용됩니다.", ja: "\u30B5\u30A4\u30F3\u30A2\u30A6\u30C8\u3057\u305F\u8A2A\u554F\u8005\u306F 1 \u65E5\u3042\u305F\u308A 30 \u30AF\u30EC\u30B8\u30C3\u30C8\u3092\u53D6\u5F97\u3057\u307E\u3059\u3002\u30B5\u30A4\u30F3\u30A4\u30F3\u3059\u308B\u3068\u30011 \u65E5\u3042\u305F\u308A 70 \u30AF\u30EC\u30B8\u30C3\u30C8\u3092\u7372\u5F97\u3067\u304D\u307E\u3059\u3002", es: "Los visitantes que hayan iniciado sesi\u00F3n obtienen 30 cr\u00E9ditos por d\u00EDa. Inicia sesi\u00F3n para obtener 70 cr\u00E9ditos por d\u00EDa." })}
               </p>
             </div>
           </div>
@@ -4323,7 +4242,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       {usage ? <UsageStatus usage={usage} compact /> : null}
       {usageLoading ? (
         <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500 shadow-sm">
-          {language === "ko" ? "사용량 정보를 불러오는 중..." : "Loading usage status..."}
+          {localize(language, { en: "Loading usage status...", ko: "사용량 정보를 불러오는 중...", ja: "\u4F7F\u7528\u72B6\u6CC1\u3092\u8AAD\u307F\u8FBC\u3093\u3067\u3044\u307E\u3059...", es: "Cargando estado de uso..." })}
         </div>
       ) : null}
 
@@ -4336,15 +4255,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </p>
         {mode === "sequential" ? (
           <p className="mt-1 text-xs leading-5 text-stone-600">
-            {language === "ko"
-              ? "실행 전에 전체 계획을 먼저 확인하고, 반복 구간과 입력 source가 기대한 흐름인지 점검하세요."
-              : "Review the full plan before you run, especially repeat blocks and input sources."}
+            {localize(language, { en: "Review the full plan before you run, especially repeat blocks and input sources.", ko: "실행 전에 전체 계획을 먼저 확인하고, 반복 구간과 입력 source가 기대한 흐름인지 점검하세요.", ja: "\u5B9F\u884C\u524D\u306B\u8A08\u753B\u5168\u4F53\u3001\u7279\u306B\u30EA\u30D4\u30FC\u30C8\u30D6\u30ED\u30C3\u30AF\u3068\u5165\u529B\u30BD\u30FC\u30B9\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002", es: "Revise el plan completo antes de ejecutar, especialmente los bloques repetidos y las fuentes de entrada." })}
           </p>
         ) : (
           <p className="mt-1 text-xs leading-5 text-stone-600">
-            {language === "ko"
-              ? "병렬 비교는 같은 질문을 여러 모델에 보내고, 결과보드에서 바로 비교할 수 있습니다."
-              : "Parallel compare sends the same task to multiple models so you can compare the cards right away."}
+            {localize(language, { en: "Parallel compare sends the same task to multiple models so you can compare the cards right away.", ko: "병렬 비교는 같은 질문을 여러 모델에 보내고, 결과보드에서 바로 비교할 수 있습니다.", ja: "\u4E26\u5217\u6BD4\u8F03\u3067\u306F\u540C\u3058\u30BF\u30B9\u30AF\u304C\u8907\u6570\u306E\u30E2\u30C7\u30EB\u306B\u9001\u4FE1\u3055\u308C\u308B\u305F\u3081\u3001\u30AB\u30FC\u30C9\u3092\u3059\u3050\u306B\u6BD4\u8F03\u3067\u304D\u307E\u3059\u3002", es: "La comparaci\u00F3n paralela env\u00EDa la misma tarea a varios modelos para que puedas comparar las tarjetas de inmediato." })}
           </p>
         )}
       </div>
@@ -4353,17 +4268,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
-              {language === "ko" ? "예상 크레딧" : "Estimated credits"}
+              {localize(language, { en: "Estimated credits", ko: "예상 크레딧", ja: "\u63A8\u5B9A\u30AF\u30EC\u30B8\u30C3\u30C8\u6570", es: "Cr\u00E9ditos estimados" })}
             </p>
             <p className="mt-2 text-lg font-semibold text-teal-950">
               {runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}{" "}
-              {language === "ko" ? "크레딧" : "credits"}
+              {localize(language, { en: "credits", ko: "크레딧", ja: "\u30AF\u30EC\u30B8\u30C3\u30C8", es: "cr\u00E9ditos" })}
             </p>
           </div>
           <div className="grid gap-2 text-sm sm:grid-cols-3">
             <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
               <p className="text-xs text-teal-700">
-                {language === "ko" ? "예상 호출" : "Calls"}
+                {localize(language, { en: "Calls", ko: "예상 호출", ja: "\u96FB\u8A71", es: "llamadas" })}
               </p>
               <p className="mt-1 font-semibold text-teal-950">
                 {runCreditEstimate.plannedCallCount.toLocaleString(numberLocale)}
@@ -4371,7 +4286,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             </div>
             <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
               <p className="text-xs text-teal-700">
-                {language === "ko" ? "보유 크레딧" : "Available"}
+                {localize(language, { en: "Available", ko: "보유 크레딧", ja: "\u5229\u7528\u53EF\u80FD", es: "Disponible" })}
               </p>
               <p className="mt-1 font-semibold text-teal-950">
                 {!usage
@@ -4382,15 +4297,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </p>
               {usage && !usage.isUnlimitedCredits && dailyIsBindingCredit ? (
                 <p className="mt-1 text-[11px] font-medium text-amber-700">
-                  {language === "ko"
-                    ? `오늘 남은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}`
-                    : `Today ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} left`}
+                  {localize(language, { en: `Today ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} left`, ko: `오늘 남은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}`, ja: `\u4ECA\u65E5${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}\u5DE6`, es: `Hoy${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}izquierda` })}
                 </p>
               ) : null}
             </div>
             <div className="rounded-md border border-teal-200 bg-white px-3 py-2">
               <p className="text-xs text-teal-700">
-                {language === "ko" ? "실행 후" : "After run"}
+                {localize(language, { en: "After run", ko: "실행 후", ja: "\u8D70\u884C\u5F8C", es: "despu\u00E9s de correr" })}
               </p>
               <p className="mt-1 font-semibold text-teal-950">
                 {usage?.isUnlimitedCredits
@@ -4405,12 +4318,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         {runExceedsAvailableCredits && usage ? (
           <p className="mt-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
             {dailyIsBindingCredit
-              ? language === "ko"
-                ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}개입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString(numberLocale)}). 선택한 모델 수를 줄이거나 자정(KST) 초기화 후 다시 시도하세요.`
-                : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} of your daily ${usage.dailyCreditLimit.toLocaleString(numberLocale)} remain today. Select fewer models or try again after the midnight (KST) reset.`
-              : language === "ko"
-                ? `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`
-                : `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`}
+              ? localize(language, { en: `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)} of your daily ${usage.dailyCreditLimit.toLocaleString(numberLocale)} remain today. Select fewer models or try again after the midnight (KST) reset.`, ko: `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 오늘 남은 크레딧은 ${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}개입니다(일일 한도 ${usage.dailyCreditLimit.toLocaleString(numberLocale)}). 선택한 모델 수를 줄이거나 자정(KST) 초기화 후 다시 시도하세요.`, ja: `\u3053\u306E\u5B9F\u884C\u306B\u306F\u7D04${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}\u30AF\u30EC\u30B8\u30C3\u30C8\u3067\u3059\u304C\u3001${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}\u3042\u306A\u305F\u306E\u6BCE\u65E5\u306E${usage.dailyCreditLimit.toLocaleString(numberLocale)}\u4ECA\u65E5\u3082\u6B8B\u308A\u307E\u3059\u3002\u9078\u629E\u3059\u308B\u30E2\u30C7\u30EB\u3092\u6E1B\u3089\u3059\u304B\u3001\u5348\u524D 0 \u6642 (KST) \u306E\u30EA\u30BB\u30C3\u30C8\u5F8C\u306B\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002`, es: `Esta carrera necesita aproximadamente${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}cr\u00E9ditos, pero s\u00F3lo${usage.totalDailyCreditsAvailable.toLocaleString(numberLocale)}de tu diario${usage.dailyCreditLimit.toLocaleString(numberLocale)}permanecen hoy. Seleccione menos modelos o int\u00E9ntelo nuevamente despu\u00E9s del reinicio de medianoche (KST).` })
+              : localize(language, { en: `This run needs about ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} credits, but only ${usage.totalCreditsAvailable.toLocaleString(numberLocale)} are available. Select fewer models.`, ko: `이 실행에는 약 ${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)} 크레딧이 필요하지만 보유 크레딧은 ${usage.totalCreditsAvailable.toLocaleString(numberLocale)}개입니다. 선택한 모델 수를 줄여 주세요.`, ja: `\u3053\u306E\u5B9F\u884C\u306B\u306F\u7D04${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}\u30AF\u30EC\u30B8\u30C3\u30C8\u3067\u3059\u304C\u3001${usage.totalCreditsAvailable.toLocaleString(numberLocale)}\u5229\u7528\u53EF\u80FD\u3067\u3059\u3002\u9078\u629E\u3059\u308B\u30E2\u30C7\u30EB\u3092\u6E1B\u3089\u3057\u307E\u3059\u3002`, es: `Esta carrera necesita aproximadamente${runCreditEstimate.estimatedCredits.toLocaleString(numberLocale)}cr\u00E9ditos, pero s\u00F3lo${usage.totalCreditsAvailable.toLocaleString(numberLocale)}est\u00E1n disponibles. Seleccione menos modelos.` })}
           </p>
         ) : null}
       </div>
@@ -4447,7 +4356,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             <span className="hidden">
             {" · "}
             </span>
-            {new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+            {new Intl.DateTimeFormat(localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" }), {
               dateStyle: "short",
               timeStyle: "short",
             }).format(new Date(draftBanner.savedAt))}
@@ -4515,16 +4424,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
               <h2 className="text-sm font-semibold text-stone-950">
                 {imageMode
-                  ? language === "ko"
-                    ? "이미지 생성 모델"
-                    : "Image generation models"
+                  ? localize(language, { en: "Image generation models", ko: "이미지 생성 모델", ja: "\u753B\u50CF\u751F\u6210\u30E2\u30C7\u30EB", es: "Modelos de generaci\u00F3n de im\u00E1genes." })
                   : t("modelSelection")}
               </h2>
               <p className="mt-1 text-xs leading-5 text-stone-600">
                 {imageMode
-                  ? language === "ko"
-                    ? "이미지를 생성할 모델을 선택하세요. 선택한 모델별로 이미지가 만들어집니다."
-                    : "Pick the models that should generate images. Each selected model produces an image."
+                  ? localize(language, { en: "Pick the models that should generate images. Each selected model produces an image.", ko: "이미지를 생성할 모델을 선택하세요. 선택한 모델별로 이미지가 만들어집니다.", ja: "\u753B\u50CF\u3092\u751F\u6210\u3059\u308B\u30E2\u30C7\u30EB\u3092\u9078\u629E\u3057\u307E\u3059\u3002\u9078\u629E\u3057\u305F\u5404\u30E2\u30C7\u30EB\u304C\u30A4\u30E1\u30FC\u30B8\u3092\u751F\u6210\u3057\u307E\u3059\u3002", es: "Elija los modelos que deber\u00EDan generar im\u00E1genes. Cada modelo seleccionado produce una imagen." })
                   : t("enableProviderShort")}
               </p>
               <div className="mt-4 space-y-3">
@@ -4675,7 +4580,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
                     }`}
                   >
-                    {language === "ko" ? "🖼 이미지 생성" : "🖼 Image"}
+                    {localize(language, { en: "🖼 Image", ko: "🖼 이미지 생성", ja: "\uD83D\uDDBC \u753B\u50CF", es: "\uD83D\uDDBC Imagen" })}
                   </button>
                   <button
                     type="button"
@@ -4684,8 +4589,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${inputCopied ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"}`}
                   >
                     {inputCopied
-                      ? (language === "ko" ? "복사됨" : "Copied")
-                      : (language === "ko" ? "질문 복사" : "Copy input")}
+                      ? (localize(language, { en: "Copied", ko: "복사됨", ja: "\u30B3\u30D4\u30FC\u3055\u308C\u307E\u3057\u305F", es: "Copiado" }))
+                      : (localize(language, { en: "Copy input", ko: "질문 복사", ja: "\u5165\u529B\u3092\u30B3\u30D4\u30FC\u3059\u308B", es: "Copiar entrada" }))}
                   </button>
                 </div>
               </div>
@@ -4781,9 +4686,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </label>
               <label className="flex flex-col gap-1 text-sm text-stone-600">
                 <span>
-                  {language === "ko"
-                    ? "\uae30\ubcf8 \ucd9c\ub825 \uc5b8\uc5b4"
-                    : "Default output language"}
+                  {localize(language, { en: "Default output language", ko: "\uae30\ubcf8 \ucd9c\ub825 \uc5b8\uc5b4", ja: "\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u51FA\u529B\u8A00\u8A9E", es: "Idioma de salida predeterminado" })}
                 </span>
                 <select
                   value={outputLanguage}
@@ -4815,12 +4718,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   className="w-full rounded-md border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60 sm:w-auto"
                 >
                   {cancelingRun
-                    ? language === "ko"
-                      ? "중지 중..."
-                      : "Stopping..."
-                    : language === "ko"
-                      ? "전체 작업 중지"
-                      : "Stop all"}
+                    ? localize(language, { en: "Stopping...", ko: "중지 중...", ja: "\u505C\u6B62\u4E2D...", es: "Deteniendo..." })
+                    : localize(language, { en: "Stop all", ko: "전체 작업 중지", ja: "\u5168\u90E8\u3084\u3081\u3066", es: "detener todo" })}
                 </button>
               ) : null}
             </div>
@@ -4899,18 +4798,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-stone-900">
-                    {language === "ko" ? "실행 계획 미리보기" : "Planned run preview"}
+                    {localize(language, { en: "Planned run preview", ko: "실행 계획 미리보기", ja: "\u8A08\u753B\u3055\u308C\u305F\u5B9F\u884C\u306E\u30D7\u30EC\u30D3\u30E5\u30FC", es: "Vista previa de la ejecuci\u00F3n planificada" })}
                   </p>
                   <p className="text-xs leading-5 text-stone-600">
-                    {language === "ko"
-                      ? `실행 전에 총 ${plannedSequentialSteps.length}단계를 한 번에 확인합니다.`
-                      : `Preview all ${plannedSequentialSteps.length} planned steps before you run.`}
+                    {localize(language, { en: `Preview all ${plannedSequentialSteps.length} planned steps before you run.`, ko: `실행 전에 총 ${plannedSequentialSteps.length}단계를 한 번에 확인합니다.`, ja: `\u3059\u3079\u3066\u30D7\u30EC\u30D3\u30E5\u30FC${plannedSequentialSteps.length}\u5B9F\u884C\u3059\u308B\u524D\u306B\u8A08\u753B\u3055\u308C\u305F\u30B9\u30C6\u30C3\u30D7\u3002`, es: `Vista previa de todo${plannedSequentialSteps.length}pasos planificados antes de ejecutar.` })}
                   </p>
                 </div>
                 <p className="text-xs font-medium text-stone-500">
-                  {language === "ko"
-                    ? `${normalizedWorkflowControl.repeatBlocks.length}개 반복 블록`
-                    : `${normalizedWorkflowControl.repeatBlocks.length} repeat block(s)`}
+                  {localize(language, { en: `${normalizedWorkflowControl.repeatBlocks.length} repeat block(s)`, ko: `${normalizedWorkflowControl.repeatBlocks.length}개 반복 블록`, ja: `${normalizedWorkflowControl.repeatBlocks.length}\u30D6\u30ED\u30C3\u30AF\u3092\u7E70\u308A\u8FD4\u3059`, es: `${normalizedWorkflowControl.repeatBlocks.length}repetir bloque(s)` })}
                 </p>
               </div>
               <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -4920,7 +4815,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     className="rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2"
                   >
                     <p className="text-xs font-semibold text-teal-700">
-                      {language === "ko" ? `${index + 1}단계` : `Step ${index + 1}`}
+                      {localize(language, { en: `Step ${index + 1}`, ko: `${index + 1}단계`, ja: `\u30B9\u30C6\u30C3\u30D7${index + 1}`, es: `Paso${index + 1}` })}
                     </p>
                     <p className="mt-1 text-sm font-medium text-stone-900">
                       {providerLabel(step.targetProvider)} /{" "}
@@ -4929,20 +4824,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     <p className="mt-1 text-xs text-stone-600">
                       {getActionTypeDisplayLabel(step.actionType, language)} ·{" "}
                       {step.sourceMode === "previous"
-                        ? language === "ko"
-                          ? "이전 완료 결과 사용"
-                          : "Uses previous completed result"
+                        ? localize(language, { en: "Uses previous completed result", ko: "이전 완료 결과 사용", ja: "\u4EE5\u524D\u306B\u5B8C\u4E86\u3057\u305F\u7D50\u679C\u3092\u4F7F\u7528\u3057\u307E\u3059", es: "Utiliza el resultado completado anterior" })
                         : step.sourceMode === "selected_result"
-                          ? language === "ko"
-                            ? "선택 결과 고정 참조"
-                            : "Uses selected result"
+                          ? localize(language, { en: "Uses selected result", ko: "선택 결과 고정 참조", ja: "\u9078\u629E\u3057\u305F\u7D50\u679C\u3092\u4F7F\u7528\u3057\u307E\u3059", es: "Utiliza el resultado seleccionado" })
                           : step.sourceMode === "all_results"
-                            ? language === "ko"
-                              ? "이전 완료 결과 모음 사용"
-                              : "Uses prior completed results"
-                            : language === "ko"
-                              ? "원본 입력 사용"
-                              : "Uses original input"}
+                            ? localize(language, { en: "Uses prior completed results", ko: "이전 완료 결과 모음 사용", ja: "\u4EE5\u524D\u306B\u5B8C\u4E86\u3057\u305F\u7D50\u679C\u3092\u4F7F\u7528\u3057\u307E\u3059", es: "Utiliza resultados completados anteriormente" })
+                            : localize(language, { en: "Uses original input", ko: "원본 입력 사용", ja: "\u30AA\u30EA\u30B8\u30CA\u30EB\u306E\u5165\u529B\u3092\u4F7F\u7528", es: "Utiliza entrada original" })}
                     </p>
                   </div>
                 ))}
@@ -5187,14 +5074,14 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                     </svg>
-                    {language === "ko" ? "저장 중…" : "Saving…"}
+                    {localize(language, { en: "Saving…", ko: "저장 중…", ja: "\u4FDD\u5B58\u4E2D\u2026", es: "Guardando\u2026" })}
                   </>
                 ) : presetSavedAt ? (
                   <>
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
-                    {language === "ko" ? "저장됨" : "Saved"}
+                    {localize(language, { en: "Saved", ko: "저장됨", ja: "\u4FDD\u5B58\u3055\u308C\u307E\u3057\u305F", es: "Guardado" })}
                   </>
                 ) : (
                   t("saveRoute")
@@ -5216,12 +5103,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   className="rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
                 >
                   {cancelingRun
-                    ? language === "ko"
-                      ? "중지 중..."
-                      : "Stopping..."
-                    : language === "ko"
-                      ? "전체 작업 중지"
-                      : "Stop all"}
+                    ? localize(language, { en: "Stopping...", ko: "중지 중...", ja: "\u505C\u6B62\u4E2D...", es: "Deteniendo..." })
+                    : localize(language, { en: "Stop all", ko: "전체 작업 중지", ja: "\u5168\u90E8\u3084\u3081\u3066", es: "detener todo" })}
                 </button>
               ) : null}
             </div>
@@ -5236,12 +5119,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-sky-950">
-                  {language === "ko" ? "전체 결과 공유" : "Share the full result view"}
+                  {localize(language, { en: "Share the full result view", ko: "전체 결과 공유", ja: "\u5B8C\u5168\u306A\u7D50\u679C\u30D3\u30E5\u30FC\u3092\u5171\u6709\u3059\u308B", es: "Comparte la vista completa de resultados" })}
                 </p>
                 <p className="text-xs leading-5 text-sky-800">
-                  {language === "ko"
-                    ? "로그인 없이 입력, 워크플로우, 결과를 볼 수 있는 공개 링크를 복사합니다."
-                    : "Copy a public link that opens the input, workflow, and results without sign-in."}
+                  {localize(language, { en: "Copy a public link that opens the input, workflow, and results without sign-in.", ko: "로그인 없이 입력, 워크플로우, 결과를 볼 수 있는 공개 링크를 복사합니다.", ja: "\u30B5\u30A4\u30F3\u30A4\u30F3\u305B\u305A\u306B\u5165\u529B\u3001\u30EF\u30FC\u30AF\u30D5\u30ED\u30FC\u3001\u7D50\u679C\u3092\u958B\u304F\u30D1\u30D6\u30EA\u30C3\u30AF \u30EA\u30F3\u30AF\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3059\u3002", es: "Copie un enlace p\u00FAblico que abra la entrada, el flujo de trabajo y los resultados sin iniciar sesi\u00F3n." })}
                 </p>
               </div>
               <button
@@ -5251,25 +5132,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 className="rounded-md border border-sky-300 bg-white px-3 py-2 text-sm font-semibold text-sky-900 hover:bg-sky-100 disabled:opacity-60"
               >
                 {sharingSession
-                  ? language === "ko"
-                    ? "공유 중..."
-                    : "Sharing..."
+                  ? localize(language, { en: "Sharing...", ko: "공유 중...", ja: "\u5171\u6709\u4E2D...", es: "Compartiendo..." })
                   : sessionShareCopied
-                    ? language === "ko"
-                      ? "링크 복사됨"
-                      : "Link copied"
-                    : language === "ko"
-                      ? "전체 공유 링크"
-                      : "Share overview link"}
+                    ? localize(language, { en: "Link copied", ko: "링크 복사됨", ja: "\u30EA\u30F3\u30AF\u304C\u30B3\u30D4\u30FC\u3055\u308C\u307E\u3057\u305F", es: "Enlace copiado" })
+                    : localize(language, { en: "Share overview link", ko: "전체 공유 링크", ja: "\u6982\u8981\u30EA\u30F3\u30AF\u3092\u5171\u6709\u3059\u308B", es: "Compartir enlace de descripci\u00F3n general" })}
               </button>
             </div>
             {sessionShareUrl ? (
               <div className="mt-3 rounded-md border border-sky-200 bg-white p-3">
                 {sessionShareCopyBlocked ? (
                   <p className="mb-2 text-xs font-medium text-sky-900">
-                    {language === "ko"
-                      ? "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 선택해서 복사하세요."
-                      : "Automatic copying was blocked. The link was still created, so open it or select it below."}
+                    {localize(language, { en: "Automatic copying was blocked. The link was still created, so open it or select it below.", ko: "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 선택해서 복사하세요.", ja: "\u81EA\u52D5\u30B3\u30D4\u30FC\u304C\u30D6\u30ED\u30C3\u30AF\u3055\u308C\u307E\u3057\u305F\u3002\u30EA\u30F3\u30AF\u306F\u307E\u3060\u4F5C\u6210\u3055\u308C\u3066\u3044\u308B\u306E\u3067\u3001\u305D\u308C\u3092\u958B\u304F\u304B\u3001\u4E0B\u304B\u3089\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002", es: "Se bloque\u00F3 la copia autom\u00E1tica. El enlace a\u00FAn se cre\u00F3, as\u00ED que \u00E1brelo o selecci\u00F3nalo a continuaci\u00F3n." })}
                   </p>
                 ) : null}
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -5279,7 +5152,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     onFocus={(event) => event.currentTarget.select()}
                     className="min-w-0 flex-1 rounded-md border border-stone-300 bg-stone-50 px-3 py-2 text-xs text-stone-700"
                     aria-label={
-                      language === "ko" ? "전체 공유 링크" : "Shared overview link"
+                      localize(language, { en: "Shared overview link", ko: "전체 공유 링크", ja: "\u5171\u6709\u6982\u8981\u30EA\u30F3\u30AF", es: "Enlace de descripci\u00F3n general compartido" })
                     }
                   />
                   <a
@@ -5288,7 +5161,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     rel="noreferrer"
                     className="rounded-md border border-sky-300 px-3 py-2 text-center text-xs font-semibold text-sky-900 hover:bg-sky-50"
                   >
-                    {language === "ko" ? "링크 열기" : "Open link"}
+                    {localize(language, { en: "Open link", ko: "링크 열기", ja: "\u30EA\u30F3\u30AF\u3092\u958B\u304F", es: "Abrir enlace" })}
                   </a>
                 </div>
               </div>
@@ -5320,12 +5193,8 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       className="rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60"
                     >
                       {cancelingRun
-                        ? language === "ko"
-                          ? "중지 중..."
-                          : "Stopping..."
-                        : language === "ko"
-                          ? "전체 작업 중지"
-                          : "Stop all"}
+                        ? localize(language, { en: "Stopping...", ko: "중지 중...", ja: "\u505C\u6B62\u4E2D...", es: "Deteniendo..." })
+                        : localize(language, { en: "Stop all", ko: "전체 작업 중지", ja: "\u5168\u90E8\u3084\u3081\u3066", es: "detener todo" })}
                     </button>
                   ) : null}
                   <span className="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-500">
@@ -5363,7 +5232,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                             onClick={() => jumpToResult(linkedResultId)}
                             className="rounded-md border border-teal-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-teal-800 hover:bg-teal-50"
                           >
-                            {language === "ko" ? "결과로 이동" : "Jump to result"}
+                            {localize(language, { en: "Jump to result", ko: "결과로 이동", ja: "\u7D50\u679C\u3078\u30B8\u30E3\u30F3\u30D7", es: "Saltar al resultado" })}
                           </button>
                         ) : null}
                         <span
@@ -5396,18 +5265,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                               : entry.status === "failed"
                               ? t("statusFailed")
                               : entry.status === "canceled"
-                                ? language === "ko"
-                                  ? "중지됨"
-                                  : "Stopped"
+                                ? localize(language, { en: "Stopped", ko: "중지됨", ja: "\u505C\u6B62\u3057\u307E\u3057\u305F", es: "Interrumpido" })
                               : entry.status === "active"
                                 ? t("statusRunning")
                                 : entry.status === "skipped"
-                                  ? language === "ko"
-                                    ? "건너뜀"
-                                    : "Skipped"
-                                  : language === "ko"
-                                    ? "대기"
-                                    : "Queued"}
+                                  ? localize(language, { en: "Skipped", ko: "건너뜀", ja: "\u30B9\u30AD\u30C3\u30D7\u3055\u308C\u307E\u3057\u305F", es: "Saltado" })
+                                  : localize(language, { en: "Queued", ko: "대기", ja: "\u30AD\u30E5\u30FC\u306B\u5165\u308C\u3089\u308C\u307E\u3057\u305F", es: "En cola" })}
                         </span>
                       </div>
                     </div>
@@ -5419,13 +5282,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       <div className="mt-3 grid min-w-0 gap-2 rounded-md border border-stone-200 bg-white px-3 py-2 text-xs leading-5 text-stone-600">
                         <div className="min-w-0">
                           <span className="font-semibold text-stone-500">
-                            {language === "ko" ? "\uc2dc\uc2a4\ud15c \uc9c4\ud589" : "System progress"}
+                            {localize(language, { en: "System progress", ko: "\uc2dc\uc2a4\ud15c \uc9c4\ud589", ja: "\u30B7\u30B9\u30C6\u30E0\u306E\u9032\u884C\u72B6\u6CC1", es: "Progreso del sistema" })}
                           </span>
                           <p className="whitespace-normal break-words">{entry.workLines[0]}</p>
                         </div>
                         <div className="min-w-0">
                           <span className="font-semibold text-stone-500">
-                            {language === "ko" ? "실시간 입력/출력" : "Live input/output"}
+                            {localize(language, { en: "Live input/output", ko: "실시간 입력/출력", ja: "\u30E9\u30A4\u30D6\u5165\u51FA\u529B", es: "Entrada/salida en vivo" })}
                           </span>
                           <p className="whitespace-normal break-words">{entry.workLines[1]}</p>
                         </div>
@@ -5698,7 +5561,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     disabled={!hasExpandedResults}
                     className="rounded px-3 py-1.5 text-xs font-semibold text-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {language === "ko" ? "전체 접기" : "Collapse all"}
+                    {localize(language, { en: "Collapse all", ko: "전체 접기", ja: "\u3059\u3079\u3066\u6298\u308A\u305F\u305F\u3080", es: "Contraer todo" })}
                   </button>
                   <button
                     type="button"
@@ -5706,7 +5569,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     disabled={!hasCollapsedResults}
                     className="rounded px-3 py-1.5 text-xs font-semibold text-stone-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {language === "ko" ? "전체 펼치기" : "Expand all"}
+                    {localize(language, { en: "Expand all", ko: "전체 펼치기", ja: "\u3059\u3079\u3066\u5C55\u958B", es: "Expandir todo" })}
                   </button>
                 </div>
               ) : null}
@@ -5746,9 +5609,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   value={resultSearch}
                   onChange={(event) => setResultSearch(event.target.value)}
                   placeholder={
-                    language === "ko"
-                      ? "결과, 모델, 단계 키워드 검색"
-                      : "Search results, models, or step keywords"
+                    localize(language, { en: "Search results, models, or step keywords", ko: "결과, 모델, 단계 키워드 검색", ja: "\u691C\u7D22\u7D50\u679C\u3001\u30E2\u30C7\u30EB\u3001\u307E\u305F\u306F\u30B9\u30C6\u30C3\u30D7\u306E\u30AD\u30FC\u30EF\u30FC\u30C9", es: "Resultados de b\u00FAsqueda, modelos o palabras clave de pasos" })
                   }
                   className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
                 />
@@ -5759,18 +5620,18 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   }
                   className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
                 >
-                  <option value="all">{language === "ko" ? "전체 결과" : "All results"}</option>
+                  <option value="all">{localize(language, { en: "All results", ko: "전체 결과", ja: "\u3059\u3079\u3066\u306E\u7D50\u679C", es: "Todos los resultados" })}</option>
                   <option value="final">
-                    {language === "ko" ? "최종결과만" : "Final only"}
+                    {localize(language, { en: "Final only", ko: "최종결과만", ja: "\u6700\u7D42\u7D50\u679C\u306E\u307F", es: "Solo finales" })}
                   </option>
                   <option value="failed">
-                    {language === "ko" ? "실패만" : "Failed only"}
+                    {localize(language, { en: "Failed only", ko: "실패만", ja: "\u5931\u6557\u306E\u307F", es: "S\u00F3lo fall\u00F3" })}
                   </option>
                   <option value="main">
-                    {language === "ko" ? "메인 결과만" : "Main only"}
+                    {localize(language, { en: "Main only", ko: "메인 결과만", ja: "\u30E1\u30A4\u30F3\u306E\u307F", es: "Solo principal" })}
                   </option>
                   <option value="branch">
-                    {language === "ko" ? "분기만" : "Branches only"}
+                    {localize(language, { en: "Branches only", ko: "분기만", ja: "\u5206\u5C90\u306E\u307F", es: "Solo ramas" })}
                   </option>
                 </select>
                 <select
@@ -5781,16 +5642,16 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
                 >
                   <option value="workflow">
-                    {language === "ko" ? "워크플로우 순서" : "Workflow order"}
+                    {localize(language, { en: "Workflow order", ko: "워크플로우 순서", ja: "\u30EF\u30FC\u30AF\u30D5\u30ED\u30FC\u306E\u9806\u5E8F", es: "Orden de flujo de trabajo" })}
                   </option>
                   <option value="latest">
-                    {language === "ko" ? "최신순" : "Latest first"}
+                    {localize(language, { en: "Latest first", ko: "최신순", ja: "\u6700\u65B0\u9806", es: "Lo \u00FAltimo primero" })}
                   </option>
                   <option value="oldest">
-                    {language === "ko" ? "오래된순" : "Oldest first"}
+                    {localize(language, { en: "Oldest first", ko: "오래된순", ja: "\u53E4\u3044\u9806", es: "El m\u00E1s viejo primero" })}
                   </option>
                   <option value="failed_first">
-                    {language === "ko" ? "실패 우선" : "Failed first"}
+                    {localize(language, { en: "Failed first", ko: "실패 우선", ja: "\u5931\u6557\u3092\u512A\u5148", es: "Fallidos primero" })}
                   </option>
                 </select>
               </div>
@@ -5805,7 +5666,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
-                      {language === "ko" ? "최종결과 빠른 보기" : "Final result spotlight"}
+                      {localize(language, { en: "Final result spotlight", ko: "최종결과 빠른 보기", ja: "\u6700\u7D42\u7D50\u679C\u306E\u30B9\u30DD\u30C3\u30C8\u30E9\u30A4\u30C8", es: "Destacado del resultado final" })}
                     </p>
                     <p className="mt-2 text-sm font-semibold text-stone-950">
                       {finalDisplayResult.provider}/
@@ -5824,7 +5685,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       onClick={() => jumpToResult(finalDisplayResult.id)}
                       className="rounded-md border border-teal-300 bg-white px-3 py-2 text-xs font-semibold text-teal-800 hover:bg-teal-100"
                     >
-                      {language === "ko" ? "최종결과로 이동" : "Jump to final"}
+                      {localize(language, { en: "Jump to final", ko: "최종결과로 이동", ja: "\u6C7A\u52DD\u3078\u30B8\u30E3\u30F3\u30D7", es: "Saltar a la final" })}
                     </button>
                     <button
                       type="button"
@@ -5836,17 +5697,13 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         const outcome = await copyTextToClipboard(text);
                         setNotice(
                           outcome.copied
-                            ? language === "ko"
-                              ? "최종결과를 복사했습니다."
-                              : "Copied the final result."
-                            : language === "ko"
-                              ? "브라우저가 자동 복사를 막았습니다."
-                              : "The browser blocked automatic copying.",
+                            ? localize(language, { en: "Copied the final result.", ko: "최종결과를 복사했습니다.", ja: "\u6700\u7D42\u7D50\u679C\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002", es: "Copi\u00E9 el resultado final." })
+                            : localize(language, { en: "The browser blocked automatic copying.", ko: "브라우저가 자동 복사를 막았습니다.", ja: "\u30D6\u30E9\u30A6\u30B6\u304C\u81EA\u52D5\u30B3\u30D4\u30FC\u3092\u30D6\u30ED\u30C3\u30AF\u3057\u307E\u3057\u305F\u3002", es: "El navegador bloque\u00F3 la copia autom\u00E1tica." }),
                         );
                       }}
                       className="rounded-md border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
                     >
-                      {language === "ko" ? "최종결과 복사" : "Copy final"}
+                      {localize(language, { en: "Copy final", ko: "최종결과 복사", ja: "\u6700\u7D42\u30B3\u30D4\u30FC", es: "Copia final" })}
                     </button>
                   </div>
                 </div>
@@ -5854,21 +5711,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ) : null}
             {!displayResults.length ? (
               <div className="rounded-lg border border-dashed border-stone-300 bg-white px-4 py-6 text-sm text-stone-500">
-                {language === "ko"
-                  ? "현재 필터와 검색 조건에 맞는 결과가 없습니다."
-                  : "No results match the current filter and search."}
+                {localize(language, { en: "No results match the current filter and search.", ko: "현재 필터와 검색 조건에 맞는 결과가 없습니다.", ja: "\u73FE\u5728\u306E\u30D5\u30A3\u30EB\u30BF\u30FC\u3068\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u7D50\u679C\u306F\u3042\u308A\u307E\u305B\u3093\u3002", es: "Ning\u00FAn resultado coincide con el filtro y la b\u00FAsqueda actuales." })}
               </div>
             ) : null}
             <div>
               {branchDisplayResults.length ? (
                 <div className="mb-3">
                   <h3 className="text-sm font-semibold text-stone-950">
-                    {language === "ko" ? "메인 워크플로우 결과" : "Main workflow results"}
+                    {localize(language, { en: "Main workflow results", ko: "메인 워크플로우 결과", ja: "\u4E3B\u306A\u30EF\u30FC\u30AF\u30D5\u30ED\u30FC\u7D50\u679C", es: "Principales resultados del flujo de trabajo" })}
                   </h3>
                   <p className="text-xs text-stone-500">
-                    {language === "ko"
-                      ? "초기 실행과 순차 체인의 본 결과만 먼저 보여줍니다."
-                      : "Primary outputs from the original run and sequential chain."}
+                    {localize(language, { en: "Primary outputs from the original run and sequential chain.", ko: "초기 실행과 순차 체인의 본 결과만 먼저 보여줍니다.", ja: "\u5143\u306E\u5B9F\u884C\u304A\u3088\u3073\u30B7\u30FC\u30B1\u30F3\u30B7\u30E3\u30EB \u30C1\u30A7\u30FC\u30F3\u304B\u3089\u306E\u30D7\u30E9\u30A4\u30DE\u30EA\u51FA\u529B\u3002", es: "Salidas primarias de la ejecuci\u00F3n original y la cadena secuencial." })}
                   </p>
                 </div>
               ) : null}
@@ -5919,12 +5772,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               <div>
                 <div className="mb-3">
                   <h3 className="text-sm font-semibold text-stone-950">
-                    {language === "ko" ? "후속 질문과 분기 결과" : "Follow-up and branch results"}
+                    {localize(language, { en: "Follow-up and branch results", ko: "후속 질문과 분기 결과", ja: "\u30D5\u30A9\u30ED\u30FC\u30A2\u30C3\u30D7\u3068\u5206\u5C90\u7D50\u679C", es: "Seguimiento y resultados de sucursales." })}
                   </h3>
                   <p className="text-xs text-stone-500">
-                    {language === "ko"
-                      ? "메인 결과에서 이어진 후속 질문, 재검토, 재실행 분기를 따로 모아 보여줍니다."
-                      : "Follow-up, review, and rerun outputs are separated from the main workflow results."}
+                    {localize(language, { en: "Follow-up, review, and rerun outputs are separated from the main workflow results.", ko: "메인 결과에서 이어진 후속 질문, 재검토, 재실행 분기를 따로 모아 보여줍니다.", ja: "\u30D5\u30A9\u30ED\u30FC\u30A2\u30C3\u30D7\u3001\u30EC\u30D3\u30E5\u30FC\u3001\u518D\u5B9F\u884C\u306E\u51FA\u529B\u306F\u3001\u30E1\u30A4\u30F3\u306E\u30EF\u30FC\u30AF\u30D5\u30ED\u30FC\u7D50\u679C\u304B\u3089\u5206\u96E2\u3055\u308C\u307E\u3059\u3002", es: "Los resultados de seguimiento, revisi\u00F3n y repetici\u00F3n est\u00E1n separados de los resultados principales del flujo de trabajo." })}
                   </p>
                 </div>
                 <div
@@ -5985,14 +5836,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             type="button"
             disabled={!resultStartTargetId}
             aria-label={
-              language === "ko"
-                ? "현재 결과 시작점으로 가기"
-                : "Go to the start of the current result"
+              localize(language, { en: "Go to the start of the current result", ko: "현재 결과 시작점으로 가기", ja: "\u73FE\u5728\u306E\u7D50\u679C\u306E\u5148\u982D\u306B\u79FB\u52D5\u3057\u307E\u3059", es: "Ir al inicio del resultado actual" })
             }
             title={
-              language === "ko"
-                ? "현재 결과 시작점으로 가기"
-                : "Go to the start of the current result"
+              localize(language, { en: "Go to the start of the current result", ko: "현재 결과 시작점으로 가기", ja: "\u73FE\u5728\u306E\u7D50\u679C\u306E\u5148\u982D\u306B\u79FB\u52D5\u3057\u307E\u3059", es: "Ir al inicio del resultado actual" })
             }
             onClick={jumpToCurrentResultStart}
             className="flex h-11 w-11 items-center justify-center rounded-md border border-stone-300 bg-white text-stone-800 shadow-lg shadow-stone-200/70 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
@@ -6014,14 +5861,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           <button
             type="button"
             aria-label={
-              language === "ko"
-                ? "AI 진행 상태로 가기"
-                : "Go to AI progress"
+              localize(language, { en: "Go to AI progress", ko: "AI 진행 상태로 가기", ja: "AI\u306E\u9032\u6B69\u3078", es: "Ir al progreso de la IA" })
             }
             title={
-              language === "ko"
-                ? "AI 진행 상태로 가기"
-                : "Go to AI progress"
+              localize(language, { en: "Go to AI progress", ko: "AI 진행 상태로 가기", ja: "AI\u306E\u9032\u6B69\u3078", es: "Ir al progreso de la IA" })
             }
             onClick={jumpToProgressStart}
             className="flex h-11 w-11 items-center justify-center rounded-md border border-stone-300 bg-stone-950 text-white shadow-lg shadow-stone-300/70 hover:bg-stone-800"

@@ -1,10 +1,12 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const authText = {
+const authText = withAdditionalLanguages({
   en: {
     email: "Email",
     password: "Password",
@@ -29,7 +31,7 @@ const authText = {
       "\uC0AC\uC6A9\uC790 \uD654\uBA74\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30?",
     userSignIn: "\uC0AC\uC6A9\uC790 \uB85C\uADF8\uC778",
   },
-} as const;
+});
 
 export function AdminAuthForm() {
   const { language } = useLanguage();

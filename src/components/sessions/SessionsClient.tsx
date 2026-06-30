@@ -1,5 +1,9 @@
 "use client";
 
+import { type AppLanguage } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
@@ -34,8 +38,8 @@ type SessionsClientProps = {
   initialLoaded?: boolean;
 };
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" }), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -49,50 +53,32 @@ function displayMode(mode: string, t: ReturnType<typeof useLanguage>["t"]) {
 
 function formatRunSummary(
   session: SessionListItem,
-  language: "en" | "ko",
+  language: AppLanguage,
 ) {
   const latestRun = session.executionRuns[0];
   if (!latestRun) {
-    return language === "ko" ? "아직 실행 기록이 없습니다." : "No runs yet.";
+    return localize(language, { en: "No runs yet.", ko: "아직 실행 기록이 없습니다.", ja: "\u307E\u3060\u5B9F\u884C\u306F\u3042\u308A\u307E\u305B\u3093\u3002", es: "A\u00FAn no hay carreras." });
   }
 
   const doneLabel =
     latestRun.mode === "sequential"
-      ? language === "ko"
-        ? `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}단계 완료`
-        : `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned} steps done`
-      : language === "ko"
-        ? `${session._count.results}개 결과 저장`
-        : `${session._count.results} results saved`;
+      ? localize(language, { en: `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned} steps done`, ko: `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}단계 완료`, ja: `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}\u5B8C\u4E86\u3057\u305F\u624B\u9806`, es: `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}pasos realizados` })
+      : localize(language, { en: `${session._count.results} results saved`, ko: `${session._count.results}개 결과 저장`, ja: `${session._count.results}\u7D50\u679C\u304C\u4FDD\u5B58\u3055\u308C\u307E\u3057\u305F`, es: `${session._count.results}resultados guardados` });
 
   const statusLabel =
     latestRun.status === "completed"
-      ? language === "ko"
-        ? "완료"
-        : "Completed"
+      ? localize(language, { en: "Completed", ko: "완료", ja: "\u5B8C\u4E86", es: "Terminado" })
       : latestRun.status === "failed"
-        ? language === "ko"
-          ? "실패"
-          : "Failed"
+        ? localize(language, { en: "Failed", ko: "실패", ja: "\u5931\u6557\u3057\u305F", es: "Fallido" })
         : latestRun.status === "canceled"
-          ? language === "ko"
-            ? "중지됨"
-            : "Canceled"
+          ? localize(language, { en: "Canceled", ko: "중지됨", ja: "\u30AD\u30E3\u30F3\u30BB\u30EB", es: "Cancelado" })
           : latestRun.status === "running"
-            ? language === "ko"
-              ? "진행 중"
-              : "Running"
-            : language === "ko"
-              ? "대기 중"
-              : "Queued";
+            ? localize(language, { en: "Running", ko: "진행 중", ja: "\u30E9\u30F3\u30CB\u30F3\u30B0", es: "Correr" })
+            : localize(language, { en: "Queued", ko: "대기 중", ja: "\u30AD\u30E5\u30FC\u306B\u5165\u308C\u3089\u308C\u307E\u3057\u305F", es: "En cola" });
 
   const finalLabel = latestRun.finalResultId
-    ? language === "ko"
-      ? "최종결과 선택됨"
-      : "Final result picked"
-    : language === "ko"
-      ? "최종결과 미선택"
-      : "Final result pending";
+    ? localize(language, { en: "Final result picked", ko: "최종결과 선택됨", ja: "\u9078\u3070\u308C\u305F\u6700\u7D42\u7D50\u679C", es: "Resultado final elegido" })
+    : localize(language, { en: "Final result pending", ko: "최종결과 미선택", ja: "\u6700\u7D42\u7D50\u679C\u306F\u4FDD\u7559\u4E2D", es: "Resultado final pendiente" });
 
   return `${statusLabel} · ${doneLabel} · ${finalLabel}`;
 }
@@ -120,9 +106,7 @@ export function SessionsClient({
 
     if (!response.ok || !data.sessions) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadSessions")
-          : data.error || t("couldNotLoadSessions"),
+        localize(language, { en: data.error || t("couldNotLoadSessions"), ko: t("couldNotLoadSessions"), ja: data.error || t("couldNotLoadSessions"), es: data.error || t("couldNotLoadSessions") }),
       );
       return;
     }
@@ -143,9 +127,7 @@ export function SessionsClient({
 
       if (!response.ok) {
         setError(
-          language === "ko"
-            ? t("couldNotDuplicateSession")
-            : data.error || t("couldNotDuplicateSession"),
+          localize(language, { en: data.error || t("couldNotDuplicateSession"), ko: t("couldNotDuplicateSession"), ja: data.error || t("couldNotDuplicateSession"), es: data.error || t("couldNotDuplicateSession") }),
         );
         return;
       }
@@ -278,8 +260,8 @@ export function SessionsClient({
                     className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${copiedInputId === session.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                   >
                     {copiedInputId === session.id
-                      ? (language === "ko" ? "복사됨" : "Copied")
-                      : (language === "ko" ? "질문 복사" : "Copy input")}
+                      ? (localize(language, { en: "Copied", ko: "복사됨", ja: "\u30B3\u30D4\u30FC\u3055\u308C\u307E\u3057\u305F", es: "Copiado" }))
+                      : (localize(language, { en: "Copy input", ko: "질문 복사", ja: "\u5165\u529B\u3092\u30B3\u30D4\u30FC\u3059\u308B", es: "Copiar entrada" }))}
                   </button>
                   <button
                     type="button"
@@ -288,7 +270,7 @@ export function SessionsClient({
                     className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {duplicatingId === session.id
-                      ? (language === "ko" ? "복제 중…" : "Duplicating…")
+                      ? (localize(language, { en: "Duplicating…", ko: "복제 중…", ja: "\u8907\u88FD\u4E2D\u2026", es: "Duplicando\u2026" }))
                       : t("duplicate")}
                   </button>
                   <AddToProjectButton
@@ -306,7 +288,7 @@ export function SessionsClient({
                     className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {deletingId === session.id
-                      ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                      ? (localize(language, { en: "Deleting…", ko: "삭제 중…", ja: "\u524A\u9664\u4E2D\u2026", es: "Eliminando\u2026" }))
                       : t("delete")}
                   </button>
                 </div>

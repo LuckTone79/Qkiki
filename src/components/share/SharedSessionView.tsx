@@ -1,5 +1,9 @@
 "use client";
 
+import { type AppLanguage } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import { useEffect, useState } from "react";
 import { ResultCard } from "@/components/workbench/ResultCard";
 import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
@@ -20,7 +24,7 @@ const emptyProviders: ProviderOption[] = [];
 
 function sourceModeLabel(
   sourceMode: string,
-  language: "en" | "ko",
+  language: AppLanguage,
   sourceResultId: string | null,
   results: SharedWorkbenchResult[],
 ) {
@@ -29,22 +33,20 @@ function sourceModeLabel(
     : null;
 
   if (sourceMode === "original") {
-    return language === "ko" ? "원본 입력" : "Original input";
+    return localize(language, { en: "Original input", ko: "원본 입력", ja: "\u5143\u306E\u5165\u529B", es: "Entrada original" });
   }
   if (sourceMode === "previous") {
-    return language === "ko" ? "이전 단계" : "Previous step";
+    return localize(language, { en: "Previous step", ko: "이전 단계", ja: "\u524D\u306E\u30B9\u30C6\u30C3\u30D7", es: "Paso anterior" });
   }
   if (sourceMode === "selected_result") {
     return sourceResult
-      ? `${language === "ko" ? "선택 결과" : "Selected result"}: ${
+      ? `${localize(language, { en: "Selected result", ko: "선택 결과", ja: "\u9078\u629E\u3055\u308C\u305F\u7D50\u679C", es: "Resultado seleccionado" })}: ${
           sourceResult.provider
         }/${getModelDisplayName(sourceResult.provider, sourceResult.model)}`
-      : language === "ko"
-        ? "선택 결과"
-        : "Selected result";
+      : localize(language, { en: "Selected result", ko: "선택 결과", ja: "\u9078\u629E\u3055\u308C\u305F\u7D50\u679C", es: "Resultado seleccionado" });
   }
   if (sourceMode === "all_current_results") {
-    return language === "ko" ? "현재 모든 결과" : "All current results";
+    return localize(language, { en: "All current results", ko: "현재 모든 결과", ja: "\u73FE\u5728\u306E\u3059\u3079\u3066\u306E\u7D50\u679C", es: "Todos los resultados actuales" });
   }
 
   return sourceMode;
@@ -107,41 +109,33 @@ export function SharedSessionView({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-teal-700">
-              {language === "ko" ? "공유된 결과 보기" : "Shared result view"}
+              {localize(language, { en: "Shared result view", ko: "공유된 결과 보기", ja: "\u5171\u6709\u7D50\u679C\u30D3\u30E5\u30FC", es: "Vista de resultados compartida" })}
             </p>
             <h1 className="mt-2 text-2xl font-semibold text-stone-950">
               {session.title}
             </h1>
             <p className="mt-2 text-sm text-stone-600">
               {session.mode === "sequential"
-                ? language === "ko"
-                  ? "이 링크는 입력, 워크플로우, 단계별 결과를 모두 보여줍니다."
-                  : "This link shows the input, workflow, and every step result."
-                : language === "ko"
-                  ? "이 링크는 입력과 결과 보드를 로그인 없이 보여줍니다."
-                  : "This link shows the input and result board without sign-in."}
+                ? localize(language, { en: "This link shows the input, workflow, and every step result.", ko: "이 링크는 입력, 워크플로우, 단계별 결과를 모두 보여줍니다.", ja: "\u3053\u306E\u30EA\u30F3\u30AF\u306B\u306F\u3001\u5165\u529B\u3001\u30EF\u30FC\u30AF\u30D5\u30ED\u30FC\u3001\u304A\u3088\u3073\u5404\u30B9\u30C6\u30C3\u30D7\u306E\u7D50\u679C\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002", es: "Este enlace muestra la entrada, el flujo de trabajo y el resultado de cada paso." })
+                : localize(language, { en: "This link shows the input and result board without sign-in.", ko: "이 링크는 입력과 결과 보드를 로그인 없이 보여줍니다.", ja: "\u3053\u306E\u30EA\u30F3\u30AF\u306B\u306F\u3001\u30B5\u30A4\u30F3\u30A4\u30F3\u305B\u305A\u306B\u5165\u529B\u304A\u3088\u3073\u7D50\u679C\u30DC\u30FC\u30C9\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002", es: "Este enlace muestra el tablero de entrada y resultados sin iniciar sesi\u00F3n." })}
             </p>
           </div>
           <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600">
             {session.mode === "sequential"
-              ? language === "ko"
-                ? "순차 검토 체인"
-                : "Sequential review chain"
-              : language === "ko"
-                ? "병렬 비교"
-                : "Parallel compare"}
+              ? localize(language, { en: "Sequential review chain", ko: "순차 검토 체인", ja: "\u9010\u6B21\u30EC\u30D3\u30E5\u30FC\u30C1\u30A7\u30FC\u30F3", es: "Cadena de revisi\u00F3n secuencial" })
+              : localize(language, { en: "Parallel compare", ko: "병렬 비교", ja: "\u4E26\u5217\u6BD4\u8F03", es: "comparaci\u00F3n paralela" })}
           </span>
         </div>
       </section>
 
       <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-stone-950">
-          {language === "ko" ? "입력" : "Input"}
+          {localize(language, { en: "Input", ko: "입력", ja: "\u5165\u529B", es: "Aporte" })}
         </h2>
         <div className="mt-4 space-y-4">
           <div className="rounded-xl border border-stone-200 bg-[#f7f6f3] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-              {language === "ko" ? "원본 입력" : "Original input"}
+              {localize(language, { en: "Original input", ko: "원본 입력", ja: "\u5143\u306E\u5165\u529B", es: "Entrada original" })}
             </p>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-stone-800">
               {session.originalInput}
@@ -150,7 +144,7 @@ export function SharedSessionView({
           {session.additionalInstruction ? (
             <div className="rounded-xl border border-stone-200 bg-[#f7f6f3] p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                {language === "ko" ? "추가 지시" : "Additional instruction"}
+                {localize(language, { en: "Additional instruction", ko: "추가 지시", ja: "\u8FFD\u52A0\u306E\u6307\u793A", es: "Instrucci\u00F3n adicional" })}
               </p>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-stone-800">
                 {session.additionalInstruction}
@@ -163,7 +157,7 @@ export function SharedSessionView({
       {session.mode === "sequential" ? (
         <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-stone-950">
-            {language === "ko" ? "워크플로우" : "Workflow"}
+            {localize(language, { en: "Workflow", ko: "워크플로우", ja: "\u30EF\u30FC\u30AF\u30D5\u30ED\u30FC", es: "Flujo de trabajo" })}
           </h2>
           <div className="mt-4 grid gap-3">
             {session.workflowSteps.map((step) => (
@@ -173,7 +167,7 @@ export function SharedSessionView({
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-700">
-                    {language === "ko" ? `단계 ${step.orderIndex}` : `Step ${step.orderIndex}`}
+                    {localize(language, { en: `Step ${step.orderIndex}`, ko: `단계 ${step.orderIndex}`, ja: `\u30B9\u30C6\u30C3\u30D7${step.orderIndex}`, es: `Paso${step.orderIndex}` })}
                   </span>
                   <span className="rounded-full border border-stone-200 px-2.5 py-1 text-xs text-stone-600">
                     {getActionTypeDisplayLabel(step.actionType, language)}
@@ -204,10 +198,10 @@ export function SharedSessionView({
       <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-stone-950">
-            {language === "ko" ? "결과" : "Results"}
+            {localize(language, { en: "Results", ko: "결과", ja: "\u7D50\u679C", es: "Resultados" })}
           </h2>
           <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600">
-            {session.results.length} {language === "ko" ? "개" : "items"}
+            {session.results.length} {localize(language, { en: "items", ko: "개", ja: "\u30A2\u30A4\u30C6\u30E0", es: "elementos" })}
           </span>
         </div>
         <div className="mt-4 space-y-3">
@@ -229,7 +223,7 @@ export function SharedSessionView({
                 highlighted={focusedResultId === result.id}
                 sourceLabel={
                   parent
-                    ? `${language === "ko" ? "소스" : "Source"}: ${
+                    ? `${localize(language, { en: "Source", ko: "소스", ja: "\u30BD\u30FC\u30B9", es: "Fuente" })}: ${
                         parent.provider
                       }/${getModelDisplayName(parent.provider, parent.model)}`
                     : undefined

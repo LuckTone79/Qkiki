@@ -1,10 +1,14 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AdminUserActions } from "@/components/admin/AdminUserActions";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     role: "Role",
     conversations: "Conversations",
@@ -25,7 +29,7 @@ const text = {
     noUsageLogs: "사용 로그가 없습니다.",
     subscription: "구독",
   },
-} as const;
+});
 
 export type UserDetailData = {
   id: string;
@@ -62,7 +66,7 @@ export type UserDetailData = {
 export function AdminUserDetailClient({ user }: { user: UserDetailData }) {
   const { language } = useLanguage();
   const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const locale = localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" });
 
   return (
     <div className="space-y-5">

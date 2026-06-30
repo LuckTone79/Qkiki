@@ -1,4 +1,6 @@
-export type AppLanguage = "en" | "ko";
+import type { AppLanguage } from "./i18n.ts";
+import { localize } from "./i18n.ts";
+export type { AppLanguage } from "./i18n.ts";
 export type GuidanceProviderName = "openai" | "anthropic" | "google" | "xai";
 
 export type ModelGuidance = {
@@ -9,17 +11,13 @@ export type ModelGuidance = {
 };
 
 function traitLabels(kind: "fast" | "balanced" | "deep" | "review", language: AppLanguage) {
-  if (language === "ko") {
-    if (kind === "fast") return "빠름";
-    if (kind === "balanced") return "균형";
-    if (kind === "deep") return "정교함";
-    return "검토용";
-  }
-
-  if (kind === "fast") return "Fast";
-  if (kind === "balanced") return "Balanced";
-  if (kind === "deep") return "Deep";
-  return "Review";
+  const labels = {
+    fast: { en: "Fast", ko: "빠름", ja: "高速", es: "Rápido" },
+    balanced: { en: "Balanced", ko: "균형", ja: "バランス", es: "Equilibrado" },
+    deep: { en: "Deep", ko: "정교함", ja: "詳細", es: "Profundo" },
+    review: { en: "Review", ko: "검토용", ja: "レビュー", es: "Revisión" },
+  } as const;
+  return localize(language, labels[kind]);
 }
 
 export function getModelGuidance(
@@ -71,11 +69,9 @@ export function getModelGuidance(
   return {
     recommended,
     recommendedLabel:
-      language === "ko" ? "추천 시작점" : "Recommended start",
+      localize(language, { en: "Recommended start", ko: "추천 시작점", ja: "\u63A8\u5968\u30B9\u30BF\u30FC\u30C8", es: "Inicio recomendado" }),
     trustLabel:
-      language === "ko"
-        ? "선택한 모델 그대로 실행"
-        : "Runs exactly with the model you picked",
+      localize(language, { en: "Runs exactly with the model you picked", ko: "선택한 모델 그대로 실행", ja: "\u9078\u629E\u3057\u305F\u30E2\u30C7\u30EB\u3067\u6B63\u78BA\u306B\u5B9F\u884C\u3055\u308C\u307E\u3059", es: "Funciona exactamente con el modelo que elegiste." }),
     traits: Array.from(new Set(traits)).slice(0, 2),
   };
 }

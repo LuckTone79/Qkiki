@@ -1,9 +1,11 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import { useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     adminActions: "Admin actions",
     suspendUser: "Suspend user",
@@ -32,7 +34,7 @@ const text = {
     failedStatus: "상태 업데이트에 실패했습니다.",
     failedGrant: "이용권 부여에 실패했습니다.",
   },
-} as const;
+});
 
 export function AdminUserActions({
   userId,

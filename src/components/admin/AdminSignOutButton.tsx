@@ -1,12 +1,14 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import { useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const text = {
+const text = withAdditionalLanguages({
   en: { signOut: "Sign out", signingOut: "Signing out..." },
   ko: { signOut: "로그아웃", signingOut: "로그아웃 중..." },
-} as const;
+});
 
 export function AdminSignOutButton({ compact = false }: { compact?: boolean }) {
   const { language } = useLanguage();

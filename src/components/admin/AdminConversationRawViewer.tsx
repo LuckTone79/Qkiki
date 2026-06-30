@@ -1,11 +1,13 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import { useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     rawContent: "Raw content",
     viewRaw: "View raw content",
@@ -22,7 +24,7 @@ const text = {
     originalInput: "원본 입력",
     encrypted: "원문 입출력은 저장 시 암호화되어 있으며, 명시적으로 요청할 때만 복호화됩니다.",
   },
-} as const;
+});
 
 type RawPayload = {
   conversationId: string;

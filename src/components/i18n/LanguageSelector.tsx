@@ -1,5 +1,7 @@
 "use client";
 
+import { normalizeAppLanguage } from "@/lib/i18n";
+
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
@@ -26,12 +28,14 @@ export function LanguageSelector() {
       <span>{t("language")}</span>
       <select
         value={language}
-        onChange={(event) => setLanguage(event.target.value === "ko" ? "ko" : "en")}
+        onChange={(event) => setLanguage(normalizeAppLanguage(event.target.value))}
         className="rounded-md border border-stone-200 bg-white px-2 py-1 text-xs text-stone-700 outline-none focus:border-stone-900"
         aria-label={t("language")}
       >
         <option value="en">{t("english")}</option>
         <option value="ko">{t("korean")}</option>
+        <option value="ja">{t("japanese")}</option>
+        <option value="es">{t("spanish")}</option>
       </select>
     </label>
   );

@@ -1,8 +1,10 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     title: "Admin Dashboard",
     description: "Monitor usage, token costs, and conversion signals.",
@@ -45,7 +47,7 @@ const text = {
     colInputTokens: "입력 토큰",
     colOutputTokens: "출력 토큰",
   },
-} as const;
+});
 
 export type UsageRow = {
   label: string;

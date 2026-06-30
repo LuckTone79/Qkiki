@@ -1,9 +1,11 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import { APP_VERSION } from "@/lib/version";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const aboutContent = {
+const aboutContent = withAdditionalLanguages({
   en: {
     title: "About",
     appName: "Yapp Admin",
@@ -16,7 +18,7 @@ const aboutContent = {
     version: "버전",
     description: "Yapp 서비스를 관리하는 운영 콘솔입니다.",
   },
-};
+});
 
 export default function AboutPage() {
   const { language } = useLanguage();

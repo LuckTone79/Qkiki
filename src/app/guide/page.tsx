@@ -1,5 +1,9 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize, translateLocalizedTree } from "@/lib/i18n";
+
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { APP_VERSION } from "@/lib/version";
@@ -8,7 +12,7 @@ import { APP_VERSION } from "@/lib/version";
 /*  i18n dictionary                                                    */
 /* ------------------------------------------------------------------ */
 
-const guide = {
+const baseGuide = withAdditionalLanguages({
   en: {
     /* hero */
     eyebrow: "Yapp Guidebook",
@@ -224,7 +228,7 @@ const guide = {
       { label: "Workflow modes", value: "Parallel Compare & Sequential Review Chain" },
       { label: "Actions", value: "Generate, Brainstorm, Scenario Development, Deep Dive, Critique, Fact-check, Improve, Summarize, Simplify, Consistency Review, Code Review, Follow-up" },
       { label: "Attachments", value: "Text, Word, Image, PDF — server-side processing" },
-      { label: "Languages", value: "English & Korean (switchable anytime)" },
+      { label: "Languages", value: "English, Korean, Japanese & Spanish (switchable anytime)" },
       { label: "Security", value: "Encrypted credentials, HttpOnly cookies, server-side only provider calls" },
     ],
 
@@ -474,7 +478,7 @@ const guide = {
       { label: "워크플로우 모드", value: "병렬 비교 & 순차 검토 체인" },
       { label: "작업 유형", value: "생성, 브레인스토밍, 시나리오 발전, 딥 다이브, 비판, 팩트체크, 개선, 요약, 단순화, 일관성 검토, 코드 리뷰, 후속 질문" },
       { label: "첨부 파일", value: "텍스트, Word, 이미지, PDF — 서버 측 처리" },
-      { label: "언어", value: "영어 & 한국어 (언제든 전환 가능)" },
+      { label: "언어", value: "영어, 한국어, 일본어, 스페인어 (언제든 전환 가능)" },
       { label: "보안", value: "자격 증명 암호화, HttpOnly 쿠키, 서버 측 전용 AI 호출" },
     ],
 
@@ -508,6 +512,12 @@ const guide = {
     version: "버전",
     copyright: "Yapp by Wideget",
   },
+});
+
+const guide = {
+  ...baseGuide,
+  ja: translateLocalizedTree(baseGuide.en, "ja"),
+  es: translateLocalizedTree(baseGuide.en, "es"),
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -735,12 +745,10 @@ export default function GuidePage() {
                 {/* Mode selector */}
                 <div className="flex gap-2">
                   <span className="rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
-                    {language === "ko" ? "● 병렬 비교" : "● Parallel Compare"}
+                    {localize(language, { en: "● Parallel Compare", ko: "● 병렬 비교", ja: "\u25CF \u4E26\u5217\u6BD4\u8F03", es: "\u25CF Comparaci\u00F3n paralela" })}
                   </span>
                   <span className="rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs text-stone-400">
-                    {language === "ko"
-                      ? "순차 검토 체인"
-                      : "Sequential Review Chain"}
+                    {localize(language, { en: "Sequential Review Chain", ko: "순차 검토 체인", ja: "\u9010\u6B21\u30EC\u30D3\u30E5\u30FC\u30C1\u30A7\u30FC\u30F3", es: "Cadena de revisi\u00F3n secuencial" })}
                   </span>
                 </div>
 
@@ -762,15 +770,13 @@ export default function GuidePage() {
 
                 {/* Input area */}
                 <div className="rounded-lg border border-stone-200 bg-[#fafbf7] px-3.5 py-2.5 text-xs italic text-stone-400">
-                  {language === "ko"
-                    ? '"하늘이 파란 이유를 쉽게 설명해줘."'
-                    : '"Explain why the sky is blue in simple words."'}
+                  {localize(language, { en: '"Explain why the sky is blue in simple words."', ko: '"하늘이 파란 이유를 쉽게 설명해줘."', ja: "\u300C\u7A7A\u304C\u9752\u3044\u7406\u7531\u3092\u7C21\u5358\u306A\u8A00\u8449\u3067\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u300D", es: "\"Explica por qu\u00E9 el cielo es azul con palabras sencillas\"." })}
                 </div>
 
                 {/* Output style */}
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-medium text-stone-500">
-                    {language === "ko" ? "출력 스타일:" : "Output Style:"}
+                    {localize(language, { en: "Output Style:", ko: "출력 스타일:", ja: "\u51FA\u529B\u30B9\u30BF\u30A4\u30EB:", es: "Estilo de salida:" })}
                   </span>
                   <span className="rounded border border-stone-200 bg-white px-2 py-0.5 text-[10px] text-stone-600">
                     Detailed ▾
@@ -780,7 +786,7 @@ export default function GuidePage() {
                 {/* Run button */}
                 <div className="text-center">
                   <span className="inline-block rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-sm">
-                    {language === "ko" ? "▶ 실행" : "▶ Run"}
+                    {localize(language, { en: "▶ Run", ko: "▶ 실행", ja: "\u25B6 \u5B9F\u884C", es: "\u25B6 Ejecutar" })}
                   </span>
                 </div>
 
@@ -885,44 +891,40 @@ export default function GuidePage() {
                 {/* Mode selector */}
                 <div className="flex gap-2">
                   <span className="rounded-lg border border-stone-200 px-3.5 py-1.5 text-xs text-stone-400">
-                    {language === "ko" ? "병렬 비교" : "Parallel Compare"}
+                    {localize(language, { en: "Parallel Compare", ko: "병렬 비교", ja: "\u4E26\u5217\u6BD4\u8F03", es: "Comparaci\u00F3n paralela" })}
                   </span>
                   <span className="rounded-lg bg-teal-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm">
-                    {language === "ko"
-                      ? "● 순차 검토 체인"
-                      : "● Sequential Review Chain"}
+                    {localize(language, { en: "● Sequential Review Chain", ko: "● 순차 검토 체인", ja: "\u25CF \u9010\u6B21\u30EC\u30D3\u30E5\u30FC\u30C1\u30A7\u30FC\u30F3", es: "\u25CF Cadena de revisi\u00F3n secuencial" })}
                   </span>
                 </div>
 
                 {/* Chain diagram */}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="rounded-md border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-[11px] font-medium text-blue-800">
-                    GPT: {language === "ko" ? "생성" : "Generate"}
+                    GPT: {localize(language, { en: "Generate", ko: "생성", ja: "\u751F\u6210\u3059\u308B", es: "Generar" })}
                   </span>
                   <span className="text-lg text-stone-300">→</span>
                   <span className="rounded-md border border-orange-300 bg-orange-50 px-2.5 py-1.5 text-[11px] font-medium text-orange-800">
-                    Grok: {language === "ko" ? "비판" : "Critique"}
+                    Grok: {localize(language, { en: "Critique", ko: "비판", ja: "\u6279\u8A55", es: "Cr\u00EDtica" })}
                   </span>
                   <span className="text-lg text-stone-300">→</span>
                   <span className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800">
-                    Gemini: {language === "ko" ? "개선" : "Improve"}
+                    Gemini: {localize(language, { en: "Improve", ko: "개선", ja: "\u6539\u5584\u3059\u308B", es: "Mejorar" })}
                   </span>
                   <span className="rounded-md border border-dashed border-stone-300 px-2.5 py-1.5 text-[11px] text-stone-400">
-                    + {language === "ko" ? "추가" : "Add"}
+                    + {localize(language, { en: "Add", ko: "추가", ja: "\u8FFD\u52A0", es: "Agregar" })}
                   </span>
                 </div>
 
                 {/* Input area */}
                 <div className="rounded-lg border border-stone-200 bg-[#fafbf7] px-3.5 py-2.5 text-xs italic text-stone-400">
-                  {language === "ko"
-                    ? '"그림 그리는 법을 배우는 로봇에 대한 짧은 이야기를 써줘."'
-                    : '"Write a short story about a robot who learns to paint."'}
+                  {localize(language, { en: '"Write a short story about a robot who learns to paint."', ko: '"그림 그리는 법을 배우는 로봇에 대한 짧은 이야기를 써줘."', ja: "\u300C\u7D75\u3092\u63CF\u304F\u3053\u3068\u3092\u5B66\u3076\u30ED\u30DC\u30C3\u30C8\u306B\u3064\u3044\u3066\u306E\u77ED\u3044\u7269\u8A9E\u3092\u66F8\u3044\u3066\u304F\u3060\u3055\u3044\u3002\u300D", es: "\"Escribe una historia corta sobre un robot que aprende a pintar\"." })}
                 </div>
 
                 {/* Run button */}
                 <div className="text-center">
                   <span className="inline-block rounded-lg bg-emerald-600 px-6 py-2 text-xs font-bold text-white shadow-sm">
-                    {language === "ko" ? "▶ 실행" : "▶ Run"}
+                    {localize(language, { en: "▶ Run", ko: "▶ 실행", ja: "\u25B6 \u5B9F\u884C", es: "\u25B6 Ejecutar" })}
                   </span>
                 </div>
 

@@ -1,8 +1,12 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     title: "Audit logs",
     description: "Track admin actions and encrypted content access history.",
@@ -31,7 +35,7 @@ const text = {
     colConversation: "대화",
     colReason: "사유",
   },
-} as const;
+});
 
 export type AuditLogItem = {
   id: string;
@@ -61,7 +65,7 @@ export function AdminAuditLogsClient({
 }) {
   const { language } = useLanguage();
   const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const locale = localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" });
 
   function formatDetail(raw: string | null) {
     if (!raw) return "-";

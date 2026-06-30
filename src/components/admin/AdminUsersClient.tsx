@@ -1,10 +1,14 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     title: "Users",
     description:
@@ -91,7 +95,7 @@ const text = {
     planMonthly: "월간 만료:",
     planExpired: "만료됨",
   },
-} as const;
+});
 
 type AdminUserSort = "latest" | "tasks" | "credits" | "tokens" | "created";
 type AdminUserFilters = {
@@ -166,7 +170,7 @@ export function AdminUsersClient({
 }) {
   const { language } = useLanguage();
   const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const locale = localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" });
 
   const totals = users.reduce(
     (acc, user) => {

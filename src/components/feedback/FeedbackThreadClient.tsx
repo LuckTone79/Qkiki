@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -36,7 +38,6 @@ export type FeedbackThreadData = {
 export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
   const { language } = useLanguage();
   const router = useRouter();
-  const ko = language === "ko";
 
   const [comments, setComments] = useState<Comment[]>(post.comments);
   const [reply, setReply] = useState("");
@@ -61,7 +62,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
       };
       if (!response.ok || !data.comment) {
         setError(
-          data.error || (ko ? "전송에 실패했습니다." : "Could not send."),
+          data.error || (localize(language, { en: "Could not send.", ko: "전송에 실패했습니다.", ja: "\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo enviar." })),
         );
         return;
       }
@@ -75,9 +76,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
   async function deletePost() {
     if (
       !window.confirm(
-        ko
-          ? "이 글을 삭제할까요? 되돌릴 수 없습니다."
-          : "Delete this post? This cannot be undone.",
+        localize(language, { en: "Delete this post? This cannot be undone.", ko: "이 글을 삭제할까요? 되돌릴 수 없습니다.", ja: "\u3053\u306E\u6295\u7A3F\u3092\u524A\u9664\u3057\u307E\u3059\u304B?\u3053\u308C\u3092\u5143\u306B\u623B\u3059\u3053\u3068\u306F\u3067\u304D\u307E\u305B\u3093\u3002", es: "\u00BFEliminar esta publicaci\u00F3n? Esto no se puede deshacer." }),
       )
     ) {
       return;
@@ -90,7 +89,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
       router.push("/app/account/feedback");
     } else {
       setDeleting(false);
-      setError(ko ? "삭제에 실패했습니다." : "Could not delete.");
+      setError(localize(language, { en: "Could not delete.", ko: "삭제에 실패했습니다.", ja: "\u524A\u9664\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo eliminar." }));
     }
   }
 
@@ -101,7 +100,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
           href="/app/account/feedback"
           className="text-sm font-medium text-stone-500 hover:text-stone-800"
         >
-          ← {ko ? "목록으로" : "Back to list"}
+          ← {localize(language, { en: "Back to list", ko: "목록으로", ja: "\u30EA\u30B9\u30C8\u306B\u623B\u308B", es: "volver a la lista" })}
         </Link>
         <button
           type="button"
@@ -109,7 +108,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
           disabled={deleting}
           className="w-full text-left text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-60 sm:w-auto sm:text-right"
         >
-          {ko ? "삭제" : "Delete"}
+          {localize(language, { en: "Delete", ko: "삭제", ja: "\u6D88\u53BB", es: "Borrar" })}
         </button>
       </div>
 
@@ -143,7 +142,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
         {post.attachments.length ? (
           <div className="mt-4 border-t border-stone-100 pt-4">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-400">
-              {ko ? "첨부 이미지" : "Attachments"}
+              {localize(language, { en: "Attachments", ko: "첨부 이미지", ja: "\u6DFB\u4ED8\u30D5\u30A1\u30A4\u30EB", es: "Adjuntos" })}
             </p>
             <div className="flex flex-wrap gap-3">
               {post.attachments.map((attachment) => (
@@ -168,13 +167,11 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
 
       <section className="space-y-3">
         <h2 className="text-sm font-semibold text-stone-700">
-          {ko ? "대화" : "Conversation"}
+          {localize(language, { en: "Conversation", ko: "대화", ja: "\u4F1A\u8A71", es: "Conversaci\u00F3n" })}
         </h2>
         {comments.length === 0 ? (
           <p className="text-sm text-stone-500">
-            {ko
-              ? "아직 답변이 없습니다. 운영팀이 확인 후 답변드립니다."
-              : "No replies yet. The team will respond after reviewing."}
+            {localize(language, { en: "No replies yet. The team will respond after reviewing.", ko: "아직 답변이 없습니다. 운영팀이 확인 후 답변드립니다.", ja: "\u307E\u3060\u8FD4\u4FE1\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u30C1\u30FC\u30E0\u306F\u691C\u8A0E\u5F8C\u306B\u5BFE\u5FDC\u3055\u305B\u3066\u3044\u305F\u3060\u304D\u307E\u3059\u3002", es: "A\u00FAn no hay respuestas. El equipo responder\u00E1 despu\u00E9s de revisar." })}
           </p>
         ) : (
           <ul className="space-y-3">
@@ -190,9 +187,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
                 <div className="mb-1 flex items-center gap-2">
                   <span className="text-sm font-semibold text-stone-900">
                     {comment.isAdmin
-                      ? ko
-                        ? "운영팀"
-                        : "Yapp team"
+                      ? localize(language, { en: "Yapp team", ko: "운영팀", ja: "\u30E4\u30C3\u30D7\u30C1\u30FC\u30E0", es: "equipo yapp" })
                       : comment.authorName}
                   </span>
                   <span className="text-xs text-stone-500">
@@ -214,7 +209,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
       >
         <label className="block">
           <span className="text-sm font-medium text-stone-700">
-            {ko ? "답변 추가" : "Add a message"}
+            {localize(language, { en: "Add a message", ko: "답변 추가", ja: "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u8FFD\u52A0\u3059\u308B", es: "A\u00F1adir un mensaje" })}
           </span>
           <textarea
             value={reply}
@@ -222,7 +217,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
             rows={3}
             className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
             placeholder={
-              ko ? "추가로 전달할 내용을 입력하세요." : "Write a follow-up message."
+              localize(language, { en: "Write a follow-up message.", ko: "추가로 전달할 내용을 입력하세요.", ja: "\u30D5\u30A9\u30ED\u30FC\u30A2\u30C3\u30D7\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u66F8\u304D\u307E\u3059\u3002", es: "Escribe un mensaje de seguimiento." })
             }
           />
         </label>
@@ -233,12 +228,8 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
             className="w-full rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60 sm:w-auto"
           >
             {submitting
-              ? ko
-                ? "전송 중..."
-                : "Sending..."
-              : ko
-                ? "전송"
-                : "Send"}
+              ? localize(language, { en: "Sending...", ko: "전송 중...", ja: "\u9001\u4FE1\u4E2D...", es: "Enviando..." })
+              : localize(language, { en: "Send", ko: "전송", ja: "\u9001\u4FE1", es: "Enviar" })}
           </button>
         </div>
       </form>

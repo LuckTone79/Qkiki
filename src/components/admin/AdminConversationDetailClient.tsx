@@ -1,11 +1,15 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { AdminConversationRawViewer } from "@/components/admin/AdminConversationRawViewer";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
 
-const text = {
+const text = withAdditionalLanguages({
   en: {
     updated: "Updated",
     workflowSteps: "Workflow steps",
@@ -32,7 +36,7 @@ const text = {
     est: "(추정)",
     noResults: "아직 결과가 없습니다.",
   },
-} as const;
+});
 
 export type ConversationDetailData = {
   id: string;
@@ -69,7 +73,7 @@ export function AdminConversationDetailClient({
 }) {
   const { language } = useLanguage();
   const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const locale = localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" });
 
   return (
     <div className="space-y-5">

@@ -1,9 +1,11 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
 import { AdminAuthForm } from "@/components/admin/AdminAuthForm";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
-const signInCardText = {
+const signInCardText = withAdditionalLanguages({
   en: {
     adminTitle: "Yapp Admin",
     heading: "Administrator sign-in",
@@ -16,7 +18,7 @@ const signInCardText = {
     description:
       "\uC0AC\uC6A9\uC790 \uAD00\uB9AC, \uCFE0\uD3F0 \uC81C\uC5B4, \uACF5\uAE09\uC790 \uD0A4, \uAC10\uC0AC \uB85C\uADF8\uC5D0 \uC811\uADFC\uD569\uB2C8\uB2E4.",
   },
-} as const;
+});
 
 export function AdminSignInCard() {
   const { language } = useLanguage();

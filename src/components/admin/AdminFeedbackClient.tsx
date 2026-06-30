@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
@@ -28,7 +30,6 @@ type AdminFeedbackItem = {
 
 export function AdminFeedbackClient() {
   const { language } = useLanguage();
-  const ko = language === "ko";
   const [posts, setPosts] = useState<AdminFeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -58,12 +59,10 @@ export function AdminFeedbackClient() {
     <div className="space-y-5">
       <div>
         <h1 className="font-serif text-2xl font-semibold tracking-tight text-slate-950">
-          {ko ? "사용자 피드백" : "User feedback"}
+          {localize(language, { en: "User feedback", ko: "사용자 피드백", ja: "\u30E6\u30FC\u30B6\u30FC\u304B\u3089\u306E\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF", es: "Comentarios de los usuarios" })}
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          {ko
-            ? "사용자들이 작성한 모든 피드백을 확인하고 응답할 수 있습니다."
-            : "Review and respond to all feedback submitted by users."}
+          {localize(language, { en: "Review and respond to all feedback submitted by users.", ko: "사용자들이 작성한 모든 피드백을 확인하고 응답할 수 있습니다.", ja: "\u30E6\u30FC\u30B6\u30FC\u304B\u3089\u9001\u4FE1\u3055\u308C\u305F\u3059\u3079\u3066\u306E\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u78BA\u8A8D\u3057\u3066\u8FD4\u4FE1\u3057\u307E\u3059\u3002", es: "Revisar y responder a todos los comentarios enviados por los usuarios." })}
         </p>
       </div>
 
@@ -78,7 +77,7 @@ export function AdminFeedbackClient() {
           <input
             value={q}
             onChange={(event) => setQ(event.target.value)}
-            placeholder={ko ? "제목·내용·이메일 검색" : "Search title, body, email"}
+            placeholder={localize(language, { en: "Search title, body, email", ko: "제목·내용·이메일 검색", ja: "\u30BF\u30A4\u30C8\u30EB\u3001\u672C\u6587\u3001\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3092\u691C\u7D22", es: "Buscar t\u00EDtulo, cuerpo, correo electr\u00F3nico" })}
             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 sm:max-w-sm"
           />
           <button
@@ -86,7 +85,7 @@ export function AdminFeedbackClient() {
             disabled={loading}
             className="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            {loading ? (ko ? "검색 중..." : "Searching...") : ko ? "검색" : "Search"}
+            {loading ? (localize(language, { en: "Searching...", ko: "검색 중...", ja: "Searching...", es: "Searching..." })) : localize(language, { en: "Search", ko: "검색", ja: "\u691C\u7D22", es: "Buscar" })}
           </button>
         </form>
         <select
@@ -97,7 +96,7 @@ export function AdminFeedbackClient() {
           }
           className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
-          <option value="">{ko ? "전체 상태" : "All statuses"}</option>
+          <option value="">{localize(language, { en: "All statuses", ko: "전체 상태", ja: "\u3059\u3079\u3066\u306E\u30B9\u30C6\u30FC\u30BF\u30B9", es: "Todos los estados" })}</option>
           {FEEDBACK_STATUS_VALUES.map((value) => (
             <option key={value} value={value}>
               {statusLabel(value, language)}
@@ -109,11 +108,11 @@ export function AdminFeedbackClient() {
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         {loading ? (
           <p className="px-5 py-6 text-sm text-slate-500">
-            {ko ? "불러오는 중..." : "Loading..."}
+            {localize(language, { en: "Loading...", ko: "불러오는 중...", ja: "\u8AAD\u307F\u8FBC\u307F\u4E2D...", es: "Cargando..." })}
           </p>
         ) : posts.length === 0 ? (
           <p className="px-5 py-6 text-sm text-slate-500">
-            {ko ? "표시할 피드백이 없습니다." : "No feedback to display."}
+            {localize(language, { en: "No feedback to display.", ko: "표시할 피드백이 없습니다.", ja: "\u8868\u793A\u3059\u308B\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u306F\u3042\u308A\u307E\u305B\u3093\u3002", es: "No hay comentarios para mostrar." })}
           </p>
         ) : (
           <>
@@ -127,7 +126,7 @@ export function AdminFeedbackClient() {
                     {post.isUnread ? (
                       <span
                         className="mt-1 inline-flex h-2 w-2 flex-none rounded-full bg-rose-500"
-                        title={ko ? "미확인" : "Unread"}
+                        title={localize(language, { en: "Unread", ko: "미확인", ja: "\u672A\u8AAD", es: "No le\u00EDdo" })}
                       />
                     ) : null}
                     <span className="min-w-0 flex-1">
@@ -157,11 +156,11 @@ export function AdminFeedbackClient() {
             <table className="hidden min-w-full divide-y divide-slate-200 text-sm sm:table">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">{ko ? "제목" : "Title"}</th>
-                  <th className="px-4 py-3">{ko ? "작성자" : "Author"}</th>
-                  <th className="px-4 py-3">{ko ? "분류" : "Category"}</th>
-                  <th className="px-4 py-3">{ko ? "상태" : "Status"}</th>
-                  <th className="px-4 py-3">{ko ? "작성일" : "Created"}</th>
+                  <th className="px-4 py-3">{localize(language, { en: "Title", ko: "제목", ja: "\u30BF\u30A4\u30C8\u30EB", es: "T\u00EDtulo" })}</th>
+                  <th className="px-4 py-3">{localize(language, { en: "Author", ko: "작성자", ja: "\u8457\u8005", es: "Autor" })}</th>
+                  <th className="px-4 py-3">{localize(language, { en: "Category", ko: "분류", ja: "\u30AB\u30C6\u30B4\u30EA", es: "Categor\u00EDa" })}</th>
+                  <th className="px-4 py-3">{localize(language, { en: "Status", ko: "상태", ja: "\u72B6\u614B", es: "Estado" })}</th>
+                  <th className="px-4 py-3">{localize(language, { en: "Created", ko: "작성일", ja: "\u4F5C\u6210\u3055\u308C\u307E\u3057\u305F", es: "Creado" })}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -175,7 +174,7 @@ export function AdminFeedbackClient() {
                         {post.isUnread ? (
                           <span
                             className="inline-flex h-2 w-2 flex-none rounded-full bg-rose-500"
-                            title={ko ? "미확인" : "Unread"}
+                            title={localize(language, { en: "Unread", ko: "미확인", ja: "\u672A\u8AAD", es: "No le\u00EDdo" })}
                           />
                         ) : null}
                         <span className="truncate">{post.title}</span>

@@ -1,5 +1,9 @@
 "use client";
 
+import { type AppLanguage } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
@@ -21,7 +25,7 @@ type PresetsClientProps = {
   initialLoaded?: boolean;
 };
 
-function actionLabel(value: string, language: "en" | "ko") {
+function actionLabel(value: string, language: AppLanguage) {
   const actionType = ACTION_TYPES.find((candidate) => candidate === value);
   return actionType ? getActionTypeDisplayLabel(actionType, language) : value;
 }
@@ -44,7 +48,7 @@ function sourceLabel(
 
 function stepPreview(
   workflowJson: string,
-  language: "en" | "ko",
+  language: AppLanguage,
   t: ReturnType<typeof useLanguage>["t"],
 ) {
   try {
@@ -62,9 +66,7 @@ function stepPreview(
         ?.map((step, index) => {
           const action = actionLabel(step.actionType, language);
           const source = sourceLabel(step.sourceMode, t);
-          return language === "ko"
-            ? `${index + 1}. ${source} -> ${step.targetProvider}/${step.targetModel} ${action}`
-            : `${index + 1}. ${action} with ${step.targetProvider}/${step.targetModel} from ${source}`;
+          return localize(language, { en: `${index + 1}. ${action} with ${step.targetProvider}/${step.targetModel} from ${source}`, ko: `${index + 1}. ${source} -> ${step.targetProvider}/${step.targetModel} ${action}`, ja: `${index + 1}. ${action}\u3068${step.targetProvider}/${step.targetModel}\u304B\u3089${source}`, es: `${index + 1}. ${action}con${step.targetProvider}/${step.targetModel}de${source}` });
         })
         .join(" -> ") || t("noSteps")
     );
@@ -94,9 +96,7 @@ export function PresetsClient({
 
     if (!response.ok || !data.presets) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadPresets")
-          : data.error || t("couldNotLoadPresets"),
+        localize(language, { en: data.error || t("couldNotLoadPresets"), ko: t("couldNotLoadPresets"), ja: data.error || t("couldNotLoadPresets"), es: data.error || t("couldNotLoadPresets") }),
       );
       return;
     }
@@ -215,9 +215,9 @@ export function PresetsClient({
                       className={`col-span-2 rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-1 ${renamedId === preset.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                     >
                       {renamingId === preset.id
-                        ? (language === "ko" ? "저장 중…" : "Saving…")
+                        ? (localize(language, { en: "Saving…", ko: "저장 중…", ja: "\u4FDD\u5B58\u4E2D\u2026", es: "Guardando\u2026" }))
                         : renamedId === preset.id
-                          ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                          ? (localize(language, { en: "Saved ✓", ko: "저장됨 ✓", ja: "\u4FDD\u5B58\u6E08\u307F \u2713", es: "Guardado \u2713" }))
                           : t("rename")}
                     </button>
                     <Link
@@ -233,7 +233,7 @@ export function PresetsClient({
                       className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {deletingPresetId === preset.id
-                        ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                        ? (localize(language, { en: "Deleting…", ko: "삭제 중…", ja: "\u524A\u9664\u4E2D\u2026", es: "Eliminando\u2026" }))
                         : t("delete")}
                     </button>
                   </div>

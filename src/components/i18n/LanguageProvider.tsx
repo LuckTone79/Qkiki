@@ -1,5 +1,14 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import {
+  type AppLanguage,
+  normalizeAppLanguage,
+  translateLocalizedTree,
+} from "@/lib/i18n";
+export type { AppLanguage } from "@/lib/i18n";
+
 import {
   createContext,
   useContext,
@@ -13,9 +22,7 @@ import {
 } from "@/lib/browser-storage";
 import { APP_NAME, APP_ORCHESTRATION_NAME, PRIMARY_STORAGE_KEYS, LEGACY_STORAGE_KEYS } from "@/lib/brand";
 
-export type AppLanguage = "en" | "ko";
-
-const dictionaries = {
+const baseDictionaries = withAdditionalLanguages({
   en: {
     account: "Account",
     feedback: "Feedback",
@@ -79,6 +86,7 @@ const dictionaries = {
     enableProviderShort: "Enable models for parallel compare. Provider keys stay server-side.",
     encryptedKeyStored: "Encrypted key stored. Hint:",
     english: "English",
+    japanese: "Japanese",
     estimatedShort: "est.",
     featureCompare: "Compare multiple AIs from one task",
     featureRoute: "Route one result into another model for review",
@@ -91,6 +99,7 @@ const dictionaries = {
     getStarted: "Get started",
     invalidWorkflowJson: "Invalid workflow JSON",
     korean: "Korean",
+    spanish: "Spanish",
     language: "Language",
     landingDescription:
       `${APP_NAME} runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.`,
@@ -335,6 +344,7 @@ const dictionaries = {
       "\ubcd1\ub82c \ube44\uad50\uc5d0 \uc0ac\uc6a9\ud560 \ubaa8\ub378\uc744 \ucf1c\uc138\uc694. \uacf5\uae09\uc790 \ud0a4\ub294 \uc11c\ubc84 \uce21\uc5d0\ub9cc \uc720\uc9c0\ub429\ub2c8\ub2e4.",
     encryptedKeyStored: "\uc554\ud638\ud654\ub41c \ud0a4\uac00 \uc800\uc7a5\ub418\uc5b4 \uc788\uc2b5\ub2c8\ub2e4. \ud78c\ud2b8:",
     english: "\uc601\uc5b4",
+    japanese: "\uc77c\ubcf8\uc5b4",
     estimatedShort: "\ucd94\uc815",
     featureCompare: "\ud558\ub098\uc758 \uc791\uc5c5\uc73c\ub85c \uc5ec\ub7ec AI \ube44\uad50",
     featureRoute: "\ud55c \ubaa8\ub378\uc758 \uacb0\uacfc\ub97c \ub2e4\ub978 \ubaa8\ub378 \uac80\ud1a0\ub85c \ub77c\uc6b0\ud305",
@@ -347,6 +357,7 @@ const dictionaries = {
     getStarted: "\uc2dc\uc791\ud558\uae30",
     invalidWorkflowJson: "\uc798\ubabb\ub41c \uc6cc\ud06c\ud50c\ub85c\uc6b0 JSON",
     korean: "\ud55c\uad6d\uc5b4",
+    spanish: "\uc2a4\ud398\uc778\uc5b4",
     language: "\uc5b8\uc5b4",
     landingDescription:
       "Yapp\ub294 \ud558\ub098\uc758 \uc791\uc5c5\uc744 \uc5ec\ub7ec \ubaa8\ub378\uc5d0 \uc2e4\ud589\ud558\uace0, \ub2f5\ubcc0\uc744 \ube44\uad50\ud55c \ub4a4, \uac01 \uacb0\uacfc\ub97c \ub2e4\uc74c \uac80\ud1a0, \ube44\ud310, \uac1c\uc120, \uc694\uc57d\uc758 \ucd9c\ubc1c\uc810\uc73c\ub85c \uc774\uc5b4\uac08 \uc218 \uc788\uac8c \ud569\ub2c8\ub2e4.",
@@ -528,6 +539,12 @@ const dictionaries = {
     workflowPresetSaved: "\uc6cc\ud06c\ud50c\ub85c\uc6b0 \ud504\ub9ac\uc14b\uc774 \uc800\uc7a5\ub418\uc5c8\uc2b5\ub2c8\ub2e4.",
     yourName: "\uc774\ub984\uc744 \uc785\ub825\ud558\uc138\uc694",
   },
+});
+
+const dictionaries = {
+  ...baseDictionaries,
+  ja: translateLocalizedTree(baseDictionaries.en, "ja"),
+  es: translateLocalizedTree(baseDictionaries.en, "es"),
 } as const;
 
 type TranslationKey = keyof typeof dictionaries.en;
@@ -546,7 +563,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       PRIMARY_STORAGE_KEYS.language,
       ...LEGACY_STORAGE_KEYS.language,
     ]);
-    const nextLanguage = stored === "ko" ? "ko" : "en";
+    const nextLanguage = normalizeAppLanguage(stored);
     setLanguageState(nextLanguage);
     document.documentElement.lang = nextLanguage;
   }, []);

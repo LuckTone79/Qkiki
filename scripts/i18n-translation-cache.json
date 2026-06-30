@@ -1,0 +1,3830 @@
+{
+  " · step ": {
+    "ja": "・ ステップ",
+    "es": "· paso"
+  },
+  " are available. Select fewer models.": {
+    "ja": "利用可能です。選択するモデルを減らします。",
+    "es": "están disponibles. Seleccione menos modelos."
+  },
+  " attached image": {
+    "ja": "添付画像",
+    "es": "imagen adjunta"
+  },
+  " Check the failed result cards.": {
+    "ja": "失敗した結果カードを確認します。",
+    "es": "Verifique las tarjetas de resultados fallidos."
+  },
+  " completed, ": {
+    "ja": "完成した、",
+    "es": "terminado,"
+  },
+  " conversations and individual results added from your sessions. Originals stay in their sessions.": {
+    "ja": "セッションから追加された会話と個々の結果。オリジナルはセッション内に残ります。",
+    "es": "conversaciones y resultados individuales agregados de sus sesiones. Los originales permanecen en sus sesiones."
+  },
+  " credits left.": {
+    "ja": "クレジットが残っています。",
+    "es": "créditos restantes."
+  },
+  " credits remain. They reset at midnight (KST).": {
+    "ja": "クレジットは残ります。深夜 (KST) にリセットされます。",
+    "es": "quedan créditos. Se reinician a medianoche (KST)."
+  },
+  " credits, but only ": {
+    "ja": "クレジットですが、",
+    "es": "créditos, pero sólo"
+  },
+  " credits/day. Sign in to get 70 credits/day.": {
+    "ja": "クレジット/日。サインインすると 1 日あたり 70 クレジットを取得できます。",
+    "es": "créditos/día. Inicia sesión para obtener 70 créditos/día."
+  },
+  " day(s) left in Boost.": {
+    "ja": "ブーストの残り日数。",
+    "es": "Día(s) restantes en Boost."
+  },
+  " file(s).": {
+    "ja": "ファイル。",
+    "es": "archivo(s)."
+  },
+  " files.": {
+    "ja": "ファイル。",
+    "es": "archivos."
+  },
+  " from ": {
+    "ja": "から",
+    "es": "de"
+  },
+  " images.": {
+    "ja": "画像。",
+    "es": "imágenes."
+  },
+  " left": {
+    "ja": "左",
+    "es": "izquierda"
+  },
+  " left / daily cap ": {
+    "ja": "左/1日の上限",
+    "es": "límite izquierdo / diario"
+  },
+  " model(s) selected": {
+    "ja": "選択されたモデル",
+    "es": "modelo(s) seleccionado(s)"
+  },
+  " now": {
+    "ja": "今",
+    "es": "ahora"
+  },
+  " of ": {
+    "ja": "の",
+    "es": "de"
+  },
+  " of your daily ": {
+    "ja": "あなたの毎日の",
+    "es": "de tu diario"
+  },
+  " planned steps before you run.": {
+    "ja": "実行する前に計画されたステップ。",
+    "es": "pasos planificados antes de ejecutar."
+  },
+  " queued": {
+    "ja": "列に並んだ",
+    "es": "en cola"
+  },
+  " remain today. Select fewer models or try again after the midnight (KST) reset.": {
+    "ja": "今日も残ります。選択するモデルを減らすか、午前 0 時 (KST) のリセット後に再試行してください。",
+    "es": "permanecen hoy. Seleccione menos modelos o inténtelo nuevamente después del reinicio de medianoche (KST)."
+  },
+  " repeat block(s)": {
+    "ja": "ブロックを繰り返す",
+    "es": "repetir bloque(s)"
+  },
+  " results saved": {
+    "ja": "結果が保存されました",
+    "es": "resultados guardados"
+  },
+  " running": {
+    "ja": "走っている",
+    "es": "correr"
+  },
+  " runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.": {
+    "ja": "複数のモデルを通じて 1 つのタスクを実行し、その答えを比較し、すべての結果を次のレビュー、批評、改善、または要約のソースにします。",
+    "es": "ejecuta una tarea a través de múltiples modelos, compara sus respuestas y permite que cada resultado se convierta en la fuente para una próxima revisión, crítica, mejora o resumen."
+  },
+  " sec": {
+    "ja": "秒",
+    "es": "segundo"
+  },
+  " selected": {
+    "ja": "選択された",
+    "es": "seleccionado"
+  },
+  " steps done": {
+    "ja": "完了した手順",
+    "es": "pasos realizados"
+  },
+  " with ": {
+    "ja": "と",
+    "es": "con"
+  },
+  "\"Explain why the sky is blue in simple words.\"": {
+    "ja": "「空が青い理由を簡単な言葉で説明してください。」",
+    "es": "\"Explica por qué el cielo es azul con palabras sencillas\"."
+  },
+  "\"Write a launch copy for our new product\"": {
+    "ja": "「新製品のローンチコピーを書いてください」",
+    "es": "\"Escribe una copia de lanzamiento de nuestro nuevo producto\""
+  },
+  "\"Write a short story about a robot who learns to paint.\"": {
+    "ja": "「絵を描くことを学ぶロボットについての短い物語を書いてください。」",
+    "es": "\"Escribe una historia corta sobre un robot que aprende a pintar\"."
+  },
+  "(est)": {
+    "ja": "（EST（東部基準時）",
+    "es": "(est)"
+  },
+  "▶ Run": {
+    "ja": "▶ 実行",
+    "es": "▶ Ejecutar"
+  },
+  "● Parallel Compare": {
+    "ja": "● 並列比較",
+    "es": "● Comparación paralela"
+  },
+  "● Sequential Review Chain": {
+    "ja": "● 逐次レビューチェーン",
+    "es": "● Cadena de revisión secuencial"
+  },
+  "🖼 Attach image": {
+    "ja": "🖼 画像を添付",
+    "es": "🖼 Adjuntar imagen"
+  },
+  "🖼 Generated image": {
+    "ja": "🖼 生成された画像",
+    "es": "🖼 Imagen generada"
+  },
+  "🖼 Image": {
+    "ja": "🖼 画像",
+    "es": "🖼 Imagen"
+  },
+  "1 column": {
+    "ja": "1列",
+    "es": "1 columna"
+  },
+  "2 columns": {
+    "ja": "2列",
+    "es": "2 columnas"
+  },
+  "30 days": {
+    "ja": "30日",
+    "es": "30 dias"
+  },
+  "30-day credit": {
+    "ja": "30日間のクレジット",
+    "es": "crédito de 30 días"
+  },
+  "30-day free plan granted.": {
+    "ja": "30日間の無料プランが付与されます。",
+    "es": "Plan gratuito de 30 días concedido."
+  },
+  "30-day unlimited credits": {
+    "ja": "30 日間無制限のクレジット",
+    "es": "Créditos ilimitados de 30 días"
+  },
+  "7 days": {
+    "ja": "7日間",
+    "es": "7 dias"
+  },
+  "7-day credit": {
+    "ja": "7日間のクレジット",
+    "es": "crédito de 7 días"
+  },
+  "7-day unlimited credits": {
+    "ja": "7日間無制限のクレジット",
+    "es": "Créditos ilimitados de 7 días"
+  },
+  "A project folder keeps related workbench sessions connected through shared project context and recent project outputs.": {
+    "ja": "プロジェクト フォルダーは、共有プロジェクト コンテキストおよび最近のプロジェクト出力を通じて、関連するワークベンチ セッションを接続したままにします。",
+    "es": "Una carpeta de proyecto mantiene conectadas las sesiones del banco de trabajo relacionadas a través del contexto del proyecto compartido y los resultados recientes del proyecto."
+  },
+  "A step-by-step guide to comparing, routing, and branching AI model outputs — all from one workspace.": {
+    "ja": "AI モデルの出力の比較、ルーティング、分岐をすべて 1 つのワークスペースから行うためのステップバイステップのガイド。",
+    "es": "Una guía paso a paso para comparar, enrutar y ramificar los resultados del modelo de IA, todo desde un solo espacio de trabajo."
+  },
+  "About": {
+    "ja": "について",
+    "es": "Acerca de"
+  },
+  "Access user management, coupon controls, provider keys, and audit logs.": {
+    "ja": "ユーザー管理、クーポン制御、プロバイダー キー、監査ログにアクセスします。",
+    "es": "Acceda a la administración de usuarios, controles de cupones, claves de proveedores y registros de auditoría."
+  },
+  "Account": {
+    "ja": "アカウント",
+    "es": "Cuenta"
+  },
+  "Account updated.": {
+    "ja": "アカウントが更新されました。",
+    "es": "Cuenta actualizada."
+  },
+  "Action": {
+    "ja": "アクション",
+    "es": "Acción"
+  },
+  "Actions": {
+    "ja": "アクション",
+    "es": "Comportamiento"
+  },
+  "active": {
+    "ja": "アクティブ",
+    "es": "activo"
+  },
+  "Active coupon": {
+    "ja": "アクティブなクーポン",
+    "es": "Cupón activo"
+  },
+  "Active tasks": {
+    "ja": "アクティブなタスク",
+    "es": "Tareas activas"
+  },
+  "Activity": {
+    "ja": "活動",
+    "es": "Actividad"
+  },
+  "Add": {
+    "ja": "追加",
+    "es": "Agregar"
+  },
+  "Add a key before running this provider.": {
+    "ja": "このプロバイダーを実行する前にキーを追加してください。",
+    "es": "Agregue una clave antes de ejecutar este proveedor."
+  },
+  "Add a message": {
+    "ja": "メッセージを追加する",
+    "es": "Añadir un mensaje"
+  },
+  "Add or remove steps": {
+    "ja": "ステップの追加または削除",
+    "es": "Agregar o eliminar pasos"
+  },
+  "Add repeat block": {
+    "ja": "リピートブロックを追加する",
+    "es": "Agregar bloque de repetición"
+  },
+  "Add step": {
+    "ja": "ステップの追加",
+    "es": "Agregar paso"
+  },
+  "Add text, Word, image, or PDF files. Uploaded files stay server-side and remain linked to this session.": {
+    "ja": "テキスト、Word、画像、または PDF ファイルを追加します。アップロードされたファイルはサーバー側に残り、このセッションにリンクされたままになります。",
+    "es": "Agregue archivos de texto, Word, imágenes o PDF. Los archivos cargados permanecen en el lado del servidor y permanecen vinculados a esta sesión."
+  },
+  "Add to a new project": {
+    "ja": "新しいプロジェクトに追加する",
+    "es": "Agregar a un nuevo proyecto"
+  },
+  "Add to project": {
+    "ja": "プロジェクトに追加",
+    "es": "Añadir al proyecto"
+  },
+  "Added to the project.": {
+    "ja": "プロジェクトに追加されました。",
+    "es": "Agregado al proyecto."
+  },
+  "Additional instruction": {
+    "ja": "追加の指示",
+    "es": "Instrucción adicional"
+  },
+  "Admin": {
+    "ja": "管理者",
+    "es": "Administración"
+  },
+  "Admin action logs": {
+    "ja": "管理者のアクションログ",
+    "es": "Registros de acciones del administrador"
+  },
+  "Admin actions": {
+    "ja": "管理者のアクション",
+    "es": "Acciones de administrador"
+  },
+  "Admin Dashboard": {
+    "ja": "管理者ダッシュボード",
+    "es": "Panel de administración"
+  },
+  "Admin navigation": {
+    "ja": "管理者のナビゲーション",
+    "es": "Navegación de administrador"
+  },
+  "Admin sign-in failed.": {
+    "ja": "管理者のサインインに失敗しました。",
+    "es": "Error al iniciar sesión como administrador."
+  },
+  "Administrator sign-in": {
+    "ja": "管理者のサインイン",
+    "es": "Inicio de sesión de administrador"
+  },
+  "After run": {
+    "ja": "走行後",
+    "es": "después de correr"
+  },
+  "AI difference summary": {
+    "ja": "AIの違いまとめ",
+    "es": "Resumen de diferencias de IA"
+  },
+  "AI models work like a relay team — each one reads and improves the previous answer!": {
+    "ja": "AI モデルはリレー チームのように機能します。各チームが前の回答を読み取って改善します。",
+    "es": "Los modelos de IA funcionan como un equipo de relevo: ¡cada uno lee y mejora la respuesta anterior!"
+  },
+  "AI progress": {
+    "ja": "AIの進歩",
+    "es": "Progreso de la IA"
+  },
+  "AI providers (GPT, Claude, Gemini, Grok) are pre-configured by the platform. Open the Workbench and check the Model Selection panel — models marked \"ready\" are available for your tasks right away.": {
+    "ja": "AI プロバイダー (GPT、Claude、Gemini、Grok) はプラットフォームによって事前構成されています。ワークベンチを開いてモデル選択パネルを確認します。「準備完了」とマークされたモデルはすぐにタスクに使用できます。",
+    "es": "Los proveedores de IA (GPT, Claude, Gemini, Grok) están preconfigurados por la plataforma. Abra Workbench y consulte el panel de selección de modelo: los modelos marcados como \"listos\" están disponibles para sus tareas de inmediato."
+  },
+  "All": {
+    "ja": "全て",
+    "es": "Todo"
+  },
+  "All at once. Side by side.": {
+    "ja": "一気に。並んで。",
+    "es": "De repente. Juntos."
+  },
+  "All current results": {
+    "ja": "現在のすべての結果",
+    "es": "Todos los resultados actuales"
+  },
+  "All provider keys and credentials are managed server-side by the administrator. You don't need to set up any API keys yourself.": {
+    "ja": "すべてのプロバイダー キーと資格情報は、管理者によってサーバー側で管理されます。 API キーを自分で設定する必要はありません。",
+    "es": "El administrador administra todas las claves y credenciales del proveedor en el lado del servidor. No es necesario que configure ninguna clave API usted mismo."
+  },
+  "All results": {
+    "ja": "すべての結果",
+    "es": "Todos los resultados"
+  },
+  "All statuses": {
+    "ja": "すべてのステータス",
+    "es": "Todos los estados"
+  },
+  "All users": {
+    "ja": "すべてのユーザー",
+    "es": "Todos los usuarios"
+  },
+  "Already have an account?": {
+    "ja": "すでにアカウントをお持ちですか?",
+    "es": "¿Ya tienes una cuenta?"
+  },
+  "Already in the project.": {
+    "ja": "すでにプロジェクトに入っています。",
+    "es": "Ya en el proyecto."
+  },
+  "Already lifetime free. Redemption was recorded.": {
+    "ja": "すでに生涯無料です。償還が記録されました。",
+    "es": "Ya gratis de por vida. Se registró la redención."
+  },
+  "An unlimited-credit coupon is active.": {
+    "ja": "無制限のクレジット クーポンが有効です。",
+    "es": "Hay un cupón de crédito ilimitado activo."
+  },
+  "API key": {
+    "ja": "APIキー",
+    "es": "clave API"
+  },
+  "Applied": {
+    "ja": "適用済み",
+    "es": "Aplicado"
+  },
+  "Apply": {
+    "ja": "適用する",
+    "es": "Aplicar"
+  },
+  "Applying the sequential step instruction": {
+    "ja": "シーケンシャルステップ命令の適用",
+    "es": "Aplicar la instrucción de pasos secuenciales"
+  },
+  "Ask a follow-up about this result...": {
+    "ja": "この結果についてフォローアップを依頼してください...",
+    "es": "Solicite un seguimiento sobre este resultado..."
+  },
+  "At least one workflow step is required.": {
+    "ja": "少なくとも 1 つのワークフロー ステップが必要です。",
+    "es": "Se requiere al menos un paso del flujo de trabajo."
+  },
+  "At the top of the Workbench, click \"Parallel Compare.\" The button lights up to show it's selected.": {
+    "ja": "ワークベンチの上部にある「並列比較」をクリックします。ボタンが点灯して、選択されていることを示します。",
+    "es": "En la parte superior del Workbench, haga clic en \"Comparación paralela\". El botón se ilumina para mostrar que está seleccionado."
+  },
+  "At the top of the Workbench, click \"Sequential Review Chain.\" The screen changes to show a chain of connected steps.": {
+    "ja": "ワークベンチの上部にある「シーケンシャル レビュー チェーン」をクリックします。画面が変化して、一連の接続されたステップが表示されます。",
+    "es": "En la parte superior del Workbench, haga clic en \"Cadena de revisión secuencial\". La pantalla cambia para mostrar una cadena de pasos conectados."
+  },
+  "Attach files": {
+    "ja": "ファイルを添付する",
+    "es": "Adjuntar archivos"
+  },
+  "Attach files if needed (optional)": {
+    "ja": "必要に応じてファイルを添付します（オプション）",
+    "es": "Adjunte archivos si es necesario (opcional)"
+  },
+  "Attach text, Word, images, or PDFs to your task. Files are processed server-side and injected into prompts automatically for all models.": {
+    "ja": "テキスト、Word、画像、または PDF をタスクに添付します。ファイルはサーバー側で処理され、すべてのモデルのプロンプトに自動的に挿入されます。",
+    "es": "Adjunte texto, Word, imágenes o archivos PDF a su tarea. Los archivos se procesan en el lado del servidor y se inyectan automáticamente en los mensajes para todos los modelos."
+  },
+  "Attached ": {
+    "ja": "添付",
+    "es": "Adjunto"
+  },
+  "Attachments": {
+    "ja": "添付ファイル",
+    "es": "Adjuntos"
+  },
+  "Audit logs": {
+    "ja": "監査ログ",
+    "es": "Registros de auditoría"
+  },
+  "Audit Logs": {
+    "ja": "監査ログ",
+    "es": "Registros de auditoría"
+  },
+  "Authentication failed.": {
+    "ja": "認証に失敗しました。",
+    "es": "La autenticación falló."
+  },
+  "Author": {
+    "ja": "著者",
+    "es": "Autor"
+  },
+  "auto-generate if empty": {
+    "ja": "空の場合は自動生成",
+    "es": "generar automáticamente si está vacío"
+  },
+  "Automatic copying was blocked. The link was still created, so open it or select it below.": {
+    "ja": "自動コピーがブロックされました。リンクはまだ作成されているので、それを開くか、下から選択してください。",
+    "es": "Se bloqueó la copia automática. El enlace aún se creó, así que ábrelo o selecciónalo a continuación."
+  },
+  "Available": {
+    "ja": "利用可能",
+    "es": "Disponible"
+  },
+  "Available credits have been exhausted.": {
+    "ja": "利用可能なクレジットがなくなりました。",
+    "es": "Los créditos disponibles se han agotado."
+  },
+  "Back to account": {
+    "ja": "アカウントに戻る",
+    "es": "Volver a la cuenta"
+  },
+  "Back to feedback": {
+    "ja": "フィードバックに戻る",
+    "es": "Volver a comentarios"
+  },
+  "Back to Home": {
+    "ja": "ホームに戻る",
+    "es": "Volver a Inicio"
+  },
+  "Back to list": {
+    "ja": "リストに戻る",
+    "es": "volver a la lista"
+  },
+  "Back to user app?": {
+    "ja": "ユーザーアプリに戻りますか?",
+    "es": "¿Volver a la aplicación de usuario?"
+  },
+  "Baseline instruction AI should follow in this project": {
+    "ja": "このプロジェクトで AI が従うべきベースラインの指示",
+    "es": "Instrucción básica que la IA debe seguir en este proyecto"
+  },
+  "Basic account settings": {
+    "ja": "基本的なアカウント設定",
+    "es": "Configuración básica de la cuenta"
+  },
+  "Be concrete about flaws and missing angles.": {
+    "ja": "欠陥や欠けている角度について具体的に説明してください。",
+    "es": "Sea concreto acerca de los defectos y los ángulos faltantes."
+  },
+  "Boost requests": {
+    "ja": "ブーストリクエスト",
+    "es": "Solicitudes de impulso"
+  },
+  "Brainstorm": {
+    "ja": "ブレーンストーミング",
+    "es": "Idea genial"
+  },
+  "Branch · projects · presets · file attachments — all in one workbench.": {
+    "ja": "ブランチ、プロジェクト、プリセット、添付ファイル — すべてが 1 つのワークベンチにあります。",
+    "es": "Rama · proyectos · ajustes preestablecidos · archivos adjuntos: todo en un solo banco de trabajo."
+  },
+  "Branch deleted.": {
+    "ja": "ブランチが削除されました。",
+    "es": "Rama eliminada."
+  },
+  "Branch results were added to the session.": {
+    "ja": "ブランチ結果がセッションに追加されました。",
+    "es": "Los resultados de las sucursales se agregaron a la sesión."
+  },
+  "Branch run failed.": {
+    "ja": "ブランチの実行に失敗しました。",
+    "es": "Error al ejecutar la sucursal."
+  },
+  "Branches only": {
+    "ja": "分岐のみ",
+    "es": "Solo ramas"
+  },
+  "Branching & Follow-up": {
+    "ja": "分岐とフォローアップ",
+    "es": "Ramificación y seguimiento"
+  },
+  "branchRunFailed": {
+    "ja": "ブランチ実行失敗",
+    "es": "ramaRunFailed"
+  },
+  "Bug": {
+    "ja": "バグ",
+    "es": "Bicho"
+  },
+  "Build a Sequential Review Chain": {
+    "ja": "逐次レビューチェーンを構築する",
+    "es": "Construya una cadena de revisión secuencial"
+  },
+  "bullet": {
+    "ja": "弾丸",
+    "es": "bala"
+  },
+  "Buy credit pack": {
+    "ja": "クレジットパックを購入する",
+    "es": "Comprar paquete de créditos"
+  },
+  "Calls": {
+    "ja": "電話",
+    "es": "llamadas"
+  },
+  "Can I use Yapp on mobile?": {
+    "ja": "モバイルでYappを使用できますか?",
+    "es": "¿Puedo usar Yapp en el móvil?"
+  },
+  "canceled": {
+    "ja": "キャンセル",
+    "es": "cancelado"
+  },
+  "Canceled": {
+    "ja": "キャンセル",
+    "es": "Cancelado"
+  },
+  "Category": {
+    "ja": "カテゴリ",
+    "es": "Categoría"
+  },
+  "Chain drafting, critique, and improvement into one guided run.": {
+    "ja": "起草、批評、改善を 1 つのガイド付き実行に連鎖させます。",
+    "es": "Encadene redacción, crítica y mejora en una sola ejecución guiada."
+  },
+  "Check at step": {
+    "ja": "ステップで確認してください",
+    "es": "comprobar en el paso"
+  },
+  "Check available AI models": {
+    "ja": "利用可能な AI モデルを確認する",
+    "es": "Consulta los modelos de IA disponibles"
+  },
+  "Check the estimated credits before you run. Repeat blocks, large attachments, and image generation consume credits faster.": {
+    "ja": "実行する前に、推定クレジットを確認してください。繰り返しブロック、大きな添付ファイル、画像の生成により、クレジットの消費が速くなります。",
+    "es": "Verifique los créditos estimados antes de correr. Los bloques repetidos, los archivos adjuntos grandes y la generación de imágenes consumen créditos más rápido."
+  },
+  "Checking…": {
+    "ja": "チェック中…",
+    "es": "De cheques…"
+  },
+  "Choose a provider first, then expand only the models you need.": {
+    "ja": "最初にプロバイダーを選択し、必要なモデルのみを拡張します。",
+    "es": "Primero elija un proveedor y luego amplíe solo los modelos que necesite."
+  },
+  "Choose how you want answers formatted: Detailed (long), Short (brief), Bullet (list), Table (grid), or Results-focused (summary). Not sure? Just leave it on \"Detailed.\"": {
+    "ja": "回答の形式を選択します: 詳細 (長い)、短い (簡潔)、箇条書き (リスト)、表 (グリッド)、または結果重視 (概要)。わからない？ 「詳細」のままにしておきます。",
+    "es": "Elija cómo desea formatear las respuestas: detallada (larga), corta (breve), viñeta (lista), tabla (cuadrícula) o centrada en resultados (resumen). ¿No estás seguro? Déjelo en \"Detallado\"."
+  },
+  "Choose one of the options below to keep going.": {
+    "ja": "続行するには、以下のオプションのいずれかを選択してください。",
+    "es": "Elija una de las siguientes opciones para continuar."
+  },
+  "Choose result": {
+    "ja": "結果を選択",
+    "es": "Elige resultado"
+  },
+  "Clear": {
+    "ja": "クリア",
+    "es": "Claro"
+  },
+  "Clear stored encrypted key": {
+    "ja": "保存されている暗号化キーをクリアする",
+    "es": "Borrar clave cifrada almacenada"
+  },
+  "Clear stored key": {
+    "ja": "保存されたキーをクリアする",
+    "es": "Borrar clave almacenada"
+  },
+  "Click \"+\" to add a new step at the end. Click the trash icon to remove a step. You can have as many or as few as you want!": {
+    "ja": "「+」をクリックして最後に新しいステップを追加します。ステップを削除するには、ゴミ箱アイコンをクリックします。必要な数だけ持つことも、少なくすることもできます。",
+    "es": "Haga clic en \"+\" para agregar un nuevo paso al final. Haga clic en el icono de la papelera para eliminar un paso. ¡Puedes tener tantos o tan pocos como quieras!"
+  },
+  "Click \"Get started\" on the landing page to start a free trial instantly.": {
+    "ja": "ランディング ページで [始める] をクリックすると、無料トライアルをすぐに開始できます。",
+    "es": "Haga clic en \"Comenzar\" en la página de inicio para iniciar una prueba gratuita al instante."
+  },
+  "Click \"Workbench\" in the left menu. This is your main workspace — where you write tasks, select models, build workflows, and see results.": {
+    "ja": "左側のメニューの「ワークベンチ」をクリックします。これはメインのワークスペースです。ここでタスクを作成し、モデルを選択し、ワークフローを構築し、結果を確認します。",
+    "es": "Haga clic en \"Banco de trabajo\" en el menú de la izquierda. Este es su espacio de trabajo principal, donde escribe tareas, selecciona modelos, crea flujos de trabajo y ve resultados."
+  },
+  "Click the attach button to add Word documents, images, PDFs, or text files. All selected AI models will read your files automatically.": {
+    "ja": "「添付」ボタンをクリックして、Word 文書、画像、PDF、またはテキスト ファイルを追加します。選択したすべての AI モデルがファイルを自動的に読み取ります。",
+    "es": "Haga clic en el botón adjuntar para agregar documentos de Word, imágenes, archivos PDF o archivos de texto. Todos los modelos de IA seleccionados leerán sus archivos automáticamente."
+  },
+  "Click the big text box and type your question. Example: \"Explain why the sky is blue in simple words.\"": {
+    "ja": "大きなテキスト ボックスをクリックして質問を入力します。例: 「空が青い理由を簡単な言葉で説明してください。」",
+    "es": "Haga clic en el cuadro de texto grande y escriba su pregunta. Ejemplo: \"Explica por qué el cielo es azul con palabras sencillas\"."
+  },
+  "Click the green \"▶ Run\" button. All your selected AI models start working on your question at the same time!": {
+    "ja": "緑色の「▶実行」ボタンをクリックします。選択したすべての AI モデルが同時に質問に取り組み始めます。",
+    "es": "Haga clic en el botón verde \"▶ Ejecutar\". ¡Todos los modelos de IA seleccionados comienzan a trabajar en tu pregunta al mismo tiempo!"
+  },
+  "Click the green \"▶ Run\" button. The chain starts running from Step 1.": {
+    "ja": "緑色の「▶実行」ボタンをクリックします。チェーンはステップ 1 から実行されます。",
+    "es": "Haga clic en el botón verde \"▶ Ejecutar\". La cadena comienza a funcionar desde el Paso 1."
+  },
+  "Close": {
+    "ja": "閉じる",
+    "es": "Cerrar"
+  },
+  "Close separate view": {
+    "ja": "別のビューを閉じる",
+    "es": "Cerrar vista separada"
+  },
+  "Closed": {
+    "ja": "閉店",
+    "es": "Cerrado"
+  },
+  "Code": {
+    "ja": "コード",
+    "es": "Código"
+  },
+  "Code copied.": {
+    "ja": "コードがコピーされました。",
+    "es": "Código copiado."
+  },
+  "Code review": {
+    "ja": "コードレビュー",
+    "es": "Revisión de código"
+  },
+  "code(s) copied.": {
+    "ja": "コードがコピーされました。",
+    "es": "Código(s) copiado(s)."
+  },
+  "Collapse": {
+    "ja": "崩壊",
+    "es": "Colapsar"
+  },
+  "Collapse all": {
+    "ja": "すべて折りたたむ",
+    "es": "Contraer todo"
+  },
+  "Collapse left menu": {
+    "ja": "左側のメニューを折りたたむ",
+    "es": "Contraer menú de la izquierda"
+  },
+  "Collected items": {
+    "ja": "収集アイテム",
+    "es": "Artículos recolectados"
+  },
+  "Compare multiple AIs from one task": {
+    "ja": "1 つのタスクから複数の AI を比較する",
+    "es": "Compara múltiples IA de una tarea"
+  },
+  "Compare the results!": {
+    "ja": "結果を比較してみよう！",
+    "es": "¡Compara los resultados!"
+  },
+  "Compare, branch, and route model outputs": {
+    "ja": "モデル出力の比較、分岐、およびルーティング",
+    "es": "Comparar, bifurcar y enrutar resultados del modelo"
+  },
+  "Compared models": {
+    "ja": "比較機種",
+    "es": "Modelos comparados"
+  },
+  "Compared with": {
+    "ja": "と比較して",
+    "es": "comparado con"
+  },
+  "Comparing completed parallel results now.": {
+    "ja": "完了した並列結果を比較しています。",
+    "es": "Comparando resultados paralelos completados ahora."
+  },
+  "Comparison generated": {
+    "ja": "生成された比較",
+    "es": "Comparación generada"
+  },
+  "Complete at least two top-level parallel results to generate a difference summary.": {
+    "ja": "少なくとも 2 つのトップレベルの並列結果を入力して、差異の概要を生成します。",
+    "es": "Complete al menos dos resultados paralelos de nivel superior para generar un resumen de diferencias."
+  },
+  "completed": {
+    "ja": "完了しました",
+    "es": "terminado"
+  },
+  "Completed": {
+    "ja": "完了",
+    "es": "Terminado"
+  },
+  "Configure server-side model access": {
+    "ja": "サーバー側モデルのアクセスを構成する",
+    "es": "Configurar el acceso al modelo del lado del servidor"
+  },
+  "Configured by environment variable": {
+    "ja": "環境変数で設定",
+    "es": "Configurado por variable de entorno"
+  },
+  "Configured by server environment variable.": {
+    "ja": "サーバー環境変数によって構成されます。",
+    "es": "Configurado por la variable de entorno del servidor."
+  },
+  "Confirm password": {
+    "ja": "パスワードを認証する",
+    "es": "Confirmar Contraseña"
+  },
+  "Consistency review": {
+    "ja": "一貫性のレビュー",
+    "es": "Revisión de coherencia"
+  },
+  "Content access logs": {
+    "ja": "コンテンツアクセスログ",
+    "es": "Registros de acceso al contenido"
+  },
+  "Continue orchestrating model comparisons, review chains, and saved workflows.": {
+    "ja": "モデルの比較、レビュー チェーン、および保存されたワークフローのオーケストレーションを続行します。",
+    "es": "Continúe organizando comparaciones de modelos, cadenas de revisión y flujos de trabajo guardados."
+  },
+  "Continue with Google": {
+    "ja": "Google を続ける",
+    "es": "Continuar con Google"
+  },
+  "Conversation": {
+    "ja": "会話",
+    "es": "Conversación"
+  },
+  "Conversation windows": {
+    "ja": "会話ウィンドウ",
+    "es": "Ventanas de conversación"
+  },
+  "conversations": {
+    "ja": "会話",
+    "es": "conversaciones"
+  },
+  "Conversations": {
+    "ja": "会話",
+    "es": "Conversaciones"
+  },
+  "Copied": {
+    "ja": "コピーされました",
+    "es": "Copiado"
+  },
+  "Copied ✓": {
+    "ja": "コピーしました ✓",
+    "es": "Copiado ✓"
+  },
+  "Copied the final result.": {
+    "ja": "最終結果をコピーしました。",
+    "es": "Copié el resultado final."
+  },
+  "Copied the full shared-view link.": {
+    "ja": "完全な共有ビュー リンクをコピーしました。",
+    "es": "Copié el enlace completo de vista compartida."
+  },
+  "Copied the original input.": {
+    "ja": "元の入力をコピーしました。",
+    "es": "Copié la entrada original."
+  },
+  "Copy": {
+    "ja": "コピー",
+    "es": "Copiar"
+  },
+  "Copy a public link that opens the input, workflow, and results without sign-in.": {
+    "ja": "サインインせずに入力、ワークフロー、結果を開くパブリック リンクをコピーします。",
+    "es": "Copie un enlace público que abra la entrada, el flujo de trabajo y los resultados sin iniciar sesión."
+  },
+  "Copy all": {
+    "ja": "すべてコピー",
+    "es": "Copiar todo"
+  },
+  "Copy final": {
+    "ja": "最終コピー",
+    "es": "Copia final"
+  },
+  "Copy input": {
+    "ja": "入力をコピーする",
+    "es": "Copiar entrada"
+  },
+  "Copy selected": {
+    "ja": "選択したものをコピー",
+    "es": "Copiar seleccionado"
+  },
+  "cost": {
+    "ja": "料金",
+    "es": "costo"
+  },
+  "Cost": {
+    "ja": "料金",
+    "es": "Costo"
+  },
+  "cost n/a": {
+    "ja": "費用なし",
+    "es": "costo n/a"
+  },
+  "Cost:": {
+    "ja": "料金：",
+    "es": "Costo:"
+  },
+  "Could not add.": {
+    "ja": "追加できませんでした。",
+    "es": "No se pudo agregar."
+  },
+  "Could not copy code.": {
+    "ja": "コードをコピーできませんでした。",
+    "es": "No se pudo copiar el código."
+  },
+  "Could not create project.": {
+    "ja": "プロジェクトを作成できませんでした。",
+    "es": "No se pudo crear el proyecto."
+  },
+  "Could not create the share link.": {
+    "ja": "共有リンクを作成できませんでした。",
+    "es": "No se pudo crear el enlace para compartir."
+  },
+  "Could not delete.": {
+    "ja": "削除できませんでした。",
+    "es": "No se pudo eliminar."
+  },
+  "Could not duplicate session.": {
+    "ja": "セッションを複製できませんでした。",
+    "es": "No se pudo duplicar la sesión."
+  },
+  "Could not generate the difference summary.": {
+    "ja": "差異の概要を生成できませんでした。",
+    "es": "No se pudo generar el resumen de diferencias."
+  },
+  "Could not load presets.": {
+    "ja": "プリセットをロードできませんでした。",
+    "es": "No se pudieron cargar los ajustes preestablecidos."
+  },
+  "Could not load project.": {
+    "ja": "プロジェクトをロードできませんでした。",
+    "es": "No se pudo cargar el proyecto."
+  },
+  "Could not load projects.": {
+    "ja": "プロジェクトをロードできませんでした。",
+    "es": "No se pudieron cargar proyectos."
+  },
+  "Could not load provider settings.": {
+    "ja": "プロバイダー設定を読み込めませんでした。",
+    "es": "No se pudo cargar la configuración del proveedor."
+  },
+  "Could not load providers.": {
+    "ja": "プロバイダーを読み込めませんでした。",
+    "es": "No se pudieron cargar proveedores."
+  },
+  "Could not load sessions.": {
+    "ja": "セッションをロードできませんでした。",
+    "es": "No se pudieron cargar las sesiones."
+  },
+  "Could not run provider health check.": {
+    "ja": "プロバイダーのヘルスチェックを実行できませんでした。",
+    "es": "No se pudo ejecutar la verificación de estado del proveedor."
+  },
+  "Could not save project.": {
+    "ja": "プロジェクトを保存できませんでした。",
+    "es": "No se pudo guardar el proyecto."
+  },
+  "Could not save provider settings.": {
+    "ja": "プロバイダー設定を保存できませんでした。",
+    "es": "No se pudo guardar la configuración del proveedor."
+  },
+  "Could not save provider.": {
+    "ja": "プロバイダーを保存できませんでした。",
+    "es": "No se pudo guardar el proveedor."
+  },
+  "Could not send.": {
+    "ja": "送信できませんでした。",
+    "es": "No se pudo enviar."
+  },
+  "Could not submit feedback.": {
+    "ja": "フィードバックを送信できませんでした。",
+    "es": "No se pudo enviar comentarios."
+  },
+  "Could not update account.": {
+    "ja": "アカウントを更新できませんでした。",
+    "es": "No se pudo actualizar la cuenta."
+  },
+  "Could not update status.": {
+    "ja": "ステータスを更新できませんでした。",
+    "es": "No se pudo actualizar el estado."
+  },
+  "couldNotCreateProject": {
+    "ja": "プロジェクトを作成できませんでした",
+    "es": "No se pudo crear proyecto"
+  },
+  "couldNotDuplicateSession": {
+    "ja": "セッションを複製できませんでした",
+    "es": "no se pudo duplicar la sesión"
+  },
+  "couldNotLoadPresets": {
+    "ja": "プリセットをロードできませんでした",
+    "es": "no podría cargar ajustes preestablecidos"
+  },
+  "couldNotLoadProject": {
+    "ja": "プロジェクトをロードできませんでした",
+    "es": "no se pudo cargar el proyecto"
+  },
+  "couldNotLoadProjects": {
+    "ja": "プロジェクトをロードできませんでした",
+    "es": "no podría cargar proyectos"
+  },
+  "couldNotLoadSessions": {
+    "ja": "セッションをロードできませんでした",
+    "es": "no se pudieron cargar sesiones"
+  },
+  "couldNotSaveProject": {
+    "ja": "プロジェクトを保存できませんでした",
+    "es": "No se pudo guardar el proyecto"
+  },
+  "couldNotUpdateAccount": {
+    "ja": "アカウントを更新できませんでした",
+    "es": "No se pudo actualizar la cuenta"
+  },
+  "Coupon": {
+    "ja": "クーポン",
+    "es": "Cupón"
+  },
+  "Coupon applied.": {
+    "ja": "クーポンが適用されました。",
+    "es": "Cupón aplicado."
+  },
+  "Coupon code": {
+    "ja": "クーポンコード",
+    "es": "código de cupón"
+  },
+  "Coupon created": {
+    "ja": "クーポンが作成されました",
+    "es": "Cupón creado"
+  },
+  "Coupon deactivated": {
+    "ja": "クーポンが無効になりました",
+    "es": "Cupón desactivado"
+  },
+  "Coupon deactivated.": {
+    "ja": "クーポンは無効化されました。",
+    "es": "Cupón desactivado."
+  },
+  "Coupon deleted.": {
+    "ja": "クーポンは削除されました。",
+    "es": "Cupón eliminado."
+  },
+  "Coupon memo saved.": {
+    "ja": "クーポンメモが保存されました。",
+    "es": "Nota de cupón guardada."
+  },
+  "Coupon redemption failed.": {
+    "ja": "クーポンの引き換えに失敗しました。",
+    "es": "Error al canjear el cupón."
+  },
+  "Coupons": {
+    "ja": "クーポン",
+    "es": "Cupones"
+  },
+  "Create & add": {
+    "ja": "作成と追加",
+    "es": "Crear y agregar"
+  },
+  "Create a project folder for a theme, then open several workbench sessions inside it. Shared project context and recent project outputs will travel with those sessions.": {
+    "ja": "テーマのプロジェクト フォルダーを作成し、その中でいくつかのワークベンチ セッションを開きます。共有されたプロジェクト コンテキストと最近のプロジェクト出力は、これらのセッションとともに送信されます。",
+    "es": "Cree una carpeta de proyecto para un tema y luego abra varias sesiones del banco de trabajo dentro de ella. El contexto compartido del proyecto y los resultados recientes del proyecto viajarán con esas sesiones."
+  },
+  "Create a workflow route in the workbench and save it as a preset once it feels useful.": {
+    "ja": "ワークベンチでワークフロー ルートを作成し、便利だと感じたらプリセットとして保存します。",
+    "es": "Cree una ruta de flujo de trabajo en el banco de trabajo y guárdela como un valor preestablecido una vez que le resulte útil."
+  },
+  "Create account": {
+    "ja": "アカウントを作成する",
+    "es": "Crear una cuenta"
+  },
+  "Create and start first conversation": {
+    "ja": "最初の会話を作成して開始する",
+    "es": "Crear e iniciar la primera conversación"
+  },
+  "Create coupon": {
+    "ja": "クーポンの作成",
+    "es": "Crear cupón"
+  },
+  "Create credit coupons: a 7-day / 30-day / lifetime grant of a fixed credit amount, or unlimited credits for the period. You can create many at once.": {
+    "ja": "クレジット クーポンの作成: 7 日間、30 日間、または生涯にわたって固定クレジット金額を付与するか、期間内に無制限のクレジットを付与します。一度にたくさん作成できます。",
+    "es": "Cree cupones de crédito: una concesión de 7 días / 30 días / de por vida de un monto de crédito fijo, o créditos ilimitados durante el período. Puedes crear muchos a la vez."
+  },
+  "Create first project": {
+    "ja": "最初のプロジェクトを作成する",
+    "es": "Crear primer proyecto"
+  },
+  "Create project": {
+    "ja": "プロジェクトの作成",
+    "es": "Crear proyecto"
+  },
+  "Create project folders to group related sessions. Save useful workflow chains as presets. Sessions inside a project share context and recent outputs automatically.": {
+    "ja": "プロジェクト フォルダーを作成して、関連するセッションをグループ化します。便利なワークフロー チェーンをプリセットとして保存します。プロジェクト内のセッションは、コンテキストと最近の出力を自動的に共有します。",
+    "es": "Cree carpetas de proyectos para agrupar sesiones relacionadas. Guarde cadenas de flujo de trabajo útiles como ajustes preestablecidos. Las sesiones dentro de un proyecto comparten contexto y resultados recientes automáticamente."
+  },
+  "Create this many identical coupons at once": {
+    "ja": "これだけの数の同一のクーポンを一度に作成する",
+    "es": "Crea tantos cupones idénticos a la vez"
+  },
+  "Create your account with email/password or Google login. Your provider settings, sessions, results, and presets are all scoped to your account.": {
+    "ja": "メールアドレス/パスワードまたは Google ログインを使用してアカウントを作成します。プロバイダーの設定、セッション、結果、およびプリセットはすべて、アカウントに適用されます。",
+    "es": "Cree su cuenta con correo electrónico/contraseña o inicio de sesión de Google. La configuración, las sesiones, los resultados y los ajustes preestablecidos de su proveedor están todos vinculados a su cuenta."
+  },
+  "Created": {
+    "ja": "作成されました",
+    "es": "Creado"
+  },
+  "Created codes": {
+    "ja": "作成されたコード",
+    "es": "Códigos creados"
+  },
+  "Created project:": {
+    "ja": "作成したプロジェクト:",
+    "es": "Proyecto creado:"
+  },
+  "Creating…": {
+    "ja": "作成…",
+    "es": "Creando…"
+  },
+  "Credit amount": {
+    "ja": "クレジット金額",
+    "es": "Monto del crédito"
+  },
+  "Credit balance": {
+    "ja": "信用残高",
+    "es": "Saldo crediticio"
+  },
+  "Credit coupon": {
+    "ja": "クレジットクーポン",
+    "es": "Cupón de crédito"
+  },
+  "credits": {
+    "ja": "クレジット",
+    "es": "créditos"
+  },
+  "Credits available: ": {
+    "ja": "利用可能なクレジット:",
+    "es": "Créditos disponibles:"
+  },
+  "Credits available: Unlimited": {
+    "ja": "利用可能なクレジット: 無制限",
+    "es": "Créditos disponibles: Ilimitados"
+  },
+  "credits granted": {
+    "ja": "付与されたクレジット",
+    "es": "créditos concedidos"
+  },
+  "Credits used": {
+    "ja": "使用したクレジット",
+    "es": "Créditos utilizados"
+  },
+  "Critique": {
+    "ja": "批評",
+    "es": "Crítica"
+  },
+  "Current run summary": {
+    "ja": "現在の実行の概要",
+    "es": "Resumen de ejecución actual"
+  },
+  "Custom code (only when quantity is 1)": {
+    "ja": "カスタムコード(数量1の場合のみ)",
+    "es": "Código personalizado (solo cuando la cantidad es 1)"
+  },
+  "Customize each step": {
+    "ja": "各ステップをカスタマイズする",
+    "es": "Personaliza cada paso"
+  },
+  "Daily cap": {
+    "ja": "1日の上限",
+    "es": "Límite diario"
+  },
+  "Daily user limit": {
+    "ja": "1日あたりのユーザー制限",
+    "es": "Límite de usuarios diario"
+  },
+  "Dashboard": {
+    "ja": "ダッシュボード",
+    "es": "Panel"
+  },
+  "Deactivate": {
+    "ja": "非アクティブ化",
+    "es": "Desactivar"
+  },
+  "Deactivating…": {
+    "ja": "非アクティブ化中…",
+    "es": "Desactivando…"
+  },
+  "Deep dive": {
+    "ja": "詳細な説明",
+    "es": "inmersión profunda"
+  },
+  "Default AI guideline": {
+    "ja": "デフォルトの AI ガイドライン",
+    "es": "Directriz de IA predeterminada"
+  },
+  "Default model": {
+    "ja": "デフォルトモデル",
+    "es": "Modelo predeterminado"
+  },
+  "Default output language": {
+    "ja": "デフォルトの出力言語",
+    "es": "Idioma de salida predeterminado"
+  },
+  "Delete": {
+    "ja": "消去",
+    "es": "Borrar"
+  },
+  "Delete Branch": {
+    "ja": "ブランチの削除",
+    "es": "Eliminar rama"
+  },
+  "Delete failed.": {
+    "ja": "削除に失敗しました。",
+    "es": "Error al eliminar."
+  },
+  "Delete folder": {
+    "ja": "フォルダの削除",
+    "es": "Eliminar carpeta"
+  },
+  "Delete this coupon?": {
+    "ja": "このクーポンを削除しますか?",
+    "es": "¿Eliminar este cupón?"
+  },
+  "Delete this post? This cannot be undone.": {
+    "ja": "この投稿を削除しますか?これを元に戻すことはできません。",
+    "es": "¿Eliminar esta publicación? Esto no se puede deshacer."
+  },
+  "Delete this project folder? Sessions stay saved but will be unlinked from the project.": {
+    "ja": "このプロジェクト フォルダーを削除しますか?セッションは保存されたままですが、プロジェクトからのリンクは解除されます。",
+    "es": "¿Eliminar esta carpeta de proyecto? Las sesiones permanecen guardadas pero se desvincularán del proyecto."
+  },
+  "Delete this result and its child branch results?": {
+    "ja": "この結果とその子ブランチの結果を削除しますか?",
+    "es": "¿Eliminar este resultado y los resultados de su rama secundaria?"
+  },
+  "Delete this saved session and all its results?": {
+    "ja": "この保存されたセッションとその結果をすべて削除しますか?",
+    "es": "¿Eliminar esta sesión guardada y todos sus resultados?"
+  },
+  "Delete this workflow preset?": {
+    "ja": "このワークフロー プリセットを削除しますか?",
+    "es": "¿Eliminar este ajuste preestablecido de flujo de trabajo?"
+  },
+  "deleteFailed": {
+    "ja": "削除失敗",
+    "es": "eliminarError"
+  },
+  "Deleting…": {
+    "ja": "削除中…",
+    "es": "Eliminando…"
+  },
+  "Describe the issue. Paste a screenshot here (Ctrl/⌘+V) and it will be attached as a preview below.": {
+    "ja": "問題について説明します。ここにスクリーンショットを貼り付けると (Ctrl/⌘+V)、下にプレビューとして添付されます。",
+    "es": "Describe el problema. Pegue una captura de pantalla aquí (Ctrl/⌘+V) y se adjuntará como vista previa a continuación."
+  },
+  "Describe the topic, question, analysis task, or instruction you want multiple AIs to work on.": {
+    "ja": "複数の AI に取り組んでもらいたいトピック、質問、分析タスク、または指示について説明します。",
+    "es": "Describe el tema, la pregunta, la tarea de análisis o la instrucción en la que deseas que trabajen varias IA."
+  },
+  "Description": {
+    "ja": "説明",
+    "es": "Descripción"
+  },
+  "Detail": {
+    "ja": "詳細",
+    "es": "Detalle"
+  },
+  "detailed": {
+    "ja": "詳しい",
+    "es": "detallado"
+  },
+  "Details": {
+    "ja": "詳細",
+    "es": "Detalles"
+  },
+  "disabled": {
+    "ja": "無効",
+    "es": "desactivado"
+  },
+  "Dismiss": {
+    "ja": "却下する",
+    "es": "Despedir"
+  },
+  "Download image": {
+    "ja": "画像をダウンロード",
+    "es": "Descargar imagen"
+  },
+  "Draft": {
+    "ja": "下書き",
+    "es": "Borrador"
+  },
+  "Draft a strong first answer.": {
+    "ja": "強力な最初の回答の草案を作成します。",
+    "es": "Redacte una primera respuesta sólida."
+  },
+  "Duplicate": {
+    "ja": "重複",
+    "es": "Duplicado"
+  },
+  "Duplicating…": {
+    "ja": "複製中…",
+    "es": "Duplicando…"
+  },
+  "Duration": {
+    "ja": "間隔",
+    "es": "Duración"
+  },
+  "e.g. Copy button not working": {
+    "ja": "例えばコピーボタンが機能しない",
+    "es": "p.ej. El botón copiar no funciona"
+  },
+  "e.g. M30-ABCDEFGHJK": {
+    "ja": "例えばM30-ABCDEFGHJK",
+    "es": "p.ej. M30-ABCDEFGHJK"
+  },
+  "Each model shows a progress indicator. They all think simultaneously — it usually takes just a few seconds.": {
+    "ja": "各モデルには進行状況インジケーターが表示されます。彼らは全員同時に考えます。通常、それにかかる時間はわずか数秒です。",
+    "es": "Cada modelo muestra un indicador de progreso. Todos piensan simultáneamente; normalmente, sólo les lleva unos segundos."
+  },
+  "Each result card is actionable. Click \"Review with Other Model\" to branch, \"Follow Up\" to continue the conversation, \"Mark Final\" to designate the best answer, or \"Rerun\" to regenerate.": {
+    "ja": "各結果カードはアクション可能です。 [他のモデルで確認] をクリックして分岐し、[フォローアップ] をクリックして会話を継続し、[最終マーク] をクリックして最良の回答を指定するか、[再実行] をクリックして再生成します。",
+    "es": "Cada tarjeta de resultados es procesable. Haga clic en \"Revisar con otro modelo\" para bifurcar, \"Seguir\" para continuar la conversación, \"Marcar final\" para designar la mejor respuesta o \"Volver a ejecutar\" para regenerar."
+  },
+  "Each step's output is auto-passed as the next step's input — no copy-paste.": {
+    "ja": "各ステップの出力は、コピー＆ペーストすることなく、次のステップの入力として自動的に渡されます。",
+    "es": "La salida de cada paso se pasa automáticamente como entrada del siguiente paso, sin copiar y pegar."
+  },
+  "Early stop condition": {
+    "ja": "早期停止条件",
+    "es": "Condición de parada anticipada"
+  },
+  "Email": {
+    "ja": "電子メール",
+    "es": "Correo electrónico"
+  },
+  "email or name": {
+    "ja": "メールアドレスまたは名前",
+    "es": "correo electrónico o nombre"
+  },
+  "Enable models for parallel compare. Provider keys stay server-side.": {
+    "ja": "モデルの並列比較を有効にします。プロバイダーキーはサーバー側に残ります。",
+    "es": "Habilite modelos para comparación paralela. Las claves del proveedor permanecen en el lado del servidor."
+  },
+  "Enable provider": {
+    "ja": "プロバイダーを有効にする",
+    "es": "Habilitar proveedor"
+  },
+  "Enable provider in the workbench": {
+    "ja": "ワークベンチでプロバイダーを有効にする",
+    "es": "Habilitar proveedor en el banco de trabajo"
+  },
+  "Encrypted key stored. Hint:": {
+    "ja": "暗号化されたキーが保存されます。ヒント：",
+    "es": "Clave cifrada almacenada. Pista:"
+  },
+  "End step": {
+    "ja": "終了ステップ",
+    "es": "Paso final"
+  },
+  "Ends": {
+    "ja": "終わり",
+    "es": "Termina"
+  },
+  "English": {
+    "ja": "英語",
+    "es": "Inglés"
+  },
+  "English, Korean, Japanese & Spanish (switchable anytime)": {
+    "ja": "英語、韓国語、日本語、スペイン語（いつでも切り替え可能）",
+    "es": "Inglés, coreano, japonés y español (se puede cambiar en cualquier momento)"
+  },
+  "Enter a project name.": {
+    "ja": "プロジェクト名を入力します。",
+    "es": "Introduzca un nombre de proyecto."
+  },
+  "Enter a task before running the workbench.": {
+    "ja": "ワークベンチを実行する前にタスクを入力します。",
+    "es": "Ingrese una tarea antes de ejecutar el banco de trabajo."
+  },
+  "Enter a title.": {
+    "ja": "タイトルを入力します。",
+    "es": "Introduzca un título."
+  },
+  "Enter MFA code": {
+    "ja": "MFAコードを入力してください",
+    "es": "Ingrese el código MFA"
+  },
+  "Enter the details.": {
+    "ja": "詳細を入力します。",
+    "es": "Ingrese los detalles."
+  },
+  "est.": {
+    "ja": "EST（東部基準時。",
+    "es": "est."
+  },
+  "Estimated credits": {
+    "ja": "推定クレジット数",
+    "es": "Créditos estimados"
+  },
+  "Estimated total sequential executions": {
+    "ja": "推定合計連続実行数",
+    "es": "Ejecuciones secuenciales totales estimadas"
+  },
+  "Every result card is actionable. Branch it to another model for critique, improvement, fact-check, or summarization — building a tree of evolving answers.": {
+    "ja": "すべての結果カードはアクション可能です。批評、改善、事実確認、要約のために別のモデルに分岐させ、進化する答えのツリーを構築します。",
+    "es": "Cada tarjeta de resultados es procesable. Divídalo a otro modelo para realizar críticas, mejoras, verificación de hechos o resúmenes, creando un árbol de respuestas en evolución."
+  },
+  "Every result is a new beginning.": {
+    "ja": "すべての結果は新たな始まりです。",
+    "es": "Cada resultado es un nuevo comienzo."
+  },
+  "Example chain: Step 1 GPT \"Draft\" → Step 2 Grok \"Critique\" → Step 3 Gemini \"Improve\" → Step 4 Claude \"Polish.\"": {
+    "ja": "チェーンの例: ステップ 1 GPT「ドラフト」→ステップ 2 Grok「批評」→ステップ 3 ジェミニ「改善」→ステップ 4 クロード「洗練」。",
+    "es": "Cadena de ejemplo: Paso 1 GPT \"Borrador\" → Paso 2 Grok \"Crítica\" → Paso 3 Géminis \"Mejorar\" → Paso 4 Claude \"Polaco\"."
+  },
+  "Example: Be strict, specific, and suggest a better version.": {
+    "ja": "例: 厳密かつ具体的にし、より良いバージョンを提案します。",
+    "es": "Ejemplo: sea estricto, específico y sugiera una versión mejor."
+  },
+  "Example: Super developer": {
+    "ja": "例: スーパー開発者",
+    "es": "Ejemplo: súper desarrollador"
+  },
+  "Expand": {
+    "ja": "拡大する",
+    "es": "Expandir"
+  },
+  "Expand all": {
+    "ja": "すべて展開",
+    "es": "Expandir todo"
+  },
+  "Expand left menu": {
+    "ja": "左側のメニューを展開します",
+    "es": "Expandir el menú de la izquierda"
+  },
+  "Experience orchestrating multiple AI models in one unified workflow.": {
+    "ja": "1 つの統合されたワークフローで複数の AI モデルを調整した経験。",
+    "es": "Experiencia orquestando múltiples modelos de IA en un flujo de trabajo unificado."
+  },
+  "expired": {
+    "ja": "期限切れ",
+    "es": "venció"
+  },
+  "Expires": {
+    "ja": "有効期限が切れます",
+    "es": "Vence"
+  },
+  "Fact-check style review": {
+    "ja": "ファクトチェック形式のレビュー",
+    "es": "Revisión de estilo de verificación de hechos"
+  },
+  "failed": {
+    "ja": "失敗した",
+    "es": "fallido"
+  },
+  "Failed": {
+    "ja": "失敗した",
+    "es": "Fallido"
+  },
+  "Failed first": {
+    "ja": "失敗を優先",
+    "es": "Fallidos primero"
+  },
+  "Failed only": {
+    "ja": "失敗のみ",
+    "es": "Sólo falló"
+  },
+  "Failed to create coupon.": {
+    "ja": "クーポンの作成に失敗しました。",
+    "es": "No se pudo crear el cupón."
+  },
+  "Failed to deactivate coupon.": {
+    "ja": "クーポンを無効化できませんでした。",
+    "es": "No se pudo desactivar el cupón."
+  },
+  "Failed to delete coupon.": {
+    "ja": "クーポンの削除に失敗しました。",
+    "es": "No se pudo eliminar el cupón."
+  },
+  "Failed to grant subscription.": {
+    "ja": "サブスクリプションの付与に失敗しました。",
+    "es": "No se pudo otorgar la suscripción."
+  },
+  "Failed to load coupons.": {
+    "ja": "クーポンの読み込みに失敗しました。",
+    "es": "No se pudieron cargar los cupones."
+  },
+  "Failed to load raw content.": {
+    "ja": "未加工のコンテンツをロードできませんでした。",
+    "es": "No se pudo cargar el contenido sin formato."
+  },
+  "Failed to save coupon memo.": {
+    "ja": "クーポンメモの保存に失敗しました。",
+    "es": "No se pudo guardar la nota del cupón."
+  },
+  "Failed to update status.": {
+    "ja": "ステータスの更新に失敗しました。",
+    "es": "No se pudo actualizar el estado."
+  },
+  "Fallback provider": {
+    "ja": "フォールバックプロバイダー",
+    "es": "Proveedor alternativo"
+  },
+  "FAQ": {
+    "ja": "よくある質問",
+    "es": "Preguntas frecuentes"
+  },
+  "Feature Overview": {
+    "ja": "機能の概要",
+    "es": "Descripción general de funciones"
+  },
+  "Feature request": {
+    "ja": "機能リクエスト",
+    "es": "Solicitud de función"
+  },
+  "Feedback": {
+    "ja": "フィードバック",
+    "es": "Comentarios"
+  },
+  "Feedback board": {
+    "ja": "フィードバックボード",
+    "es": "Tablero de comentarios"
+  },
+  "File Attachments": {
+    "ja": "添付ファイル",
+    "es": "Archivos adjuntos"
+  },
+  "Filter accounts and review live task usage, credits, tokens, and activity at a glance.": {
+    "ja": "アカウントをフィルターし、ライブタスクの使用状況、クレジット、トークン、アクティビティを一目で確認できます。",
+    "es": "Filtre cuentas y revise el uso de tareas en vivo, créditos, tokens y actividad de un vistazo."
+  },
+  "final": {
+    "ja": "ファイナル",
+    "es": "final"
+  },
+  "Final": {
+    "ja": "ファイナル",
+    "es": "Final"
+  },
+  "Final only": {
+    "ja": "最終結果のみ",
+    "es": "Solo finales"
+  },
+  "Final result": {
+    "ja": "最終結果",
+    "es": "resultado final"
+  },
+  "Final result marked.": {
+    "ja": "最終結果はマークされました。",
+    "es": "Resultado final marcado."
+  },
+  "Final result pending": {
+    "ja": "最終結果は保留中",
+    "es": "Resultado final pendiente"
+  },
+  "Final result picked": {
+    "ja": "選ばれた最終結果",
+    "es": "Resultado final elegido"
+  },
+  "Final result spotlight": {
+    "ja": "最終結果のスポットライト",
+    "es": "Destacado del resultado final"
+  },
+  "Finalize": {
+    "ja": "ファイナライズ",
+    "es": "Finalizar"
+  },
+  "Follow Up": {
+    "ja": "フォローアップ",
+    "es": "Hacer un seguimiento"
+  },
+  "Follow-up": {
+    "ja": "フォローアップ",
+    "es": "Hacer un seguimiento"
+  },
+  "Follow-up and branch results": {
+    "ja": "フォローアップと分岐結果",
+    "es": "Seguimiento y resultados de sucursales."
+  },
+  "Follow-up, review, and rerun outputs are separated from the main workflow results.": {
+    "ja": "フォローアップ、レビュー、再実行の出力は、メインのワークフロー結果から分離されます。",
+    "es": "Los resultados de seguimiento, revisión y repetición están separados de los resultados principales del flujo de trabajo."
+  },
+  "For each step you can pick: which AI model (dropdown), what action (Generate, Critique, Improve, Summarize, Fact-check, Simplify), and add special instructions like \"Focus on grammar mistakes.\"": {
+    "ja": "各ステップでは、どの AI モデル (ドロップダウン)、どのアクション (生成、批評、改善、要約、ファクトチェック、簡略化) を選択し、「文法の間違いに焦点を当てる」などの特別な指示を追加できます。",
+    "es": "Para cada paso, puede elegir: qué modelo de IA (menú desplegable), qué acción (generar, criticar, mejorar, resumir, verificar datos, simplificar) y agregar instrucciones especiales como \"Centrarse en los errores gramaticales\"."
+  },
+  "Free plan ends: ": {
+    "ja": "無料プランの終了:",
+    "es": "El plan gratuito finaliza:"
+  },
+  "Free requests": {
+    "ja": "無料リクエスト",
+    "es": "Solicitudes gratuitas"
+  },
+  "from": {
+    "ja": "から",
+    "es": "de"
+  },
+  "From ": {
+    "ja": "から",
+    "es": "De"
+  },
+  "From session": {
+    "ja": "セッションから",
+    "es": "De la sesión"
+  },
+  "From sign-up to your first multi-AI workflow in 8 steps.": {
+    "ja": "サインアップから最初のマルチ AI ワークフローまで 8 ステップで完了します。",
+    "es": "Desde el registro hasta su primer flujo de trabajo con múltiples IA en 8 pasos."
+  },
+  "Full conversation": {
+    "ja": "会話全体",
+    "es": "conversación completa"
+  },
+  "Generate": {
+    "ja": "生成する",
+    "es": "Generar"
+  },
+  "Generate, critique, and improve.": {
+    "ja": "生成し、批評し、改善します。",
+    "es": "Generar, criticar y mejorar."
+  },
+  "Generated image": {
+    "ja": "生成された画像",
+    "es": "Imagen generada"
+  },
+  "Generates images with the image models you select.": {
+    "ja": "選択した画像モデルを使用して画像を生成します。",
+    "es": "Genera imágenes con los modelos de imagen que selecciones."
+  },
+  "Generating": {
+    "ja": "生成中",
+    "es": "generando"
+  },
+  "Generating a parallel answer for the original task": {
+    "ja": "元のタスクに対する並列回答の生成",
+    "es": "Generar una respuesta paralela para la tarea original."
+  },
+  "Generation failed": {
+    "ja": "生成に失敗しました",
+    "es": "Generación fallida"
+  },
+  "Get started": {
+    "ja": "始めましょう",
+    "es": "empezar"
+  },
+  "Get yearly discount": {
+    "ja": "年間割引を受ける",
+    "es": "Obtén descuento anual"
+  },
+  "Go to AI progress": {
+    "ja": "AIの進歩へ",
+    "es": "Ir al progreso de la IA"
+  },
+  "Go to the start of the current result": {
+    "ja": "現在の結果の先頭に移動します",
+    "es": "Ir al inicio del resultado actual"
+  },
+  "Google sign-in failed. Please try again.": {
+    "ja": "Google サインインに失敗しました。もう一度試してください。",
+    "es": "Error al iniciar sesión en Google. Por favor inténtalo de nuevo."
+  },
+  "Google sign-in is blocked inside some in-app browsers. Open this page in Chrome, Safari, or another system browser and try again.": {
+    "ja": "Google サインインは、一部のアプリ内ブラウザー内でブロックされます。 Chrome、Safari、または別のシステム ブラウザでこのページを開いて、もう一度試してください。",
+    "es": "El inicio de sesión de Google está bloqueado en algunos navegadores integrados en la aplicación. Abra esta página en Chrome, Safari u otro navegador del sistema e inténtelo de nuevo."
+  },
+  "Google sign-in is not configured yet. Contact your administrator.": {
+    "ja": "Google サインインはまだ設定されていません。管理者に連絡してください。",
+    "es": "El inicio de sesión de Google aún no está configurado. Póngase en contacto con su administrador."
+  },
+  "Grant lifetime": {
+    "ja": "助成金の有効期間",
+    "es": "Subvención vitalicia"
+  },
+  "Grant monthly 30d": {
+    "ja": "毎月 30 日を付与",
+    "es": "Subsidio mensual 30d"
+  },
+  "Group related sessions under one project. Shared notes and recent outputs travel with every run inside that project.": {
+    "ja": "関連するセッションを 1 つのプロジェクトにグループ化します。共有メモと最近の出力は、そのプロジェクト内で実行されるたびに転送されます。",
+    "es": "Sesiones grupales relacionadas bajo un mismo proyecto. Las notas compartidas y los resultados recientes viajan con cada ejecución dentro de ese proyecto."
+  },
+  "Guide": {
+    "ja": "ガイド",
+    "es": "Guía"
+  },
+  "Guidebook": {
+    "ja": "ガイドブック",
+    "es": "Guía"
+  },
+  "health check completed.": {
+    "ja": "健康診断が完了しました。",
+    "es": "control de salud completado."
+  },
+  "Health:": {
+    "ja": "健康：",
+    "es": "Salud:"
+  },
+  "Hide": {
+    "ja": "隠れる",
+    "es": "Esconder"
+  },
+  "How is Yapp different?": {
+    "ja": "ヤップはどう違うの？",
+    "es": "¿En qué se diferencia Yapp?"
+  },
+  "If one model fails, other results remain intact. Failed models show an error card you can rerun.": {
+    "ja": "1 つのモデルが失敗しても、他の結果はそのまま残ります。失敗したモデルには、再実行できるエラー カードが表示されます。",
+    "es": "Si un modelo falla, los demás resultados permanecen intactos. Los modelos fallidos muestran una tarjeta de error que puede volver a ejecutar."
+  },
+  "Image generation models": {
+    "ja": "画像生成モデル",
+    "es": "Modelos de generación de imágenes."
+  },
+  "Image upload failed.": {
+    "ja": "画像のアップロードに失敗しました。",
+    "es": "Error al cargar la imagen."
+  },
+  "Improve": {
+    "ja": "改善する",
+    "es": "Mejorar"
+  },
+  "Improve the previous step.": {
+    "ja": "前のステップを改善します。",
+    "es": "Mejora el paso anterior."
+  },
+  "Improvement": {
+    "ja": "改善",
+    "es": "Mejora"
+  },
+  "In progress": {
+    "ja": "進行中",
+    "es": "En curso"
+  },
+  "In the model list, you'll see: GPT, Claude, Gemini, and Grok. Click the checkbox next to each model you want to use. Try picking 2 or 3!": {
+    "ja": "モデル リストには、GPT、Claude、Gemini、Grok が表示されます。使用する各モデルの横にあるチェックボックスをクリックします。 2つか3つ選んでみてください！",
+    "es": "En la lista de modelos verás: GPT, Claude, Gemini y Grok. Haga clic en la casilla de verificación junto a cada modelo que desee utilizar. ¡Intenta elegir 2 o 3!"
+  },
+  "In the text box, type the question for Step 1 to work on. Example: \"Write a short story about a robot who learns to paint.\"": {
+    "ja": "テキスト ボックスに、ステップ 1 で取り組む質問を入力します。例: 「絵を描くことを学ぶロボットについての短い物語を書いてください。」",
+    "es": "En el cuadro de texto, escriba la pregunta para trabajar en el Paso 1. Ejemplo: \"Escribe una historia corta sobre un robot que aprende a pintar\"."
+  },
+  "in use": {
+    "ja": "使用中",
+    "es": "en uso"
+  },
+  "inactive": {
+    "ja": "非アクティブな",
+    "es": "inactivo"
+  },
+  "input": {
+    "ja": "入力",
+    "es": "aporte"
+  },
+  "Input": {
+    "ja": "入力",
+    "es": "Aporte"
+  },
+  "Input tokens": {
+    "ja": "入力トークン",
+    "es": "Fichas de entrada"
+  },
+  "internal memo": {
+    "ja": "社内メモ",
+    "es": "nota interna"
+  },
+  "Invalid workflow JSON": {
+    "ja": "無効なワークフロー JSON",
+    "es": "JSON de flujo de trabajo no válido"
+  },
+  "Is my data secure?": {
+    "ja": "私のデータは安全ですか?",
+    "es": "¿Están mis datos seguros?"
+  },
+  "items": {
+    "ja": "アイテム",
+    "es": "elementos"
+  },
+  "Iteration ": {
+    "ja": "反復",
+    "es": "Iteración"
+  },
+  "Japanese": {
+    "ja": "日本語",
+    "es": "Japonés"
+  },
+  "Jump to final": {
+    "ja": "決勝へジャンプ",
+    "es": "Saltar a la final"
+  },
+  "Jump to result": {
+    "ja": "結果へジャンプ",
+    "es": "Saltar al resultado"
+  },
+  "Keep multiple workbench sessions under one theme. Every conversation inside a project can reuse shared notes and recent project outputs.": {
+    "ja": "1 つのテーマの下で複数のワークベンチ セッションを維持します。プロジェクト内のすべての会話で、共有メモや最近のプロジェクト出力を再利用できます。",
+    "es": "Mantenga varias sesiones del banco de trabajo bajo un mismo tema. Cada conversación dentro de un proyecto puede reutilizar notas compartidas y resultados recientes del proyecto."
+  },
+  "Korean": {
+    "ja": "韓国語",
+    "es": "Coreano"
+  },
+  "Language": {
+    "ja": "言語",
+    "es": "Idioma"
+  },
+  "Languages": {
+    "ja": "言語",
+    "es": "Idiomas"
+  },
+  "latency n/a": {
+    "ja": "レイテンシ 該当なし",
+    "es": "latencia n/a"
+  },
+  "Latency:": {
+    "ja": "レイテンシ:",
+    "es": "Estado latente:"
+  },
+  "Latest first": {
+    "ja": "最新順",
+    "es": "Lo último primero"
+  },
+  "Latest result in progress": {
+    "ja": "最新の結果が進行中",
+    "es": "Último resultado en progreso"
+  },
+  "Latest use": {
+    "ja": "最近の使い方",
+    "es": "Último uso"
+  },
+  "Learn more": {
+    "ja": "もっと詳しく知る",
+    "es": "Más información"
+  },
+  "Leave blank to keep current key": {
+    "ja": "現在のキーを保持するには空白のままにします",
+    "es": "Déjelo en blanco para mantener la clave actual"
+  },
+  "lifetime": {
+    "ja": "一生",
+    "es": "vida"
+  },
+  "Lifetime": {
+    "ja": "一生",
+    "es": "Vida"
+  },
+  "lifetime credit": {
+    "ja": "生涯クレジット",
+    "es": "crédito de por vida"
+  },
+  "Lifetime credits": {
+    "ja": "生涯クレジット",
+    "es": "Créditos de por vida"
+  },
+  "Lifetime free": {
+    "ja": "生涯無料",
+    "es": "Gratis de por vida"
+  },
+  "Lifetime free granted.": {
+    "ja": "生涯無料で付与されます。",
+    "es": "Gratis de por vida concedido."
+  },
+  "lifetime unlimited credits": {
+    "ja": "生涯無制限のクレジット",
+    "es": "créditos ilimitados de por vida"
+  },
+  "Lifetime unlimited credits": {
+    "ja": "生涯無制限のクレジット",
+    "es": "Créditos ilimitados de por vida"
+  },
+  "lifetime_free (daily 50)": {
+    "ja": "生涯無料 (毎日 50)",
+    "es": "life_free (50 diarios)"
+  },
+  "lifetime_free (daily unlimited)": {
+    "ja": "生涯無料 (毎日無制限)",
+    "es": "life_free (diario ilimitado)"
+  },
+  "Limit reached users": {
+    "ja": "到達可能なユーザーを制限する",
+    "es": "Límite de usuarios alcanzados"
+  },
+  "Link copied": {
+    "ja": "リンクがコピーされました",
+    "es": "Enlace copiado"
+  },
+  "Live input/output": {
+    "ja": "ライブ入出力",
+    "es": "Entrada/salida en vivo"
+  },
+  "Live status and actual visible input/output snippets for each run.": {
+    "ja": "各実行のライブ ステータスと実際に表示される入出力スニペット。",
+    "es": "Estado en vivo y fragmentos de entrada/salida visibles reales para cada ejecución."
+  },
+  "Load": {
+    "ja": "負荷",
+    "es": "Carga"
+  },
+  "Load a saved preset from the workbench to instantly apply a proven review chain to a new task.": {
+    "ja": "保存したプリセットをワークベンチからロードして、実証済みのレビュー チェーンを新しいタスクに即座に適用します。",
+    "es": "Cargue un ajuste preestablecido guardado desde el banco de trabajo para aplicar instantáneamente una cadena de revisión probada a una nueva tarea."
+  },
+  "Load all": {
+    "ja": "すべてロードする",
+    "es": "Cargar todo"
+  },
+  "Load preset": {
+    "ja": "プリセットをロードする",
+    "es": "Cargar preajuste"
+  },
+  "Loaded session:": {
+    "ja": "ロードされたセッション:",
+    "es": "Sesión cargada:"
+  },
+  "Loading project": {
+    "ja": "プロジェクトをロード中",
+    "es": "Cargando proyecto"
+  },
+  "Loading usage status...": {
+    "ja": "使用状況を読み込んでいます...",
+    "es": "Cargando estado de uso..."
+  },
+  "Loading...": {
+    "ja": "読み込み中...",
+    "es": "Cargando..."
+  },
+  "Look at the default chain": {
+    "ja": "デフォルトのチェーンを見てください",
+    "es": "Mira la cadena predeterminada."
+  },
+  "Loop any step range (start–end) for as many passes as you set, refining until quality converges. Up to 10 ranges · 50 total steps.": {
+    "ja": "設定したパスの数だけ任意のステップ範囲 (開始から終了) をループし、品質が収束するまで調整します。最大10レンジ・合計50ステップ。",
+    "es": "Repita cualquier rango de pasos (inicio-fin) para tantas pasadas como establezca, refinando hasta que la calidad converja. Hasta 10 rangos · 50 pasos en total."
+  },
+  "m ": {
+    "ja": "メートル",
+    "es": "metro"
+  },
+  "Main only": {
+    "ja": "メインのみ",
+    "es": "Solo principal"
+  },
+  "Main workflow results": {
+    "ja": "主なワークフロー結果",
+    "es": "Principales resultados del flujo de trabajo"
+  },
+  "Mark Final": {
+    "ja": "マークファイナル",
+    "es": "Marca final"
+  },
+  "Maximum step templates reached (50).": {
+    "ja": "ステップ テンプレートの最大数が 50 に達しました。",
+    "es": "Plantillas de pasos máximas alcanzadas (50)."
+  },
+  "medium": {
+    "ja": "中くらい",
+    "es": "medio"
+  },
+  "Memo": {
+    "ja": "メモ",
+    "es": "Memorándum"
+  },
+  "MFA code": {
+    "ja": "MFAコード",
+    "es": "código MFA"
+  },
+  "missing key": {
+    "ja": "鍵がありません",
+    "es": "llave faltante"
+  },
+  "Model": {
+    "ja": "モデル",
+    "es": "Modelo"
+  },
+  "Model calls": {
+    "ja": "モデル呼び出し",
+    "es": "Llamadas modelo"
+  },
+  "Model selection": {
+    "ja": "機種選定",
+    "es": "Selección de modelo"
+  },
+  "Model usage today": {
+    "ja": "今日のモデルの使用状況",
+    "es": "Uso del modelo hoy"
+  },
+  "Models": {
+    "ja": "モデル",
+    "es": "Modelos"
+  },
+  "Monitor usage, token costs, and conversion signals.": {
+    "ja": "使用状況、トークンコスト、コンバージョンシグナルを監視します。",
+    "es": "Supervise el uso, los costos de los tokens y las señales de conversión."
+  },
+  "Monitor user prompts and conversation execution flows.": {
+    "ja": "ユーザーのプロンプトと会話の実行フローを監視します。",
+    "es": "Supervise las indicaciones de los usuarios y los flujos de ejecución de conversaciones."
+  },
+  "Month credits": {
+    "ja": "月単位のクレジット",
+    "es": "créditos mensuales"
+  },
+  "monthly until": {
+    "ja": "毎月 まで",
+    "es": "mensualmente hasta"
+  },
+  "Monthly user token/cost usage": {
+    "ja": "毎月のユーザートークン/コスト使用量",
+    "es": "Uso mensual de token/costo de usuario"
+  },
+  "monthly_free_30d (daily 50)": {
+    "ja": "month_free_30d (毎日 50)",
+    "es": "Monthly_free_30d (diario 50)"
+  },
+  "monthly_free_30d (daily unlimited)": {
+    "ja": "month_free_30d (毎日無制限)",
+    "es": "Monthly_free_30d (diario ilimitado)"
+  },
+  "More": {
+    "ja": "もっと",
+    "es": "Más"
+  },
+  "Most credits": {
+    "ja": "ほとんどのクレジット",
+    "es": "la mayoría de los créditos"
+  },
+  "Most tasks": {
+    "ja": "ほとんどのタスク",
+    "es": "La mayoría de las tareas"
+  },
+  "Most tokens": {
+    "ja": "ほとんどのトークン",
+    "es": "La mayoría de las fichas"
+  },
+  "My feedback": {
+    "ja": "私のフィードバック",
+    "es": "Mis comentarios"
+  },
+  "Name": {
+    "ja": "名前",
+    "es": "Nombre"
+  },
+  "Never (lifetime)": {
+    "ja": "決して（生涯）",
+    "es": "Nunca (de por vida)"
+  },
+  "never checked": {
+    "ja": "決してチェックしなかった",
+    "es": "nunca comprobado"
+  },
+  "New": {
+    "ja": "新しい",
+    "es": "Nuevo"
+  },
+  "New conversation window": {
+    "ja": "新しい会話ウィンドウ",
+    "es": "Nueva ventana de conversación"
+  },
+  "New post": {
+    "ja": "新しい投稿",
+    "es": "Nueva publicación"
+  },
+  "New project": {
+    "ja": "新しいプロジェクト",
+    "es": "Nuevo proyecto"
+  },
+  "New project name": {
+    "ja": "新しいプロジェクト名",
+    "es": "Nuevo nombre del proyecto"
+  },
+  "New reply": {
+    "ja": "新しい返信",
+    "es": "Nueva respuesta"
+  },
+  "New to ": {
+    "ja": "初心者",
+    "es": "Nuevo en"
+  },
+  "New to Yapp?": {
+    "ja": "Yapp は初めてですか？",
+    "es": "¿Primera vez en Yapp?"
+  },
+  "New window": {
+    "ja": "新しいウィンドウ",
+    "es": "Nueva ventana"
+  },
+  "New workbench": {
+    "ja": "新しいワークベンチ",
+    "es": "Nuevo espacio de trabajo"
+  },
+  "Newest accounts": {
+    "ja": "最新のアカウント",
+    "es": "Cuentas más recientes"
+  },
+  "Next reset": {
+    "ja": "次のリセット",
+    "es": "Siguiente reinicio"
+  },
+  "No active free plan": {
+    "ja": "アクティブな無料プランはありません",
+    "es": "No hay plan gratuito activo"
+  },
+  "No conversation windows yet": {
+    "ja": "会話ウィンドウはまだありません",
+    "es": "Aún no hay ventanas de conversación"
+  },
+  "No conversations found.": {
+    "ja": "会話が見つかりませんでした。",
+    "es": "No se encontraron conversaciones."
+  },
+  "No conversations yet.": {
+    "ja": "まだ会話はありません。",
+    "es": "Aún no hay conversaciones."
+  },
+  "No coupon redemptions.": {
+    "ja": "クーポン引き換えはありません。",
+    "es": "Sin canjes de cupones."
+  },
+  "No credit limit for the duration": {
+    "ja": "期間中のクレジット制限なし",
+    "es": "Sin límite de crédito durante la duración"
+  },
+  "No description yet": {
+    "ja": "まだ説明がありません",
+    "es": "Aún no hay descripción"
+  },
+  "No feedback to display.": {
+    "ja": "表示するフィードバックはありません。",
+    "es": "No hay comentarios para mostrar."
+  },
+  "No files attached yet": {
+    "ja": "まだファイルが添付されていません",
+    "es": "Aún no hay archivos adjuntos"
+  },
+  "No key yet": {
+    "ja": "まだ鍵がありません",
+    "es": "Aún no hay clave"
+  },
+  "No model output has arrived yet.": {
+    "ja": "モデル出力はまだ到着していません。",
+    "es": "Aún no ha llegado ningún modelo."
+  },
+  "No models selected": {
+    "ja": "モデルが選択されていません",
+    "es": "No hay modelos seleccionados"
+  },
+  "No more juggling 4 tabs — compare answers, speed, and cost on one screen.": {
+    "ja": "4 つのタブを操作する必要はもうありません。回答、速度、コストを 1 つの画面で比較できます。",
+    "es": "No más malabarismos con 4 pestañas: compare respuestas, velocidad y costos en una sola pantalla."
+  },
+  "No output returned.": {
+    "ja": "出力は返されませんでした。",
+    "es": "No se devolvió ningún resultado."
+  },
+  "No presets saved": {
+    "ja": "プリセットは保存されていません",
+    "es": "No hay ajustes preestablecidos guardados"
+  },
+  "No projects yet": {
+    "ja": "まだプロジェクトはありません",
+    "es": "Aún no hay proyectos"
+  },
+  "No projects yet. Create one above.": {
+    "ja": "まだプロジェクトはありません。上に作成します。",
+    "es": "Aún no hay proyectos. Crea uno arriba."
+  },
+  "No repeat blocks yet. Add one to repeat part of the chain.": {
+    "ja": "リピートブロックはまだありません。チェーンの一部を繰り返すには 1 つ追加します。",
+    "es": "Aún no hay bloques repetidos. Agrega uno para repetir parte de la cadena."
+  },
+  "No replies yet.": {
+    "ja": "まだ返信はありません。",
+    "es": "Aún no hay respuestas."
+  },
+  "No replies yet. The team will respond after reviewing.": {
+    "ja": "まだ返信はありません。チームは検討後に対応させていただきます。",
+    "es": "Aún no hay respuestas. El equipo responderá después de revisar."
+  },
+  "No results match the current filter and search.": {
+    "ja": "現在のフィルターと検索に一致する結果はありません。",
+    "es": "Ningún resultado coincide con el filtro y la búsqueda actuales."
+  },
+  "No results yet": {
+    "ja": "まだ結果はありません",
+    "es": "Aún no hay resultados"
+  },
+  "No results yet.": {
+    "ja": "まだ結果はありません。",
+    "es": "Aún no hay resultados."
+  },
+  "No runs yet.": {
+    "ja": "まだ実行はありません。",
+    "es": "Aún no hay carreras."
+  },
+  "No saved sessions yet": {
+    "ja": "保存されたセッションはまだありません",
+    "es": "Aún no hay sesiones guardadas"
+  },
+  "No steps": {
+    "ja": "ステップなし",
+    "es": "Sin pasos"
+  },
+  "No stored key": {
+    "ja": "保存されたキーがありません",
+    "es": "Ninguna clave almacenada"
+  },
+  "No task usage yet": {
+    "ja": "まだタスクの使用状況がありません",
+    "es": "Aún no se ha utilizado ninguna tarea"
+  },
+  "No usage logs yet.": {
+    "ja": "使用ログはまだありません。",
+    "es": "Aún no hay registros de uso."
+  },
+  "No users match these filters.": {
+    "ja": "これらのフィルターに一致するユーザーはいません。",
+    "es": "Ningún usuario coincide con estos filtros."
+  },
+  "No workflow steps recorded.": {
+    "ja": "ワークフローのステップは記録されません。",
+    "es": "No se registraron pasos del flujo de trabajo."
+  },
+  "none": {
+    "ja": "なし",
+    "es": "ninguno"
+  },
+  "None": {
+    "ja": "なし",
+    "es": "Ninguno"
+  },
+  "None selected": {
+    "ja": "何も選択されていません",
+    "es": "Ninguno seleccionado"
+  },
+  "Not selected": {
+    "ja": "未選択",
+    "es": "No seleccionado"
+  },
+  "Note": {
+    "ja": "注記",
+    "es": "Nota"
+  },
+  "Oldest first": {
+    "ja": "古い順",
+    "es": "El más viejo primero"
+  },
+  "One output becomes the next input.": {
+    "ja": "1 つの出力が次の入力になります。",
+    "es": "Una salida se convierte en la siguiente entrada."
+  },
+  "Only ": {
+    "ja": "のみ",
+    "es": "Solo"
+  },
+  "Open": {
+    "ja": "開ける",
+    "es": "Abierto"
+  },
+  "Open a new workbench window from this project. Once you run it, the session will stay linked here and future project runs can use its results as context.": {
+    "ja": "このプロジェクトから新しいワークベンチ ウィンドウを開きます。実行すると、セッションはここでリンクされたままになり、将来のプロジェクト実行ではその結果をコンテキストとして使用できます。",
+    "es": "Abra una nueva ventana del banco de trabajo desde este proyecto. Una vez que lo ejecute, la sesión permanecerá vinculada aquí y las ejecuciones futuras del proyecto podrán utilizar sus resultados como contexto."
+  },
+  "Open feedback board": {
+    "ja": "フィードバックボードを開く",
+    "es": "Abrir tablero de comentarios"
+  },
+  "Open link": {
+    "ja": "リンクを開く",
+    "es": "Abrir enlace"
+  },
+  "Open project": {
+    "ja": "プロジェクトを開く",
+    "es": "Abrir proyecto"
+  },
+  "Open separately": {
+    "ja": "個別に開く",
+    "es": "Abrir por separado"
+  },
+  "Open the Workbench": {
+    "ja": "ワークベンチを開く",
+    "es": "Abrir el banco de trabajo"
+  },
+  "Open workbench": {
+    "ja": "オープンワークベンチ",
+    "es": "banco de trabajo abierto"
+  },
+  "Opening the project folder and linked conversations.": {
+    "ja": "プロジェクト フォルダーとリンクされた会話を開きます。",
+    "es": "Abrir la carpeta del proyecto y conversaciones vinculadas."
+  },
+  "Operations Console": {
+    "ja": "オペレーションコンソール",
+    "es": "Consola de operaciones"
+  },
+  "Operations console for managing Yapp services.": {
+    "ja": "Yapp サービスを管理するためのオペレーション コンソール。",
+    "es": "Consola de operaciones para administrar los servicios de Yapp."
+  },
+  "Optional context, constraints, audience, or evaluation criteria.": {
+    "ja": "オプションのコンテキスト、制約、対象者、または評価基準。",
+    "es": "Contexto, limitaciones, audiencia o criterios de evaluación opcionales."
+  },
+  "or pick an existing project": {
+    "ja": "または既存のプロジェクトを選択します",
+    "es": "o elegir un proyecto existente"
+  },
+  "or with email": {
+    "ja": "またはメールで",
+    "es": "o con correo electrónico"
+  },
+  "Orchestration Workbench": {
+    "ja": "オーケストレーション・ワークベンチ",
+    "es": "Espacio de orquestación"
+  },
+  "Organize with Projects and Presets": {
+    "ja": "プロジェクトとプリセットで整理する",
+    "es": "Organizar con proyectos y ajustes preestablecidos"
+  },
+  "Original input": {
+    "ja": "元の入力",
+    "es": "Entrada original"
+  },
+  "Other": {
+    "ja": "他の",
+    "es": "Otro"
+  },
+  "Other models continue normally. The failed model shows an error card that you can rerun individually without re-running the entire workflow.": {
+    "ja": "他のモデルは通常どおり続行されます。失敗したモデルには、ワークフロー全体を再実行しなくても個別に再実行できるエラー カードが表示されます。",
+    "es": "Otros modelos continúan con normalidad. El modelo fallido muestra una tarjeta de error que puede volver a ejecutar individualmente sin volver a ejecutar todo el flujo de trabajo."
+  },
+  "Other platforms: copy-paste between chats, lose context at every step.": {
+    "ja": "他のプラットフォーム: チャット間でコピー＆ペーストすると、すべてのステップでコンテキストが失われます。",
+    "es": "Otras plataformas: copiar y pegar entre chats, perder contexto en cada paso."
+  },
+  "Other platforms: each conversation is isolated, no shared memory across chats.": {
+    "ja": "他のプラットフォーム: 各会話は分離されており、チャット全体でメモリが共有されません。",
+    "es": "Otras plataformas: cada conversación está aislada, no hay memoria compartida entre chats."
+  },
+  "Other platforms: file upload support varies per model, no cross-model file sharing.": {
+    "ja": "その他のプラットフォーム: ファイル アップロードのサポートはモデルごとに異なり、モデル間のファイル共有はありません。",
+    "es": "Otras plataformas: la compatibilidad con la carga de archivos varía según el modelo, no se pueden compartir archivos entre modelos."
+  },
+  "Other platforms: open 4 tabs, paste the same prompt 4 times, manually compare.": {
+    "ja": "他のプラットフォーム: 4 つのタブを開き、同じプロンプトを 4 回貼り付け、手動で比較します。",
+    "es": "Otras plataformas: abra 4 pestañas, pegue el mismo mensaje 4 veces, compare manualmente."
+  },
+  "Other platforms: recreate the same prompt sequence every time.": {
+    "ja": "他のプラットフォーム: 毎回同じプロンプト シーケンスを再作成します。",
+    "es": "Otras plataformas: recrea la misma secuencia de mensajes cada vez."
+  },
+  "Other platforms: results are final text. No built-in way to chain or branch.": {
+    "ja": "その他のプラットフォーム: 結果は最終的なテキストです。連鎖または分岐するための組み込みの方法はありません。",
+    "es": "Otras plataformas: los resultados son texto final. No hay forma incorporada de encadenar o bifurcar."
+  },
+  "output": {
+    "ja": "出力",
+    "es": "producción"
+  },
+  "Output received and saved.": {
+    "ja": "出力が受信され、保存されました。",
+    "es": "Salida recibida y guardada."
+  },
+  "Output style": {
+    "ja": "出力スタイル",
+    "es": "Estilo de salida"
+  },
+  "Output Style:": {
+    "ja": "出力スタイル:",
+    "es": "Estilo de salida:"
+  },
+  "Output tokens": {
+    "ja": "出力トークン",
+    "es": "Fichas de salida"
+  },
+  "Outputs remain actionable. Branch, review, rerun, or mark a final answer.": {
+    "ja": "出力は引き続き実用的です。分岐、レビュー、再実行、または最終回答のマークを付けます。",
+    "es": "Los resultados siguen siendo viables. Bifurcar, revisar, volver a ejecutar o marcar una respuesta final."
+  },
+  "Paid requests": {
+    "ja": "有料リクエスト",
+    "es": "Solicitudes pagadas"
+  },
+  "Parallel compare": {
+    "ja": "並列比較",
+    "es": "comparación paralela"
+  },
+  "Parallel Compare": {
+    "ja": "並列比較",
+    "es": "Comparación paralela"
+  },
+  "Parallel Compare — Step-by-Step Tutorial": {
+    "ja": "並列比較 — ステップバイステップのチュートリアル",
+    "es": "Comparación paralela: tutorial paso a paso"
+  },
+  "Parallel compare sends the same task to multiple models so you can compare the cards right away.": {
+    "ja": "並列比較では同じタスクが複数のモデルに送信されるため、カードをすぐに比較できます。",
+    "es": "La comparación paralela envía la misma tarea a varios modelos para que puedas comparar las tarjetas de inmediato."
+  },
+  "Parallel run": {
+    "ja": "並列実行",
+    "es": "carrera paralela"
+  },
+  "Parallel run summary": {
+    "ja": "並列実行の概要",
+    "es": "Resumen de ejecución paralela"
+  },
+  "Password": {
+    "ja": "パスワード",
+    "es": "Contraseña"
+  },
+  "Paste provider API key": {
+    "ja": "プロバイダー API キーを貼り付けます",
+    "es": "Pegar clave API del proveedor"
+  },
+  "Persistent facts, goals, tone, decisions, constraints, or vocabulary every session in this project should know.": {
+    "ja": "このプロジェクトのすべてのセッションが知っておくべき永続的な事実、目標、トーン、決定、制約、または語彙。",
+    "es": "Hechos persistentes, objetivos, tono, decisiones, limitaciones o vocabulario que toda sesión de este proyecto debería conocer."
+  },
+  "Persistent instruction AI should always reference for this project": {
+    "ja": "AIがこのプロジェクトで常に参照すべき永続的な指示",
+    "es": "La IA de instrucción persistente siempre debe hacer referencia a este proyecto"
+  },
+  "Pick an output style (optional)": {
+    "ja": "出力スタイルを選択します (オプション)",
+    "es": "Elija un estilo de salida (opcional)"
+  },
+  "Pick the models that should generate images. Each selected model produces an image.": {
+    "ja": "画像を生成するモデルを選択します。選択した各モデルがイメージを生成します。",
+    "es": "Elija los modelos que deberían generar imágenes. Cada modelo seleccionado produce una imagen."
+  },
+  "Plan": {
+    "ja": "プラン",
+    "es": "Plan"
+  },
+  "Plan and coupons": {
+    "ja": "プランとクーポン",
+    "es": "Plan y cupones"
+  },
+  "Planned run preview": {
+    "ja": "計画された実行のプレビュー",
+    "es": "Vista previa de la ejecución planificada"
+  },
+  "PNG, JPEG, WebP, GIF · up to 10MB": {
+    "ja": "PNG、JPEG、WebP、GIF・最大10MB",
+    "es": "PNG, JPEG, WebP, GIF · hasta 10 MB"
+  },
+  "points": {
+    "ja": "ポイント",
+    "es": "agujas"
+  },
+  "Preparing the prompt and context.": {
+    "ja": "プロンプトとコンテキストを準備します。",
+    "es": "Preparar el mensaje y el contexto."
+  },
+  "Preset description": {
+    "ja": "プリセットの説明",
+    "es": "Descripción preestablecida"
+  },
+  "Preset name": {
+    "ja": "プリセット名",
+    "es": "Nombre preestablecido"
+  },
+  "Presets": {
+    "ja": "プリセット",
+    "es": "Ajustes preestablecidos"
+  },
+  "Presets keep good review chains ready for repeated tasks. Load them from the workbench when you need the same route again.": {
+    "ja": "プリセットにより、繰り返しのタスクに備えて適切なレビュー チェーンが維持されます。同じルートが再度必要な場合は、ワークベンチからロードしてください。",
+    "es": "Los ajustes preestablecidos mantienen buenas cadenas de revisión listas para tareas repetidas. Cárgalos desde el banco de trabajo cuando necesites la misma ruta nuevamente."
+  },
+  "Press the Run button": {
+    "ja": "実行ボタンを押します",
+    "es": "Presione el botón Ejecutar"
+  },
+  "Preview all ": {
+    "ja": "すべてプレビュー",
+    "es": "Vista previa de todo"
+  },
+  "Previous step": {
+    "ja": "前のステップ",
+    "es": "Paso anterior"
+  },
+  "Primary navigation": {
+    "ja": "プライマリナビゲーション",
+    "es": "Navegación primaria"
+  },
+  "Primary outputs from the original run and sequential chain.": {
+    "ja": "元の実行およびシーケンシャル チェーンからのプライマリ出力。",
+    "es": "Salidas primarias de la ejecución original y la cadena secuencial."
+  },
+  "PRO": {
+    "ja": "プロ",
+    "es": "PRO"
+  },
+  "Produce the polished final answer.": {
+    "ja": "洗練された最終的な答えを導き出します。",
+    "es": "Produzca la respuesta final pulida."
+  },
+  "Project": {
+    "ja": "プロジェクト",
+    "es": "Proyecto"
+  },
+  "Project context loaded:": {
+    "ja": "プロジェクトコンテキストがロードされました:",
+    "es": "Contexto del proyecto cargado:"
+  },
+  "Project context saved.": {
+    "ja": "プロジェクトコンテキストが保存されました。",
+    "es": "Se guardó el contexto del proyecto."
+  },
+  "Project Folders": {
+    "ja": "プロジェクトフォルダー",
+    "es": "Carpetas de proyecto"
+  },
+  "Project linked": {
+    "ja": "プロジェクトがリンクされました",
+    "es": "Proyecto vinculado"
+  },
+  "Project name": {
+    "ja": "プロジェクト名",
+    "es": "Nombre del proyecto"
+  },
+  "Project settings": {
+    "ja": "プロジェクト設定",
+    "es": "Configuración del proyecto"
+  },
+  "Projects": {
+    "ja": "プロジェクト",
+    "es": "Proyectos"
+  },
+  "Provider errors may continue with the administrator fallback ": {
+    "ja": "プロバイダーのエラーは管理者のフォールバックでも継続する可能性があります",
+    "es": "Los errores del proveedor pueden continuar con el respaldo del administrador"
+  },
+  "Provider failed.": {
+    "ja": "プロバイダーが失敗しました。",
+    "es": "El proveedor falló."
+  },
+  "Provider keys are encrypted before storage and never returned to the browser. Environment keys take priority when present.": {
+    "ja": "プロバイダー キーは保存前に暗号化され、ブラウザーに返されることはありません。環境キーが存在する場合は、それが優先されます。",
+    "es": "Las claves del proveedor se cifran antes del almacenamiento y nunca se devuelven al navegador. Las claves de entorno tienen prioridad cuando están presentes."
+  },
+  "Provider settings": {
+    "ja": "プロバイダー設定",
+    "es": "Configuración del proveedor"
+  },
+  "Provider Settings": {
+    "ja": "プロバイダー設定",
+    "es": "Configuración del proveedor"
+  },
+  "Provider timeout (seconds)": {
+    "ja": "プロバイダーのタイムアウト (秒)",
+    "es": "Tiempo de espera del proveedor (segundos)"
+  },
+  "Provider usage today": {
+    "ja": "今日のプロバイダーの使用状況",
+    "es": "Uso del proveedor hoy"
+  },
+  "Providers": {
+    "ja": "プロバイダー",
+    "es": "Proveedores"
+  },
+  "Quality threshold": {
+    "ja": "品質のしきい値",
+    "es": "Umbral de calidad"
+  },
+  "Quantity": {
+    "ja": "量",
+    "es": "Cantidad"
+  },
+  "Question": {
+    "ja": "質問",
+    "es": "Pregunta"
+  },
+  "Queued": {
+    "ja": "キューに入れられました",
+    "es": "En cola"
+  },
+  "Queued and waiting to start.": {
+    "ja": "列に並んで開始を待っています。",
+    "es": "En cola y esperando para empezar."
+  },
+  "Quick compare": {
+    "ja": "簡単な比較",
+    "es": "Comparación rápida"
+  },
+  "Raw content": {
+    "ja": "生のコンテンツ",
+    "es": "Contenido bruto"
+  },
+  "Raw input/output is encrypted at rest and revealed only when explicitly requested.": {
+    "ja": "生の入出力は保存時に暗号化され、明示的に要求された場合にのみ公開されます。",
+    "es": "La entrada/salida sin procesar se cifra en reposo y se revela solo cuando se solicita explícitamente."
+  },
+  "ready": {
+    "ja": "準備ができて",
+    "es": "listo"
+  },
+  "Ready to get started?": {
+    "ja": "始める準備はできていますか?",
+    "es": "¿Listo para empezar?"
+  },
+  "Reason": {
+    "ja": "理由",
+    "es": "Razón"
+  },
+  "Recent coupon redemptions": {
+    "ja": "最近のクーポン引き換え",
+    "es": "Canjes de cupones recientes"
+  },
+  "Recent task usage": {
+    "ja": "最近のタスクの使用状況",
+    "es": "Uso reciente de tareas"
+  },
+  "Recent usage logs": {
+    "ja": "最近の使用ログ",
+    "es": "Registros de uso recientes"
+  },
+  "Recent work": {
+    "ja": "最近の作業",
+    "es": "Trabajo reciente"
+  },
+  "Recommended start": {
+    "ja": "推奨スタート",
+    "es": "Inicio recomendado"
+  },
+  "Redeem coupon": {
+    "ja": "クーポンを引き換える",
+    "es": "Canjear cupón"
+  },
+  "Redeemed by": {
+    "ja": "償還者",
+    "es": "Redimido por"
+  },
+  "Redeeming…": {
+    "ja": "引き換え中…",
+    "es": "Redentor…"
+  },
+  "Remove": {
+    "ja": "取り除く",
+    "es": "Eliminar"
+  },
+  "Remove image": {
+    "ja": "画像を削除",
+    "es": "Quitar imagen"
+  },
+  "Remove this item from the project? The original stays in your session.": {
+    "ja": "この項目をプロジェクトから削除しますか?オリジナルはセッション内に残ります。",
+    "es": "¿Eliminar este elemento del proyecto? El original permanece en su sesión."
+  },
+  "Rename": {
+    "ja": "名前の変更",
+    "es": "Rebautizar"
+  },
+  "Rename preset": {
+    "ja": "プリセット名の変更",
+    "es": "Cambiar nombre preestablecido"
+  },
+  "Reopen previous tasks, continue branches, duplicate useful routes, or delete old work.": {
+    "ja": "以前のタスクを再度開いたり、分岐を続行したり、有用なルートを複製したり、古い作業を削除したりできます。",
+    "es": "Vuelva a abrir tareas anteriores, continúe ramificaciones, duplique rutas útiles o elimine trabajos antiguos."
+  },
+  "Repeat count": {
+    "ja": "リピート回数",
+    "es": "Repetir recuento"
+  },
+  "Repeat range": {
+    "ja": "リピート範囲",
+    "es": "rango de repetición"
+  },
+  "Repeat settings": {
+    "ja": "リピート設定",
+    "es": "Repetir configuración"
+  },
+  "Repeat-loop setting": {
+    "ja": "リピートループ設定",
+    "es": "Configuración de bucle de repetición"
+  },
+  "Repeated block": {
+    "ja": "繰り返しブロック",
+    "es": "Bloqueo repetido"
+  },
+  "replies": {
+    "ja": "返信する",
+    "es": "respuestas"
+  },
+  "Reply to user": {
+    "ja": "ユーザーへの返信",
+    "es": "Responder al usuario"
+  },
+  "Report problems or suggest improvements. Only you and the Yapp team can see your posts, and you can attach screenshots.": {
+    "ja": "問題を報告したり、改善を提案したりできます。あなたと Yapp チームだけがあなたの投稿を見ることができ、スクリーンショットを添付することができます。",
+    "es": "Informar problemas o sugerir mejoras. Solo usted y el equipo de Yapp pueden ver sus publicaciones y pueden adjuntar capturas de pantalla."
+  },
+  "Report problems or suggest improvements. Only you and the Yapp team can see your posts.": {
+    "ja": "問題を報告したり、改善を提案したりできます。あなたと Yapp チームだけがあなたの投稿を見ることができます。",
+    "es": "Informar problemas o sugerir mejoras. Sólo tú y el equipo de Yapp podéis ver tus publicaciones."
+  },
+  "Requesting stop...": {
+    "ja": "停止を要求中...",
+    "es": "Solicitando parada..."
+  },
+  "Requests": {
+    "ja": "リクエスト",
+    "es": "Solicitudes"
+  },
+  "Rerun": {
+    "ja": "再実行",
+    "es": "Repetición"
+  },
+  "Rerun failed.": {
+    "ja": "再実行に失敗しました。",
+    "es": "La repetición falló."
+  },
+  "Rerun result was added.": {
+    "ja": "再実行結果を追加しました。",
+    "es": "Se agregó el resultado de la repetición."
+  },
+  "Resolved": {
+    "ja": "解決済み",
+    "es": "Resuelto"
+  },
+  "Result": {
+    "ja": "結果",
+    "es": "Resultado"
+  },
+  "Result board": {
+    "ja": "結果ボード",
+    "es": "tablero de resultados"
+  },
+  "Result layout": {
+    "ja": "結果のレイアウト",
+    "es": "Diseño de resultados"
+  },
+  "Result overview": {
+    "ja": "結果の概要",
+    "es": "Resumen de resultados"
+  },
+  "results": {
+    "ja": "結果",
+    "es": "resultados"
+  },
+  "Results": {
+    "ja": "結果",
+    "es": "Resultados"
+  },
+  "Results appear as cards — one per AI model. Read them side by side to see how each AI answered differently. Each card also shows time taken and tokens used.": {
+    "ja": "結果はカードとして表示されます (AI モデルごとに 1 つ)。これらを並べて読んで、各 AI がどのように異なる回答をしたのかを確認してください。各カードには、かかった時間と使用したトークンも表示されます。",
+    "es": "Los resultados aparecen como tarjetas, una por modelo de IA. Léalos uno al lado del otro para ver cómo cada IA ​​respondió de manera diferente. Cada tarjeta también muestra el tiempo empleado y las fichas utilizadas."
+  },
+  "Results build a tree. Every branch becomes a new starting point for further work.": {
+    "ja": "結果としてツリーが構築されます。すべてのブランチが、さらなる作業のための新たな出発点となります。",
+    "es": "Los resultados construyen un árbol. Cada rama se convierte en un nuevo punto de partida para seguir trabajando."
+  },
+  "Results metadata": {
+    "ja": "結果のメタデータ",
+    "es": "Metadatos de resultados"
+  },
+  "results-focused": {
+    "ja": "結果重視",
+    "es": "centrado en resultados"
+  },
+  "Resuming the active run.": {
+    "ja": "アクティブな実行を再開します。",
+    "es": "Reanudando la ejecución activa."
+  },
+  "Reusable Presets": {
+    "ja": "再利用可能なプリセット",
+    "es": "Ajustes preestablecidos reutilizables"
+  },
+  "Reusable workflow routes": {
+    "ja": "再利用可能なワークフロー ルート",
+    "es": "Rutas de flujo de trabajo reutilizables"
+  },
+  "Review and respond to all feedback submitted by users.": {
+    "ja": "ユーザーから送信されたすべてのフィードバックを確認して返信します。",
+    "es": "Revisar y responder a todos los comentarios enviados por los usuarios."
+  },
+  "Review the full plan before you run, especially repeat blocks and input sources.": {
+    "ja": "実行前に計画全体、特にリピートブロックと入力ソースを確認してください。",
+    "es": "Revise el plan completo antes de ejecutar, especialmente los bloques repetidos y las fuentes de entrada."
+  },
+  "Review type": {
+    "ja": "レビューの種類",
+    "es": "Tipo de reseña"
+  },
+  "Review with Other Model": {
+    "ja": "他のモデルでレビュー",
+    "es": "Revisar con otro modelo"
+  },
+  "Role": {
+    "ja": "役割",
+    "es": "Role"
+  },
+  "Rotate API key": {
+    "ja": "APIキーをローテーションする",
+    "es": "Rotar clave API"
+  },
+  "Route one model's output into the next. For example: GPT drafts → Grok critiques → Gemini improves → Claude polishes the final answer.": {
+    "ja": "あるモデルの出力を次のモデルにルーティングします。例: GPT 草案 → Grok 批評 → Gemini が改善 → Claude が最終的な答えを磨きます。",
+    "es": "Enrute la salida de un modelo al siguiente. Por ejemplo: borradores de GPT → críticas de Grok → Gemini mejora → Claude pule la respuesta final."
+  },
+  "Route one result into another model for review": {
+    "ja": "1 つの結果をレビューのために別のモデルにルーティングします",
+    "es": "Enrutar un resultado a otro modelo para su revisión"
+  },
+  "Run": {
+    "ja": "実行",
+    "es": "Ejecutar"
+  },
+  "Run a parallel compare to create separate model cards, or switch to sequential mode to execute a review route.": {
+    "ja": "並列比較を実行して個別のモデル カードを作成するか、シーケンシャル モードに切り替えてレビュー ルートを実行します。",
+    "es": "Ejecute una comparación paralela para crear tarjetas de modelo independientes o cambie al modo secuencial para ejecutar una ruta de revisión."
+  },
+  "Run a task to see per-model progress updates here.": {
+    "ja": "ここでタスクを実行して、モデルごとの進行状況の更新を確認します。",
+    "es": "Ejecute una tarea para ver las actualizaciones de progreso por modelo aquí."
+  },
+  "Run branch": {
+    "ja": "ブランチを実行",
+    "es": "Ejecutar rama"
+  },
+  "Run completed and saved.": {
+    "ja": "実行が完了して保存されました。",
+    "es": "Ejecución completada y guardada."
+  },
+  "Run completed with provider-specific failures.": {
+    "ja": "プロバイダー固有のエラーは発生しましたが、実行は完了しました。",
+    "es": "Ejecución completada con fallas específicas del proveedor."
+  },
+  "Run failed.": {
+    "ja": "実行に失敗しました。",
+    "es": "La ejecución falló."
+  },
+  "Run health check": {
+    "ja": "ヘルスチェックを実行する",
+    "es": "Ejecutar control de salud"
+  },
+  "Run Parallel Compare": {
+    "ja": "並列比較の実行",
+    "es": "Ejecutar comparación paralela"
+  },
+  "Run your first parallel comparison or sequential review chain, and it will appear here automatically.": {
+    "ja": "最初の並列比較または逐次レビュー チェーンを実行すると、ここに自動的に表示されます。",
+    "es": "Ejecute su primera comparación paralela o cadena de revisión secuencial y aparecerá aquí automáticamente."
+  },
+  "runFailed": {
+    "ja": "実行失敗",
+    "es": "ejecución fallida"
+  },
+  "running": {
+    "ja": "走っている",
+    "es": "correr"
+  },
+  "Running": {
+    "ja": "ランニング",
+    "es": "Correr"
+  },
+  "Running workflow...": {
+    "ja": "ワークフローを実行中...",
+    "es": "Ejecutando flujo de trabajo..."
+  },
+  "Runs exactly with the model you picked": {
+    "ja": "選択したモデルで正確に実行されます",
+    "es": "Funciona exactamente con el modelo que elegiste."
+  },
+  "Runs with the exact model you selected.": {
+    "ja": "選択した正確なモデルで実行されます。",
+    "es": "Funciona con el modelo exacto que seleccionaste."
+  },
+  "s": {
+    "ja": "s",
+    "es": "s"
+  },
+  "s elapsed": {
+    "ja": "秒が経過しました",
+    "es": "ha transcurrido"
+  },
+  "Save": {
+    "ja": "保存",
+    "es": "Ahorrar"
+  },
+  "Save a good review chain as a preset. Load it whenever you need the same multi-model workflow again — no rebuilding from scratch.": {
+    "ja": "優れたレビュー チェーンをプリセットとして保存します。同じマルチモデル ワークフローが再度必要になったときにはいつでもロードできます。最初から再構築する必要はありません。",
+    "es": "Guarde una buena cadena de reseñas como valor preestablecido. Cárguelo siempre que necesite nuevamente el mismo flujo de trabajo multimodelo, sin necesidad de reconstruirlo desde cero."
+  },
+  "Save account": {
+    "ja": "アカウントを保存する",
+    "es": "Guardar cuenta"
+  },
+  "Save memo": {
+    "ja": "メモの保存",
+    "es": "guardar nota"
+  },
+  "Save project": {
+    "ja": "プロジェクトの保存",
+    "es": "Guardar proyecto"
+  },
+  "Save provider": {
+    "ja": "プロバイダーを保存",
+    "es": "Guardar proveedor"
+  },
+  "Save reusable workflows for repeatable work": {
+    "ja": "繰り返し可能な作業のために再利用可能なワークフローを保存する",
+    "es": "Guarde flujos de trabajo reutilizables para un trabajo repetible"
+  },
+  "Save route": {
+    "ja": "ルートを保存する",
+    "es": "guardar ruta"
+  },
+  "saved": {
+    "ja": "保存されました",
+    "es": "salvado"
+  },
+  "Saved": {
+    "ja": "保存されました",
+    "es": "Guardado"
+  },
+  "Saved ✓": {
+    "ja": "保存済み ✓",
+    "es": "Guardado ✓"
+  },
+  "Saved orchestration work": {
+    "ja": "保存されたオーケストレーション作業",
+    "es": "Trabajo de orquestación guardado"
+  },
+  "saved sessions are linked to this project.": {
+    "ja": "保存されたセッションはこのプロジェクトにリンクされます。",
+    "es": "Las sesiones guardadas están vinculadas a este proyecto."
+  },
+  "Saving the output and updating the result card.": {
+    "ja": "出力を保存し、結果カードを更新します。",
+    "es": "Guardar el resultado y actualizar la tarjeta de resultados."
+  },
+  "Saving...": {
+    "ja": "保存中...",
+    "es": "Guardando..."
+  },
+  "Saving…": {
+    "ja": "保存中…",
+    "es": "Guardando…"
+  },
+  "Scenario development": {
+    "ja": "シナリオ開発",
+    "es": "Desarrollo de escenarios"
+  },
+  "Search": {
+    "ja": "検索",
+    "es": "Buscar"
+  },
+  "Search results, models, or step keywords": {
+    "ja": "検索結果、モデル、またはステップのキーワード",
+    "es": "Resultados de búsqueda, modelos o palabras clave de pasos"
+  },
+  "Search title, body, email": {
+    "ja": "タイトル、本文、メールアドレスを検索",
+    "es": "Buscar título, cuerpo, correo electrónico"
+  },
+  "Security": {
+    "ja": "安全",
+    "es": "Seguridad"
+  },
+  "See all the results!": {
+    "ja": "すべての結果をご覧ください!",
+    "es": "¡Mira todos los resultados!"
+  },
+  "Select all": {
+    "ja": "すべて選択",
+    "es": "Seleccionar todo"
+  },
+  "Select at least one image generation model.": {
+    "ja": "少なくとも 1 つのイメージ生成モデルを選択します。",
+    "es": "Seleccione al menos un modelo de generación de imágenes."
+  },
+  "Select coupons to copy.": {
+    "ja": "コピーするクーポンを選択します。",
+    "es": "Seleccione cupones para copiar."
+  },
+  "Select Parallel Compare mode": {
+    "ja": "並列比較モードを選択します",
+    "es": "Seleccione el modo de comparación paralela"
+  },
+  "Select Sequential Review Chain mode": {
+    "ja": "シーケンシャル レビュー チェーン モードを選択します",
+    "es": "Seleccione el modo Cadena de revisión secuencial"
+  },
+  "Selected models": {
+    "ja": "選択されたモデル",
+    "es": "Modelos seleccionados"
+  },
+  "Selected result": {
+    "ja": "選択された結果",
+    "es": "Resultado seleccionado"
+  },
+  "Selected user": {
+    "ja": "選択されたユーザー",
+    "es": "Usuario seleccionado"
+  },
+  "Send": {
+    "ja": "送信",
+    "es": "Enviar"
+  },
+  "Send one prompt to multiple models and compare the differences right away.": {
+    "ja": "1 つのプロンプトを複数のモデルに送信し、違いをすぐに比較します。",
+    "es": "Envíe un mensaje a varios modelos y compare las diferencias de inmediato."
+  },
+  "Send one task to GPT, Claude, Gemini, and Grok at once. See every answer side by side on result cards — not buried in separate chat windows.": {
+    "ja": "1 つのタスクを GPT、Claude、Gemini、Grok に一度に送信します。すべての回答を結果カードに並べて表示します。個別のチャット ウィンドウに埋もれることはありません。",
+    "es": "Envía una tarea a GPT, Claude, Gemini y Grok a la vez. Vea cada respuesta una al lado de la otra en tarjetas de resultados, no ocultas en ventanas de chat separadas."
+  },
+  "Send one task to multiple models simultaneously and compare differences on a single screen.": {
+    "ja": "1つのタスクを複数のモデルに同時に送信し、1つの画面上で差異を比較します。",
+    "es": "Envíe una tarea a varios modelos simultáneamente y compare las diferencias en una sola pantalla."
+  },
+  "Send reply": {
+    "ja": "返信を送信",
+    "es": "Enviar respuesta"
+  },
+  "Send your question to multiple AI models at once and compare their answers side by side!": {
+    "ja": "質問を複数の AI モデルに一度に送信し、答えを並べて比較します。",
+    "es": "Envíe su pregunta a varios modelos de IA a la vez y compare sus respuestas una al lado de la otra."
+  },
+  "Sending...": {
+    "ja": "送信中...",
+    "es": "Enviando..."
+  },
+  "Sent to 4 models at once": {
+    "ja": "4つのモデルに一度に送信",
+    "es": "Enviado a 4 modelos a la vez"
+  },
+  "Sequential review chain": {
+    "ja": "逐次レビューチェーン",
+    "es": "Cadena de revisión secuencial"
+  },
+  "Sequential Review Chain": {
+    "ja": "逐次レビューチェーン",
+    "es": "Cadena de revisión secuencial"
+  },
+  "Sequential Review Chain — Step-by-Step Tutorial": {
+    "ja": "逐次レビューチェーン — ステップバイステップのチュートリアル",
+    "es": "Cadena de revisión secuencial: tutorial paso a paso"
+  },
+  "Sessions": {
+    "ja": "セッション",
+    "es": "Sesiones"
+  },
+  "Set one active config per provider. Keys are encrypted server-side and masked in UI.": {
+    "ja": "プロバイダーごとに 1 つのアクティブな構成を設定します。キーはサーバー側で暗号化され、UI でマスクされます。",
+    "es": "Establezca una configuración activa por proveedor. Las claves se cifran en el lado del servidor y se enmascaran en la interfaz de usuario."
+  },
+  "settings saved.": {
+    "ja": "設定が保存されました。",
+    "es": "configuración guardada."
+  },
+  "Share overview link": {
+    "ja": "概要リンクを共有する",
+    "es": "Compartir enlace de descripción general"
+  },
+  "Share result": {
+    "ja": "結果を共有する",
+    "es": "Compartir resultado"
+  },
+  "Share the full result view": {
+    "ja": "完全な結果ビューを共有する",
+    "es": "Comparte la vista completa de resultados"
+  },
+  "Shared overview link": {
+    "ja": "共有概要リンク",
+    "es": "Enlace de descripción general compartido"
+  },
+  "Shared project context": {
+    "ja": "共有プロジェクトコンテキスト",
+    "es": "Contexto de proyecto compartido"
+  },
+  "Shared project memory": {
+    "ja": "共有プロジェクトメモリ",
+    "es": "Memoria de proyecto compartida"
+  },
+  "Shared project notes and recent project outputs are included in provider prompts for runs from this window.": {
+    "ja": "共有プロジェクト ノートと最近のプロジェクト出力は、このウィンドウから実行するためのプロバイダー プロンプトに含まれています。",
+    "es": "Las notas compartidas del proyecto y los resultados recientes del proyecto se incluyen en las indicaciones del proveedor para las ejecuciones desde esta ventana."
+  },
+  "Shared result link": {
+    "ja": "共有結果リンク",
+    "es": "Enlace de resultado compartido"
+  },
+  "Shared result view": {
+    "ja": "共有結果ビュー",
+    "es": "Vista de resultados compartida"
+  },
+  "Sharing...": {
+    "ja": "共有中...",
+    "es": "Compartiendo..."
+  },
+  "short": {
+    "ja": "短い",
+    "es": "corto"
+  },
+  "Show models": {
+    "ja": "モデルを表示する",
+    "es": "Mostrar modelos"
+  },
+  "Sign in": {
+    "ja": "サインイン",
+    "es": "Iniciar sesión"
+  },
+  "Sign in as admin": {
+    "ja": "管理者としてサインインする",
+    "es": "Iniciar sesión como administrador"
+  },
+  "Sign out": {
+    "ja": "サインアウト",
+    "es": "Cerrar sesión"
+  },
+  "Sign up or sign in": {
+    "ja": "サインアップまたはサインイン",
+    "es": "Regístrate o inicia sesión"
+  },
+  "Signed in": {
+    "ja": "サインインしました",
+    "es": "Iniciado sesión"
+  },
+  "Signed in as": {
+    "ja": "としてサインインしました",
+    "es": "Iniciado sesión como"
+  },
+  "Signed-out visitors get ": {
+    "ja": "サインアウトした訪問者が得られるのは、",
+    "es": "Los visitantes que hayan cerrado sesión obtienen"
+  },
+  "Signed-out visitors get 30 credits per day. Sign in to get 70 credits per day.": {
+    "ja": "サインアウトした訪問者は 1 日あたり 30 クレジットを取得します。サインインすると、1 日あたり 70 クレジットを獲得できます。",
+    "es": "Los visitantes que hayan iniciado sesión obtienen 30 créditos por día. Inicia sesión para obtener 70 créditos por día."
+  },
+  "Signing in...": {
+    "ja": "サインイン中...",
+    "es": "Iniciando sesión..."
+  },
+  "Signing out...": {
+    "ja": "サインアウト中...",
+    "es": "Cerrando sesión..."
+  },
+  "Simplify": {
+    "ja": "簡素化する",
+    "es": "Simplificar"
+  },
+  "Single result": {
+    "ja": "単一の結果",
+    "es": "resultado único"
+  },
+  "skipped": {
+    "ja": "スキップしました",
+    "es": "saltado"
+  },
+  "Skipped": {
+    "ja": "スキップされました",
+    "es": "Saltado"
+  },
+  "Skipped because the sequence stopped early.": {
+    "ja": "シーケンスが途中で停止したためスキップされました。",
+    "es": "Se omitió porque la secuencia se detuvo antes de tiempo."
+  },
+  "Slow reasoning models may need a longer timeout before they return the full response.": {
+    "ja": "遅い推論モデルでは、完全な応答を返す前に、より長いタイムアウトが必要になる場合があります。",
+    "es": "Los modelos de razonamiento lento pueden necesitar un tiempo de espera más prolongado antes de devolver la respuesta completa."
+  },
+  "Sort": {
+    "ja": "選別",
+    "es": "Clasificar"
+  },
+  "Source": {
+    "ja": "ソース",
+    "es": "Fuente"
+  },
+  "Source:": {
+    "ja": "ソース：",
+    "es": "Fuente:"
+  },
+  "Source: original input": {
+    "ja": "ソース: 元の入力",
+    "es": "Fuente: entrada original"
+  },
+  "Source: previous completed result": {
+    "ja": "出典: 以前の完了結果",
+    "es": "Fuente: resultado completo anterior"
+  },
+  "Source: prior completed results": {
+    "ja": "出典: 以前に完了した結果",
+    "es": "Fuente: resultados completados anteriormente"
+  },
+  "Source: selected result": {
+    "ja": "ソース: 選択された結果",
+    "es": "Fuente: resultado seleccionado"
+  },
+  "Spanish": {
+    "ja": "スペイン語",
+    "es": "Español"
+  },
+  "Start first window": {
+    "ja": "最初のウィンドウを開始する",
+    "es": "Iniciar primera ventana"
+  },
+  "Start monthly plan": {
+    "ja": "月額プランを始める",
+    "es": "Iniciar plan mensual"
+  },
+  "Start point": {
+    "ja": "スタート地点",
+    "es": "Punto de inicio"
+  },
+  "Start step": {
+    "ja": "スタートステップ",
+    "es": "Iniciar paso"
+  },
+  "Start using Yapp": {
+    "ja": "ヤップを使い始める",
+    "es": "Comience a usar Yapp"
+  },
+  "Start with one task, run selected models in parallel, or execute a step-by-step review chain where each result can feed the next model.": {
+    "ja": "1 つのタスクから開始し、選択したモデルを並行して実行するか、各結果を次のモデルにフィードできる段階的なレビュー チェーンを実行します。",
+    "es": "Comience con una tarea, ejecute modelos seleccionados en paralelo o ejecute una cadena de revisión paso a paso donde cada resultado pueda alimentar el siguiente modelo."
+  },
+  "Started": {
+    "ja": "開始しました",
+    "es": "Comenzó"
+  },
+  "STARTER": {
+    "ja": "スターター",
+    "es": "MOTOR DE ARRANQUE"
+  },
+  "Status": {
+    "ja": "状態",
+    "es": "Estado"
+  },
+  "Status updated.": {
+    "ja": "ステータスが更新されました。",
+    "es": "Estado actualizado."
+  },
+  "step": {
+    "ja": "ステップ",
+    "es": "paso"
+  },
+  "Step": {
+    "ja": "ステップ",
+    "es": "Paso"
+  },
+  "Step ": {
+    "ja": "ステップ",
+    "es": "Paso"
+  },
+  "Step 1 runs first and creates an answer. That answer automatically goes to Step 2, which does its job (like critiquing). Then Step 2's result goes to Step 3, and so on — like a relay race!": {
+    "ja": "ステップ 1 が最初に実行され、回答が作成されます。その答えは自動的にステップ 2 に進み、その仕事 (批評など) を行います。次に、ステップ 2 の結果がステップ 3 に進み、以下同様にリレー レースのように続きます。",
+    "es": "El paso 1 se ejecuta primero y crea una respuesta. Esa respuesta pasa automáticamente al Paso 2, que hace su trabajo (como criticar). Luego, el resultado del Paso 2 pasa al Paso 3, y así sucesivamente, ¡como una carrera de relevos!"
+  },
+  "Step instruction": {
+    "ja": "ステップ命令",
+    "es": "Instrucción de paso"
+  },
+  "Step stopped by user request.": {
+    "ja": "ユーザー要求によりステップが停止されました。",
+    "es": "Paso detenido por solicitud del usuario."
+  },
+  "Step-by-Step Guide": {
+    "ja": "ステップバイステップガイド",
+    "es": "Guía paso a paso"
+  },
+  "Step-by-step improve": {
+    "ja": "段階的に改善する",
+    "es": "Mejora paso a paso"
+  },
+  "steps": {
+    "ja": "ステップ",
+    "es": "pasos"
+  },
+  "Stop all": {
+    "ja": "全部やめて",
+    "es": "detener todo"
+  },
+  "Stop step": {
+    "ja": "ストップステップ",
+    "es": "detener paso"
+  },
+  "Stopped": {
+    "ja": "停止しました",
+    "es": "Interrumpido"
+  },
+  "Stopped by user request.": {
+    "ja": "ユーザーのリクエストにより停止されました。",
+    "es": "Detenido por solicitud del usuario."
+  },
+  "Stopping...": {
+    "ja": "停止中...",
+    "es": "Deteniendo..."
+  },
+  "Stored key ending": {
+    "ja": "保存されたキーの終了",
+    "es": "Final de clave almacenada"
+  },
+  "Stored key:": {
+    "ja": "保存されたキー:",
+    "es": "Clave almacenada:"
+  },
+  "Submit": {
+    "ja": "提出する",
+    "es": "Entregar"
+  },
+  "Submitting...": {
+    "ja": "送信中...",
+    "es": "Enviando..."
+  },
+  "Subscription": {
+    "ja": "サブスクリプション",
+    "es": "Suscripción"
+  },
+  "Summarize": {
+    "ja": "要約する",
+    "es": "Resumir"
+  },
+  "Support": {
+    "ja": "サポート",
+    "es": "Apoyo"
+  },
+  "Supported models": {
+    "ja": "対応機種",
+    "es": "Modelos compatibles"
+  },
+  "Suspend user": {
+    "ja": "ユーザーの一時停止",
+    "es": "Suspender usuario"
+  },
+  "Switch to \"Sequential Review Chain\" mode. Add steps where each targets a specific model and action (generate, critique, improve, summarize, fact-check). Each step can consume the original input, the previous step, or a selected result.": {
+    "ja": "「逐次レビューチェーン」モードに切り替えます。それぞれが特定のモデルとアクション (生成、批評、改善、要約、事実確認) を対象とするステップを追加します。各ステップでは、元の入力、前のステップ、または選択した結果を使用できます。",
+    "es": "Cambie al modo \"Cadena de revisión secuencial\". Agregue pasos donde cada uno se dirija a un modelo y acción específicos (generar, criticar, mejorar, resumir, verificar hechos). Cada paso puede consumir la entrada original, el paso anterior o un resultado seleccionado."
+  },
+  "Switch to Brainstorm + prior results": {
+    "ja": "ブレインストーミング + 以前の結果に切り替える",
+    "es": "Cambiar a Brainstorm + resultados anteriores"
+  },
+  "System progress": {
+    "ja": "システムの進行状況",
+    "es": "Progreso del sistema"
+  },
+  "table": {
+    "ja": "テーブル",
+    "es": "mesa"
+  },
+  "Target": {
+    "ja": "ターゲット",
+    "es": "Objetivo"
+  },
+  "Target models": {
+    "ja": "対象機種",
+    "es": "Modelos de destino"
+  },
+  "Tasks": {
+    "ja": "タスク",
+    "es": "Tareas"
+  },
+  "TEAM": {
+    "ja": "チーム",
+    "es": "EQUIPO"
+  },
+  "Tell the next model what to review or improve...": {
+    "ja": "次期モデルに見直しや改善すべき点を伝えます...",
+    "es": "Dígale al próximo modelo qué revisar o mejorar..."
+  },
+  "template": {
+    "ja": "テンプレート",
+    "es": "plantilla"
+  },
+  "Template ": {
+    "ja": "テンプレート",
+    "es": "Plantilla"
+  },
+  "Template step ": {
+    "ja": "テンプレートステップ",
+    "es": "Paso de plantilla"
+  },
+  "Text files (.txt, .md, .csv), JSON, Word documents (.docx), PDF documents, and images (.png, .jpg, .webp, .gif). Files are processed server-side and included in prompts for all models.": {
+    "ja": "テキスト ファイル (.txt、.md、.csv)、JSON、Word ドキュメント (.docx)、PDF ドキュメント、および画像 (.png、.jpg、.webp、.gif)。ファイルはサーバー側で処理され、すべてのモデルのプロンプトに含まれます。",
+    "es": "Archivos de texto (.txt, .md, .csv), JSON, documentos de Word (.docx), documentos PDF e imágenes (.png, .jpg, .webp, .gif). Los archivos se procesan en el lado del servidor y se incluyen en las solicitudes de todos los modelos."
+  },
+  "The browser blocked automatic copying of the original input.": {
+    "ja": "ブラウザーは、元の入力の自動コピーをブロックしました。",
+    "es": "El navegador bloqueó la copia automática de la entrada original."
+  },
+  "The browser blocked automatic copying.": {
+    "ja": "ブラウザが自動コピーをブロックしました。",
+    "es": "El navegador bloqueó la copia automática."
+  },
+  "The link was created, but the browser blocked automatic copying. Open it below or select it manually.": {
+    "ja": "リンクは作成されましたが、ブラウザによって自動コピーがブロックされました。以下で開くか、手動で選択してください。",
+    "es": "El enlace fue creado, pero el navegador bloqueó la copia automática. Ábralo a continuación o selecciónelo manualmente."
+  },
+  "The model is generating a response.": {
+    "ja": "モデルは応答を生成しています。",
+    "es": "El modelo está generando una respuesta."
+  },
+  "The model is generating a response. This card will update when the result arrives.": {
+    "ja": "モデルは応答を生成しています。結果が到着すると、このカードは更新されます。",
+    "es": "El modelo está generando una respuesta. Esta tarjeta se actualizará cuando llegue el resultado."
+  },
+  "The run ended with an error.": {
+    "ja": "実行はエラーで終了しました。",
+    "es": "La carrera terminó con un error."
+  },
+  "The separate comparison view is open.": {
+    "ja": "別の比較ビューが開きます。",
+    "es": "La vista de comparación separada está abierta."
+  },
+  "The session loaded, but the previous active run could not be resumed.": {
+    "ja": "セッションはロードされましたが、以前のアクティブな実行を再開できませんでした。",
+    "es": "La sesión se cargó, pero no se pudo reanudar la ejecución activa anterior."
+  },
+  "Theme, purpose, or working area": {
+    "ja": "テーマ、目的、または作業領域",
+    "es": "Tema, propósito o área de trabajo"
+  },
+  "There is no saved session to share yet.": {
+    "ja": "共有できる保存済みセッションはまだありません。",
+    "es": "Aún no hay ninguna sesión guardada para compartir."
+  },
+  "These notes are injected into runs from this project, along with a compact digest of recent project results.": {
+    "ja": "これらのメモは、最近のプロジェクト結果のコンパクトなダイジェストとともに、このプロジェクトの実行に挿入されます。",
+    "es": "Estas notas se insertan en ejecuciones de este proyecto, junto con un resumen compacto de los resultados recientes del proyecto."
+  },
+  "This account owns your provider settings, sessions, workflow steps, results, and presets.": {
+    "ja": "このアカウントは、プロバイダー設定、セッション、ワークフロー ステップ、結果、およびプリセットを所有します。",
+    "es": "Esta cuenta es propietaria de la configuración, las sesiones, los pasos del flujo de trabajo, los resultados y los ajustes preestablecidos de su proveedor."
+  },
+  "This device cannot start another anonymous trial. Sign in to continue.": {
+    "ja": "このデバイスでは、別の匿名トライアルを開始できません。続行するにはサインインしてください。",
+    "es": "Este dispositivo no puede iniciar otra prueba anónima. Inicia sesión para continuar."
+  },
+  "This link shows the input and result board without sign-in.": {
+    "ja": "このリンクには、サインインせずに入力および結果ボードが表示されます。",
+    "es": "Este enlace muestra el tablero de entrada y resultados sin iniciar sesión."
+  },
+  "This link shows the input, workflow, and every step result.": {
+    "ja": "このリンクには、入力、ワークフロー、および各ステップの結果が表示されます。",
+    "es": "Este enlace muestra la entrada, el flujo de trabajo y el resultado de cada paso."
+  },
+  "This prompt becomes the root for comparisons, chains, and branches.": {
+    "ja": "このプロンプトは、比較、チェーン、分岐のルートになります。",
+    "es": "Este mensaje se convierte en la raíz de comparaciones, cadenas y ramas."
+  },
+  "This run needs about ": {
+    "ja": "この実行には約",
+    "es": "Esta carrera necesita aproximadamente"
+  },
+  "This step is inside a repeat block but is set to Generate / Original input, so it regenerates the same answer each cycle instead of building on prior results.": {
+    "ja": "このステップは繰り返しブロック内にありますが、生成 / 元の入力に設定されているため、以前の結果に基づいて構築するのではなく、サイクルごとに同じ回答が再生成されます。",
+    "es": "Este paso está dentro de un bloque de repetición, pero está configurado en Generar/entrada original, por lo que regenera la misma respuesta en cada ciclo en lugar de basarse en resultados anteriores."
+  },
+  "This step stop was requested.": {
+    "ja": "このステップ停止が要求されました。",
+    "es": "Se solicitó esta parada de paso."
+  },
+  "Three-step review chain": {
+    "ja": "3 段階のレビュー チェーン",
+    "es": "Cadena de revisión de tres pasos"
+  },
+  "Time": {
+    "ja": "時間",
+    "es": "Tiempo"
+  },
+  "Title": {
+    "ja": "タイトル",
+    "es": "Título"
+  },
+  "title or user email": {
+    "ja": "タイトルまたはユーザーのメールアドレス",
+    "es": "título o correo electrónico del usuario"
+  },
+  "Today ": {
+    "ja": "今日",
+    "es": "Hoy"
+  },
+  "Today AI errors": {
+    "ja": "今日の AI エラー",
+    "es": "Errores de IA de hoy"
+  },
+  "Today estimated cost": {
+    "ja": "今日の見積もり費用",
+    "es": "Costo estimado hoy"
+  },
+  "Today left": {
+    "ja": "今日は残りました",
+    "es": "hoy se fue"
+  },
+  "Today request actions": {
+    "ja": "今日のリクエストアクション",
+    "es": "Hoy solicita acciones"
+  },
+  "tokens": {
+    "ja": "トークン",
+    "es": "fichas"
+  },
+  "Tokens used": {
+    "ja": "使用されたトークン",
+    "es": "Fichas utilizadas"
+  },
+  "Tokens:": {
+    "ja": "トークン:",
+    "es": "Fichas:"
+  },
+  "Top users by cost today": {
+    "ja": "今日のコスト別トップユーザー",
+    "es": "Usuarios principales por costo hoy"
+  },
+  "Top-level parallel results are compared model by model, with shared points and differences summarized below.": {
+    "ja": "最上位の並列結果はモデルごとに比較され、共通点と相違点が以下にまとめられています。",
+    "es": "Los resultados paralelos de alto nivel se comparan modelo por modelo, y los puntos compartidos y las diferencias se resumen a continuación."
+  },
+  "Topic folders with shared context": {
+    "ja": "共有コンテキストを持つトピックフォルダー",
+    "es": "Carpetas de temas con contexto compartido"
+  },
+  "Total": {
+    "ja": "合計",
+    "es": "Total"
+  },
+  "Total sequential executions must be 50 or fewer.": {
+    "ja": "連続実行の合計は 50 回以下である必要があります。",
+    "es": "El total de ejecuciones secuenciales debe ser 50 o menos."
+  },
+  "Track admin actions and encrypted content access history.": {
+    "ja": "管理者のアクションと暗号化されたコンテンツのアクセス履歴を追跡します。",
+    "es": "Realice un seguimiento de las acciones del administrador y del historial de acceso al contenido cifrado."
+  },
+  "Trial Mode (signed out)": {
+    "ja": "トライアルモード (サインアウト)",
+    "es": "Modo de prueba (desconectado)"
+  },
+  "Turn on your AI models": {
+    "ja": "AI モデルをオンにする",
+    "es": "Enciende tus modelos de IA"
+  },
+  "Turn several AI models into a review chain.": {
+    "ja": "複数の AI モデルをレビュー チェーンに変換します。",
+    "es": "Convierta varios modelos de IA en una cadena de revisión."
+  },
+  "Turn the critique into a better version.": {
+    "ja": "批評をより良いものに変えましょう。",
+    "es": "Convierte la crítica en una mejor versión."
+  },
+  "Type": {
+    "ja": "タイプ",
+    "es": "Tipo"
+  },
+  "Type your question": {
+    "ja": "質問を入力してください",
+    "es": "Escribe tu pregunta"
+  },
+  "Type your question, analysis request, or instruction in the text area. Then enable the AI models you want to compare by toggling them in the \"Model Selection\" panel. You can also choose an output style (detailed, short, bullet, table, or results-focused) to control how results are formatted.": {
+    "ja": "質問、分析リクエスト、または指示をテキスト領域に入力します。次に、[モデル選択] パネルで比較したい AI モデルを切り替えて有効にします。出力スタイル (詳細、簡潔、箇条書き、表、または結果重視) を選択して、結果の書式設定方法を制御することもできます。",
+    "es": "Escriba su pregunta, solicitud de análisis o instrucción en el área de texto. Luego habilite los modelos de IA que desea comparar cambiándolos en el panel \"Selección de modelo\". También puede elegir un estilo de salida (detallado, breve, con viñetas, de tabla o centrado en resultados) para controlar cómo se formatean los resultados."
+  },
+  "Type your starting question": {
+    "ja": "最初の質問を入力してください",
+    "es": "Escribe tu pregunta inicial"
+  },
+  "Unable to start the trial.": {
+    "ja": "トライアルを開始できません。",
+    "es": "No se puede iniciar la prueba."
+  },
+  "Unlimited credits": {
+    "ja": "無制限のクレジット",
+    "es": "Créditos ilimitados"
+  },
+  "Unread": {
+    "ja": "未読",
+    "es": "No leído"
+  },
+  "Unsaved draft restored": {
+    "ja": "保存されていないドラフトが復元されました",
+    "es": "Borrador no guardado restaurado"
+  },
+  "Unsuspend user": {
+    "ja": "ユーザーの一時停止を解除する",
+    "es": "Suspender usuario"
+  },
+  "Update project name and baseline guidance that AI should reference in this project.": {
+    "ja": "AI がこのプロジェクトで参照する必要があるプロジェクト名とベースライン ガイダンスを更新します。",
+    "es": "Actualice el nombre del proyecto y la guía de referencia a la que AI debe hacer referencia en este proyecto."
+  },
+  "updated": {
+    "ja": "更新されました",
+    "es": "actualizado"
+  },
+  "Updated": {
+    "ja": "更新されました",
+    "es": "Actualizado"
+  },
+  "Uploading...": {
+    "ja": "アップロード中...",
+    "es": "Subiendo..."
+  },
+  "usage n/a": {
+    "ja": "使用法なし",
+    "es": "uso n/a"
+  },
+  "Usage totals": {
+    "ja": "使用量の合計",
+    "es": "Totales de uso"
+  },
+  "Use again tomorrow": {
+    "ja": "明日また利用します",
+    "es": "Usar de nuevo mañana"
+  },
+  "Use sequential mode to route output from one model into the next.": {
+    "ja": "シーケンシャル モードを使用して、あるモデルから次のモデルに出力をルーティングします。",
+    "es": "Utilice el modo secuencial para dirigir la salida de un modelo al siguiente."
+  },
+  "Use the additional instruction field to add optional context, constraints, or evaluation criteria. Attach files (text, Word, images, PDF) for richer inputs.": {
+    "ja": "追加の指示フィールドを使用して、オプションのコンテキスト、制約、または評価基準を追加します。ファイル (テキスト、Word、画像、PDF) を添付して、より豊富な入力を実現します。",
+    "es": "Utilice el campo de instrucción adicional para agregar contexto, restricciones o criterios de evaluación opcionales. Adjunte archivos (texto, Word, imágenes, PDF) para obtener entradas más completas."
+  },
+  "used": {
+    "ja": "使用済み",
+    "es": "usado"
+  },
+  "User": {
+    "ja": "ユーザー",
+    "es": "Usuario"
+  },
+  "User feedback": {
+    "ja": "ユーザーからのフィードバック",
+    "es": "Comentarios de los usuarios"
+  },
+  "User is already lifetime free. Event was logged.": {
+    "ja": "ユーザーはすでに永久無料です。イベントが記録されました。",
+    "es": "El usuario ya es gratuito de por vida. Se registró el evento."
+  },
+  "User reactivated.": {
+    "ja": "ユーザーが再アクティブ化されました。",
+    "es": "Usuario reactivado."
+  },
+  "User sign-in": {
+    "ja": "ユーザーのサインイン",
+    "es": "Inicio de sesión de usuario"
+  },
+  "User suspended.": {
+    "ja": "ユーザーが一時停止されました。",
+    "es": "Usuario suspendido."
+  },
+  "Users": {
+    "ja": "ユーザー",
+    "es": "Usuarios"
+  },
+  "Uses original input": {
+    "ja": "オリジナルの入力を使用",
+    "es": "Utiliza entrada original"
+  },
+  "Uses previous completed result": {
+    "ja": "以前に完了した結果を使用します",
+    "es": "Utiliza el resultado completado anterior"
+  },
+  "Uses prior completed results": {
+    "ja": "以前に完了した結果を使用します",
+    "es": "Utiliza resultados completados anteriormente"
+  },
+  "Uses selected result": {
+    "ja": "選択した結果を使用します",
+    "es": "Utiliza el resultado seleccionado"
+  },
+  "Version": {
+    "ja": "バージョン",
+    "es": "Versión"
+  },
+  "View raw content": {
+    "ja": "生のコンテンツを表示する",
+    "es": "Ver contenido sin procesar"
+  },
+  "Viewed user": {
+    "ja": "閲覧したユーザー",
+    "es": "Usuario visto"
+  },
+  "Visible users": {
+    "ja": "可視ユーザー",
+    "es": "Usuarios visibles"
+  },
+  "Wait a moment": {
+    "ja": "ちょっと待ってください",
+    "es": "Espera un momento"
+  },
+  "Waiting for the model response": {
+    "ja": "モデルの応答を待っています",
+    "es": "Esperando la respuesta del modelo."
+  },
+  "Wallet": {
+    "ja": "財布",
+    "es": "Billetera"
+  },
+  "Watch the chain work": {
+    "ja": "チェーンの動作を観察してください",
+    "es": "Mira cómo funciona la cadena"
+  },
+  "weekly credit coupon": {
+    "ja": "毎週のクレジットクーポン",
+    "es": "cupón de crédito semanal"
+  },
+  "What file types can I attach?": {
+    "ja": "どのような種類のファイルを添付できますか?",
+    "es": "¿Qué tipos de archivos puedo adjuntar?"
+  },
+  "What happens if one AI model fails during a run?": {
+    "ja": "実行中に 1 つの AI モデルに障害が発生した場合はどうなりますか?",
+    "es": "¿Qué sucede si un modelo de IA falla durante una ejecución?"
+  },
+  "What this folder is for": {
+    "ja": "このフォルダーの用途",
+    "es": "Para que sirve esta carpeta"
+  },
+  "When enabled, the selected step self-evaluates quality and can stop the run early.": {
+    "ja": "有効にすると、選択したステップが品質を自己評価し、実行を早期に停止できます。",
+    "es": "Cuando está habilitado, el paso seleccionado autoevalúa la calidad y puede detener la ejecución antes de tiempo."
+  },
+  "When the chain finishes, you can read every step's output. The last step has the final, polished answer. Click any step to see what that AI wrote.": {
+    "ja": "チェーンが終了すると、すべてのステップの出力を読み取ることができます。最後のステップには、最終的な洗練された答えがあります。任意のステップをクリックすると、AI が何を書いたかを確認できます。",
+    "es": "Cuando finaliza la cadena, puede leer el resultado de cada paso. El último paso tiene la respuesta final y pulida. Haga clic en cualquier paso para ver lo que escribió esa IA."
+  },
+  "with": {
+    "ja": "と",
+    "es": "con"
+  },
+  "With \"Parallel Compare\" mode selected, click Run. All enabled models process the same task simultaneously. Results appear as individual cards showing the output, token usage, latency, and estimated cost.": {
+    "ja": "「並列比較」モードを選択した状態で、「実行」をクリックします。有効になっているすべてのモデルは、同じタスクを同時に処理します。結果は、出力、トークン使用量、待ち時間、推定コストを示す個別のカードとして表示されます。",
+    "es": "Con el modo \"Comparación paralela\" seleccionado, haga clic en Ejecutar. Todos los modelos habilitados procesan la misma tarea simultáneamente. Los resultados aparecen como tarjetas individuales que muestran el resultado, el uso del token, la latencia y el costo estimado."
+  },
+  "Work with results": {
+    "ja": "結果を扱う",
+    "es": "Trabajar con resultados"
+  },
+  "Workbench": {
+    "ja": "ワークベンチ",
+    "es": "Espacio de trabajo"
+  },
+  "Workflow": {
+    "ja": "ワークフロー",
+    "es": "Flujo de trabajo"
+  },
+  "Workflow builder": {
+    "ja": "ワークフロービルダー",
+    "es": "Generador de flujo de trabajo"
+  },
+  "Workflow modes": {
+    "ja": "ワークフローモード",
+    "es": "Modos de flujo de trabajo"
+  },
+  "Workflow order": {
+    "ja": "ワークフローの順序",
+    "es": "Orden de flujo de trabajo"
+  },
+  "Workflow preset saved.": {
+    "ja": "ワークフローのプリセットが保存されました。",
+    "es": "Preajuste de flujo de trabajo guardado."
+  },
+  "Workflow steps": {
+    "ja": "ワークフローのステップ",
+    "es": "Pasos del flujo de trabajo"
+  },
+  "Write a follow-up message.": {
+    "ja": "フォローアップメッセージを書きます。",
+    "es": "Escribe un mensaje de seguimiento."
+  },
+  "Write a reply to the user.": {
+    "ja": "ユーザーに返信を書きます。",
+    "es": "Escribe una respuesta al usuario."
+  },
+  "Write a task and select models": {
+    "ja": "タスクを作成してモデルを選択する",
+    "es": "Escribe una tarea y selecciona modelos."
+  },
+  "Yapp Admin": {
+    "ja": "ヤップ管理者",
+    "es": "Administrador de Yapp"
+  },
+  "Yapp Boost active": {
+    "ja": "ヤップブースト有効",
+    "es": "Yapp Boost activo"
+  },
+  "Yapp by Wideget": {
+    "ja": "ワイジェットのヤップ",
+    "es": "Yapp de Wideget"
+  },
+  "Yapp free usage": {
+    "ja": "Yappの無料使用",
+    "es": "Uso gratuito de Yapp"
+  },
+  "Yapp Guidebook": {
+    "ja": "ヤップ ガイドブック",
+    "es": "Guía de Yapp"
+  },
+  "Yapp isn't another chatbot. It's an orchestration workbench that turns several AI models into a structured review pipeline.": {
+    "ja": "Yapp は別のチャットボットではありません。これは、複数の AI モデルを構造化されたレビュー パイプラインに変えるオーケストレーション ワークベンチです。",
+    "es": "Yapp no ​​es otro chatbot. Es un banco de trabajo de orquestación que convierte varios modelos de IA en un proceso de revisión estructurado."
+  },
+  "Yapp Orchestration Workbench": {
+    "ja": "Yapp オーケストレーション・ワークベンチ",
+    "es": "Espacio de orquestación de Yapp"
+  },
+  "Yapp Pro plan": {
+    "ja": "ヤッププロプラン",
+    "es": "Plan Yapp Pro"
+  },
+  "Yapp runs one task through multiple models, compares their answers, and lets every result become the source for a next review, critique, improvement, or summary.": {
+    "ja": "Yapp は1つのタスクを複数のモデルで実行し、回答を比較し、各結果を次のレビュー、批評、改善、要約の入力として利用できます。",
+    "es": "Yapp ejecuta una tarea en varios modelos, compara sus respuestas y permite usar cada resultado como punto de partida para la siguiente revisión, crítica, mejora o resumen."
+  },
+  "Yapp Starter plan": {
+    "ja": "ヤップスタータープラン",
+    "es": "Plan inicial de Yapp"
+  },
+  "Yapp team": {
+    "ja": "ヤップチーム",
+    "es": "equipo yapp"
+  },
+  "Yapp Team plan": {
+    "ja": "ヤップチームプラン",
+    "es": "Plan del equipo Yapp"
+  },
+  "Yapp trial (signed out)": {
+    "ja": "Yapp トライアル (サインアウト)",
+    "es": "Prueba de Yapp (cerrado sesión)"
+  },
+  "Yes. All AI calls happen server-side only — your inputs never go directly to external providers from your browser. Sessions use HttpOnly cookies, and all credentials are encrypted.": {
+    "ja": "はい。すべての AI 呼び出しはサーバー側でのみ発生します。入力がブラウザーから外部プロバイダーに直接送信されることはありません。セッションでは HttpOnly Cookie が使用され、すべての資格情報が暗号化されます。",
+    "es": "Sí. Todas las llamadas de IA se realizan únicamente en el lado del servidor: sus entradas nunca van directamente a proveedores externos desde su navegador. Las sesiones utilizan cookies HttpOnly y todas las credenciales están cifradas."
+  },
+  "Yes. The workbench is fully responsive with a mobile-optimized bottom navigation bar and collapsible panels for models, input, workflow, and results.": {
+    "ja": "はい。ワークベンチは、モバイルに最適化された下部ナビゲーション バーと、モデル、入力、ワークフロー、結果用の折りたたみ可能なパネルを備え、完全に応答します。",
+    "es": "Sí. El banco de trabajo es totalmente responsivo con una barra de navegación inferior optimizada para dispositivos móviles y paneles plegables para modelos, entradas, flujo de trabajo y resultados."
+  },
+  "You can attach up to ": {
+    "ja": "まで添付できます",
+    "es": "Puedes adjuntar hasta"
+  },
+  "You can configure up to 10 repeat blocks.": {
+    "ja": "リピートブロックは最大10個まで設定できます。",
+    "es": "Puede configurar hasta 10 bloques de repetición."
+  },
+  "You currently have ": {
+    "ja": "現在あなたが持っているのは、",
+    "es": "Actualmente tienes"
+  },
+  "You have not posted any feedback yet.": {
+    "ja": "まだフィードバックを投稿していません。",
+    "es": "Aún no has publicado ningún comentario."
+  },
+  "You have used all 5 trial conversations. Sign in to continue.": {
+    "ja": "5 つのトライアル会話をすべて使用しました。続行するにはサインインしてください。",
+    "es": "Ha utilizado las 5 conversaciones de prueba. Inicia sesión para continuar."
+  },
+  "You'll see 3 steps already set up: Step 1 (GPT → Generate) → Step 2 (Grok → Critique) → Step 3 (Gemini → Improve). This is your starting chain!": {
+    "ja": "すでに 3 つのステップが設定されていることがわかります: ステップ 1 (GPT → 生成) → ステップ 2 (Grok → Critique) → ステップ 3 (Gemini → 改善)。これがあなたのスタートチェーンです！",
+    "es": "Verás 3 pasos ya configurados: Paso 1 (GPT → Generar) → Paso 2 (Grok → Crítica) → Paso 3 (Géminis → Mejorar). ¡Esta es tu cadena inicial!"
+  },
+  "You're close to the limit. Credits left: ": {
+    "ja": "もう限界に近づいています。残りのクレジット:",
+    "es": "Estás cerca del límite. Créditos restantes:"
+  },
+  "You've used your available credits.": {
+    "ja": "利用可能なクレジットを使い果たしました。",
+    "es": "Has utilizado tus créditos disponibles."
+  },
+  "Your account is suspended.": {
+    "ja": "あなたのアカウントは停止されています。",
+    "es": "Su cuenta está suspendida."
+  },
+  "Your First Steps with Yapp": {
+    "ja": "Yapp での最初のステップ",
+    "es": "Tus primeros pasos con Yapp"
+  },
+  "Your name": {
+    "ja": "あなたの名前",
+    "es": "Su nombre"
+  },
+  "Your provider settings, sessions, results, branches, and workflow presets stay scoped to your account.": {
+    "ja": "プロバイダーの設定、セッション、結果、ブランチ、およびワークフローのプリセットは、アカウントにスコープされたままになります。",
+    "es": "La configuración de su proveedor, las sesiones, los resultados, las ramas y los ajustes preestablecidos del flujo de trabajo permanecen restringidos a su cuenta."
+  }
+}

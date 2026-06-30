@@ -1,5 +1,11 @@
 "use client";
 
+import { type AppLanguage } from "@/lib/i18n";
+
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
@@ -38,8 +44,8 @@ type ProjectDetail = {
   }>;
 };
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" }), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -51,7 +57,7 @@ function displayMode(mode: string, t: ReturnType<typeof useLanguage>["t"]) {
   return mode === "sequential" ? t("sequentialReviewChain") : t("parallelCompare");
 }
 
-const projectDetailText = {
+const projectDetailText = withAdditionalLanguages({
   en: {
     settingsTitle: "Project settings",
     settingsDescription:
@@ -68,7 +74,7 @@ const projectDetailText = {
     defaultGuidelinePlaceholder:
       "\uC774 \uD504\uB85C\uC81D\uD2B8\uC5D0\uC11C AI\uAC00 \uD56D\uC0C1 \uCC38\uACE0\uD560 \uC9C0\uCE68",
   },
-} as const;
+});
 
 export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const { language, t } = useLanguage();
@@ -92,9 +98,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadProject")
-          : data.error || t("couldNotLoadProject"),
+        localize(language, { en: data.error || t("couldNotLoadProject"), ko: t("couldNotLoadProject"), ja: data.error || t("couldNotLoadProject"), es: data.error || t("couldNotLoadProject") }),
       );
       return;
     }
@@ -124,9 +128,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotSaveProject")
-          : data.error || t("couldNotSaveProject"),
+        localize(language, { en: data.error || t("couldNotSaveProject"), ko: t("couldNotSaveProject"), ja: data.error || t("couldNotSaveProject"), es: data.error || t("couldNotSaveProject") }),
       );
       setSavingProject(false);
       return;
@@ -142,9 +144,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   async function removeItem(itemId: string) {
     if (
       !window.confirm(
-        language === "ko"
-          ? "이 항목을 프로젝트에서 제거할까요? 원본 대화/결과는 세션에 그대로 남습니다."
-          : "Remove this item from the project? The original stays in your session.",
+        localize(language, { en: "Remove this item from the project? The original stays in your session.", ko: "이 항목을 프로젝트에서 제거할까요? 원본 대화/결과는 세션에 그대로 남습니다.", ja: "\u3053\u306E\u9805\u76EE\u3092\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u304B\u3089\u524A\u9664\u3057\u307E\u3059\u304B?\u30AA\u30EA\u30B8\u30CA\u30EB\u306F\u30BB\u30C3\u30B7\u30E7\u30F3\u5185\u306B\u6B8B\u308A\u307E\u3059\u3002", es: "\u00BFEliminar este elemento del proyecto? El original permanece en su sesi\u00F3n." }),
       )
     ) {
       return;
@@ -287,9 +287,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${projectSavedAt ? "bg-teal-500" : "bg-teal-700 hover:bg-teal-800 disabled:opacity-60"}`}
             >
               {savingProject
-                ? (language === "ko" ? "저장 중…" : "Saving…")
+                ? (localize(language, { en: "Saving…", ko: "저장 중…", ja: "\u4FDD\u5B58\u4E2D\u2026", es: "Guardando\u2026" }))
                 : projectSavedAt
-                  ? (language === "ko" ? "저장됨 ✓" : "Saved ✓")
+                  ? (localize(language, { en: "Saved ✓", ko: "저장됨 ✓", ja: "\u4FDD\u5B58\u6E08\u307F \u2713", es: "Guardado \u2713" }))
                   : t("saveProject")}
             </button>
             <button
@@ -299,7 +299,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               className="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {deletingProject
-                ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                ? (localize(language, { en: "Deleting…", ko: "삭제 중…", ja: "\u524A\u9664\u4E2D\u2026", es: "Eliminando\u2026" }))
                 : t("deleteFolder")}
             </button>
           </div>
@@ -308,12 +308,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         <section className="order-1 space-y-3 xl:order-2">
           <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
             <h2 className="text-base font-semibold text-stone-950">
-              {language === "ko" ? "추가된 대화/결과" : "Collected items"}
+              {localize(language, { en: "Collected items", ko: "추가된 대화/결과", ja: "\u53CE\u96C6\u30A2\u30A4\u30C6\u30E0", es: "Art\u00EDculos recolectados" })}
             </h2>
             <p className="mt-1 text-sm text-stone-600">
-              {language === "ko"
-                ? `세션에서 추가한 대화와 개별 결과 ${project.items.length}개. 원본은 세션에 그대로 남아 있습니다.`
-                : `${project.items.length} conversations and individual results added from your sessions. Originals stay in their sessions.`}
+              {localize(language, { en: `${project.items.length} conversations and individual results added from your sessions. Originals stay in their sessions.`, ko: `세션에서 추가한 대화와 개별 결과 ${project.items.length}개. 원본은 세션에 그대로 남아 있습니다.`, ja: `${project.items.length}\u30BB\u30C3\u30B7\u30E7\u30F3\u304B\u3089\u8FFD\u52A0\u3055\u308C\u305F\u4F1A\u8A71\u3068\u500B\u3005\u306E\u7D50\u679C\u3002\u30AA\u30EA\u30B8\u30CA\u30EB\u306F\u30BB\u30C3\u30B7\u30E7\u30F3\u5185\u306B\u6B8B\u308A\u307E\u3059\u3002`, es: `${project.items.length}conversaciones y resultados individuales agregados de sus sesiones. Los originales permanecen en sus sesiones.` })}
             </p>
           </div>
 
@@ -335,12 +333,8 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                           }`}
                         >
                           {item.kind === "RESULT"
-                            ? language === "ko"
-                              ? "단일 결과"
-                              : "Single result"
-                            : language === "ko"
-                              ? "대화 전체"
-                              : "Full conversation"}
+                            ? localize(language, { en: "Single result", ko: "단일 결과", ja: "\u5358\u4E00\u306E\u7D50\u679C", es: "resultado \u00FAnico" })
+                            : localize(language, { en: "Full conversation", ko: "대화 전체", ja: "\u4F1A\u8A71\u5168\u4F53", es: "conversaci\u00F3n completa" })}
                         </span>
                       </div>
                       <h3 className="mt-2 line-clamp-2 break-words text-base font-semibold text-stone-950">
@@ -358,7 +352,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                       ) : null}
                       {item.session ? (
                         <p className="mt-2 break-words text-xs text-stone-500">
-                          {language === "ko" ? "출처 세션" : "From session"}:{" "}
+                          {localize(language, { en: "From session", ko: "출처 세션", ja: "\u30BB\u30C3\u30B7\u30E7\u30F3\u304B\u3089", es: "De la sesi\u00F3n" })}:{" "}
                           {item.session.title}
                         </p>
                       ) : null}
@@ -377,7 +371,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                         onClick={() => removeItem(item.id)}
                         className={`${item.session ? "" : "col-span-2 "}rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50`}
                       >
-                        {language === "ko" ? "제거" : "Remove"}
+                        {localize(language, { en: "Remove", ko: "제거", ja: "\u53D6\u308A\u9664\u304F", es: "Eliminar" })}
                       </button>
                     </div>
                   </div>

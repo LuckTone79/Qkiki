@@ -1,5 +1,11 @@
 "use client";
 
+import { type AppLanguage } from "@/lib/i18n";
+
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
@@ -27,8 +33,8 @@ type ProjectsClientProps = {
   initialLoaded?: boolean;
 };
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" }), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -36,7 +42,7 @@ function formatDate(value: string, language: "en" | "ko") {
   }).format(new Date(value));
 }
 
-const projectSettingsText = {
+const projectSettingsText = withAdditionalLanguages({
   en: {
     defaultGuideline: "Default AI guideline",
     defaultGuidelinePlaceholder:
@@ -47,7 +53,7 @@ const projectSettingsText = {
     defaultGuidelinePlaceholder:
       "\uC774 \uD504\uB85C\uC81D\uD2B8\uC5D0\uC11C AI\uAC00 \uAE30\uBCF8\uC73C\uB85C \uCC38\uACE0\uD560 \uC9C0\uCE68",
   },
-} as const;
+});
 
 export function ProjectsClient({
   initialProjects = [],
@@ -86,9 +92,7 @@ export function ProjectsClient({
 
     if (!response.ok || !data.projects) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadProjects")
-          : data.error || t("couldNotLoadProjects"),
+        localize(language, { en: data.error || t("couldNotLoadProjects"), ko: t("couldNotLoadProjects"), ja: data.error || t("couldNotLoadProjects"), es: data.error || t("couldNotLoadProjects") }),
       );
       return;
     }
@@ -129,9 +133,7 @@ export function ProjectsClient({
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotCreateProject")
-          : data.error || t("couldNotCreateProject"),
+        localize(language, { en: data.error || t("couldNotCreateProject"), ko: t("couldNotCreateProject"), ja: data.error || t("couldNotCreateProject"), es: data.error || t("couldNotCreateProject") }),
       );
       setCreatingProject(false);
       return;
@@ -238,7 +240,7 @@ export function ProjectsClient({
               className="w-full rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {creatingProject
-                ? (language === "ko" ? "생성 중…" : "Creating…")
+                ? (localize(language, { en: "Creating…", ko: "생성 중…", ja: "\u4F5C\u6210\u2026", es: "Creando\u2026" }))
                 : t("createProject")}
             </button>
             <button
@@ -248,7 +250,7 @@ export function ProjectsClient({
               className="w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {creatingProject
-                ? (language === "ko" ? "생성 중…" : "Creating…")
+                ? (localize(language, { en: "Creating…", ko: "생성 중…", ja: "\u4F5C\u6210\u2026", es: "Creando\u2026" }))
                 : t("createAndStart")}
             </button>
           </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import {
   WORKFLOW_ACTION_TYPES,
@@ -190,9 +192,7 @@ export function WorkflowStepRow({
       {showBuildupHint ? (
         <div className="mt-3 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-amber-800">
-            {language === "ko"
-              ? "이 단계는 반복 구간 안에 있지만 '생성 / 원본 입력'이라 매 회차 같은 답을 새로 만들고 이전 결과 위에 쌓지 않습니다."
-              : "This step is inside a repeat block but is set to Generate / Original input, so it regenerates the same answer each cycle instead of building on prior results."}
+            {localize(language, { en: "This step is inside a repeat block but is set to Generate / Original input, so it regenerates the same answer each cycle instead of building on prior results.", ko: "이 단계는 반복 구간 안에 있지만 '생성 / 원본 입력'이라 매 회차 같은 답을 새로 만들고 이전 결과 위에 쌓지 않습니다.", ja: "\u3053\u306E\u30B9\u30C6\u30C3\u30D7\u306F\u7E70\u308A\u8FD4\u3057\u30D6\u30ED\u30C3\u30AF\u5185\u306B\u3042\u308A\u307E\u3059\u304C\u3001\u751F\u6210 / \u5143\u306E\u5165\u529B\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u308B\u305F\u3081\u3001\u4EE5\u524D\u306E\u7D50\u679C\u306B\u57FA\u3065\u3044\u3066\u69CB\u7BC9\u3059\u308B\u306E\u3067\u306F\u306A\u304F\u3001\u30B5\u30A4\u30AF\u30EB\u3054\u3068\u306B\u540C\u3058\u56DE\u7B54\u304C\u518D\u751F\u6210\u3055\u308C\u307E\u3059\u3002", es: "Este paso est\u00E1 dentro de un bloque de repetici\u00F3n, pero est\u00E1 configurado en Generar/entrada original, por lo que regenera la misma respuesta en cada ciclo en lugar de basarse en resultados anteriores." })}
           </p>
           <button
             type="button"
@@ -206,9 +206,7 @@ export function WorkflowStepRow({
             }
             className="shrink-0 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
           >
-            {language === "ko"
-              ? "브레인스토밍 + 이전 결과로 바꾸기"
-              : "Switch to Brainstorm + prior results"}
+            {localize(language, { en: "Switch to Brainstorm + prior results", ko: "브레인스토밍 + 이전 결과로 바꾸기", ja: "\u30D6\u30EC\u30A4\u30F3\u30B9\u30C8\u30FC\u30DF\u30F3\u30B0 + \u4EE5\u524D\u306E\u7D50\u679C\u306B\u5207\u308A\u66FF\u3048\u308B", es: "Cambiar a Brainstorm + resultados anteriores" })}
           </button>
         </div>
       ) : null}

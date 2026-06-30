@@ -1,5 +1,9 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { normalizeAppLanguage } from "@/lib/i18n";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -18,7 +22,7 @@ const navItems = [
   { href: "/admin/about", key: "about" },
 ] as const;
 
-const adminText = {
+const adminText = withAdditionalLanguages({
   en: {
     dashboard: "Dashboard",
     users: "Users",
@@ -49,7 +53,7 @@ const adminText = {
     role: "\uAD8C\uD55C",
     mobileNavigation: "\uAD00\uB9AC\uC790 \uB0B4\uBE44\uAC8C\uC774\uC158",
   },
-} as const;
+});
 
 export function AdminShell({
   admin,
@@ -116,13 +120,15 @@ export function AdminShell({
                   <select
                     value={language}
                     onChange={(event) =>
-                      setLanguage(event.target.value === "ko" ? "ko" : "en")
+                      setLanguage(normalizeAppLanguage(event.target.value))
                     }
                     className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 outline-none focus:border-slate-900"
                     aria-label="Language"
                   >
                     <option value="en">English</option>
                     <option value="ko">한국어</option>
+                    <option value="ja">日本語</option>
+                    <option value="es">Español</option>
                   </select>
                 </label>
               </div>

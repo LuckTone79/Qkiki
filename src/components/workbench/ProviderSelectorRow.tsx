@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import { StatusBadge } from "@/components/StatusBadge";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
@@ -78,28 +80,20 @@ export function ProviderSelectorRow({
       <div className="mt-3 rounded-md border border-stone-200 bg-[#f7f6f3] p-3">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-xs font-medium text-stone-500">
-            {language === "ko" ? "선택 모델" : "Selected models"}
+            {localize(language, { en: "Selected models", ko: "선택 모델", ja: "\u9078\u629E\u3055\u308C\u305F\u30E2\u30C7\u30EB", es: "Modelos seleccionados" })}
           </p>
           <span className="text-[11px] text-stone-400">
             {selectedModels.length
-              ? `${selectedModels.length}${language === "ko" ? "개 선택" : " selected"}`
-              : language === "ko"
-                ? "선택 없음"
-                : "None selected"}
+              ? `${selectedModels.length}${localize(language, { en: " selected", ko: "개 선택", ja: "\u9078\u629E\u3055\u308C\u305F", es: "seleccionado" })}`
+              : localize(language, { en: "None selected", ko: "선택 없음", ja: "\u4F55\u3082\u9078\u629E\u3055\u308C\u3066\u3044\u307E\u305B\u3093", es: "Ninguno seleccionado" })}
           </span>
         </div>
         <p className="mb-2 text-[11px] leading-5 text-stone-500">
           {isImageVariant
-            ? language === "ko"
-              ? "선택한 이미지 생성 모델로 이미지를 만듭니다."
-              : "Generates images with the image models you select."
+            ? localize(language, { en: "Generates images with the image models you select.", ko: "선택한 이미지 생성 모델로 이미지를 만듭니다.", ja: "\u9078\u629E\u3057\u305F\u753B\u50CF\u30E2\u30C7\u30EB\u3092\u4F7F\u7528\u3057\u3066\u753B\u50CF\u3092\u751F\u6210\u3057\u307E\u3059\u3002", es: "Genera im\u00E1genes con los modelos de imagen que selecciones." })
             : provider.fallbackProvider
-              ? language === "ko"
-                ? `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`
-                : `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`
-              : language === "ko"
-                ? "선택한 모델 그대로 실행합니다."
-                : "Runs with the exact model you selected."}
+              ? localize(language, { en: `Provider errors may continue with the administrator fallback ${fallbackProviderLabel}.`, ko: `공급자 오류 시 관리자 지정 대체 공급자 ${fallbackProviderLabel}로 이어질 수 있습니다.`, ja: `\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u306E\u30A8\u30E9\u30FC\u306F\u7BA1\u7406\u8005\u306E\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\u3067\u3082\u7D99\u7D9A\u3059\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059${fallbackProviderLabel}.`, es: `Los errores del proveedor pueden continuar con el respaldo del administrador${fallbackProviderLabel}.` })
+              : localize(language, { en: "Runs with the exact model you selected.", ko: "선택한 모델 그대로 실행합니다.", ja: "\u9078\u629E\u3057\u305F\u6B63\u78BA\u306A\u30E2\u30C7\u30EB\u3067\u5B9F\u884C\u3055\u308C\u307E\u3059\u3002", es: "Funciona con el modelo exacto que seleccionaste." })}
         </p>
         <div className="flex flex-wrap gap-2">
           {models.map((option) => {

@@ -77,7 +77,7 @@ export const runWorkbenchSchema = z.object({
   originalInput: z.string().min(1).max(20000),
   additionalInstruction: z.string().max(8000).nullable().optional(),
   outputStyle: z.string().max(80).nullable().optional(),
-  outputLanguage: z.enum(["en", "ko", "ja", "zh", "hi"]).nullable().optional(),
+  outputLanguage: z.enum(["en", "ko", "ja", "es", "zh", "hi"]).nullable().optional(),
   attachmentIds: z.array(z.string().min(1)).max(8).optional(),
   mode: z.enum(["parallel", "sequential", "image"]),
   targets: z.array(targetModelSchema).max(8).optional(),
@@ -116,7 +116,7 @@ export const runWorkbenchSchema = z.object({
 
 export const branchRunSchema = z.object({
   parentResultId: z.string().min(1),
-  outputLanguage: z.enum(["en", "ko", "ja", "zh", "hi"]).nullable().optional(),
+  outputLanguage: z.enum(["en", "ko", "ja", "es", "zh", "hi"]).nullable().optional(),
   actionType: z.enum(BRANCH_ACTION_TYPES),
   instruction: z.string().min(1).max(8000),
   targets: z.array(targetModelSchema).min(1).max(4),

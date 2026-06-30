@@ -1,5 +1,9 @@
 "use client";
 
+import { withAdditionalLanguages } from "@/lib/i18n";
+
+import { localize } from "@/lib/i18n";
+
 import Link from "next/link";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
@@ -32,7 +36,7 @@ type ConversationItem = {
   };
 };
 
-const conversationText = {
+const conversationText = withAdditionalLanguages({
   en: {
     title: "Conversations",
     description: "Monitor user prompts and conversation execution flows.",
@@ -70,7 +74,7 @@ const conversationText = {
     cost: "\uAE08\uC561",
     empty: "\uB300\uD654 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
   },
-} as const;
+});
 
 type AdminConversationsClientProps = {
   q: string;
@@ -106,7 +110,7 @@ export function AdminConversationsClient({
 }: AdminConversationsClientProps) {
   const { language } = useLanguage();
   const t = conversationText[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const locale = localize(language, { en: "en-US", ko: "ko-KR", ja: "en-US", es: "en-US" });
   const selectedUser =
     users.find((candidate) => candidate.id === userId) ?? null;
 

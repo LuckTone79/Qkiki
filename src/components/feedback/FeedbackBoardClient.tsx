@@ -1,5 +1,7 @@
 "use client";
 
+import { localize } from "@/lib/i18n";
+
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,7 +35,6 @@ const MAX_PENDING = 10;
 export function FeedbackBoardClient() {
   const { language } = useLanguage();
   const router = useRouter();
-  const ko = language === "ko";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [posts, setPosts] = useState<FeedbackListItem[]>([]);
@@ -67,9 +68,7 @@ export function FeedbackBoardClient() {
   async function uploadImage(file: File) {
     if (attachments.length >= MAX_PENDING) {
       setError(
-        ko
-          ? `이미지는 최대 ${MAX_PENDING}개까지 첨부할 수 있습니다.`
-          : `You can attach up to ${MAX_PENDING} images.`,
+        localize(language, { en: `You can attach up to ${MAX_PENDING} images.`, ko: `이미지는 최대 ${MAX_PENDING}개까지 첨부할 수 있습니다.`, ja: `\u307E\u3067\u6DFB\u4ED8\u3067\u304D\u307E\u3059${MAX_PENDING}\u753B\u50CF\u3002`, es: `Puedes adjuntar hasta${MAX_PENDING}im\u00E1genes.` }),
       );
       return null;
     }
@@ -89,7 +88,7 @@ export function FeedbackBoardClient() {
       if (!response.ok || !data.attachment) {
         setError(
           data.error ||
-            (ko ? "이미지 업로드에 실패했습니다." : "Image upload failed."),
+            (localize(language, { en: "Image upload failed.", ko: "이미지 업로드에 실패했습니다.", ja: "\u753B\u50CF\u306E\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002", es: "Error al cargar la imagen." })),
         );
         return null;
       }
@@ -142,11 +141,11 @@ export function FeedbackBoardClient() {
     event.preventDefault();
     setError("");
     if (!title.trim()) {
-      setError(ko ? "제목을 입력하세요." : "Enter a title.");
+      setError(localize(language, { en: "Enter a title.", ko: "제목을 입력하세요.", ja: "\u30BF\u30A4\u30C8\u30EB\u3092\u5165\u529B\u3057\u307E\u3059\u3002", es: "Introduzca un t\u00EDtulo." }));
       return;
     }
     if (!body.trim()) {
-      setError(ko ? "내용을 입력하세요." : "Enter the details.");
+      setError(localize(language, { en: "Enter the details.", ko: "내용을 입력하세요.", ja: "\u8A73\u7D30\u3092\u5165\u529B\u3057\u307E\u3059\u3002", es: "Ingrese los detalles." }));
       return;
     }
     setSubmitting(true);
@@ -168,7 +167,7 @@ export function FeedbackBoardClient() {
       if (!response.ok || !data.post) {
         setError(
           data.error ||
-            (ko ? "등록에 실패했습니다." : "Could not submit feedback."),
+            (localize(language, { en: "Could not submit feedback.", ko: "등록에 실패했습니다.", ja: "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002", es: "No se pudo enviar comentarios." })),
         );
         return;
       }
@@ -183,12 +182,10 @@ export function FeedbackBoardClient() {
   return (
     <div className="space-y-5">
       <SectionHeader
-        eyebrow={ko ? "고객 지원" : "Support"}
-        title={ko ? "피드백 게시판" : "Feedback board"}
+        eyebrow={localize(language, { en: "Support", ko: "고객 지원", ja: "\u30B5\u30DD\u30FC\u30C8", es: "Apoyo" })}
+        title={localize(language, { en: "Feedback board", ko: "피드백 게시판", ja: "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u30DC\u30FC\u30C9", es: "Tablero de comentarios" })}
         description={
-          ko
-            ? "불편 사항이나 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있습니다."
-            : "Report problems or suggest improvements. Only you and the Yapp team can see your posts."
+          localize(language, { en: "Report problems or suggest improvements. Only you and the Yapp team can see your posts.", ko: "불편 사항이나 제안을 남겨주세요. 작성한 글은 본인과 운영팀만 볼 수 있습니다.", ja: "\u554F\u984C\u3092\u5831\u544A\u3057\u305F\u308A\u3001\u6539\u5584\u3092\u63D0\u6848\u3057\u305F\u308A\u3067\u304D\u307E\u3059\u3002\u3042\u306A\u305F\u3068 Yapp \u30C1\u30FC\u30E0\u3060\u3051\u304C\u3042\u306A\u305F\u306E\u6295\u7A3F\u3092\u898B\u308B\u3053\u3068\u304C\u3067\u304D\u307E\u3059\u3002", es: "Informar problemas o sugerir mejoras. S\u00F3lo t\u00FA y el equipo de Yapp pod\u00E9is ver tus publicaciones." })
         }
       />
 
@@ -197,7 +194,7 @@ export function FeedbackBoardClient() {
           href="/app/account"
           className="text-sm font-medium text-stone-500 hover:text-stone-800"
         >
-          ← {ko ? "계정으로" : "Back to account"}
+          ← {localize(language, { en: "Back to account", ko: "계정으로", ja: "\u30A2\u30AB\u30A6\u30F3\u30C8\u306B\u623B\u308B", es: "Volver a la cuenta" })}
         </Link>
         <button
           type="button"
@@ -208,12 +205,8 @@ export function FeedbackBoardClient() {
           className="w-full rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 sm:w-auto"
         >
           {showForm
-            ? ko
-              ? "닫기"
-              : "Close"
-            : ko
-              ? "새 글 작성"
-              : "New post"}
+            ? localize(language, { en: "Close", ko: "닫기", ja: "\u9589\u3058\u308B", es: "Cerrar" })
+            : localize(language, { en: "New post", ko: "새 글 작성", ja: "\u65B0\u3057\u3044\u6295\u7A3F", es: "Nueva publicaci\u00F3n" })}
         </button>
       </div>
 
@@ -229,7 +222,7 @@ export function FeedbackBoardClient() {
             <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
               <label className="block">
                 <span className="text-sm font-medium text-stone-700">
-                  {ko ? "제목" : "Title"}
+                  {localize(language, { en: "Title", ko: "제목", ja: "\u30BF\u30A4\u30C8\u30EB", es: "T\u00EDtulo" })}
                 </span>
                 <input
                   value={title}
@@ -237,13 +230,13 @@ export function FeedbackBoardClient() {
                   maxLength={200}
                   className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
                   placeholder={
-                    ko ? "예: 결과 복사가 안돼요" : "e.g. Copy button not working"
+                    localize(language, { en: "e.g. Copy button not working", ko: "예: 결과 복사가 안돼요", ja: "\u4F8B\u3048\u3070\u30B3\u30D4\u30FC\u30DC\u30BF\u30F3\u304C\u6A5F\u80FD\u3057\u306A\u3044", es: "p.ej. El bot\u00F3n copiar no funciona" })
                   }
                 />
               </label>
               <label className="block">
                 <span className="text-sm font-medium text-stone-700">
-                  {ko ? "분류" : "Category"}
+                  {localize(language, { en: "Category", ko: "분류", ja: "\u30AB\u30C6\u30B4\u30EA", es: "Categor\u00EDa" })}
                 </span>
                 <select
                   value={category}
@@ -263,7 +256,7 @@ export function FeedbackBoardClient() {
 
             <label className="block">
               <span className="text-sm font-medium text-stone-700">
-                {ko ? "내용" : "Details"}
+                {localize(language, { en: "Details", ko: "내용", ja: "\u8A73\u7D30", es: "Detalles" })}
               </span>
               <textarea
                 value={body}
@@ -272,9 +265,7 @@ export function FeedbackBoardClient() {
                 rows={10}
                 className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm leading-relaxed outline-none focus:border-teal-600"
                 placeholder={
-                  ko
-                    ? "무엇이 불편했는지 자세히 알려주세요. 캡처한 이미지를 이 영역에 바로 붙여넣으면(Ctrl/⌘+V) 아래에 미리보기로 첨부됩니다."
-                    : "Describe the issue. Paste a screenshot here (Ctrl/⌘+V) and it will be attached as a preview below."
+                  localize(language, { en: "Describe the issue. Paste a screenshot here (Ctrl/⌘+V) and it will be attached as a preview below.", ko: "무엇이 불편했는지 자세히 알려주세요. 캡처한 이미지를 이 영역에 바로 붙여넣으면(Ctrl/⌘+V) 아래에 미리보기로 첨부됩니다.", ja: "\u554F\u984C\u306B\u3064\u3044\u3066\u8AAC\u660E\u3057\u307E\u3059\u3002\u3053\u3053\u306B\u30B9\u30AF\u30EA\u30FC\u30F3\u30B7\u30E7\u30C3\u30C8\u3092\u8CBC\u308A\u4ED8\u3051\u308B\u3068 (Ctrl/\u2318+V)\u3001\u4E0B\u306B\u30D7\u30EC\u30D3\u30E5\u30FC\u3068\u3057\u3066\u6DFB\u4ED8\u3055\u308C\u307E\u3059\u3002", es: "Describe el problema. Pegue una captura de pantalla aqu\u00ED (Ctrl/\u2318+V) y se adjuntar\u00E1 como vista previa a continuaci\u00F3n." })
                 }
               />
             </label>
@@ -287,12 +278,8 @@ export function FeedbackBoardClient() {
                 className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50 disabled:opacity-60"
               >
                 {uploading
-                  ? ko
-                    ? "업로드 중..."
-                    : "Uploading..."
-                  : ko
-                    ? "🖼 이미지 첨부"
-                    : "🖼 Attach image"}
+                  ? localize(language, { en: "Uploading...", ko: "업로드 중...", ja: "\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9\u4E2D...", es: "Subiendo..." })
+                  : localize(language, { en: "🖼 Attach image", ko: "🖼 이미지 첨부", ja: "\uD83D\uDDBC \u753B\u50CF\u3092\u6DFB\u4ED8", es: "\uD83D\uDDBC Adjuntar imagen" })}
               </button>
               <input
                 ref={fileInputRef}
@@ -303,18 +290,14 @@ export function FeedbackBoardClient() {
                 className="hidden"
               />
               <span className="text-xs text-stone-500">
-                {ko
-                  ? "PNG·JPEG·WebP·GIF, 최대 10MB"
-                  : "PNG, JPEG, WebP, GIF · up to 10MB"}
+                {localize(language, { en: "PNG, JPEG, WebP, GIF · up to 10MB", ko: "PNG·JPEG·WebP·GIF, 최대 10MB", ja: "PNG\u3001JPEG\u3001WebP\u3001GIF\u30FB\u6700\u592710MB", es: "PNG, JPEG, WebP, GIF \u00B7 hasta 10 MB" })}
               </span>
             </div>
 
             {attachments.length ? (
               <div>
                 <p className="mb-2 text-xs font-medium text-stone-500">
-                  {ko
-                    ? `첨부 이미지 ${attachments.length}장`
-                    : `${attachments.length} attached image${attachments.length > 1 ? "s" : ""}`}
+                  {localize(language, { en: `${attachments.length} attached image${attachments.length > 1 ? "s" : ""}`, ko: `첨부 이미지 ${attachments.length}장`, ja: `${attachments.length}\u6DFB\u4ED8\u753B\u50CF${attachments.length > 1 ? "s" : ""}`, es: `${attachments.length}imagen adjunta${attachments.length > 1 ? "s" : ""}` })}
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {attachments.map((item) => (
@@ -328,7 +311,7 @@ export function FeedbackBoardClient() {
                       <button
                         type="button"
                         onClick={() => removeAttachment(item.id)}
-                        aria-label={ko ? "이미지 삭제" : "Remove image"}
+                        aria-label={localize(language, { en: "Remove image", ko: "이미지 삭제", ja: "\u753B\u50CF\u3092\u524A\u9664", es: "Quitar imagen" })}
                         className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-stone-300 bg-white text-sm font-semibold text-stone-600 shadow-sm hover:bg-rose-50 hover:text-rose-600"
                       >
                         ×
@@ -346,12 +329,8 @@ export function FeedbackBoardClient() {
                 className="w-full rounded-md bg-teal-700 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60 sm:w-auto"
               >
                 {submitting
-                  ? ko
-                    ? "등록 중..."
-                    : "Submitting..."
-                  : ko
-                    ? "등록하기"
-                    : "Submit"}
+                  ? localize(language, { en: "Submitting...", ko: "등록 중...", ja: "\u9001\u4FE1\u4E2D...", es: "Enviando..." })
+                  : localize(language, { en: "Submit", ko: "등록하기", ja: "\u63D0\u51FA\u3059\u308B", es: "Entregar" })}
               </button>
             </div>
           </form>
@@ -361,18 +340,16 @@ export function FeedbackBoardClient() {
       <section className="rounded-lg border border-stone-200 bg-white shadow-sm">
         <header className="border-b border-stone-200 px-5 py-3">
           <h2 className="text-base font-semibold text-stone-950">
-            {ko ? "내 피드백" : "My feedback"}
+            {localize(language, { en: "My feedback", ko: "내 피드백", ja: "\u79C1\u306E\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF", es: "Mis comentarios" })}
           </h2>
         </header>
         {loading ? (
           <p className="px-5 py-6 text-sm text-stone-500">
-            {ko ? "불러오는 중..." : "Loading..."}
+            {localize(language, { en: "Loading...", ko: "불러오는 중...", ja: "\u8AAD\u307F\u8FBC\u307F\u4E2D...", es: "Cargando..." })}
           </p>
         ) : posts.length === 0 ? (
           <p className="px-5 py-6 text-sm text-stone-500">
-            {ko
-              ? "아직 작성한 글이 없습니다."
-              : "You have not posted any feedback yet."}
+            {localize(language, { en: "You have not posted any feedback yet.", ko: "아직 작성한 글이 없습니다.", ja: "\u307E\u3060\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u6295\u7A3F\u3057\u3066\u3044\u307E\u305B\u3093\u3002", es: "A\u00FAn no has publicado ning\u00FAn comentario." })}
           </p>
         ) : (
           <ul className="divide-y divide-stone-100">
@@ -388,14 +365,14 @@ export function FeedbackBoardClient() {
                         {post.title}
                       </span>
                       {post.hasUnread ? (
-                        <span className="inline-flex h-2 w-2 flex-none rounded-full bg-rose-500" title={ko ? "새 답변" : "New reply"} />
+                        <span className="inline-flex h-2 w-2 flex-none rounded-full bg-rose-500" title={localize(language, { en: "New reply", ko: "새 답변", ja: "\u65B0\u3057\u3044\u8FD4\u4FE1", es: "Nueva respuesta" })} />
                       ) : null}
                     </div>
                     <p className="mt-0.5 text-xs text-stone-500">
                       {categoryLabel(post.category, language)} ·{" "}
                       {formatFeedbackDate(post.createdAt, language)}
                       {post.commentCount > 0
-                        ? ` · ${ko ? "답변" : "replies"} ${post.commentCount}`
+                        ? ` · ${localize(language, { en: "replies", ko: "답변", ja: "\u8FD4\u4FE1\u3059\u308B", es: "respuestas" })} ${post.commentCount}`
                         : ""}
                     </p>
                   </div>
