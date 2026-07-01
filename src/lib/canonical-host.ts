@@ -1,4 +1,8 @@
-const DEFAULT_CANONICAL_APP_URL = "https://yapp.wideget.net";
+// Kept in sync with src/lib/brand.ts (APP_DOMAIN / LEGACY_APP_DOMAIN). These are
+// duplicated as plain strings so this edge-safe module has no runtime imports.
+const APP_DOMAIN = "yapp.wideget.net";
+const LEGACY_APP_DOMAIN = "qkiki.wideget.net";
+const DEFAULT_CANONICAL_APP_URL = `https://${APP_DOMAIN}`;
 const EXCLUDED_PREFIXES = ["/_next", "/api", "/.well-known/workflow"];
 const EXCLUDED_PATHS = ["/favicon.ico"];
 
@@ -25,7 +29,14 @@ export function resolveCanonicalAppUrl(
   }
 
   try {
-    return new URL(configured);
+    const url = new URL(configured);
+    // A stale environment may still point CANONICAL_APP_URL at the legacy
+    // domain. Transparently upgrade it to the current brand host so Yapp stays
+    // the canonical destination even before the env var is updated.
+    if (url.hostname.trim().toLowerCase() === LEGACY_APP_DOMAIN) {
+      url.hostname = APP_DOMAIN;
+    }
+    return url;
   } catch {
     return null;
   }
@@ -39,11 +50,17 @@ function isExcludedPath(pathname: string) {
 }
 
 function isRedirectableHost(hostname: string, canonicalHostname: string) {
+  if (hostname.startsWith("admin.")) {
+    return false;
+  }
+
   return (
-    !hostname.startsWith("admin.") &&
-    (hostname === `www.${canonicalHostname}` ||
+    hostname === `www.${canonicalHostname}` ||
+    // Forward the retired brand domain to the current canonical host.
+    hostname === LEGACY_APP_DOMAIN ||
+    hostname === `www.${LEGACY_APP_DOMAIN}` ||
     hostname === "qkiki.vercel.app" ||
-    hostname.endsWith(".vercel.app"))
+    hostname.endsWith(".vercel.app")
   );
 }
 
