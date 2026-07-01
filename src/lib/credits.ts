@@ -22,10 +22,13 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "openai:gpt-5.4-nano": { promptPerMillion: 0.1, completionPerMillion: 0.625 },
 
   "anthropic:claude-opus-4-8": { promptPerMillion: 5, completionPerMillion: 25 },
+  // Intro pricing through 2026-08-31 ($2 / $10); standard rate is $3 / $15.
+  "anthropic:claude-sonnet-5": { promptPerMillion: 2, completionPerMillion: 10 },
   "anthropic:claude-sonnet-4-6": { promptPerMillion: 3, completionPerMillion: 15 },
   "anthropic:claude-haiku-4-5": { promptPerMillion: 1, completionPerMillion: 5 },
 
   "google:gemini-3.1-pro-preview": { promptPerMillion: 2, completionPerMillion: 12 },
+  "google:gemini-3.5-flash": { promptPerMillion: 1.5, completionPerMillion: 9 },
   "google:gemini-3-flash-preview": { promptPerMillion: 0.5, completionPerMillion: 3 },
   "google:gemini-2.5-pro": { promptPerMillion: 1.25, completionPerMillion: 10 },
   "google:gemini-2.5-flash": { promptPerMillion: 0.3, completionPerMillion: 2.5 },

@@ -4,7 +4,7 @@ const ANTHROPIC_LEGACY_MODEL_MAP: Record<string, string> = {
   "claude-opus-4-8": "claude-opus-4-8",
   "claude-opus-4-7": "claude-opus-4-8",
   "claude-opus-4-1-20250805": "claude-opus-4-8",
-  "claude-sonnet-4-20250514": "claude-sonnet-4-6",
+  "claude-sonnet-4-20250514": "claude-sonnet-5",
   "claude-haiku-4-5-20251001": "claude-haiku-4-5",
   "claude-3-5-haiku-20241022": "claude-haiku-4-5",
 };
@@ -17,7 +17,8 @@ const GOOGLE_LEGACY_MODEL_MAP: Record<string, string> = {
   "gemini-3-pro-preview": "gemini-3.1-pro-preview",
   "gemini-3-pro": "gemini-3.1-pro-preview",
   "gemini-3.1-pro": "gemini-3.1-pro-preview",
-  "gemini-3.5-flash": "gemini-3-flash-preview",
+  // gemini-3.5-flash is now a real, generally available model (launched
+  // 2026-05-19) — it must resolve to itself, not the superseded preview.
   "gemini-3-flash-preview": "gemini-3-flash-preview",
   "gemini-3.1-flash-lite": "gemini-2.5-flash-lite",
 };
@@ -57,9 +58,10 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "Claude / Anthropic",
     shortName: "Claude",
     envKey: "ANTHROPIC_API_KEY",
-    defaultModel: "claude-sonnet-4-6",
+    defaultModel: "claude-sonnet-5",
     defaultTimeoutSeconds: 120,
     models: [
+      "claude-sonnet-5",
       "claude-sonnet-4-6",
       "claude-haiku-4-5",
       "claude-opus-4-8",
@@ -71,9 +73,10 @@ export const PROVIDERS: ProviderCatalogItem[] = [
     displayName: "Gemini / Google",
     shortName: "Gemini",
     envKey: "GOOGLE_API_KEY",
-    defaultModel: "gemini-3-flash-preview",
+    defaultModel: "gemini-3.5-flash",
     defaultTimeoutSeconds: 75,
     models: [
+      "gemini-3.5-flash",
       "gemini-3-flash-preview",
       "gemini-2.5-flash-lite",
       "gemini-2.5-flash",
@@ -177,7 +180,7 @@ export function getMinimumTimeoutSecondsForModel(
       return 180;
     }
 
-    if (normalizedModel === "claude-sonnet-4-6") {
+    if (normalizedModel === "claude-sonnet-5" || normalizedModel === "claude-sonnet-4-6") {
       return 120;
     }
 
