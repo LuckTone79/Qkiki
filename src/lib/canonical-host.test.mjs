@@ -35,6 +35,27 @@ test("shouldRedirectToCanonicalHost still redirects the qkiki production alias w
   assert.equal(shouldRedirect, true);
 });
 
+test("resolveCanonicalAppUrl upgrades a stale legacy canonical env to the Yapp host", () => {
+  const resolved = resolveCanonicalAppUrl({
+    VERCEL_ENV: "production",
+    CANONICAL_APP_URL: "https://qkiki.wideget.net",
+  });
+
+  assert.equal(resolved?.toString(), "https://yapp.wideget.net/");
+});
+
+test("getCanonicalHostRedirectUrl forwards the retired qkiki.wideget.net domain to Yapp", () => {
+  const redirectUrl = getCanonicalHostRedirectUrl(
+    "https://qkiki.wideget.net/app/workbench",
+    { VERCEL_ENV: "production" },
+  );
+
+  assert.equal(
+    redirectUrl?.toString(),
+    "https://yapp.wideget.net/app/workbench",
+  );
+});
+
 test("shouldRedirectToCanonicalHost keeps the canonical wideget host in place", () => {
   const shouldRedirect = shouldRedirectToCanonicalHost({
     env: { VERCEL_ENV: "production" },
