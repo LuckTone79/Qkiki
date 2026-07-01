@@ -776,7 +776,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 3,
       actionType: "improve",
       targetProvider: "google",
-      targetModel: "gemini-3-flash-preview",
+      targetModel: "gemini-3.5-flash",
       sourceMode: "previous",
       instructionTemplate: localize(language, {
         en: "Turn the critique into a better version.",

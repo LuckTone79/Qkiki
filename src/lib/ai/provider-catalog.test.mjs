@@ -10,12 +10,14 @@ import {
 
 test("provider catalog keeps only current supported model tiers", () => {
   assert.deepEqual(getProviderCatalog("anthropic").models, [
+    "claude-sonnet-5",
     "claude-sonnet-4-6",
     "claude-haiku-4-5",
     "claude-opus-4-8",
   ]);
 
   assert.deepEqual(getProviderCatalog("google").models, [
+    "gemini-3.5-flash",
     "gemini-3-flash-preview",
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
@@ -50,7 +52,7 @@ test("normalizeProviderModel upgrades legacy aliases to current supported models
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-3.5-flash"),
-    "gemini-3-flash-preview",
+    "gemini-3.5-flash",
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-3-flash-preview"),

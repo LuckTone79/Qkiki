@@ -3,8 +3,10 @@ import { normalizeProviderModel } from "@/lib/ai/provider-catalog";
 
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
   "anthropic:claude-opus-4-8": "Opus 4.8",
+  "anthropic:claude-sonnet-5": "Sonnet 5",
   "anthropic:claude-sonnet-4-6": "Sonnet 4.6",
   "anthropic:claude-haiku-4-5": "Haiku 4.5",
+  "google:gemini-3.5-flash": "Gemini 3.5 Flash",
   // Image-generation models
   "openai:gpt-image-1": "GPT Image 1",
   "openai:gpt-image-2": "GPT Image 2",
