@@ -39,3 +39,27 @@ export function getModelOptionLabel(
     ? displayName
     : `${displayName} (${normalizedModel})`;
 }
+
+/**
+ * Brand-colored badge classes per AI provider, so each model reads at a glance.
+ * Colors follow each company's brand identity:
+ *  - anthropic → Claude logo coral (#D97757)
+ *  - openai    → OpenAI green (#10A37F)
+ *  - google    → Google / Gemini blue (#4285F4)
+ *  - xai       → Grok / xAI black (#1A1A1A)
+ * Literal class strings below are kept intact so Tailwind's JIT picks them up.
+ */
+export function getProviderBrandBadgeClass(provider: ProviderName): string {
+  switch (provider) {
+    case "anthropic":
+      return "bg-[#D97757] text-white";
+    case "openai":
+      return "bg-[#10A37F] text-white";
+    case "google":
+      return "bg-[#4285F4] text-white";
+    case "xai":
+      return "bg-[#1A1A1A] text-white";
+    default:
+      return "bg-stone-700 text-white";
+  }
+}
