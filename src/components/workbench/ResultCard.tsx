@@ -17,6 +17,7 @@ import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import {
   getModelDisplayName,
   getModelOptionLabel,
+  getProviderBrandBadgeClass,
 } from "@/lib/ai/model-display";
 import { isImageDataUrl } from "@/lib/ai/image-output";
 
@@ -364,7 +365,9 @@ export function ResultCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-[#f1f0ee] px-2 py-1 text-xs font-semibold text-teal-800">
+            <span
+              className={`rounded-md px-2.5 py-1 text-sm font-bold shadow-sm ${getProviderBrandBadgeClass(result.provider)}`}
+            >
               {result.provider} / {getModelDisplayName(result.provider, result.model)}
             </span>
             <StatusBadge status={result.status} />
