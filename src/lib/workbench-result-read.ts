@@ -1,10 +1,10 @@
 import "server-only";
 
 import type { Prisma } from "@prisma/client";
-import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
+import { getWorkbenchSchemaCapabilities } from "@/server/workbench/schema-compat";
 
 export async function ensureWorkbenchResultReadSchema() {
-  return ensureWorkbenchRunSchema();
+  return getWorkbenchSchemaCapabilities();
 }
 
 export function buildWorkbenchResultSelect(

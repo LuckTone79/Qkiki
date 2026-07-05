@@ -29,13 +29,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+/.codex-*.log
+/.codex-*/
 
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
 
 # vercel
-.vercel
+/.vercel/
 
 # local git worktrees
 .worktrees/
@@ -52,5 +54,3 @@ next-env.d.ts
 
 # local uploaded files
 /storage/attachments
-
-.vercel

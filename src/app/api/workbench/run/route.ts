@@ -26,8 +26,6 @@ import {
   getSequentialRunnerReadiness,
 } from "@/lib/qstash";
 import { runWorkbenchSchema } from "@/lib/validation";
-import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
-import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import { selectWorkbenchRunnerVersion } from "@/lib/workbench-runner-version";
 import { syncWorkflowTemplateSteps } from "@/lib/workflow-templates";
 import { estimateWorkbenchRunCredits } from "@/lib/credits";
@@ -35,8 +33,12 @@ import type { ProviderName } from "@/lib/ai/types";
 import { upsertWorkbenchSession } from "@/lib/ai/workflow";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
 import { releaseUsageReservation, reserveUsage } from "@/lib/usage-policy";
+import { getWorkbenchSchemaCapabilities } from "@/server/workbench/schema-compat";
+import { createServerTiming } from "@/server/perf/server-timing";
+import { emitRunnerMetric } from "@/server/workbench/runner-metrics";
 
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
+  const kickoffStartedAt = Date.now();
   let userId = "";
   let reservationId: string | null = null;
   let executionRunId: string | null = null;
@@ -56,8 +58,7 @@ export async function POST(request: Request) {
       );
     }
 
-    await ensureWorkbenchRunSchema();
-    await closeStaleWorkbenchRuns({ userId: user.id });
+    await getWorkbenchSchemaCapabilities();
     const creditEstimate = estimateWorkbenchRunCredits({
       mode: parsed.data.mode,
       originalInput: parsed.data.originalInput,
@@ -295,6 +296,14 @@ export async function POST(request: Request) {
         createdAt: new Date().toISOString(),
       });
 
+      emitRunnerMetric({
+        metric: "kickoff",
+        runnerVersion: "v2",
+        mode: "sequential",
+        executionRunId: executionRun.executionRun.id,
+        startedAtMs: kickoffStartedAt,
+      });
+
       return NextResponse.json({
         ok: true,
         runId: signedRunId,
@@ -361,6 +370,14 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     });
 
+    emitRunnerMetric({
+      metric: "kickoff",
+      runnerVersion: "v1",
+      mode: parsed.data.mode,
+      executionRunId: executionRun.id,
+      startedAtMs: kickoffStartedAt,
+    });
+
     return NextResponse.json({
       ok: true,
       runId: signedRunId,
@@ -379,4 +396,13 @@ export async function POST(request: Request) {
     }
     return apiErrorResponse(error);
   }
+}
+
+export async function POST(request: Request) {
+  const timing = createServerTiming();
+  const response = await timing.measure("workbench_run", () =>
+    handlePost(request),
+  );
+  timing.apply(response.headers);
+  return response;
 }

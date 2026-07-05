@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useRunStream } from "@/client/workbench/hooks/useRunStream";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { LimitReachedModal } from "@/components/billing/LimitReachedModal";
@@ -1239,12 +1240,12 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const progressSectionRef = useRef<HTMLDivElement | null>(null);
   const parallelComparisonRef = useRef(parallelComparison);
   const activeRunIdRef = useRef<string | null>(null);
-  const streamAbortControllerRef = useRef<AbortController | null>(null);
   const cancelRequestedRef = useRef(false);
   const routeSyncReadyRef = useRef(false);
   const autoResumeSessionIdRef = useRef<string | null>(null);
   const skippedAutoResumeSessionIdRef = useRef<string | null>(null);
   const autoResumeRequestIdRef = useRef(0);
+  const { startRunStream, clearRunStream, readNdjsonResponse } = useRunStream();
 
   useEffect(() => {
     parallelComparisonRef.current = parallelComparison;
@@ -1945,7 +1946,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       );
     } finally {
       cancelRequestedRef.current = false;
-      streamAbortControllerRef.current = null;
+      clearRunStream();
       setCurrentRunId(null);
       setCancelingRun(false);
       setRunning(false);
@@ -3182,8 +3183,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
     runId: string,
     seedResults: WorkbenchResult[] = [],
   ) {
-    const streamAbortController = new AbortController();
-    streamAbortControllerRef.current = streamAbortController;
+    const streamAbortController = startRunStream();
     let cursor = 0;
     let reconnectAttempts = 0;
     let donePayload: Extract<WorkbenchRunStreamEvent, { type: "done" }> | null =
@@ -3424,40 +3424,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         return null;
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (!line.trim()) {
-            continue;
-          }
-          const event = parseStreamEvent(line);
-          if (event) {
-            handleEvent(event);
-            cursor += 1;
-            reconnectAttempts = 0;
-          }
-        }
-
-        if (done) {
-          break;
-        }
-      }
-
-      if (buffer.trim()) {
-        const event = parseStreamEvent(buffer);
-        if (event) {
-          handleEvent(event);
-          cursor += 1;
-        }
-      }
+      await readNdjsonResponse(response, parseStreamEvent, (event) => {
+        handleEvent(event);
+        cursor += 1;
+        reconnectAttempts = 0;
+      });
 
       if (donePayload) {
         break;
@@ -3919,7 +3890,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       }
     } finally {
       cancelRequestedRef.current = false;
-      streamAbortControllerRef.current = null;
+      clearRunStream();
       setCurrentRunId(null);
       setCancelingRun(false);
       setStoppingStepIndexes(new Set<number>());
@@ -4017,7 +3988,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         }
       } finally {
         cancelRequestedRef.current = false;
-        streamAbortControllerRef.current = null;
+        clearRunStream();
         setCurrentRunId(null);
         setCancelingRun(false);
         setStoppingStepIndexes(new Set<number>());

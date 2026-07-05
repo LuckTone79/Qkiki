@@ -13,16 +13,18 @@ import {
   rescueStalledExecutionRunV2,
 } from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
-import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
+import { getWorkbenchSchemaCapabilities } from "@/server/workbench/schema-compat";
+import { createServerTiming } from "@/server/perf/server-timing";
+import { shouldRecoverLegacyRun } from "@/server/workbench/legacy-run-recovery-policy";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
 };
 
-export async function GET(_request: Request, { params }: RouteContext) {
+async function handleGet(_request: Request, { params }: RouteContext) {
   try {
     const user = await requireApiGenerationUser();
     const { runId } = await params;
@@ -37,20 +39,30 @@ export async function GET(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
     }
 
-    const { supportsRunExecutionOrder } = await ensureWorkbenchRunSchema();
+    const { supportsRunExecutionOrder } =
+      await getWorkbenchSchemaCapabilities();
     if ("executionRunId" in token) {
-      await closeStaleWorkbenchRuns({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
-
-      const executionRun = await getExecutionRunForUser({
+      let executionRun = await getExecutionRunForUser({
         executionRunId: token.executionRunId,
         userId: user.id,
       });
 
       if (!executionRun) {
         return NextResponse.json({ error: "Run not found." }, { status: 404 });
+      }
+
+      if (shouldRecoverLegacyRun(executionRun)) {
+        await closeStaleWorkbenchRuns({
+          executionRunId: executionRun.id,
+          userId: user.id,
+        });
+        executionRun = await getExecutionRunForUser({
+          executionRunId: executionRun.id,
+          userId: user.id,
+        });
+        if (!executionRun) {
+          return NextResponse.json({ error: "Run not found." }, { status: 404 });
+        }
       }
 
       if (executionRun.runnerVersion === "v2") {
@@ -231,7 +243,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteContext) {
+async function handleDelete(_request: Request, { params }: RouteContext) {
   try {
     const user = await requireApiGenerationUser();
     const { runId } = await params;
@@ -246,7 +258,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Run not found." }, { status: 404 });
     }
 
-    await ensureWorkbenchRunSchema();
+    await getWorkbenchSchemaCapabilities();
     const executionRun = await getExecutionRunForUser({
       executionRunId: token.executionRunId,
       userId: user.id,
@@ -303,4 +315,22 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
   } catch (error) {
     return apiErrorResponse(error);
   }
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  const timing = createServerTiming();
+  const response = await timing.measure("run_status", () =>
+    handleGet(request, context),
+  );
+  timing.apply(response.headers);
+  return response;
+}
+
+export async function DELETE(request: Request, context: RouteContext) {
+  const timing = createServerTiming();
+  const response = await timing.measure("run_cancel", () =>
+    handleDelete(request, context),
+  );
+  timing.apply(response.headers);
+  return response;
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/access-policy";
 import { QKIKI_PLAN_LIMITS } from "@/lib/billing-plans";
 import { CREDIT_PRICING_VERSION, costUsdToCredits } from "@/lib/credits";
+import { normalizePendingUsageAggregate } from "@/lib/usage-pending";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const RESERVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -430,7 +431,10 @@ async function getCreditUsageSnapshot(input: {
     | null
     | undefined;
   now?: Date;
-}): Promise<CreditUsageSnapshot> {
+}): Promise<{
+  credit: CreditUsageSnapshot;
+  pendingReservedRequests: number;
+}> {
   const now = input.now ?? new Date();
   const { dayStartAt, dayEndAt, monthStartAt, monthEndAt } =
     getKstPeriodBounds(now);
@@ -476,23 +480,26 @@ async function getCreditUsageSnapshot(input: {
       input.userSubscription.couponCreditBalance > 0,
   );
 
+  const pendingUsage = normalizePendingUsageAggregate(pending);
+
   return {
-    monthlyCreditsUsed:
-      (monthlyUsage._sum.creditsUsed ?? 0) +
-      (pending._sum.reservedCreditCount ?? 0),
-    dailyCreditsUsed:
-      (dailyUsage._sum.creditsUsed ?? 0) +
-      (pending._sum.reservedCreditCount ?? 0),
-    pendingReservedCredits: pending._sum.reservedCreditCount ?? 0,
-    paidCredits: wallet?.paidCredits ?? 0,
-    bonusCredits: wallet?.bonusCredits ?? 0,
-    couponCreditBalance: couponCreditActive
-      ? input.userSubscription?.couponCreditBalance ?? 0
-      : 0,
-    couponCreditEndsAt: couponCreditActive
-      ? input.userSubscription?.couponCreditEndsAt ?? null
-      : null,
-    couponCreditActive,
+    credit: {
+      monthlyCreditsUsed:
+        (monthlyUsage._sum.creditsUsed ?? 0) + pendingUsage.reservedCredits,
+      dailyCreditsUsed:
+        (dailyUsage._sum.creditsUsed ?? 0) + pendingUsage.reservedCredits,
+      pendingReservedCredits: pendingUsage.reservedCredits,
+      paidCredits: wallet?.paidCredits ?? 0,
+      bonusCredits: wallet?.bonusCredits ?? 0,
+      couponCreditBalance: couponCreditActive
+        ? input.userSubscription?.couponCreditBalance ?? 0
+        : 0,
+      couponCreditEndsAt: couponCreditActive
+        ? input.userSubscription?.couponCreditEndsAt ?? null
+        : null,
+      couponCreditActive,
+    },
+    pendingReservedRequests: pendingUsage.reservedRequests,
   };
 }
 
@@ -567,7 +574,7 @@ export async function getUsageStatus(userId: string) {
     couponUnlimitedUntil: userSubscription?.couponUnlimitedUntil ?? null,
   });
   const usage = await getOrCreateUsageRecord(userId, policy);
-  const credit = await getCreditUsageSnapshot({
+  const { credit } = await getCreditUsageSnapshot({
     userId,
     usageLimitId: usage.id,
     userSubscription,
@@ -592,13 +599,11 @@ export async function requireUsageAccess(input: {
     couponUnlimitedUntil: userSubscription?.couponUnlimitedUntil ?? null,
   });
   const usage = await getOrCreateUsageRecord(input.userId, policy);
-  const pending = await countPendingReservedRequests({ usageLimitId: usage.id });
-  const credit = await getCreditUsageSnapshot({
+  const { credit, pendingReservedRequests } = await getCreditUsageSnapshot({
     userId: input.userId,
     usageLimitId: usage.id,
     userSubscription,
   });
-  const pendingReservedRequests = pending._sum.reservedRequestCount ?? 0;
   const summary = toSummary(policy, credit);
 
   if (

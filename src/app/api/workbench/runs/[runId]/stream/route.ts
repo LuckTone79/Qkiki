@@ -11,8 +11,12 @@ import {
 } from "@/lib/execution-run-steps";
 import { prisma } from "@/lib/prisma";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
-import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
+import { getWorkbenchSchemaCapabilities } from "@/server/workbench/schema-compat";
+import { createServerTiming } from "@/server/perf/server-timing";
+import { shouldRecoverLegacyRun } from "@/server/workbench/legacy-run-recovery-policy";
+import { getRunStreamCursor } from "@/server/workbench/run-stream-cursor";
+import { getRunStreamPollDelayMs } from "@/server/workbench/run-stream-polling";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -27,7 +31,7 @@ const V2_STREAM_MAX_MS =
     ? parsedV2StreamMaxMs
     : 25_000;
 
-export async function GET(request: Request, { params }: RouteContext) {
+async function handleGet(request: Request, { params }: RouteContext) {
   try {
     const user = await requireApiGenerationUser();
     const { runId } = await params;
@@ -46,7 +50,7 @@ export async function GET(request: Request, { params }: RouteContext) {
       return Response.json({ error: "Run not found." }, { status: 404 });
     }
 
-    await ensureWorkbenchRunSchema();
+    await getWorkbenchSchemaCapabilities();
     let executionRun =
       "executionRunId" in token
         ? await getExecutionRunForUser({
@@ -60,14 +64,16 @@ export async function GET(request: Request, { params }: RouteContext) {
     }
 
     if ("executionRunId" in token) {
-      await closeStaleWorkbenchRuns({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
-      executionRun = await getExecutionRunForUser({
-        executionRunId: token.executionRunId,
-        userId: user.id,
-      });
+      if (executionRun && shouldRecoverLegacyRun(executionRun)) {
+        await closeStaleWorkbenchRuns({
+          executionRunId: executionRun.id,
+          userId: user.id,
+        });
+        executionRun = await getExecutionRunForUser({
+          executionRunId: executionRun.id,
+          userId: user.id,
+        });
+      }
 
       if (executionRun?.status === "canceled") {
         const [session, results] = await Promise.all([
@@ -167,6 +173,8 @@ export async function GET(request: Request, { params }: RouteContext) {
               const seenResults = new Set<string>();
               const streamStartedAt = Date.now();
               let lastRescueCheckAt = 0;
+              let lastCursor: string | null = null;
+              let unchangedPollCount = 0;
 
               if (session) {
                 send({
@@ -186,6 +194,27 @@ export async function GET(request: Request, { params }: RouteContext) {
                     executionRunId,
                   }).catch(() => undefined);
                 }
+
+                const cursor = await getRunStreamCursor({
+                  executionRunId,
+                  userId: user.id,
+                });
+                if (!cursor) {
+                  send({ type: "error", error: "Run not found." });
+                  break;
+                }
+
+                if (cursor.value === lastCursor) {
+                  unchangedPollCount += 1;
+                  if (Date.now() - streamStartedAt >= V2_STREAM_MAX_MS) {
+                    break;
+                  }
+                  await wait(getRunStreamPollDelayMs(unchangedPollCount));
+                  continue;
+                }
+
+                lastCursor = cursor.value;
+                unchangedPollCount = 0;
 
                 const snapshot = await getExecutionRunStatusSnapshot({
                   executionRunId,
@@ -314,7 +343,7 @@ export async function GET(request: Request, { params }: RouteContext) {
                   break;
                 }
 
-                await wait(1_000);
+                await wait(getRunStreamPollDelayMs(unchangedPollCount));
               }
 
               controller.close();
@@ -371,4 +400,13 @@ export async function GET(request: Request, { params }: RouteContext) {
   } catch (error) {
     return apiErrorResponse(error);
   }
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  const timing = createServerTiming();
+  const response = await timing.measure("run_stream_setup", () =>
+    handleGet(request, context),
+  );
+  timing.apply(response.headers);
+  return response;
 }

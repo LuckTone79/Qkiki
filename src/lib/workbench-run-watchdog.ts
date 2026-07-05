@@ -1,23 +1,12 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import {
   releaseUsageReservation,
   settleUsageReservation,
 } from "@/lib/usage-policy";
-
-const DEFAULT_STALE_RUN_SECONDS = 1800;
-
-function getStaleRunSeconds() {
-  const raw = process.env.WORKBENCH_STALE_RUN_SECONDS?.trim();
-  const parsed = raw ? Number.parseInt(raw, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed >= 300) {
-    return parsed;
-  }
-
-  return DEFAULT_STALE_RUN_SECONDS;
-}
+import { getLegacyRunStaleSeconds } from "@/server/workbench/legacy-run-recovery-policy";
+import { getWorkbenchSchemaCapabilities } from "@/server/workbench/schema-compat";
 
 function staleRunMessage(staleSeconds: number) {
   return `The AI run did not return for ${staleSeconds} seconds and was stopped automatically.`;
@@ -27,8 +16,8 @@ export async function closeStaleWorkbenchRuns(input: {
   userId?: string;
   executionRunId?: string;
 }) {
-  await ensureWorkbenchRunSchema();
-  const staleSeconds = getStaleRunSeconds();
+  await getWorkbenchSchemaCapabilities();
+  const staleSeconds = getLegacyRunStaleSeconds();
   const cutoff = new Date(Date.now() - staleSeconds * 1000);
   const message = staleRunMessage(staleSeconds);
   const baseFilters = {

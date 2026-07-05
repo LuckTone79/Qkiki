@@ -1,5 +1,13 @@
 # Changelog
 
+## Release 37 (v1.36.0-20260706)
+
+- Removed default runtime schema repair and broad stale-run cleanup from workbench request hot paths; production migrations now finish with a required-schema assertion and an explicit emergency repair flag remains available.
+- Consolidated duplicate pending usage aggregates while preserving the serializable reservation recheck.
+- Reduced V2 stream database work with a compact change cursor and bounded unchanged-poll backoff.
+- Added opt-in `Server-Timing`, stable V1/V2 kickoff metrics, and independent stream controller/NDJSON reader boundaries.
+- Aligned npm, application, and repository versions and ignored generated Codex logs and screenshot directories.
+
 ## Patch 36 (v1.35.1-20260630)
 
 - Fixed project creation after an authenticated page becomes stale because the user session has expired.
