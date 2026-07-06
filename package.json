@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test": "node --test --experimental-strip-types",
     "dev": "next dev",
     "build": "node scripts/prebuild-migrate.mjs && next build",
     "start": "next start",

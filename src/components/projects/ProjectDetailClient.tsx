@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
+import { withoutProjectSession } from "@/lib/project-detail-state";
 import {
   intlLocale,
   localize,
@@ -42,6 +43,8 @@ type ProjectDetail = {
     } | null;
   }>;
 };
+
+type ProjectSession = ProjectDetail["sessions"][number];
 
 function formatDate(value: string, language: AppLanguage) {
   return new Intl.DateTimeFormat(intlLocale(language), {
@@ -91,9 +94,89 @@ const projectDetailText = {
   },
 } as const;
 
+const projectRemovalText = {
+  en: {
+    delete: "Delete",
+    dialogTitle: "Remove conversation",
+    chooseDescription: "Choose what to do with this project conversation.",
+    unlink: "Remove from project only",
+    unlinkHelp: "Keep the original conversation and results in Sessions.",
+    permanent: "Delete original permanently",
+    permanentHelp: "Delete the conversation and its results. This cannot be undone.",
+    cancel: "Cancel",
+    confirmTitle: "Permanently delete this conversation?",
+    confirmDescription: "The original conversation and its results will be deleted and cannot be recovered.",
+    confirm: "Delete permanently",
+    back: "Back",
+    unlinking: "Removing…",
+    deleting: "Deleting…",
+    unlinkSuccess: "Conversation removed from the project. The original is still in Sessions.",
+    permanentSuccess: "Conversation permanently deleted.",
+    failed: "Could not update this conversation. Please try again.",
+  },
+  ko: {
+    delete: "삭제",
+    dialogTitle: "대화 삭제",
+    chooseDescription: "이 프로젝트 대화를 어떻게 처리할지 선택하세요.",
+    unlink: "프로젝트에서만 제거",
+    unlinkHelp: "원본 대화와 결과는 세션에 그대로 보존합니다.",
+    permanent: "원본까지 영구 삭제",
+    permanentHelp: "대화와 결과를 모두 삭제합니다. 되돌릴 수 없습니다.",
+    cancel: "취소",
+    confirmTitle: "이 대화를 영구 삭제할까요?",
+    confirmDescription: "원본 대화와 모든 결과가 삭제되며 복구할 수 없습니다.",
+    confirm: "영구 삭제",
+    back: "돌아가기",
+    unlinking: "제거 중…",
+    deleting: "삭제 중…",
+    unlinkSuccess: "프로젝트에서 대화를 제거했습니다. 원본은 세션에 보존됩니다.",
+    permanentSuccess: "대화를 영구 삭제했습니다.",
+    failed: "대화를 처리하지 못했습니다. 다시 시도하세요.",
+  },
+  ja: {
+    delete: "削除",
+    dialogTitle: "会話を削除",
+    chooseDescription: "このプロジェクトの会話をどのように処理するか選択してください。",
+    unlink: "プロジェクトからのみ削除",
+    unlinkHelp: "元の会話と結果はセッションに保存されます。",
+    permanent: "元の会話も完全に削除",
+    permanentHelp: "会話と結果を削除します。この操作は元に戻せません。",
+    cancel: "キャンセル",
+    confirmTitle: "この会話を完全に削除しますか？",
+    confirmDescription: "元の会話とすべての結果が削除され、復元できません。",
+    confirm: "完全に削除",
+    back: "戻る",
+    unlinking: "削除中…",
+    deleting: "削除中…",
+    unlinkSuccess: "プロジェクトから会話を削除しました。元の会話はセッションに残っています。",
+    permanentSuccess: "会話を完全に削除しました。",
+    failed: "会話を処理できませんでした。もう一度お試しください。",
+  },
+  es: {
+    delete: "Eliminar",
+    dialogTitle: "Eliminar conversación",
+    chooseDescription: "Elige qué hacer con esta conversación del proyecto.",
+    unlink: "Quitar solo del proyecto",
+    unlinkHelp: "Conserva la conversación y los resultados originales en Sesiones.",
+    permanent: "Eliminar el original permanentemente",
+    permanentHelp: "Elimina la conversación y sus resultados. No se puede deshacer.",
+    cancel: "Cancelar",
+    confirmTitle: "¿Eliminar permanentemente esta conversación?",
+    confirmDescription: "La conversación original y todos sus resultados se eliminarán sin posibilidad de recuperación.",
+    confirm: "Eliminar permanentemente",
+    back: "Volver",
+    unlinking: "Quitando…",
+    deleting: "Eliminando…",
+    unlinkSuccess: "La conversación se quitó del proyecto. El original sigue en Sesiones.",
+    permanentSuccess: "La conversación se eliminó permanentemente.",
+    failed: "No se pudo actualizar la conversación. Inténtalo de nuevo.",
+  },
+} as const;
+
 export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const { language, t } = useLanguage();
   const detailText = projectDetailText[language];
+  const removalText = projectRemovalText[language];
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -103,6 +186,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const [savingProject, setSavingProject] = useState(false);
   const [projectSavedAt, setProjectSavedAt] = useState<number | null>(null);
   const [deletingProject, setDeletingProject] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<ProjectSession | null>(null);
+  const [removalStage, setRemovalStage] = useState<"choose" | "confirm-permanent">("choose");
+  const [removalAction, setRemovalAction] = useState<"unlink" | "permanent" | null>(null);
+  const [removalError, setRemovalError] = useState("");
 
   async function loadProject() {
     const response = await fetch(`/api/projects/${projectId}`);
@@ -187,6 +274,59 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     }
   }
 
+  function openSessionRemoval(session: ProjectSession) {
+    setSelectedSession(session);
+    setRemovalStage("choose");
+    setRemovalError("");
+  }
+
+  function closeSessionRemoval() {
+    if (removalAction) return;
+    setSelectedSession(null);
+    setRemovalStage("choose");
+    setRemovalError("");
+  }
+
+  async function performSessionRemoval(action: "unlink" | "permanent") {
+    if (!selectedSession || removalAction) return;
+
+    setRemovalAction(action);
+    setRemovalError("");
+    setError("");
+    setNotice("");
+
+    try {
+      const endpoint =
+        action === "unlink"
+          ? `/api/projects/${projectId}/sessions/${selectedSession.id}`
+          : `/api/sessions/${selectedSession.id}`;
+      const response = await fetch(endpoint, { method: "DELETE" });
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        setRemovalError(
+          language === "en" ? data.error || removalText.failed : removalText.failed,
+        );
+        return;
+      }
+
+      setProject((current) =>
+        current ? withoutProjectSession(current, selectedSession.id) : current,
+      );
+      setNotice(
+        action === "unlink"
+          ? removalText.unlinkSuccess
+          : removalText.permanentSuccess,
+      );
+      setSelectedSession(null);
+      setRemovalStage("choose");
+    } catch {
+      setRemovalError(removalText.failed);
+    } finally {
+      setRemovalAction(null);
+    }
+  }
+
   async function deleteProject() {
     if (!window.confirm(t("deleteProjectConfirm"))) {
       return;
@@ -211,6 +351,21 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     // Load this project once for the dynamic route id.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!selectedSession) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !removalAction) {
+        setSelectedSession(null);
+        setRemovalStage("choose");
+        setRemovalError("");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedSession, removalAction]);
 
   if (!project) {
     return (
@@ -466,7 +621,7 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-lg font-semibold text-stone-950">
                           {session.title}
@@ -484,12 +639,22 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                         {t("updated")} {formatDate(session.updatedAt, language)}
                       </p>
                     </div>
-                    <Link
-                      href={`/app/workbench?session=${session.id}`}
-                      className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
-                    >
-                      {t("open")}
-                    </Link>
+                    <div className="grid w-full grid-cols-2 gap-2 lg:flex lg:w-auto lg:flex-none">
+                      <Link
+                        href={`/app/workbench?session=${session.id}`}
+                        className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
+                      >
+                        {t("open")}
+                      </Link>
+                      <button
+                        type="button"
+                        aria-haspopup="dialog"
+                        onClick={() => openSessionRemoval(session)}
+                        className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50"
+                      >
+                        {removalText.delete}
+                      </button>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -510,6 +675,114 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
           )}
         </section>
       </div>
+
+      {selectedSession ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-stone-950/50 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeSessionRemoval();
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-session-removal-title"
+            className="w-full max-w-lg rounded-xl bg-white p-5 shadow-2xl"
+          >
+            <h2
+              id="project-session-removal-title"
+              className="text-lg font-semibold text-stone-950"
+            >
+              {removalStage === "choose"
+                ? removalText.dialogTitle
+                : removalText.confirmTitle}
+            </h2>
+            <p className="mt-2 break-words text-sm font-medium text-stone-800">
+              {selectedSession.title}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-stone-600">
+              {removalStage === "choose"
+                ? removalText.chooseDescription
+                : removalText.confirmDescription}
+            </p>
+
+            {removalError ? (
+              <div className="mt-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                {removalError}
+              </div>
+            ) : null}
+
+            {removalStage === "choose" ? (
+              <div className="mt-5 grid gap-3">
+                <button
+                  type="button"
+                  autoFocus
+                  disabled={!!removalAction}
+                  onClick={() => performSessionRemoval("unlink")}
+                  className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-left hover:bg-teal-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="block text-sm font-semibold text-teal-900">
+                    {removalAction === "unlink"
+                      ? removalText.unlinking
+                      : removalText.unlink}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-teal-800">
+                    {removalText.unlinkHelp}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!!removalAction}
+                  onClick={() => {
+                    setRemovalStage("confirm-permanent");
+                    setRemovalError("");
+                  }}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-left hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="block text-sm font-semibold text-rose-900">
+                    {removalText.permanent}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-rose-800">
+                    {removalText.permanentHelp}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={!!removalAction}
+                  onClick={closeSessionRemoval}
+                  className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                >
+                  {removalText.cancel}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  disabled={!!removalAction}
+                  onClick={() => {
+                    setRemovalStage("choose");
+                    setRemovalError("");
+                  }}
+                  className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-60"
+                >
+                  {removalText.back}
+                </button>
+                <button
+                  type="button"
+                  disabled={!!removalAction}
+                  onClick={() => performSessionRemoval("permanent")}
+                  className="rounded-md bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {removalAction === "permanent"
+                    ? removalText.deleting
+                    : removalText.confirm}
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
