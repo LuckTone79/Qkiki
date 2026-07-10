@@ -1,5 +1,11 @@
 # Changelog
 
+## Patch 28 (v1.36.0-20260710) — Genspark 레퍼런스 UI 리디자인 시안 7종
+
+- 사용자가 첨부한 Genspark 모바일 앱 스크린샷을 레퍼런스로, 현재 UI의 "AI가 대충 만든 느낌"을 걷어내는 리디자인 시안 7종을 제작: `design-concepts/16-genspark-redesign/index.html` (진단 + 시안 7종 목업 + 적용 로드맵).
+- 시안: ① 컴포저 허브 홈 ② 데스크톱 아이콘 레일 셸 ③ 모델 브랜드 타일 ④ 4탭 내비+바텀시트 ⑤ 결과 카드 스트림 ⑥ 모노 필 컴포넌트 시스템(공통 기반) ⑦ 플랜&사용량 시트.
+- **제품 코드에는 미적용** — 기존 design-concepts 관례와 동일한 탐색용 목업. 상세는 `Report/Report_v1.36.0_20260710.md`.
+
 ## Patch 27 (v1.34.0-20260701) — AI 모델 카탈로그 최신화
 
 - **Anthropic**: 기본 모델을 `claude-sonnet-4-6` → **`claude-sonnet-5`**(2026-06-30 정식 출시)로 변경. `claude-sonnet-4-6`은 선택 가능한 옵션으로 유지.
