@@ -5,13 +5,6 @@ export const SESSION_COOKIE_CANDIDATES = [
   ...LEGACY_SESSION_COOKIES,
 ] as const;
 
-export const ADMIN_SESSION_COOKIE = "yapp_admin_session";
-export const LEGACY_ADMIN_SESSION_COOKIES = ["qkiki_admin_session"] as const;
-export const ADMIN_SESSION_COOKIE_CANDIDATES = [
-  ADMIN_SESSION_COOKIE,
-  ...LEGACY_ADMIN_SESSION_COOKIES,
-] as const;
-
 export const TRIAL_COOKIE = "yapp_trial";
 export const LEGACY_TRIAL_COOKIES = ["qkiki_trial"] as const;
 export const TRIAL_COOKIE_CANDIDATES = [

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  ADMIN_SESSION_COOKIE_CANDIDATES,
   SESSION_COOKIE_CANDIDATES,
   hasAnyCookie,
 } from "@/lib/auth-constants";
@@ -8,6 +7,7 @@ import {
   buildCanonicalRedirectUrl,
   shouldRedirectToCanonicalHost,
 } from "@/lib/canonical-host";
+import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
 function isAdminHost(host: string | null) {
   return Boolean(host && host.toLowerCase().startsWith("admin."));
@@ -22,17 +22,40 @@ function shouldRewriteToAdmin(pathname: string) {
   );
 }
 
-export function proxy(request: NextRequest) {
+/** Copies cookies set on `source` (the Supabase session refresh) onto a
+ * different response we're about to return — a redirect and `next()` are
+ * separate response objects, so refreshed auth cookies would otherwise be
+ * dropped whenever this proxy redirects instead of passing the request
+ * straight through. */
+function withRefreshedCookies(response: NextResponse, source: NextResponse) {
+  source.cookies.getAll().forEach((cookie) => {
+    response.cookies.set(cookie);
+  });
+  return response;
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
   const hostname = host?.split(":")[0]?.trim().toLowerCase() || request.nextUrl.hostname;
-  const hasUserSession = hasAnyCookie(request.cookies, SESSION_COOKIE_CANDIDATES);
-  const hasAdminSession = hasAnyCookie(request.cookies, ADMIN_SESSION_COOKIE_CANDIDATES);
+
+  const { response: refreshedResponse, user: supabaseUser } =
+    await updateSupabaseSession(request);
+
+  // Real users now carry a Supabase session instead of the legacy cookie;
+  // trial (anonymous) users still only ever have the legacy cookie.
+  const hasUserSession =
+    Boolean(supabaseUser) ||
+    hasAnyCookie(request.cookies, SESSION_COOKIE_CANDIDATES);
+  // Coarse "is anyone logged in" pre-filter only — the actual admin role
+  // check (User.role) is a DB lookup and happens in requireAdminViewer(),
+  // not here, per Next.js's guidance to keep proxy checks optimistic.
+  const hasAdminSession = Boolean(supabaseUser);
 
   if (isAdminHost(host) && shouldRewriteToAdmin(pathname)) {
     const rewriteUrl = request.nextUrl.clone();
     rewriteUrl.pathname = `/admin${pathname === "/" ? "" : pathname}`;
-    return NextResponse.rewrite(rewriteUrl);
+    return withRefreshedCookies(NextResponse.rewrite(rewriteUrl), refreshedResponse);
   }
 
   if (
@@ -46,29 +69,28 @@ export function proxy(request: NextRequest) {
     if (pathname.startsWith("/app") && !hasUserSession) {
       const signInUrl = new URL("/sign-in", request.url);
       signInUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(signInUrl);
+      return withRefreshedCookies(NextResponse.redirect(signInUrl), refreshedResponse);
     }
 
     if ((pathname === "/sign-in" || pathname === "/sign-up") && hasUserSession) {
-      return NextResponse.redirect(new URL("/app/workbench", request.url));
+      return withRefreshedCookies(
+        NextResponse.redirect(new URL("/app/workbench", request.url)),
+        refreshedResponse,
+      );
     }
 
     if (pathname.startsWith("/admin") && pathname !== "/admin/sign-in" && !hasAdminSession) {
       const signInUrl = new URL("/admin/sign-in", request.url);
       signInUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(signInUrl);
+      return withRefreshedCookies(NextResponse.redirect(signInUrl), refreshedResponse);
     }
 
-    if (pathname === "/admin/sign-in" && hasAdminSession) {
-      return NextResponse.redirect(new URL("/admin", request.url));
-    }
-
-    return NextResponse.next();
+    return refreshedResponse;
   }
 
   const redirectUrl = buildCanonicalRedirectUrl(request.url, process.env);
   if (!redirectUrl) {
-    return NextResponse.next();
+    return refreshedResponse;
   }
 
   if (hasUserSession) {
@@ -77,10 +99,10 @@ export function proxy(request: NextRequest) {
       "next",
       `${pathname}${request.nextUrl.search || ""}`,
     );
-    return NextResponse.redirect(handoffUrl, 307);
+    return withRefreshedCookies(NextResponse.redirect(handoffUrl, 307), refreshedResponse);
   }
 
-  return NextResponse.redirect(redirectUrl, 308);
+  return withRefreshedCookies(NextResponse.redirect(redirectUrl, 308), refreshedResponse);
 }
 
 export const config = {

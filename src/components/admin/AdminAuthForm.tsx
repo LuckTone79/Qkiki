@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 
 const authText = {
   en: {
     email: "Email",
     password: "Password",
-    mfaCode: "MFA code",
-    mfaPlaceholder: "Enter MFA code",
     signIn: "Sign in as admin",
     signingIn: "Signing in...",
     fallbackError: "Admin sign-in failed.",
@@ -17,17 +16,15 @@ const authText = {
     userSignIn: "User sign-in",
   },
   ko: {
-    email: "\uC774\uBA54\uC77C",
-    password: "\uBE44\uBC00\uBC88\uD638",
-    mfaCode: "MFA \uCF54\uB4DC",
-    mfaPlaceholder: "MFA \uCF54\uB4DC\uB97C \uC785\uB825\uD558\uC138\uC694",
-    signIn: "\uAD00\uB9AC\uC790 \uB85C\uADF8\uC778",
-    signingIn: "\uB85C\uADF8\uC778 \uC911...",
+    email: "이메일",
+    password: "비밀번호",
+    signIn: "관리자 로그인",
+    signingIn: "로그인 중...",
     fallbackError:
-      "\uAD00\uB9AC\uC790 \uB85C\uADF8\uC778\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+      "관리자 로그인에 실패했습니다.",
     backToUser:
-      "\uC0AC\uC6A9\uC790 \uD654\uBA74\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30?",
-    userSignIn: "\uC0AC\uC6A9\uC790 \uB85C\uADF8\uC778",
+      "사용자 화면으로 돌아가기?",
+    userSignIn: "사용자 로그인",
   },
 } as const;
 
@@ -36,9 +33,11 @@ export function AdminAuthForm() {
   const t = authText[language];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileResetSignal, setTurnstileResetSignal] = useState(0);
+  const captchaRequired = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,8 +47,11 @@ export function AdminAuthForm() {
     const response = await fetch("/api/admin/auth/sign-in", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, mfaCode }),
+      body: JSON.stringify({ email, password, captchaToken: turnstileToken || undefined }),
     });
+
+    setTurnstileToken("");
+    setTurnstileResetSignal((value) => value + 1);
 
     const data = (await response.json().catch(() => ({}))) as { error?: string };
 
@@ -87,17 +89,11 @@ export function AdminAuthForm() {
         />
       </label>
 
-      <label className="block">
-        <span className="text-sm font-medium text-slate-700">{t.mfaCode}</span>
-        <input
-          type="password"
-          required
-          value={mfaCode}
-          onChange={(event) => setMfaCode(event.target.value)}
-          className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-700"
-          placeholder={t.mfaPlaceholder}
-        />
-      </label>
+      <TurnstileWidget
+        onVerify={setTurnstileToken}
+        onExpire={() => setTurnstileToken("")}
+        resetSignal={turnstileResetSignal}
+      />
 
       {error ? (
         <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
@@ -107,7 +103,7 @@ export function AdminAuthForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || (captchaRequired && !turnstileToken)}
         className="w-full rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
       >
         {loading ? t.signingIn : t.signIn}

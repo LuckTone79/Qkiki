@@ -7,7 +7,7 @@ export async function GET() {
     ok:
       diagnostics.databaseConfigured &&
       diagnostics.appSecretConfigured &&
-      diagnostics.googleOAuthConfigured,
+      diagnostics.supabaseConfigured,
     diagnostics,
   });
 }

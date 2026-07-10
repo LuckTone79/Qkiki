@@ -5,9 +5,18 @@ import {
   SESSION_COOKIE,
 } from "./src/lib/auth-constants";
 import { APP_CANONICAL_URL } from "./src/lib/brand";
+import { getSupabaseAuthCookieName } from "./src/lib/supabase/env";
 
 const vercelAliasPattern = "(?:qkiki|yapp)\\.vercel\\.app";
-const missingSessionCookies = [SESSION_COOKIE, ...LEGACY_SESSION_COOKIES].map((key) => ({
+// Real users now carry a Supabase auth cookie instead of SESSION_COOKIE.
+// Without this, a signed-in Supabase user landing on a preview alias would
+// look "logged out" to this check and get bounced to the canonical domain.
+const supabaseAuthCookieName = getSupabaseAuthCookieName();
+const missingSessionCookies = [
+  SESSION_COOKIE,
+  ...LEGACY_SESSION_COOKIES,
+  ...(supabaseAuthCookieName ? [supabaseAuthCookieName] : []),
+].map((key) => ({
   type: "cookie" as const,
   key,
 }));

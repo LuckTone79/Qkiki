@@ -33,7 +33,7 @@ export const signInSchema = z.object({
 export const adminSignInSchema = z.object({
   email: authEmailSchema,
   password: z.string().min(1).max(128),
-  mfaCode: z.string().trim().max(20).optional(),
+  captchaToken: z.string().max(4000).optional(),
 });
 
 export const targetModelSchema = z.object({

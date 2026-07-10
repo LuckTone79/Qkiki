@@ -34,7 +34,7 @@ export function sanitizeOpenInBrowserTarget(
     return "/sign-in";
   }
 
-  if (!candidate.startsWith("/api/auth/google/start")) {
+  if (!candidate.startsWith("/api/auth/oauth/")) {
     return "/sign-in";
   }
 

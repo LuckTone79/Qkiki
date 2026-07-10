@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { adminSignInSchema } from "@/lib/validation";
-import { verifyPassword } from "@/lib/auth";
-import { canViewAdmin, createAdminSession } from "@/lib/admin-auth";
+import { canViewAdmin } from "@/lib/admin-auth";
+import { ensureLegacyUserLinked } from "@/lib/supabase/link-legacy-user";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { getRequestMeta } from "@/lib/admin-api-auth";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   const parsed = adminSignInSchema.safeParse(await request.json());
@@ -17,11 +18,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: parsed.data.email },
+  const supabase = await createSupabaseServerClient();
+  const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: { captchaToken: parsed.data.captchaToken },
   });
 
-  if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+  if (signInError || !data.user) {
     await logAdminAudit({
       action: "ADMIN_LOGIN",
       detail: { success: false, reason: "invalid_credentials", email: parsed.data.email },
@@ -35,7 +39,10 @@ export async function POST(request: Request) {
     );
   }
 
+  const user = await ensureLegacyUserLinked(data.user);
+
   if (!canViewAdmin(user.role)) {
+    await supabase.auth.signOut();
     await logAdminAudit({
       adminUserId: user.id,
       action: "ADMIN_LOGIN",
@@ -48,6 +55,7 @@ export async function POST(request: Request) {
   }
 
   if (user.status === "SUSPENDED") {
+    await supabase.auth.signOut();
     await logAdminAudit({
       adminUserId: user.id,
       action: "ADMIN_LOGIN",
@@ -58,49 +66,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ error: "Account suspended." }, { status: 403 });
   }
-
-  const expectedMfaCode = process.env.ADMIN_MFA_CODE?.trim();
-  const providedMfaCode = parsed.data.mfaCode?.trim();
-
-  if (!expectedMfaCode) {
-    await logAdminAudit({
-      adminUserId: user.id,
-      action: "ADMIN_MFA_FAILURE",
-      detail: { reason: "mfa_not_configured" },
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-    });
-
-    return NextResponse.json(
-      { error: "Admin MFA is required but ADMIN_MFA_CODE is not configured." },
-      { status: 503 },
-    );
-  }
-
-  if (!providedMfaCode || providedMfaCode !== expectedMfaCode) {
-    await logAdminAudit({
-      adminUserId: user.id,
-      action: "ADMIN_MFA_FAILURE",
-      detail: { reason: "invalid_code" },
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-    });
-
-    return NextResponse.json(
-      { error: "MFA code is invalid." },
-      { status: 401 },
-    );
-  }
-
-  await logAdminAudit({
-    adminUserId: user.id,
-    action: "ADMIN_MFA_SUCCESS",
-    ipAddress: meta.ipAddress,
-    userAgent: meta.userAgent,
-  });
-
-  const mfaVerifiedAt = new Date();
-  await createAdminSession(user.id, mfaVerifiedAt);
 
   await prisma.user.update({
     where: { id: user.id },
