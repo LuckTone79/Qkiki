@@ -11,7 +11,11 @@ export function shouldEnableProviderWebSearch(input: {
   requestType: ActionType | "rerun";
   prompt: string;
 }) {
-  if (process.env.QKIKI_WEB_SEARCH_ENABLED === "false") {
+  // Primary env var is YAPP_WEB_SEARCH_ENABLED; the legacy QKIKI_ name is
+  // still honored so existing deploy configs keep working during the rebrand.
+  const webSearchFlag =
+    process.env.YAPP_WEB_SEARCH_ENABLED ?? process.env.QKIKI_WEB_SEARCH_ENABLED;
+  if (webSearchFlag === "false") {
     return false;
   }
 

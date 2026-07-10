@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { SESSION_COOKIE } from "@/lib/auth-constants";
+import { LEGACY_SESSION_COOKIE, SESSION_COOKIE } from "@/lib/auth-constants";
 import { createAuthHandoffToken, sanitizeInternalReturnPath } from "@/lib/auth-handoff";
 import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { hashSessionToken } from "@/lib/auth";
@@ -28,7 +28,9 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = await cookies();
-  const sessionToken = cookieStore.get(SESSION_COOKIE)?.value;
+  const sessionToken =
+    cookieStore.get(SESSION_COOKIE)?.value ??
+    cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
   if (!sessionToken) {
     return NextResponse.redirect(buildCanonicalSignInRedirect(request.url, nextPath));
   }

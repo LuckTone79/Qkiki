@@ -1,6 +1,6 @@
 import {
-  QKIKI_CREDIT_PACK,
-  QKIKI_PRICING_PLANS,
+  YAPP_CREDIT_PACK,
+  YAPP_PRICING_PLANS,
   type PaidPlanKey,
 } from "@/lib/billing-plans";
 
@@ -55,7 +55,7 @@ export default async function PricingPage(props: PricingPageProps) {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        {QKIKI_PRICING_PLANS.map((plan) => (
+        {YAPP_PRICING_PLANS.map((plan) => (
           <article
             key={plan.key}
             className={`rounded-lg border bg-white p-5 shadow-sm ${
@@ -96,19 +96,19 @@ export default async function PricingPage(props: PricingPageProps) {
               Optional top-up
             </p>
             <h2 className="mt-2 text-xl font-semibold text-stone-950">
-              {QKIKI_CREDIT_PACK.title}
+              {YAPP_CREDIT_PACK.title}
             </h2>
             <p className="mt-2 text-3xl font-semibold text-teal-800">
-              {formatUsd(QKIKI_CREDIT_PACK.priceUsd)}
+              {formatUsd(YAPP_CREDIT_PACK.priceUsd)}
             </p>
           </div>
           <div className="text-sm leading-7 text-stone-600">
             <p>
-              Includes {QKIKI_CREDIT_PACK.credits.toLocaleString("en-US")} top-up credits,
-              valid for {QKIKI_CREDIT_PACK.expiresInMonths} months.
+              Includes {YAPP_CREDIT_PACK.credits.toLocaleString("en-US")} top-up credits,
+              valid for {YAPP_CREDIT_PACK.expiresInMonths} months.
             </p>
-            <p className="mt-2">{QKIKI_CREDIT_PACK.positioning}</p>
-            <p className="mt-2">{QKIKI_CREDIT_PACK.positioningKo}</p>
+            <p className="mt-2">{YAPP_CREDIT_PACK.positioning}</p>
+            <p className="mt-2">{YAPP_CREDIT_PACK.positioningKo}</p>
           </div>
         </div>
       </section>

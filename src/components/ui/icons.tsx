@@ -96,13 +96,34 @@ export function CompareIcon({ className }: IconProps) {
   );
 }
 
-export function SparkMarkIcon({ className }: IconProps) {
+/**
+ * Yapp brand mark — a node-network glyph: one central node branching into
+ * three, standing for a single prompt fanning out to multiple AI models.
+ * Uses currentColor so it inverts cleanly on any brand tile.
+ */
+export function BrandMark({ className }: IconProps) {
   return (
-    <svg {...strokeProps(className)}>
-      <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className ?? "h-5 w-5"}
+    >
+      <path d="M12 12.6 6.9 5.9M12 12.6 17.2 5.9M12 12.6 9.6 19.8" />
+      <circle cx="6.9" cy="5.9" r="1.75" fill="none" />
+      <circle cx="17.2" cy="5.9" r="1.75" fill="none" />
+      <circle cx="9.6" cy="19.8" r="1.75" fill="none" />
+      <circle cx="12" cy="12.6" r="2.2" fill="currentColor" />
     </svg>
   );
 }
+
+/** @deprecated Use {@link BrandMark}. Kept as an alias during the rebrand. */
+export const SparkMarkIcon = BrandMark;
 
 /* Official provider logo marks (monochrome glyph paths, fill-based).
    Rendered on app-icon style tiles: OpenAI/xAI white-on-black,
