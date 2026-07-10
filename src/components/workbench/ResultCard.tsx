@@ -17,8 +17,8 @@ import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import {
   getModelDisplayName,
   getModelOptionLabel,
-  getProviderBrandBadgeClass,
 } from "@/lib/ai/model-display";
+import { ProviderLogoTile } from "@/components/ui/icons";
 import { isImageDataUrl } from "@/lib/ai/image-output";
 
 export type WorkbenchResult = {
@@ -316,10 +316,10 @@ export function ResultCard({
     () =>
       imageOutput
         ? localize(language, {
-            en: "🖼 Generated image",
-            ko: "🖼 생성된 이미지",
-            ja: "🖼 生成された画像",
-            es: "🖼 Imagen generada",
+            en: "Generated image",
+            ko: "생성된 이미지",
+            ja: "生成された画像",
+            es: "Imagen generada",
           })
         : firstVisibleLine(displayBody),
     [displayBody, imageOutput, language],
@@ -357,22 +357,29 @@ export function ResultCard({
   return (
     <article
       id={buildResultDomId(result.id)}
-      className={`rounded-lg border bg-white shadow-sm transition-colors ${
+      className={`rounded-2xl border bg-white shadow-sm transition-colors ${
         compact ? "p-3" : "p-3 sm:p-4"
-      } ${highlighted ? "border-teal-400 ring-2 ring-teal-200" : "border-stone-200"}`}
+      } ${highlighted ? "border-teal-400 ring-2 ring-teal-200" : "border-stone-200"} ${
+        isFinal ? "border-[1.5px] border-stone-950" : ""
+      }`}
       style={{ marginLeft: `${Math.min(depth, 3) * 10}px` }}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-md px-2.5 py-1 text-sm font-bold shadow-sm ${getProviderBrandBadgeClass(result.provider)}`}
-            >
-              {result.provider} / {getModelDisplayName(result.provider, result.model)}
+            <span className="flex items-center gap-2.5">
+              <ProviderLogoTile
+                provider={result.provider}
+                className="h-8 w-8 rounded-full"
+                glyphClassName="h-4 w-4"
+              />
+              <span className="text-sm font-bold text-stone-950">
+                {getModelDisplayName(result.provider, result.model)}
+              </span>
             </span>
             <StatusBadge status={result.status} />
             {isFinal ? (
-              <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
+              <span className="rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">
                 {localize(language, {
                   en: "Final result",
                   ko: "최종결과",
@@ -382,7 +389,7 @@ export function ResultCard({
               </span>
             ) : null}
             {!isFinal && isLatestProgress ? (
-              <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
                 {localize(language, {
                   en: "Latest result in progress",
                   ko: "진행 step중 최신결과",
@@ -430,7 +437,7 @@ export function ResultCard({
       </div>
 
       <div
-        className={`mt-4 rounded-md border border-stone-200 bg-[#f7f6f3] text-stone-800 ${
+        className={`mt-4 rounded-md border border-stone-200 bg-[#f4f5f6] text-stone-800 ${
           compact ? "p-2.5 text-[13px] leading-5" : "p-3 text-sm leading-6"
         }`}
       >
@@ -477,7 +484,7 @@ export function ResultCard({
             type="button"
             disabled={!onBranch}
             onClick={() => setComposer(composer === "follow_up" ? null : "follow_up")}
-            className="min-h-10 rounded-md bg-stone-950 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800"
+            className="min-h-10 rounded-full bg-stone-950 px-4 py-2 text-xs font-bold text-white hover:bg-stone-800"
           >
             {t("followUp")}
           </button>
@@ -485,7 +492,7 @@ export function ResultCard({
             type="button"
             disabled={!onBranch}
             onClick={() => setComposer(composer === "review" ? null : "review")}
-            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {t("reviewWithModel")}
           </button>
@@ -493,14 +500,14 @@ export function ResultCard({
             type="button"
             disabled={!onRerun}
             onClick={() => onRerun?.(result.id)}
-            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {t("rerun")}
           </button>
           <button
             type="button"
             onClick={copy}
-            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {copied ? t("copied") : t("copy")}
           </button>
@@ -679,7 +686,7 @@ function BranchComposer({
   return (
     <form
       onSubmit={submit}
-      className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] p-3"
+      className="mt-4 rounded-lg border border-stone-200 bg-[#f4f5f6] p-3"
     >
       <div className="grid gap-3 md:grid-cols-[1fr_1fr]">
         <label className="block">

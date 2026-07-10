@@ -4487,7 +4487,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-stone-200 bg-white px-4 py-3 shadow-sm">
+      <div className="rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
           {runSummary.title}
         </p>
@@ -4714,7 +4714,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       >
         {effectiveMode === "parallel" ? (
           <aside className={`space-y-3 ${mobilePanelClass("models")}`}>
-            <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
+            <div className="rounded-lg border border-stone-200 bg-[#f4f5f6] p-4">
               <h2 className="text-sm font-semibold text-stone-950">
                 {imageMode
                   ? localize(language, {
@@ -4824,7 +4824,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
         <section className={`min-w-0 space-y-5 ${middlePanelClass}`}>
           <div
-            className={`rounded-lg border border-stone-200 bg-white p-4 shadow-sm ${mobilePanelClass(
+            className={`rounded-3xl border border-stone-200 bg-white p-5 shadow-[0_8px_28px_rgba(20,21,23,0.06)] ${mobilePanelClass(
               "input",
             )}`}
           >
@@ -4840,17 +4840,17 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               <div className="overflow-x-auto">
                 <div className="flex min-w-max items-center gap-2">
                   <div
-                    className={`inline-flex rounded-md border border-stone-200 bg-white p-1 ${
+                    className={`inline-flex rounded-full bg-stone-100 p-1 ${
                       imageMode ? "pointer-events-none opacity-40" : ""
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => setMode("parallel")}
-                      className={`rounded px-3 py-2 text-sm font-semibold ${
+                      className={`rounded-full px-4 py-2 text-sm font-bold ${
                         !imageMode && mode === "parallel"
                           ? "bg-stone-950 text-white shadow-sm"
-                          : "text-stone-600 hover:bg-stone-50"
+                          : "text-stone-500 hover:text-stone-800"
                       }`}
                     >
                       {t("parallelCompare")}
@@ -4858,10 +4858,10 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     <button
                       type="button"
                       onClick={() => setMode("sequential")}
-                      className={`rounded px-3 py-2 text-sm font-semibold ${
+                      className={`rounded-full px-4 py-2 text-sm font-bold ${
                         !imageMode && mode === "sequential"
                           ? "bg-stone-950 text-white shadow-sm"
-                          : "text-stone-600 hover:bg-stone-50"
+                          : "text-stone-500 hover:text-stone-800"
                       }`}
                     >
                       {t("sequentialReviewChain")}
@@ -4877,24 +4877,24 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                         setMode("parallel");
                       }
                     }}
-                    className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+                    className={`rounded-full border px-4 py-2 text-sm font-bold ${
                       imageMode
-                        ? "border-teal-600 bg-teal-700 text-white shadow-sm"
+                        ? "border-teal-600 bg-teal-600 text-white shadow-sm"
                         : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"
                     }`}
                   >
                     {localize(language, {
-                      en: "🖼 Image",
-                      ko: "🖼 이미지 생성",
-                      ja: "🖼 画像生成",
-                      es: "🖼 Imagen",
+                      en: "Image",
+                      ko: "이미지 생성",
+                      ja: "画像生成",
+                      es: "Imagen",
                     })}
                   </button>
                   <button
                     type="button"
                     onClick={copyOriginalInputText}
                     disabled={!originalInput.trim()}
-                    className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${inputCopied ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"}`}
+                    className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${inputCopied ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50"}`}
                   >
                     {inputCopied
                       ? localize(language, {
@@ -4918,18 +4918,18 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               value={originalInput}
               onChange={(event) => setOriginalInput(event.target.value)}
               rows={6}
-              className="mt-4 w-full rounded-md border border-stone-300 bg-[#f7f6f3] px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
+              className="mt-4 w-full rounded-2xl border border-stone-200 bg-[#f4f5f6] px-4 py-3.5 text-sm leading-6 outline-none transition-colors focus:border-teal-600 focus:bg-white"
               placeholder={t("taskTextareaPlaceholder")}
             />
             <textarea
               value={additionalInstruction}
               onChange={(event) => setAdditionalInstruction(event.target.value)}
               rows={3}
-              className="mt-3 w-full rounded-md border border-stone-300 bg-white px-3 py-3 text-sm leading-6 outline-none focus:border-teal-600"
+              className="mt-3 w-full rounded-2xl border border-stone-200 bg-white px-4 py-3.5 text-sm leading-6 outline-none transition-colors focus:border-teal-600"
               placeholder={t("additionalInstructionPlaceholder")}
             />
 
-            <div className="mt-3 rounded-md border border-dashed border-stone-300 bg-[#f7f6f3] p-3">
+            <div className="mt-3 rounded-2xl border border-dashed border-stone-300 bg-[#f4f5f6] p-3.5">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-stone-900">
@@ -4939,7 +4939,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                     {t("attachmentsDescription")}
                   </p>
                 </div>
-                <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-md border border-stone-300 bg-white px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+                <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
                   <input
                     type="file"
                     multiple
@@ -5029,7 +5029,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 type="button"
                 onClick={runWorkbench}
                 disabled={running || uploadingAttachments}
-                className="w-full rounded-md bg-stone-950 px-5 py-3 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60 sm:w-auto"
+                className="w-full rounded-full bg-stone-950 px-7 py-3 text-sm font-bold text-white hover:bg-stone-800 disabled:opacity-60 sm:w-auto"
               >
                 {running ? t("running") : t("run")}
               </button>
@@ -5038,7 +5038,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   type="button"
                   onClick={stopActiveRun}
                   disabled={cancelingRun}
-                  className="w-full rounded-md border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60 sm:w-auto"
+                  className="w-full rounded-full border border-rose-300 bg-white px-5 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-60 sm:w-auto"
                 >
                   {cancelingRun
                     ? localize(language, {
@@ -5060,7 +5060,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
 
           {mode === "sequential" ? (
             <div
-              className={`rounded-lg border border-stone-200 bg-[#f7f6f3] p-4 ${mobilePanelClass(
+              className={`rounded-lg border border-stone-200 bg-[#f4f5f6] p-4 ${mobilePanelClass(
                 "workflow",
               )}`}
             >
@@ -5110,7 +5110,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               ))}
             </div>
 
-            <div className="mt-4 rounded-lg border border-stone-200 bg-white p-3">
+            <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-3">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-stone-900">
@@ -5143,7 +5143,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 {plannedSequentialSteps.map((step, index) => (
                   <div
                     key={`plan-step-${step.uid}-${index + 1}`}
-                    className="rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2"
+                    className="rounded-md border border-stone-200 bg-[#f4f5f6] px-3 py-2"
                   >
                     <p className="text-xs font-semibold text-teal-700">
                       {localize(language, {
@@ -5211,7 +5211,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ) : null}
 
             {mode === "sequential" ? (
-              <div className="mt-4 space-y-3 rounded-lg border border-stone-200 bg-white p-3">
+              <div className="mt-4 space-y-3 rounded-2xl border border-stone-200 bg-white p-3">
                 <div>
                   <p className="text-sm font-semibold text-stone-900">
                     {builderText.repeatSettings}
@@ -5419,7 +5419,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               </div>
             ) : null}
 
-            <div className="mt-4 grid gap-2 rounded-lg border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
+            <div className="mt-4 grid gap-2 rounded-2xl border border-stone-200 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
               <input
                 value={presetName}
                 onChange={(event) => setPresetName(event.target.value)}
@@ -5436,7 +5436,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 type="button"
                 onClick={savePreset}
                 disabled={savingPreset}
-                className={`flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${presetSavedAt ? "bg-teal-500" : "bg-teal-700 hover:bg-teal-800 disabled:opacity-60"}`}
+                className={`flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold text-white transition-colors disabled:cursor-not-allowed ${presetSavedAt ? "bg-teal-500" : "bg-teal-600 hover:bg-teal-700 disabled:opacity-60"}`}
               >
                 {savingPreset ? (
                   <>
@@ -5471,7 +5471,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 type="button"
                 onClick={runWorkbench}
                 disabled={running || uploadingAttachments}
-                className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
+                className="rounded-full bg-stone-950 px-5 py-2 text-sm font-bold text-white hover:bg-stone-800 disabled:opacity-60"
               >
                 {running ? t("running") : t("run")}
               </button>
@@ -5600,7 +5600,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div
             ref={progressSectionRef}
-            className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -5652,7 +5652,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   return (
                   <article
                     key={entry.key}
-                    className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-3"
+                    className="rounded-lg border border-stone-200 bg-[#f4f5f6] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -5785,18 +5785,18 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </div>
               </div>
             ) : (
-              <p className="mt-4 rounded-lg border border-dashed border-stone-200 bg-[#f7f6f3] px-4 py-6 text-sm text-stone-500">
+              <p className="mt-4 rounded-lg border border-dashed border-stone-200 bg-[#f4f5f6] px-4 py-6 text-sm text-stone-500">
                 {uiText.noProgress}
               </p>
             )}
           </div>
 
-          <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
+          <div className="rounded-lg border border-stone-200 bg-[#f4f5f6] p-4">
             <h2 className="text-base font-semibold text-stone-950">
               {uiText.resultOverview}
             </h2>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-stone-200 bg-white p-3">
+              <div className="rounded-2xl border border-stone-200 bg-white p-3">
                 <p className="text-xs font-medium text-stone-500">
                   {uiText.totalResults}
                 </p>
@@ -5804,7 +5804,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {resultStats.total}
                 </p>
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-3">
+              <div className="rounded-2xl border border-stone-200 bg-white p-3">
                 <p className="text-xs font-medium text-stone-500">
                   {uiText.completedResults}
                 </p>
@@ -5812,7 +5812,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {resultStats.completed}
                 </p>
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-3">
+              <div className="rounded-2xl border border-stone-200 bg-white p-3">
                 <p className="text-xs font-medium text-stone-500">
                   {uiText.failedResults}
                 </p>
@@ -5820,7 +5820,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                   {resultStats.failed}
                 </p>
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-3">
+              <div className="rounded-2xl border border-stone-200 bg-white p-3">
                 <p className="text-xs font-medium text-stone-500">
                   {uiText.runningResults}
                 </p>
@@ -5829,7 +5829,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                 </p>
               </div>
             </div>
-            <div className="mt-3 rounded-lg border border-stone-200 bg-white p-3">
+            <div className="mt-3 rounded-2xl border border-stone-200 bg-white p-3">
               <p className="text-xs font-medium text-stone-500">
                 {uiText.finalSelection}
               </p>
@@ -5841,7 +5841,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
         </div>
 
         {mode === "parallel" && !imageMode ? (
-          <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h2 className="text-base font-semibold text-stone-950">
@@ -5921,7 +5921,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
             ) : null}
 
             {showInlineParallelComparisonBody ? (
-              <div className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] p-4">
+              <div className="mt-4 rounded-lg border border-stone-200 bg-[#f4f5f6] p-4">
                 {renderParallelComparisonSummaryBody()}
               </div>
             ) : null}
@@ -5996,7 +5996,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-stone-200 bg-[#f7f6f3] p-5">
+                  <div className="rounded-lg border border-stone-200 bg-[#f4f5f6] p-5">
                     {renderParallelComparisonSummaryBody()}
                   </div>
                 </div>
@@ -6005,7 +6005,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           </div>
         ) : null}
 
-        <div className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-base font-semibold text-stone-950">
@@ -6457,7 +6457,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
               es: "Ir al progreso de la IA",
             })}
             onClick={jumpToProgressStart}
-            className="flex h-11 w-11 items-center justify-center rounded-md border border-stone-300 bg-stone-950 text-white shadow-lg shadow-stone-300/70 hover:bg-stone-800"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-950 text-white shadow-lg shadow-stone-300/70 hover:bg-stone-800"
           >
             <svg
               viewBox="0 0 20 20"

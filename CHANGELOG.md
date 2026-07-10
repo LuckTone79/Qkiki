@@ -1,5 +1,13 @@
 # Changelog
 
+## Patch 29 (v1.37.0-20260710) — 리디자인을 실제 제품 UI에 적용
+
+- design-concepts/16 시안(Genspark 레퍼런스)을 `src/`에 적용. 쿨 뉴트럴+블루 단일 포인트 토큰(globals.css), 세리프 헤딩 폐지.
+- 이모지 내비 → 라인 아이콘 세트, 브랜드 마크(검정 스파크 타일+Qkiki), 모바일 4탭+더보기 바텀시트(AppShell).
+- 모델 선택을 공식 AI 로고(OpenAI/Anthropic/Gemini/xAI) 브랜드 타일 + 모델 필 칩으로 재설계(ProviderSelectorRow).
+- 워크벤치 컴포저 카드화(세그먼트 필·필 버튼·검정 Run 필), ResultCard 공식 로고 아바타+라운드 카드+필 액션.
+- 검증: next build/eslint 통과, 로컬 Postgres로 실제 구동해 데스크톱·모바일 스크린샷 확인. 상세는 `Report/Report_v1.37.0_20260710.md`.
+
 ## Patch 28 (v1.36.0-20260710) — Genspark 레퍼런스 UI 리디자인 시안 7종
 
 - 사용자가 첨부한 Genspark 모바일 앱 스크린샷을 레퍼런스로, 현재 UI의 "AI가 대충 만든 느낌"을 걷어내는 리디자인 시안 7종을 제작: `design-concepts/16-genspark-redesign/index.html` (진단 + 시안 7종 목업 + 적용 로드맵).
