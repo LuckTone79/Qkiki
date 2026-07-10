@@ -78,10 +78,10 @@ export default async function PricingPage(props: PricingPageProps) {
             <p className="mt-4 text-sm leading-6 text-stone-600">{plan.positioning}</p>
             <p className="mt-2 text-sm leading-6 text-stone-600">{plan.positioningKo}</p>
             <ul className="mt-5 space-y-2 text-sm text-stone-700">
-              <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
+              <li className="rounded-md bg-[#f4f5f6] px-3 py-2">
                 Monthly credits: {plan.limits.monthlyCreditLimit.toLocaleString("en-US")}
               </li>
-              <li className="rounded-md bg-[#f7f6f3] px-3 py-2">
+              <li className="rounded-md bg-[#f4f5f6] px-3 py-2">
                 Daily credit cap: {plan.limits.dailyCreditLimit.toLocaleString("en-US")}
               </li>
             </ul>

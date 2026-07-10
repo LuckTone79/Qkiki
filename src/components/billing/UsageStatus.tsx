@@ -222,7 +222,7 @@ export function UsageStatus({
           {cards.map((card) => (
             <div
               key={card.label}
-              className="rounded-lg border border-stone-200 bg-[#f7f6f3] px-3 py-2"
+              className="rounded-lg border border-stone-200 bg-[#f4f5f6] px-3 py-2"
             >
               <p className="text-xs text-stone-500">{card.label}</p>
               <p className="mt-1 font-semibold text-stone-950">{card.value}</p>
@@ -237,7 +237,7 @@ export function UsageStatus({
         </div>
       ) : null}
 
-      <div className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] px-3 py-3 text-xs leading-5 text-stone-600">
+      <div className="mt-4 rounded-lg border border-stone-200 bg-[#f4f5f6] px-3 py-3 text-xs leading-5 text-stone-600">
         {guidance}
       </div>
 

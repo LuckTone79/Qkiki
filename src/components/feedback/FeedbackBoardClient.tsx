@@ -356,10 +356,10 @@ export function FeedbackBoardClient() {
                       es: "Subiendo...",
                     })
                   : tt({
-                      en: "🖼 Attach image",
-                      ko: "🖼 이미지 첨부",
-                      ja: "🖼 画像を添付",
-                      es: "🖼 Adjuntar imagen",
+                      en: "Attach image",
+                      ko: "이미지 첨부",
+                      ja: "画像を添付",
+                      es: "Adjuntar imagen",
                     })}
               </button>
               <input

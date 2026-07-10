@@ -1,5 +1,21 @@
 # Changelog
 
+## Patch 29 (v1.37.0-20260710) — 리디자인을 실제 제품 UI에 적용
+
+- design-concepts/16 시안(Genspark 레퍼런스)을 `src/`에 적용. 쿨 뉴트럴+블루 단일 포인트 토큰(globals.css), 세리프 헤딩 폐지.
+- 이모지 내비 → 라인 아이콘 세트, 브랜드 마크(검정 스파크 타일+Qkiki), 모바일 4탭+더보기 바텀시트(AppShell).
+- 모델 선택을 공식 AI 로고(OpenAI/Anthropic/Gemini/xAI) 브랜드 타일 + 모델 필 칩으로 재설계(ProviderSelectorRow).
+- 워크벤치 컴포저 카드화(세그먼트 필·필 버튼·검정 Run 필), ResultCard 공식 로고 아바타+라운드 카드+필 액션.
+- 검증: next build/eslint 통과, 로컬 Postgres로 실제 구동해 데스크톱·모바일 스크린샷 확인. 상세는 `Report/Report_v1.37.0_20260710.md`.
+
+## Patch 28 (v1.36.0-20260710) — Genspark 레퍼런스 UI 리디자인 시안 7종
+
+- 사용자가 첨부한 Genspark 모바일 앱 스크린샷을 레퍼런스로, 현재 UI의 "AI가 대충 만든 느낌"을 걷어내는 리디자인 시안 7종을 제작: `design-concepts/16-genspark-redesign/index.html` (진단 + 시안 7종 목업 + 적용 로드맵).
+- 시안: ① 컴포저 허브 홈 ② 데스크톱 아이콘 레일 셸 ③ 모델 브랜드 타일 ④ 4탭 내비+바텀시트 ⑤ 결과 카드 스트림 ⑥ 모노 필 컴포넌트 시스템(공통 기반) ⑦ 플랜&사용량 시트.
+- **제품 코드에는 미적용** — 기존 design-concepts 관례와 동일한 탐색용 목업. 상세는 `Report/Report_v1.36.0_20260710.md`.
+- **v1.36.1**: 사용자 피드백 반영 — 시안 03에 웹(데스크톱) 프레임 추가, AI 공급자 아이콘을 각 사 공식 로고 마크(OpenAI·Anthropic·Gemini 그라디언트·xAI)로 교체, 시안 05 결과 카드 아바타도 동일 적용. 상세는 `Report/Report_v1.36.1_20260710.md`.
+- **v1.36.2**: 시안 페이지 모바일 레이아웃 깨짐 수정 — 데스크톱 목업(880px)·컴포넌트 보드(660px)를 고정 설계폭 + 자동 비율 축소(scale) 방식으로 변경, 좁은 화면에서 내부 재배치로 깨지던 문제 해결. 상세는 `Report/Report_v1.36.2_20260710.md`.
+
 ## Patch 27 (v1.34.0-20260701) — AI 모델 카탈로그 최신화
 
 - **Anthropic**: 기본 모델을 `claude-sonnet-4-6` → **`claude-sonnet-5`**(2026-06-30 정식 출시)로 변경. `claude-sonnet-4-6`은 선택 가능한 옵션으로 유지.
