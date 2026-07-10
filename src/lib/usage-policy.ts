@@ -3,18 +3,18 @@ import "server-only";
 import { BillingType, PlanType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hasActiveSubscription } from "@/lib/access-policy";
-import { QKIKI_PLAN_LIMITS } from "@/lib/billing-plans";
+import { YAPP_PLAN_LIMITS } from "@/lib/billing-plans";
 import { CREDIT_PRICING_VERSION, costUsdToCredits } from "@/lib/credits";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 const RESERVATION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-const ANON_POLICY = QKIKI_PLAN_LIMITS.anon;
-const FREE_POLICY = QKIKI_PLAN_LIMITS.free;
-const BOOST_POLICY = QKIKI_PLAN_LIMITS.boost;
-const STARTER_POLICY = QKIKI_PLAN_LIMITS.starter;
-const PRO_POLICY = QKIKI_PLAN_LIMITS.pro;
-const TEAM_POLICY = QKIKI_PLAN_LIMITS.team;
+const ANON_POLICY = YAPP_PLAN_LIMITS.anon;
+const FREE_POLICY = YAPP_PLAN_LIMITS.free;
+const BOOST_POLICY = YAPP_PLAN_LIMITS.boost;
+const STARTER_POLICY = YAPP_PLAN_LIMITS.starter;
+const PRO_POLICY = YAPP_PLAN_LIMITS.pro;
+const TEAM_POLICY = YAPP_PLAN_LIMITS.team;
 
 // Effective "no ceiling" value used when an unlimited-credit coupon is active.
 const UNLIMITED_CREDITS = 1_000_000_000;

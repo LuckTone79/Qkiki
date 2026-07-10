@@ -1,6 +1,8 @@
 "use client";
 
 import { AuthForm } from "@/components/AuthForm";
+import { APP_NAME } from "@/lib/brand";
+import { BrandMark } from "@/components/ui/icons";
 import { useLanguage } from "@/components/i18n/LanguageProvider";
 
 export default function SignInPage() {
@@ -14,11 +16,9 @@ export default function SignInPage() {
             aria-hidden="true"
             className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-stone-950 text-white"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
-              <path d="M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" />
-            </svg>
+            <BrandMark className="h-[18px] w-[18px]" />
           </span>
-          Qkiki
+          {APP_NAME}
         </p>
         <h1 className="mt-4 font-serif text-3xl font-semibold tracking-tight text-stone-950">
           {t("signIn")}
