@@ -162,7 +162,7 @@
   .acts .a{flex:1; display:grid; justify-items:center; gap:2px; font-size:9.5px; font-weight:600; color:#7b7f84; padding:3px 0}
 
   /* mono board */
-  .board{flex:0 0 auto; width:min(660px,88vw); border:1px solid var(--line); border-radius:24px; background:#fff; color:#141517; box-shadow:var(--shadow); padding:26px 28px 30px}
+  .board{flex:0 0 auto; width:660px; border:1px solid var(--line); border-radius:24px; background:#fff; color:#141517; box-shadow:var(--shadow); padding:26px 28px 30px}
   .board h4{margin:0 0 4px; font-size:11px; letter-spacing:.12em; font-weight:800; color:#9a9da2; text-transform:uppercase}
   .board .grp{margin-top:20px; display:flex; flex-wrap:wrap; gap:10px; align-items:center}
   .seg{display:inline-flex; background:#f1f2f3; border-radius:999px; padding:4px}
@@ -189,8 +189,10 @@
   .plan.on .pr{margin-left:8px}
   .cta{margin-top:4px; background:#141517; color:#fff; border-radius:999px; text-align:center; font-weight:800; font-size:14.5px; padding:14px}
 
-  /* desktop frame */
-  .desk{flex:0 0 auto; width:min(880px,94vw); border:1px solid var(--line); border-radius:20px; overflow:hidden; background:#fff; color:#141517; box-shadow:var(--shadow); font-size:12px}
+  /* desktop frame — 고정 설계폭. 좁은 화면에서는 스크립트가 비율 그대로 scale 축소 */
+  .desk{flex:0 0 auto; width:880px; border:1px solid var(--line); border-radius:20px; overflow:hidden; background:#fff; color:#141517; box-shadow:var(--shadow); font-size:12px}
+  .desk, .board{transform-origin:top left}
+  .fit{flex:0 0 auto; overflow:visible}
   .desk .bar{display:flex; gap:6px; padding:11px 14px; border-bottom:1px solid #ececee; background:#fafafa}
   .desk .bar i{width:10px; height:10px; border-radius:50%; background:#e2e3e5}
   .desk .cols{display:flex; min-height:430px}
@@ -252,7 +254,7 @@
     7개 시안을 목업으로 만들었습니다. 아래 목업은 전부 실제 Qkiki의 기능과 문구 기준입니다.
   </p>
   <div class="meta">
-    <span>시안 7종</span><span>레퍼런스: Genspark 모바일</span><span>v1.36.0-20260710</span><span>목업 — 제품 코드 미적용</span>
+    <span>시안 7종</span><span>레퍼런스: Genspark 모바일</span><span>v1.36.2-20260710</span><span>목업 — 제품 코드 미적용</span>
   </div>
 
   <!-- ================= 진단 ================= -->
@@ -724,6 +726,37 @@
 
   <footer>
     <span>Qkiki UI Redesign Proposal · design-concepts/16-genspark-redesign</span>
-    <span>v1.36.0-20260710 · 목업 전용, 제품 코드 미적용</span>
+    <span>v1.36.2-20260710 · 목업 전용, 제품 코드 미적용</span>
   </footer>
 </div>
+
+<script>
+(function(){
+  // 데스크톱 목업(880px)과 컴포넌트 보드(660px)는 고정 설계폭.
+  // 컨테이너가 그보다 좁으면 내부를 재배치하지 않고 통째로 비율 축소한다.
+  var targets = [];
+  document.querySelectorAll(".desk").forEach(function(el){ targets.push([el, 880]); });
+  document.querySelectorAll(".board").forEach(function(el){ targets.push([el, 660]); });
+  targets.forEach(function(t){
+    var fit = document.createElement("div");
+    fit.className = "fit";
+    t[0].replaceWith(fit);
+    fit.appendChild(t[0]);
+  });
+  function refit(){
+    targets.forEach(function(t){
+      var el = t[0], w = t[1];
+      var fit = el.parentElement;
+      var frames = fit.closest(".frames");
+      var avail = (frames ? frames.clientWidth : fit.parentElement.clientWidth) - 4;
+      var s = Math.min(1, avail / w);
+      el.style.transform = s < 1 ? "scale(" + s + ")" : "none";
+      fit.style.width = Math.round(w * s) + "px";
+      fit.style.height = Math.round(el.offsetHeight * s) + "px";
+    });
+  }
+  window.addEventListener("resize", refit);
+  window.addEventListener("load", refit);
+  refit();
+})();
+</script>
