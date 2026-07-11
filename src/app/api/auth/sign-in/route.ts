@@ -3,9 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { createAuthSession, verifyPassword } from "@/lib/auth";
 import { getAuthRuntimeDiagnostics } from "@/lib/auth-config";
 import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { signInSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit({
+    request,
+    scope: "auth:sign-in",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (limited) {
+    return limited;
+  }
+
   const diagnostics = getAuthRuntimeDiagnostics();
   if (!diagnostics.databaseConfigured) {
     return NextResponse.json(

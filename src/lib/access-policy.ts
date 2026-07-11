@@ -15,7 +15,14 @@ export const FREE_USER_DAILY_TOKEN_LIMIT = Number(
 );
 
 function getPolicySecret() {
-  return process.env.APP_SECRET || "dev-only-change-before-production";
+  const secret = process.env.APP_SECRET?.trim();
+  if (secret) {
+    return secret;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("APP_SECRET must be configured in production.");
+  }
+  return "dev-only-change-before-production";
 }
 
 export function getRequestIp(request: Request) {

@@ -1,11 +1,25 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { couponRedeemSchema } from "@/lib/validation";
 import { CouponRedeemError, redeemCouponCode } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   try {
     const user = await requireApiUser();
+
+    // Coupon codes are guessable strings; throttle per user to block
+    // brute-force enumeration of valid codes.
+    const limited = enforceRateLimit({
+      request,
+      scope: "coupons:redeem",
+      limit: 10,
+      windowMs: 60_000,
+      extraKey: user.id,
+    });
+    if (limited) {
+      return limited;
+    }
     const parsed = couponRedeemSchema.safeParse(await request.json());
 
     if (!parsed.success) {

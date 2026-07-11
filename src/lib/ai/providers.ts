@@ -1041,16 +1041,18 @@ async function callGoogle(
   startedAt: number,
   signal: AbortSignal,
 ) {
+  // The API key travels in a header (not the query string) so it can never
+  // leak through request logs, proxies, or provider error messages.
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     input.model,
-  )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  )}:generateContent`;
   const webSearchTools = input.enableWebSearch
     ? buildProviderWebSearchTools("google")
     : [];
   const response = await fetch(url, {
     method: "POST",
     signal,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ role: "user", parts: buildGoogleParts(input) }],
       generationConfig: { temperature: 0.4 },
@@ -1358,11 +1360,11 @@ async function callGoogleImage(
   if (input.model.startsWith("imagen")) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       input.model,
-    )}:predict?key=${encodeURIComponent(apiKey)}`;
+    )}:predict`;
     const response = await fetch(url, {
       method: "POST",
       signal,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         instances: [{ prompt: input.prompt }],
         parameters: { sampleCount: 1 },
@@ -1392,11 +1394,11 @@ async function callGoogleImage(
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
     input.model,
-  )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  )}:generateContent`;
   const response = await fetch(url, {
     method: "POST",
     signal,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: input.prompt }] }],
       generationConfig: { responseModalities: ["TEXT", "IMAGE"] },

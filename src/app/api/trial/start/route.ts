@@ -9,10 +9,21 @@ import {
 import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { createAuthSession, getCurrentUser, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 const TRIAL_SESSION_DURATION_MS = TRIAL_SESSION_HOURS * 60 * 60 * 1000;
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit({
+    request,
+    scope: "trial:start",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (limited) {
+    return limited;
+  }
+
   const canonicalRedirect = buildCanonicalRedirectUrl(request.url);
   const currentUser = await getCurrentUser();
   if (canonicalRedirect) {

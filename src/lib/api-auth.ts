@@ -88,8 +88,7 @@ export function apiErrorResponse(error: unknown) {
 
   console.error("[api] unhandled request failure", error);
 
-  return NextResponse.json(
-    { error: error instanceof Error ? error.message : "Request failed." },
-    { status: 500 },
-  );
+  // Never echo raw error messages to the client: database/driver errors can
+  // contain connection details, file paths, or query fragments.
+  return NextResponse.json({ error: "Request failed." }, { status: 500 });
 }

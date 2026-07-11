@@ -42,10 +42,11 @@ export function adminApiErrorResponse(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: 403 });
   }
 
-  return NextResponse.json(
-    { error: error instanceof Error ? error.message : "Admin request failed." },
-    { status: 500 },
-  );
+  console.error("[admin-api] unhandled request failure", error);
+
+  // Raw error messages stay in server logs only; they can carry internal
+  // details (connection strings, paths) that must not reach the client.
+  return NextResponse.json({ error: "Admin request failed." }, { status: 500 });
 }
 
 export function getRequestMeta(request: Request) {

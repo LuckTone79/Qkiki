@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { adminSignInSchema } from "@/lib/validation";
@@ -5,8 +6,25 @@ import { verifyPassword } from "@/lib/auth";
 import { canViewAdmin, createAdminSession } from "@/lib/admin-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { getRequestMeta } from "@/lib/admin-api-auth";
+import { enforceRateLimit } from "@/lib/rate-limit";
+
+function timingSafeCodeEquals(provided: string, expected: string) {
+  const providedHash = crypto.createHash("sha256").update(provided).digest();
+  const expectedHash = crypto.createHash("sha256").update(expected).digest();
+  return crypto.timingSafeEqual(providedHash, expectedHash);
+}
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit({
+    request,
+    scope: "admin:sign-in",
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (limited) {
+    return limited;
+  }
+
   const parsed = adminSignInSchema.safeParse(await request.json());
   const meta = getRequestMeta(request);
 
@@ -77,7 +95,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!providedMfaCode || providedMfaCode !== expectedMfaCode) {
+  if (!providedMfaCode || !timingSafeCodeEquals(providedMfaCode, expectedMfaCode)) {
     await logAdminAudit({
       adminUserId: user.id,
       action: "ADMIN_MFA_FAILURE",

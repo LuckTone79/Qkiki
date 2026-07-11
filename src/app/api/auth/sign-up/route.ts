@@ -4,9 +4,20 @@ import { createAuthSession, getInitialRoleForEmail, hashPassword } from "@/lib/a
 import { getAuthRuntimeDiagnostics } from "@/lib/auth-config";
 import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { grantWelcomeBoostToUser } from "@/lib/usage-policy";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { signUpSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit({
+    request,
+    scope: "auth:sign-up",
+    limit: 5,
+    windowMs: 10 * 60_000,
+  });
+  if (limited) {
+    return limited;
+  }
+
   const diagnostics = getAuthRuntimeDiagnostics();
   if (!diagnostics.databaseConfigured) {
     return NextResponse.json(

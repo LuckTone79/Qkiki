@@ -1,5 +1,13 @@
 # Changelog
 
+## Patch 30 (v1.38.0-20260710) — 런칭 전 보안 하드닝
+
+- **env 유출 차단**: 부팅 시 env 검증(`instrumentation.ts`+`env-guard.ts`) — 운영에서 자리표시자/약한 `APP_SECRET`·`DB_ENCRYPTION_KEY`·`ADMIN_MFA_CODE`면 기동 거부. 운영에서 개발용 폴백 암호화 키 사용 시도 시 즉시 예외. 커밋돼 있던 개발 서버 로그 13개 파일 추적 해제(+`.gitignore` 보강).
+- **키 유출 경로 제거**: Google API 키를 URL 쿼리스트링 → `x-goog-api-key` 헤더로 이동(3곳). 미처리 500 응답의 내부 에러 메시지 원문 노출 제거(서버 로그만). `/api/auth/health`를 `{ ok }` 불리언만 반환하도록 축소.
+- **브루트포스 방어**: 인메모리 레이트리밋 신설(`rate-limit.ts`) — sign-in 10/분, sign-up 5/10분, admin sign-in 5/분, 쿠폰 사용 10/분, 체험판 시작 10/분. 관리자 MFA 코드 비교를 타이밍세이프로 교체.
+- **보안 헤더**: CSP(전 소스 1st-party, `frame-ancestors 'none'`), HSTS(운영), `X-Frame-Options: DENY`, nosniff, Referrer-Policy, Permissions-Policy, `poweredByHeader: false`.
+- 방어 구조 설계 문서 `docs/SECURITY.md` 신설(위협 모델·계층별 방어·잔여 리스크). 상세는 `Report/Report_v1.38.0_20260710.md`.
+
 ## Patch 29 (v1.37.0-20260710) — 리디자인을 실제 제품 UI에 적용
 
 - design-concepts/16 시안(Genspark 레퍼런스)을 `src/`에 적용. 쿨 뉴트럴+블루 단일 포인트 토큰(globals.css), 세리프 헤딩 폐지.
