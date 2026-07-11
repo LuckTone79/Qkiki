@@ -18,3 +18,7 @@
 ## Release gate
 
 Production deployment remains gated until the Vercel project has user-owned `ADMIN_TOTP_SECRET`, `UPSTASH_REDIS_REST_URL`, and `UPSTASH_REDIS_REST_TOKEN` configured, and the legacy static `ADMIN_MFA_CODE` is removed. No secret values are stored in this repository or report.
+
+The retired `ADMIN_MFA_CODE` and legacy Google OAuth variables have now been
+removed from Vercel Production. The exact remaining gate and post-deploy
+checks are recorded in [`docs/LAUNCH_GATE.md`](../docs/LAUNCH_GATE.md).
