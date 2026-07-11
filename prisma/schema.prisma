@@ -130,7 +130,14 @@ model User {
   id             String            @id @default(cuid())
   email          String            @unique
   name           String?
-  passwordHash   String
+  // Nullable: Supabase Auth (see supabaseUserId) is now the credential store
+  // for real users. Only legacy rows and synthetic trial accounts (see
+  // src/app/api/trial/start) still populate this with a bcrypt hash.
+  passwordHash   String?
+  // Links this legacy row to auth.users(id) once the account signs in
+  // through Supabase Auth. Set by ensureLegacyUserLinked(); every other
+  // relation on this model is untouched by the Supabase Auth migration.
+  supabaseUserId String?           @unique @db.Uuid
   role           UserRole          @default(USER)
   status         UserAccountStatus @default(ACTIVE)
   planType       PlanType          @default(FREE)
@@ -895,4 +902,67 @@ model FeedbackAttachment {
 
   @@index([userId])
   @@index([postId])
+}
+
+// --- Supabase Auth-native tables (public schema, RLS-protected) ---
+//
+// These are intentionally separate from `User` above: `User.id` (cuid) stays
+// the FK target for every existing app-data table (coupons, subscriptions,
+// projects, usage, ...). `Profile`/`BillingCustomer`/`Subscription` key off
+// `auth.users.id` (uuid) instead, and are safe to expose to the browser via
+// RLS. See prisma/migrations/*_supabase_auth/migration.sql for the trigger
+// that populates `profiles` and the RLS policies on all three tables.
+
+// Mirrors auth.users for the fields the client is allowed to read directly.
+// Not the source of truth for authorization — `role` here is a denormalized
+// copy of User.role kept in sync by ensureLegacyUserLinked() /
+// admin role-change actions; server code always re-checks User.role.
+model Profile {
+  userId      String   @id @map("user_id") @db.Uuid
+  email       String
+  displayName String?  @map("display_name")
+  role        String   @default("user")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+// Forward-looking design for the future Paddle/Stripe integration described
+// in docs/GLOBAL_MONETIZATION_GUIDE_2026-06-12.md. Not wired to any live
+// billing logic yet — the existing UserSubscription/Coupon system remains
+// authoritative until that integration ships.
+model BillingCustomer {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @unique @map("user_id") @db.Uuid
+  provider   String
+  customerId String   @map("customer_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+
+  @@unique([provider, customerId])
+  @@map("billing_customers")
+}
+
+model Subscription {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                 String    @map("user_id") @db.Uuid
+  billingCustomerId      String?   @map("billing_customer_id") @db.Uuid
+  provider               String
+  providerSubscriptionId String    @map("provider_subscription_id")
+  status                 String
+  planId                 String?   @map("plan_id")
+  currentPeriodStart     DateTime? @map("current_period_start")
+  currentPeriodEnd       DateTime? @map("current_period_end")
+  cancelAtPeriodEnd      Boolean   @default(false) @map("cancel_at_period_end")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  billingCustomer BillingCustomer? @relation(fields: [billingCustomerId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, providerSubscriptionId])
+  @@index([userId])
+  @@map("subscriptions")
 }

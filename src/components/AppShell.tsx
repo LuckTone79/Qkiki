@@ -2,43 +2,29 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AuthEntryLinks } from "@/components/AuthEntryLinks";
 import { SignOutButton } from "@/components/SignOutButton";
-import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
+import { useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
 import {
   readBrowserStorageValueAny,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
+import { LEGACY_STORAGE_KEYS, PRIMARY_STORAGE_KEYS } from "@/lib/brand";
 import { shouldShowAuthEntryPoints } from "@/lib/trial-user";
 import { APP_VERSION } from "@/lib/version";
 import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
-import { APP_NAME } from "@/lib/brand";
-import {
-  BoltIcon,
-  BookIcon,
-  BrandMark,
-  ChatIcon,
-  FileIcon,
-  FolderIcon,
-  HomeIcon,
-  MoreIcon,
-  UserIcon,
-} from "@/components/ui/icons";
 
 const navItems = [
-  { href: buildNewWorkbenchPath(), key: "workbench", Icon: HomeIcon },
-  { href: "/app/projects", key: "projects", Icon: FolderIcon },
-  { href: "/app/sessions", key: "sessions", Icon: FileIcon },
-  { href: "/app/presets", key: "presets", Icon: BoltIcon },
-  { href: "/guide", key: "guide", Icon: BookIcon },
-  { href: "/app/account", key: "account", Icon: UserIcon },
-  { href: "/app/account/feedback", key: "feedback", Icon: ChatIcon },
+  { href: buildNewWorkbenchPath(), key: "workbench", icon: "🧪" },
+  { href: "/app/projects", key: "projects", icon: "🗂️" },
+  { href: "/app/sessions", key: "sessions", icon: "📄" },
+  { href: "/app/presets", key: "presets", icon: "⚡" },
+  { href: "/guide", key: "guide", icon: "📘" },
+  { href: "/app/account", key: "account", icon: "👤" },
+  { href: "/app/account/feedback", key: "feedback", icon: "💬" },
 ] as const;
-
-/* Mobile keeps 4 tabs; everything else moves into the "more" sheet. */
-const mobilePrimaryKeys = ["workbench", "projects", "sessions"] as const;
-const mobileSheetKeys = ["presets", "guide", "account", "feedback"] as const;
 
 export function AppShell({
   user,
@@ -51,75 +37,44 @@ export function AppShell({
   recentSessions?: Array<{ id: string; title: string }>;
   children: React.ReactNode;
 }) {
-  const { language, t } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   useEffect(() => {
     const stored = readBrowserStorageValueAny([
-      "yapp-sidebar-collapsed",
-      "qkiki-sidebar-collapsed",
+      PRIMARY_STORAGE_KEYS.sidebarCollapsed,
+      ...LEGACY_STORAGE_KEYS.sidebarCollapsed,
     ]);
     setSidebarCollapsed(stored === "true");
   }, []);
 
   useEffect(() => {
     writeBrowserStorageValue(
-      "yapp-sidebar-collapsed",
+      PRIMARY_STORAGE_KEYS.sidebarCollapsed,
       sidebarCollapsed ? "true" : "false",
     );
   }, [sidebarCollapsed]);
 
-  const sidebarToggleLabel = sidebarCollapsed
-    ? localize(language, {
-        en: "Expand left menu",
-        ko: "왼쪽 메뉴 펼치기",
-        ja: "左メニューを展開",
-        es: "Expandir el menú izquierdo",
-      })
-    : localize(language, {
-        en: "Collapse left menu",
-        ko: "왼쪽 메뉴 접기",
-        ja: "左メニューを折りたたむ",
-        es: "Contraer el menú izquierdo",
-      });
-  const versionLabel = localize(language, {
-    en: "Version",
-    ko: "버전",
-    ja: "バージョン",
-    es: "Versión",
-  });
-  const recentSessionsLabel = localize(language, {
-    en: "Recent work",
-    ko: "최근 작업",
-    ja: "最近の作業",
-    es: "Trabajo reciente",
-  });
-  const moreLabel = localize(language, {
-    en: "More",
-    ko: "더보기",
-    ja: "その他",
-    es: "Más",
-  });
-  const closeLabel = localize(language, {
-    en: "Close",
-    ko: "닫기",
-    ja: "閉じる",
-    es: "Cerrar",
-  });
+  const sidebarToggleLabel =
+    language === "ko"
+      ? sidebarCollapsed
+        ? "왼쪽 메뉴 펼치기"
+        : "왼쪽 메뉴 접기"
+      : sidebarCollapsed
+        ? "Expand left menu"
+        : "Collapse left menu";
+  const versionLabel = language === "ko" ? "버전" : "Version";
+  const recentSessionsLabel = language === "ko" ? "최근 작업" : "Recent work";
   const visibleRecentSessions = recentSessions.slice(0, 10);
   const hasMoreRecentSessions = recentSessions.length > 10;
   const showAuthEntryLinks = shouldShowAuthEntryPoints(user);
   const requestNewWorkbench = () => {
     window.dispatchEvent(new Event(NEW_WORKBENCH_EVENT));
   };
-
-  const mobilePrimaryItems = navItems.filter((item) =>
-    (mobilePrimaryKeys as readonly string[]).includes(item.key),
-  );
-  const mobileSheetItems = navItems.filter((item) =>
-    (mobileSheetKeys as readonly string[]).includes(item.key),
-  );
+  const prefetchHref = (href: string) => {
+    router.prefetch(href);
+  };
 
   return (
     <div className="min-h-screen bg-[#ffffff] text-stone-950">
@@ -142,38 +97,51 @@ export function AppShell({
                 onClick={requestNewWorkbench}
                 className="block"
               >
-                <p className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
-                  <span
-                    aria-hidden="true"
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-stone-950 text-white"
-                  >
-                    <BrandMark className="h-[18px] w-[18px]" />
-                  </span>
-                  {APP_NAME}
+                <p className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
+                  <span aria-hidden="true">⬡</span> Yapp
                 </p>
-                <p className="mt-1 text-xs text-stone-500">
+                <p className="mt-0.5 text-xs text-stone-500">
                   {t("orchestrationWorkbench")}
                 </p>
               </Link>
-              <div className="lg:hidden">
+            <div className="lg:hidden">
+              <div className="flex flex-col items-end gap-2">
                 {showAuthEntryLinks ? (
                   <AuthEntryLinks compact />
                 ) : (
                   <SignOutButton compact />
                 )}
+                <label className="flex items-center gap-2 rounded-md border border-stone-200 bg-white px-2 py-1.5 text-[11px] font-medium text-stone-600">
+                  <span className="sr-only">{t("language")}</span>
+                  <select
+                    value={language}
+                    onChange={(event) =>
+                      setLanguage(
+                        event.target.value === "ko" ? "ko" : "en",
+                      )
+                    }
+                    className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700 outline-none focus:border-stone-900"
+                    aria-label={t("language")}
+                  >
+                    <option value="en">{t("english")}</option>
+                    <option value="ko">{t("korean")}</option>
+                  </select>
+                </label>
               </div>
             </div>
+            </div>
 
-            <nav className="mt-5 hidden gap-1 lg:flex lg:flex-col">
+            <nav className="mt-5 hidden gap-2 lg:flex lg:flex-col">
               {navItems.map((item) => (
                 <div key={item.href}>
                   <Link
                     href={item.href}
-                    prefetch={false}
                     onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
-                    className="flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-950"
+                    className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
-                    <item.Icon className="h-[18px] w-[18px] text-stone-500" />
+                    <span aria-hidden="true" className="text-[15px] leading-none opacity-80">
+                      {item.icon}
+                    </span>
                     {t(item.key)}
                   </Link>
                   {item.key === "sessions" && visibleRecentSessions.length ? (
@@ -186,7 +154,13 @@ export function AppShell({
                           key={session.id}
                           href={`/app/workbench?session=${session.id}`}
                           prefetch={false}
-                          className="block rounded-lg px-2 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950"
+                          onMouseEnter={() =>
+                            prefetchHref(`/app/workbench?session=${session.id}`)
+                          }
+                          onFocus={() =>
+                            prefetchHref(`/app/workbench?session=${session.id}`)
+                          }
+                          className="block rounded-md px-2 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950"
                           title={session.title}
                         >
                           <span className="block truncate">{session.title}</span>
@@ -195,8 +169,7 @@ export function AppShell({
                       {hasMoreRecentSessions ? (
                         <Link
                           href="/app/sessions"
-                          prefetch={false}
-                          className="block rounded-lg px-2 py-1.5 text-xs font-semibold text-stone-500 hover:bg-stone-100 hover:text-stone-950"
+                          className="block rounded-md px-2 py-1.5 text-xs font-semibold text-stone-500 hover:bg-stone-100 hover:text-stone-950"
                         >
                           ...
                         </Link>
@@ -214,7 +187,6 @@ export function AppShell({
                 </p>
                 <Link
                   href="/app/projects?create=1"
-                  prefetch={false}
                   className="text-xs font-semibold text-stone-600 hover:text-stone-950"
                 >
                   {t("new")}
@@ -226,23 +198,26 @@ export function AppShell({
                     key={project.id}
                     href={`/app/projects/${project.id}`}
                     prefetch={false}
-                    className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-100 hover:text-stone-950"
+                    onMouseEnter={() =>
+                      prefetchHref(`/app/projects/${project.id}`)
+                    }
+                    onFocus={() => prefetchHref(`/app/projects/${project.id}`)}
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
                   >
-                    <FolderIcon className="h-4 w-4 text-stone-400" />
+                    <span aria-hidden="true" className="text-[13px] opacity-70">📁</span>
                     <span className="truncate">{project.name}</span>
                   </Link>
                 ))}
                 <Link
                   href="/app/projects"
-                  prefetch={false}
-                  className="block rounded-xl px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-950"
+                  className="block rounded-md px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-950"
                 >
                   {t("more")}
                 </Link>
               </div>
             </div>
 
-            <div className="mt-8 hidden rounded-2xl border border-stone-200 bg-stone-50 p-4 lg:block">
+            <div className="mt-8 hidden rounded-md border border-stone-200 bg-[#f7f6f3] p-3 lg:block">
               {showAuthEntryLinks ? (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">
@@ -294,7 +269,7 @@ export function AppShell({
           </button>
         </div>
 
-        <main className="flex-1 px-4 pb-28 pt-5 sm:px-6 lg:px-8 lg:pb-8">
+        <main className="flex-1 px-4 pb-40 pt-5 sm:px-6 lg:px-8 lg:pb-8">
           <div className="mb-4 hidden items-center justify-end lg:flex">
             <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-medium text-stone-500">
               {versionLabel} {APP_VERSION}
@@ -304,69 +279,24 @@ export function AppShell({
         </main>
       </div>
 
-      {moreSheetOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
-          <button
-            type="button"
-            aria-label={closeLabel}
-            onClick={() => setMoreSheetOpen(false)}
-            className="absolute inset-0 bg-stone-950/40"
-          />
-          <div className="absolute inset-x-0 bottom-0 rounded-t-3xl bg-white px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.18)]">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-stone-300" />
-            <div className="space-y-1">
-              {mobileSheetItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  prefetch={false}
-                  onClick={() => setMoreSheetOpen(false)}
-                  className="flex items-center gap-3.5 rounded-xl px-2 py-3 text-[15px] font-semibold text-stone-900 hover:bg-stone-100"
-                >
-                  <item.Icon className="h-5 w-5 text-stone-600" />
-                  {t(item.key)}
-                </Link>
-              ))}
-            </div>
-            <div className="mt-3 flex items-center justify-between border-t border-stone-200 pt-4">
-              <p className="text-xs text-stone-500">
-                {versionLabel} {APP_VERSION}
-              </p>
-              {showAuthEntryLinks ? (
-                <AuthEntryLinks compact />
-              ) : (
-                <SignOutButton compact />
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       <nav
         aria-label={t("mobileNavigation")}
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-white/95 px-1 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden"
       >
-        <div className="flex w-full gap-1">
-          {mobilePrimaryItems.map((item) => (
+        <div className="flex w-full gap-0.5">
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              prefetch={false}
               onClick={item.key === "workbench" ? requestNewWorkbench : undefined}
-              className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-0.5 py-1.5 text-center text-[10.5px] font-semibold leading-tight tracking-tight text-stone-600 hover:bg-stone-100 hover:text-stone-950"
+              className="flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-md px-0.5 py-1.5 text-center text-[9px] font-semibold leading-tight tracking-tight text-stone-700 hover:bg-[#f1f0ee] hover:text-stone-950"
             >
-              <item.Icon className="h-[22px] w-[22px]" />
+              <span aria-hidden="true" className="text-base leading-none">
+                {item.icon}
+              </span>
               <span className="block w-full truncate">{t(item.key)}</span>
             </Link>
           ))}
-          <button
-            type="button"
-            onClick={() => setMoreSheetOpen(true)}
-            className="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-0.5 py-1.5 text-center text-[10.5px] font-semibold leading-tight tracking-tight text-stone-600 hover:bg-stone-100 hover:text-stone-950"
-          >
-            <MoreIcon className="h-[22px] w-[22px]" />
-            <span className="block w-full truncate">{moreLabel}</span>
-          </button>
         </div>
       </nav>
     </div>

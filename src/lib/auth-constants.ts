@@ -20,6 +20,8 @@ export const USER_SESSION_COOKIE_CANDIDATES = [
   PRE_HOST_SESSION_COOKIE,
   LEGACY_SESSION_COOKIE,
 ] as const;
+export const SESSION_COOKIE_CANDIDATES = USER_SESSION_COOKIE_CANDIDATES;
+export const LEGACY_SESSION_COOKIES = [LEGACY_SESSION_COOKIE] as const;
 
 export const ADMIN_SESSION_COOKIE_CANDIDATES = [
   ADMIN_SESSION_COOKIE,
@@ -32,3 +34,35 @@ export const TRIAL_COOKIE_CANDIDATES = [
   PRE_HOST_TRIAL_COOKIE,
   LEGACY_TRIAL_COOKIE,
 ] as const;
+export const LEGACY_TRIAL_COOKIES = [LEGACY_TRIAL_COOKIE] as const;
+
+type CookieValue = { value?: string } | undefined | null;
+type CookieReader = { get(name: string): CookieValue; has?: (name: string) => boolean };
+type CookieDeleter = { delete(name: string): unknown };
+
+export function readCookieValue(
+  cookieStore: CookieReader,
+  candidates: readonly string[],
+) {
+  for (const candidate of candidates) {
+    const value = cookieStore.get(candidate)?.value;
+    if (value) return value;
+  }
+  return null;
+}
+
+export function hasAnyCookie(
+  cookieStore: CookieReader,
+  candidates: readonly string[],
+) {
+  return typeof cookieStore.has === "function"
+    ? candidates.some((candidate) => cookieStore.has?.(candidate))
+    : Boolean(readCookieValue(cookieStore, candidates));
+}
+
+export function deleteCookies(
+  cookieStore: CookieDeleter,
+  candidates: readonly string[],
+) {
+  for (const candidate of candidates) cookieStore.delete(candidate);
+}

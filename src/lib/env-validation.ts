@@ -80,6 +80,24 @@ export function collectEnvIssues(env: NodeJS.ProcessEnv = process.env): EnvIssue
     issues.push({ level: "fatal", message: "DATABASE_URL is required." });
   }
 
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+  const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+  if (!supabaseUrl || !supabaseAnonKey) {
+    issues.push({
+      level: "fatal",
+      message: "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required.",
+    });
+  } else {
+    try {
+      const parsed = new URL(supabaseUrl);
+      if (parsed.protocol !== "https:" || !parsed.hostname.endsWith(".supabase.co")) {
+        issues.push({ level: "fatal", message: "NEXT_PUBLIC_SUPABASE_URL must be an HTTPS Supabase project URL." });
+      }
+    } catch {
+      issues.push({ level: "fatal", message: "NEXT_PUBLIC_SUPABASE_URL is invalid." });
+    }
+  }
+
   if (env.INITIAL_ADMIN_EMAILS?.trim()) {
     issues.push({
       level: "fatal",

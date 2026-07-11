@@ -143,7 +143,20 @@ function UsageTable({
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="text-base font-semibold text-slate-950">{title}</h2>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 space-y-2 sm:hidden">
+        {rows.map((row) => (
+          <article key={row.label} className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs">
+            <p className="font-semibold text-slate-900">{row.label}</p>
+            <div className="mt-2 grid gap-1 text-slate-600">
+              <p>{t.colRequests}: {row.requests}</p>
+              {showTokens ? <p>{t.colInputTokens}: {row.inputTokens.toLocaleString()}</p> : null}
+              {showTokens ? <p>{t.colOutputTokens}: {row.outputTokens.toLocaleString()}</p> : null}
+              <p>{t.colCost}: {formatCost(row.estimatedCost)}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="mt-3 hidden overflow-x-auto sm:block">
         <table className="min-w-full text-left text-sm">
           <thead className="text-xs uppercase tracking-wide text-slate-500">
             <tr>

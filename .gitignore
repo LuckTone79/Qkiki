@@ -42,6 +42,9 @@ Report/*.log
 # vercel
 .vercel
 
+# local git worktrees
+.worktrees/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

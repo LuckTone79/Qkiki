@@ -45,14 +45,14 @@ export async function POST(request: Request) {
   const canonicalRedirect = buildCanonicalRedirectUrl(request.url);
   const currentUser = await getCurrentUser();
   if (canonicalRedirect) {
-    canonicalRedirect.pathname = currentUser ? "/api/auth/handoff" : "/";
-    canonicalRedirect.search = "";
     if (currentUser) {
-      canonicalRedirect.searchParams.set(
-        "next",
-        currentUser.isTrial ? "/app/workbench?trial=true" : "/app/workbench",
-      );
+      return NextResponse.json({
+        success: true,
+        redirectUrl: currentUser.isTrial ? "/app/workbench?trial=true" : "/app/workbench",
+      });
     }
+    canonicalRedirect.pathname = "/";
+    canonicalRedirect.search = "";
     return NextResponse.json({ success: true, redirectUrl: canonicalRedirect.toString() });
   }
 

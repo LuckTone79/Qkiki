@@ -28,6 +28,12 @@ type ConversationItem = {
     workflowSteps: number;
     results: number;
   };
+  usage: {
+    totalCreditsUsed: number;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalEstimatedCostUsd: number;
+  };
 };
 
 const conversationText = {
@@ -44,6 +50,9 @@ const conversationText = {
     updated: "Updated",
     steps: "steps",
     results: "results",
+    credits: "credits",
+    tokens: "tokens",
+    cost: "cost",
     empty: "No conversations found.",
   },
   ko: {
@@ -60,6 +69,9 @@ const conversationText = {
     updated: "\uCD5C\uC2E0 \uC5C5\uB370\uC774\uD2B8",
     steps: "\uB2E8\uACC4",
     results: "\uACB0\uACFC",
+    credits: "\uD06C\uB808\uB527",
+    tokens: "\uD1A0\uD070",
+    cost: "\uAE08\uC561",
     empty: "\uB300\uD654 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
   },
 } as const;
@@ -83,6 +95,13 @@ function buildHref(q: string, userId: string) {
   return query ? `/admin/conversations?${query}` : "/admin/conversations";
 }
 
+function formatCost(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "$0.000000";
+  }
+  return `$${value.toFixed(6)}`;
+}
+
 export function AdminConversationsClient({
   q,
   userId,
@@ -104,8 +123,8 @@ export function AdminConversationsClient({
         <p className="text-sm text-slate-600">{t.description}</p>
       </header>
 
-      <section className="grid gap-5 xl:grid-cols-[300px_1fr]">
-        <aside className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+      <section className="grid min-w-0 gap-5 xl:grid-cols-[300px_1fr]">
+        <aside className="min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-900">{t.userListTitle}</h2>
           <div className="mt-3 max-h-56 space-y-1 overflow-y-auto pr-1 lg:max-h-[65vh]">
             <Link
@@ -152,7 +171,7 @@ export function AdminConversationsClient({
           </div>
         </aside>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <form
             className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
             action="/admin/conversations"
@@ -188,17 +207,17 @@ export function AdminConversationsClient({
               conversations.map((conversation) => (
                 <article
                   key={conversation.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+                  className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                  <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,auto)] md:items-start">
+                    <div className="min-w-0">
                       <Link
                         href={`/admin/conversations/${conversation.id}`}
-                        className="text-lg font-semibold text-slate-900 hover:underline"
+                        className="block text-base font-semibold leading-snug text-slate-900 [overflow-wrap:anywhere] hover:underline sm:text-lg"
                       >
                         {conversation.title}
                       </Link>
-                      <p className="mt-1 text-sm text-slate-600">
+                      <p className="mt-1 break-all text-sm leading-relaxed text-slate-600">
                         {conversation.user.name || conversation.user.email} (
                         {conversation.user.email})
                       </p>
@@ -210,13 +229,26 @@ export function AdminConversationsClient({
                         }).format(new Date(conversation.updatedAt))}
                       </p>
                     </div>
-                    <div className="w-full text-xs text-slate-500 sm:w-auto sm:text-right">
-                      <p>{conversation.mode}</p>
+                    <div className="grid grid-cols-2 gap-2 rounded-md bg-slate-50 p-3 text-xs text-slate-600 sm:grid-cols-3 md:min-w-[220px] md:text-right">
+                      <p className="font-medium text-slate-700">{conversation.mode}</p>
                       <p>
-                        {conversation.counts.workflowSteps} {t.steps}
+                        {conversation.counts.workflowSteps.toLocaleString(locale)} {t.steps}
                       </p>
                       <p>
-                        {conversation.counts.results} {t.results}
+                        {conversation.counts.results.toLocaleString(locale)} {t.results}
+                      </p>
+                      <p>
+                        {conversation.usage.totalCreditsUsed.toLocaleString(locale)} {t.credits}
+                      </p>
+                      <p>
+                        {(
+                          conversation.usage.totalInputTokens +
+                          conversation.usage.totalOutputTokens
+                        ).toLocaleString(locale)}{" "}
+                        {t.tokens}
+                      </p>
+                      <p>
+                        {formatCost(conversation.usage.totalEstimatedCostUsd)} {t.cost}
                       </p>
                     </div>
                   </div>

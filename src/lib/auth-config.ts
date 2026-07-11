@@ -25,13 +25,17 @@ export function resolveDatabaseUrl() {
 
 export function getAuthRuntimeDiagnostics() {
   const databaseUrl = resolveDatabaseUrl();
-  const googleClientId = process.env.GOOGLE_OAUTH_CLIENT_ID?.trim() || "";
-  const googleClientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET?.trim() || "";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "";
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || "";
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() || "";
   const appSecret = process.env.APP_SECRET?.trim() || "";
 
   return {
     databaseConfigured: Boolean(databaseUrl),
-    googleOAuthConfigured: Boolean(googleClientId && googleClientSecret),
+    supabaseConfigured: Boolean(supabaseUrl && supabaseAnonKey),
+    supabaseServiceRoleConfigured: Boolean(supabaseServiceRoleKey),
+    turnstileConfigured: Boolean(turnstileSiteKey),
     appSecretConfigured: Boolean(appSecret),
   };
 }

@@ -113,7 +113,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/app/account/feedback"
           className="text-sm font-medium text-stone-500 hover:text-stone-800"
@@ -130,7 +130,7 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
           type="button"
           onClick={deletePost}
           disabled={deleting}
-          className="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-60"
+          className="w-full text-left text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-60 sm:w-auto sm:text-right"
         >
           {tt({ en: "Delete", ko: "삭제", ja: "削除", es: "Eliminar" })}
         </button>
@@ -275,11 +275,11 @@ export function FeedbackThreadClient({ post }: { post: FeedbackThreadData }) {
             }
           />
         </label>
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-stretch sm:justify-end">
           <button
             type="submit"
             disabled={submitting || !reply.trim()}
-            className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
+            className="w-full rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60 sm:w-auto"
           >
             {submitting
               ? tt({

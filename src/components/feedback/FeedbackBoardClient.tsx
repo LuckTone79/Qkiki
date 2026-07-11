@@ -231,7 +231,7 @@ export function FeedbackBoardClient() {
         })}
       />
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/app/account"
           className="text-sm font-medium text-stone-500 hover:text-stone-800"
@@ -250,7 +250,7 @@ export function FeedbackBoardClient() {
             setShowForm((value) => !value);
             setError("");
           }}
-          className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+          className="w-full rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 sm:w-auto"
         >
           {showForm
             ? tt({ en: "Close", ko: "닫기", ja: "閉じる", es: "Cerrar" })
@@ -418,11 +418,11 @@ export function FeedbackBoardClient() {
               </div>
             ) : null}
 
-            <div className="flex justify-end">
+            <div className="flex justify-stretch sm:justify-end">
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-md bg-teal-700 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
+                className="w-full rounded-md bg-teal-700 px-5 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60 sm:w-auto"
               >
                 {submitting
                   ? tt({

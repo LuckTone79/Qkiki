@@ -41,6 +41,8 @@ const ACTION_DISPLAY_LABELS: Record<
     ja: "追加質問",
     es: "Seguimiento",
   },
+  scenario_develop: { en: "Scenario development", ko: "시나리오 개발", ja: "シナリオ開発", es: "Desarrollo de escenarios" },
+  deep_dive: { en: "Deep dive", ko: "심층 분석", ja: "深掘り", es: "Análisis profundo" },
 };
 
 export function getActionTypeDisplayLabel(

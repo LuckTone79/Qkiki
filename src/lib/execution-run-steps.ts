@@ -4,6 +4,12 @@ import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { getAllSessionRuntimeAttachments, type RuntimeAttachment } from "@/lib/attachments";
 import { composePrompt, getSourceHeading } from "@/lib/ai/prompt";
+import { textOutputForPrompt } from "@/lib/ai/image-output";
+import {
+  buildV2SourcePromptBlocks,
+  resolveSourceContext,
+  type ResolvedSourceContext,
+} from "@/lib/ai/source-context";
 import { callProvider } from "@/lib/ai/providers";
 import { shouldEnableProviderWebSearch } from "@/lib/ai/provider-web-search";
 import { normalizeRepeatBlocks, MAX_REPEAT_BLOCKS, MAX_TOTAL_SEQUENTIAL_STEPS } from "@/lib/ai/workflow-control";
@@ -367,12 +373,15 @@ async function findParentCompletedSteps(input: {
   });
 }
 
-async function resolveStepSource(step: ExecutionStepRecord) {
+async function resolveStepSource(step: ExecutionStepRecord): Promise<ResolvedSourceContext> {
   const session = step.executionRun.session;
   const parentBeforeOrderIndex = step.executionRun.branchFromOrderIndex ?? null;
 
   if (step.sourceMode === "original") {
-    return session?.originalInput ?? "";
+    return resolveSourceContext({
+      sourceMode: "original",
+      originalText: session?.originalInput ?? "",
+    });
   }
 
   if (step.sourceMode === "selected_result") {
@@ -385,14 +394,23 @@ async function resolveStepSource(step: ExecutionStepRecord) {
         id: step.sourceResultId,
         sessionId: step.sessionId,
         status: "completed",
+        outputText: { not: null },
+      },
+      select: {
+        outputText: true,
       },
     });
-
-    if (!selected?.outputText?.trim()) {
-      throw new Error("The selected result is not available as a completed source.");
+    const priorText = textOutputForPrompt(selected?.outputText);
+    if (!priorText?.trim()) {
+      throw new Error(
+        "selected_result requires a completed owned result with non-empty output.",
+      );
     }
 
-    return selected.outputText;
+    return resolveSourceContext({
+      sourceMode: "selected_result",
+      priorText,
+    });
   }
 
   if (step.sourceMode === "all_results") {
@@ -418,7 +436,7 @@ async function resolveStepSource(step: ExecutionStepRecord) {
       beforeOrderIndex: parentBeforeOrderIndex,
     });
 
-    const sourceTexts = limitAllResultsTexts([
+    let sourceTexts = limitAllResultsTexts([
       ...parentCompleted
         .map((item) => item.result?.outputText?.trim() ?? "")
         .filter(Boolean),
@@ -427,18 +445,25 @@ async function resolveStepSource(step: ExecutionStepRecord) {
         .filter(Boolean),
     ]);
 
-    if (sourceTexts.length) {
-      return sourceTexts
-        .map((text, index) => `Completed result ${index + 1}:\n${text}`)
-        .join("\n\n");
+    if (!sourceTexts.length) {
+      const parentFallback = await findParentFallbackCompletedStep({
+        parentExecutionRunId: step.executionRun.parentExecutionRunId,
+        beforeOrderIndex: parentBeforeOrderIndex,
+      });
+      if (parentFallback?.result?.outputText?.trim()) {
+        sourceTexts = [parentFallback.result.outputText.trim()];
+      }
     }
 
-    const parentFallback = await findParentFallbackCompletedStep({
-      parentExecutionRunId: step.executionRun.parentExecutionRunId,
-      beforeOrderIndex: parentBeforeOrderIndex,
+    return resolveSourceContext({
+      sourceMode: "all_results",
+      allResultsTexts: sourceTexts.map((text, index) =>
+        `Completed result ${index + 1}:\n${text}`,
+      ),
+      fallbackText: session?.originalInput ?? "",
+      originalText: session?.originalInput ?? "",
+      includeSourceSegments: true,
     });
-
-    return parentFallback?.result?.outputText?.trim() || session?.originalInput || "";
   }
 
   const previousCompleted = await prisma.executionRunStep.findFirst({
@@ -458,16 +483,48 @@ async function resolveStepSource(step: ExecutionStepRecord) {
     },
   });
 
-  if (previousCompleted?.result?.outputText?.trim()) {
-    return previousCompleted.result.outputText.trim();
-  }
-
   const parentFallback = await findParentFallbackCompletedStep({
     parentExecutionRunId: step.executionRun.parentExecutionRunId,
     beforeOrderIndex: parentBeforeOrderIndex,
   });
 
-  return parentFallback?.result?.outputText?.trim() || session?.originalInput || "";
+  return resolveSourceContext({
+    sourceMode: "previous",
+    priorText:
+      previousCompleted?.result?.outputText?.trim() ||
+      parentFallback?.result?.outputText?.trim() ||
+      "",
+    fallbackText: session?.originalInput ?? "",
+    originalText: session?.originalInput ?? "",
+  });
+}
+
+function buildSourcePromptBlocks(input: {
+  actionType: WorkflowStepInput["actionType"];
+  sourceMode: string;
+  sourceContext: ResolvedSourceContext;
+}) {
+  const { actionType, sourceMode, sourceContext } = input;
+  const isScenarioOrDeepDive =
+    actionType === "scenario_develop" || actionType === "deep_dive";
+
+  if (!sourceContext.text.trim() || sourceContext.kind === "original") {
+    return [];
+  }
+
+  return buildV2SourcePromptBlocks({
+    sourceContext,
+    defaultPriority:
+      isScenarioOrDeepDive && sourceContext.kind === "prior_result"
+        ? "highest"
+        : promptSourcePriority(sourceMode),
+    protectSingleSource: isScenarioOrDeepDive && sourceContext.kind === "prior_result",
+  }).map((block) => ({
+    key: block.key,
+    priority: block.priority,
+    protected: block.protected,
+    text: `${getSourceHeading(actionType, block.sourceContextKind)}\n${block.text}`,
+  }));
 }
 
 async function buildPromptSnapshot(step: ExecutionStepRecord) {
@@ -496,9 +553,8 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
     }),
   ]);
 
-  const sourceTextSnapshot = await resolveStepSource(step);
+  const sourceContext = await resolveStepSource(step);
   const attachmentContext = buildAttachmentContext(attachments);
-  const hasPriorIdeas = Boolean(sourceTextSnapshot?.trim());
   const basePrompt = composePrompt({
     actionType: step.actionType as WorkflowStepInput["actionType"],
     originalInput: step.executionRun.session?.originalInput ?? "",
@@ -506,32 +562,21 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
     projectContext: null,
     outputStyle: step.executionRun.session?.outputStyle ?? null,
     outputLanguage: step.executionRun.session?.outputLanguage ?? null,
-    // The prior results are delivered as a separate, budget-managed block
-    // below, so pass the hint instead of inlining them here. This keeps the
-    // brainstorm "yes, and" discussion directives alive in the queued runner.
+    sourceContextKind: sourceContext.kind,
     sourceText: null,
-    hasPriorIdeas,
+    researchSourceText: sourceContext.text,
     instructionTemplate: step.instructionTemplate ?? null,
   });
 
   const promptBlocks = fitPromptBlocksToBudget({
     model: step.targetModel,
     blocks: [
-      { key: "base", priority: "highest", text: basePrompt },
-      ...(sourceTextSnapshot
-        ? [
-            {
-              key: "source",
-              priority: promptSourcePriority(step.sourceMode),
-              text:
-                step.actionType === "brainstorm"
-                  ? `${getSourceHeading("brainstorm")}\n${sourceTextSnapshot}`
-                  : step.sourceMode === "all_results"
-                    ? `Completed prior results:\n${sourceTextSnapshot}`
-                    : `Source result to use:\n${sourceTextSnapshot}`,
-            },
-          ]
-        : []),
+      { key: "base", priority: "highest", text: basePrompt, protected: true },
+      ...buildSourcePromptBlocks({
+        actionType: step.actionType as WorkflowStepInput["actionType"],
+        sourceMode: step.sourceMode,
+        sourceContext,
+      }),
       ...(projectContext
         ? [
             {
@@ -555,7 +600,7 @@ async function buildPromptSnapshot(step: ExecutionStepRecord) {
 
   const promptSnapshot = promptBlocks.blocks.map((block) => block.text.trim()).filter(Boolean).join("\n\n");
   return {
-    sourceTextSnapshot,
+    sourceTextSnapshot: sourceContext.text,
     promptSnapshot,
     promptHash: hashPrompt(promptSnapshot),
     attachmentsForProvider: attachmentsForProvider(attachments),
@@ -1124,6 +1169,24 @@ async function transitionStepToCompleted(input: {
       costIsEstimated: input.providerResult.costIsEstimated ?? false,
       latencyMs: input.providerResult.latencyMs,
       rawResponse: input.providerResult.rawResponse,
+    });
+
+    await tx.aiRequest.create({
+      data: {
+        userId: input.step.executionRun.userId,
+        conversationId: input.step.executionRun.sessionId,
+        messageId: result.id,
+        provider: input.providerResult.provider,
+        model: input.providerResult.model,
+        requestType: input.step.actionType,
+        status: "completed",
+        inputTokens: input.providerResult.usage?.promptTokens ?? null,
+        outputTokens: input.providerResult.usage?.completionTokens ?? null,
+        estimatedCostUsd: input.providerResult.estimatedCost ?? null,
+        latencyMs: input.providerResult.latencyMs,
+        errorCode: null,
+        errorMessage: null,
+      },
     });
 
     await tx.executionRunStep.updateMany({

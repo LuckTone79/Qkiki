@@ -6,6 +6,7 @@ import {
   canAutoResumeFromSearch,
   pickLatestActiveSessionId,
   resolveWorkbenchEntryAction,
+  shouldRevalidateWorkbenchOnPageResume,
 } from "./workbench-resume.ts";
 
 test("pickLatestActiveSessionId returns the newest active session", () => {
@@ -108,4 +109,29 @@ test("resolveWorkbenchEntryAction honors forceNew before active session recovery
   });
 
   assert.deepEqual(action, { kind: "new-session" });
+});
+
+test("shouldRevalidateWorkbenchOnPageResume rechecks active runs and loaded sessions", () => {
+  assert.equal(
+    shouldRevalidateWorkbenchOnPageResume({
+      activeRunId: "signed-run",
+      sessionId: null,
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRevalidateWorkbenchOnPageResume({
+      activeRunId: null,
+      sessionId: "session-1",
+    }),
+    true,
+  );
+  assert.equal(
+    shouldRevalidateWorkbenchOnPageResume({
+      activeRunId: null,
+      sessionId: null,
+      pagePersisted: true,
+    }),
+    true,
+  );
 });

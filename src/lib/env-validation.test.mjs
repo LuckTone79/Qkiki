@@ -14,6 +14,8 @@ const valid = {
   INTERNAL_WORKER_SECRET: `${strong}worker`,
   APP_BASE_URL: "https://yapp.wideget.net",
   CANONICAL_APP_URL: "https://yapp.wideget.net",
+  NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: `${strong}supabase`,
 };
 
 test("launch configuration accepts independent strong secrets", () => {

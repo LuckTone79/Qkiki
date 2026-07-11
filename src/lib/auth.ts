@@ -4,12 +4,17 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ensureLegacyUserLinked } from "@/lib/supabase/link-legacy-user";
 import {
   SESSION_COOKIE,
+  SESSION_COOKIE_CANDIDATES,
   TRIAL_COOKIE_CANDIDATES,
-  USER_SESSION_COOKIE_CANDIDATES,
+  deleteCookies,
+  readCookieValue,
 } from "@/lib/auth-constants";
 
 const SESSION_DAYS = 30;
@@ -24,6 +29,12 @@ export type CurrentUser = {
   isTrial?: boolean;
 };
 
+// --- Trial (anonymous) sessions -----------------------------------------
+//
+// Trial visitors (src/app/api/trial/start) are never real, emailed accounts
+// — they can't sign up through Supabase Auth. They keep using this legacy
+// DB-backed session/cookie mechanism unchanged; real users no longer do.
+
 export function hashSessionToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
@@ -36,9 +47,7 @@ export async function hashPassword(password: string) {
 }
 
 export async function verifyPassword(password: string, hash: string) {
-  if (Buffer.byteLength(password, "utf8") > 72) {
-    return false;
-  }
+  if (Buffer.byteLength(password, "utf8") > 72) return false;
   return bcrypt.compare(password, hash);
 }
 
@@ -66,9 +75,7 @@ export async function createAuthSession(
   });
 
   const cookieStore = await cookies();
-  for (const cookieName of TRIAL_COOKIE_CANDIDATES) {
-    cookieStore.delete(cookieName);
-  }
+  deleteCookies(cookieStore, TRIAL_COOKIE_CANDIDATES);
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -80,9 +87,7 @@ export async function createAuthSession(
 
 export async function clearAuthSession() {
   const cookieStore = await cookies();
-  const token = USER_SESSION_COOKIE_CANDIDATES
-    .map((cookieName) => cookieStore.get(cookieName)?.value)
-    .find(Boolean);
+  const token = readCookieValue(cookieStore, SESSION_COOKIE_CANDIDATES);
 
   if (token) {
     await prisma.authSession.deleteMany({
@@ -90,26 +95,13 @@ export async function clearAuthSession() {
     });
   }
 
-  for (const cookieName of [
-    ...USER_SESSION_COOKIE_CANDIDATES,
-    ...TRIAL_COOKIE_CANDIDATES,
-  ]) {
-    cookieStore.delete(cookieName);
-  }
+  deleteCookies(cookieStore, SESSION_COOKIE_CANDIDATES);
+  deleteCookies(cookieStore, TRIAL_COOKIE_CANDIDATES);
 }
 
-export function getInitialRoleForEmail(_email: string): UserRole {
-  // Public identity proof must never double as an administrator bootstrap.
-  // Promote the first administrator only through the offline launch runbook.
-  return UserRole.USER;
-}
-
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+async function getTrialUserUncached(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
-
-  const token = USER_SESSION_COOKIE_CANDIDATES
-    .map((cookieName) => cookieStore.get(cookieName)?.value)
-    .find(Boolean);
+  const token = readCookieValue(cookieStore, SESSION_COOKIE_CANDIDATES);
   if (!token) {
     return null;
   }
@@ -122,8 +114,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!session || session.expiresAt.getTime() < Date.now()) {
     return null;
   }
-
-  const isTrial = session.user.email.endsWith(TRIAL_EMAIL_DOMAIN);
+  if (!session.user.email.endsWith(TRIAL_EMAIL_DOMAIN)) {
+    // Legacy real-user session left over from before the Supabase Auth
+    // migration. Real users authenticate through Supabase now; don't trust
+    // this cookie for them.
+    return null;
+  }
 
   return {
     id: session.user.id,
@@ -131,9 +127,32 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     name: session.user.name,
     role: session.user.role,
     status: session.user.status,
-    isTrial,
+    isTrial: true,
   };
 }
+
+async function getCurrentUserUncached(): Promise<CurrentUser | null> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user: supabaseUser },
+  } = await supabase.auth.getUser();
+
+  if (supabaseUser) {
+    const legacyUser = await ensureLegacyUserLinked(supabaseUser);
+    return {
+      id: legacyUser.id,
+      email: legacyUser.email,
+      name: legacyUser.name,
+      role: legacyUser.role,
+      status: legacyUser.status,
+      isTrial: false,
+    };
+  }
+
+  return getTrialUserUncached();
+}
+
+export const getCurrentUser = cache(getCurrentUserUncached);
 
 export async function requireUser() {
   const user = await getCurrentUser();
@@ -142,7 +161,12 @@ export async function requireUser() {
     redirect("/sign-in");
   }
   if (user.status === "SUSPENDED") {
-    await clearAuthSession();
+    if (user.isTrial) {
+      await clearAuthSession();
+    } else {
+      const supabase = await createSupabaseServerClient();
+      await supabase.auth.signOut();
+    }
     redirect("/sign-in");
   }
 

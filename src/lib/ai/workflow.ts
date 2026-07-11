@@ -10,6 +10,11 @@ import {
 } from "@/lib/attachments";
 import { composeImagePrompt, composePrompt } from "@/lib/ai/prompt";
 import { isImageDataUrl, textOutputForPrompt } from "@/lib/ai/image-output";
+import {
+  requireUsableCompletedSource,
+  resolveSourceContext,
+  type ResolvedSourceContext,
+} from "@/lib/ai/source-context";
 import { isImageModel } from "@/lib/ai/provider-catalog";
 import { callProvider } from "@/lib/ai/providers";
 import { shouldEnableProviderWebSearch } from "@/lib/ai/provider-web-search";
@@ -1035,6 +1040,7 @@ export async function executeParallelRun(input: {
               projectContext,
               outputStyle: input.session.outputStyle,
               outputLanguage: input.session.outputLanguage,
+              sourceContextKind: "original",
             }),
       }),
     ),
@@ -1148,6 +1154,7 @@ export async function executeParallelRunIncremental(input: {
                 projectContext,
                 outputStyle: input.session.outputStyle,
                 outputLanguage: input.session.outputLanguage,
+                sourceContextKind: "original",
               }),
         });
 
@@ -1188,14 +1195,23 @@ export async function resolveSourceText(input: {
   sourceMode: SourceMode;
   sourceResultId?: string | null;
   previousResultText?: string | null;
-}) {
+  previousResultWasCompleted?: boolean;
+}): Promise<ResolvedSourceContext> {
   await ensureResultExecutionRunIdColumn();
   if (input.sourceMode === "previous") {
-    return truncatePromptContext(
-      textOutputForPrompt(input.previousResultText),
-      MAX_SOURCE_TEXT_CHARS,
-      "Source result",
-    );
+    const priorText = input.previousResultWasCompleted
+      ? textOutputForPrompt(input.previousResultText)
+      : "";
+    return resolveSourceContext({
+      sourceMode: "previous",
+      priorText: truncatePromptContext(priorText, MAX_SOURCE_TEXT_CHARS, "Source result"),
+      fallbackText: truncatePromptContext(
+        input.previousResultText || input.originalInput || "",
+        MAX_SOURCE_TEXT_CHARS,
+        "Recovery source",
+      ),
+      originalText: input.originalInput,
+    });
   }
 
   if (input.sourceMode === "selected_result" && input.sourceResultId) {
@@ -1203,14 +1219,33 @@ export async function resolveSourceText(input: {
       where: {
         id: input.sourceResultId,
         sessionId: input.sessionId,
+        status: "completed",
+        outputText: { not: null },
         session: { userId: input.userId },
       },
+      select: {
+        status: true,
+        outputText: true,
+      },
     });
-    return truncatePromptContext(
-      textOutputForPrompt(result?.outputText) || result?.errorMessage || "",
-      MAX_SOURCE_TEXT_CHARS,
-      "Source result",
-    );
+    if (!result) {
+      throw new Error(
+        "selected_result requires a completed owned result with non-empty output.",
+      );
+    }
+    const priorText = requireUsableCompletedSource(result, "selected_result");
+    return resolveSourceContext({
+      sourceMode: "selected_result",
+      priorText: truncatePromptContext(
+        priorText,
+        MAX_SOURCE_TEXT_CHARS,
+        "Source result",
+      ),
+    });
+  }
+
+  if (input.sourceMode === "selected_result") {
+    throw new Error("selected_result requires a source result id.");
   }
 
   if (input.sourceMode === "all_results") {
@@ -1222,38 +1257,33 @@ export async function resolveSourceText(input: {
       (result) => result.status === "completed" && result.outputText?.trim(),
     );
 
-    if (!completedResults.length && input.originalInput?.trim()) {
-      return truncatePromptContext(
+    return resolveSourceContext({
+      sourceMode: "all_results",
+      allResultsTexts: completedResults.map((result, index) =>
+        [
+          `Result ${index + 1} (${result.provider}/${result.model})`,
+          textOutputForPrompt(result.outputText),
+        ].join("\n"),
+      ),
+      fallbackText: truncatePromptContext(
         [
           "No completed prior results are available yet.",
           "Continue from the original task instead of treating provider failure messages as source material.",
           "",
           "[Original task]",
-          input.originalInput,
+          input.originalInput || "",
         ].join("\n"),
         MAX_SOURCE_TEXT_CHARS,
         "Combined source results",
-      );
-    }
-
-    return truncatePromptContext(
-      (completedResults.length ? completedResults : results)
-        .map((result, index) =>
-        [
-          `Result ${index + 1} (${result.provider}/${result.model})`,
-          textOutputForPrompt(result.outputText) ||
-            (result.status === "failed"
-              ? `This result failed and produced no usable output: ${result.errorMessage || "unknown error"}`
-              : result.errorMessage || ""),
-        ].join("\n"),
-        )
-        .join("\n\n"),
-      MAX_SOURCE_TEXT_CHARS,
-      "Combined source results",
-    );
+      ),
+      originalText: input.originalInput,
+    });
   }
 
-  return "";
+  return resolveSourceContext({
+    sourceMode: "original",
+    originalText: input.originalInput,
+  });
 }
 
 export async function executeSequentialRun(input: {
@@ -1291,6 +1321,7 @@ export async function executeSequentialRun(input: {
   }
   const expandedSteps = buildExpandedSteps(input.steps, input.workflowControl);
   let previousResultText: string | null = null;
+  let previousResultWasCompleted = false;
   let previousResultId: string | null = null;
   const results = [];
   let completedResultCount = 0;
@@ -1399,19 +1430,22 @@ export async function executeSequentialRun(input: {
           break;
         }
 
-        previousResultText =
-          previousResultText ||
-          buildFailedStepRecoverySource({
+        if (!(previousResultWasCompleted && previousResultText?.trim())) {
+          previousResultText = buildFailedStepRecoverySource({
             originalInput: input.session.originalInput,
             stepNumber: expandedStep.executionOrder,
             provider: step.targetProvider,
             model: step.targetModel,
             errorMessage: existingResult.errorMessage,
           });
+          previousResultWasCompleted = false;
+        }
         continue;
       }
 
-      previousResultText = effectiveOutput || existingResult.errorMessage || "";
+      previousResultText =
+        textOutputForPrompt(effectiveOutput) || existingResult.errorMessage || "";
+      previousResultWasCompleted = Boolean(textOutputForPrompt(effectiveOutput));
       previousResultId = existingResult.id;
       if (existingResult.status === "completed") {
         completedResultCount += 1;
@@ -1425,13 +1459,14 @@ export async function executeSequentialRun(input: {
       continue;
     }
 
-    const sourceText = await resolveSourceText({
+    const sourceContext = await resolveSourceText({
       userId: input.userId,
       sessionId: session.id,
       originalInput: input.session.originalInput,
       sourceMode: step.sourceMode,
       sourceResultId: step.sourceResultId,
       previousResultText,
+      previousResultWasCompleted,
     });
 
     const result = await executeAndPersistResult({
@@ -1458,7 +1493,9 @@ export async function executeSequentialRun(input: {
         projectContext,
         outputStyle: input.session.outputStyle,
         outputLanguage: input.session.outputLanguage,
-        sourceText,
+        sourceContextKind: sourceContext.kind,
+        sourceText: sourceContext.kind === "original" ? null : sourceContext.text,
+        researchSourceText: sourceContext.text,
         instructionTemplate: mergedInstruction || null,
       }),
     });
@@ -1503,19 +1540,21 @@ export async function executeSequentialRun(input: {
         break;
       }
 
-      previousResultText =
-        previousResultText ||
-        buildFailedStepRecoverySource({
+      if (!(previousResultWasCompleted && previousResultText?.trim())) {
+        previousResultText = buildFailedStepRecoverySource({
           originalInput: input.session.originalInput,
           stepNumber: expandedStep.executionOrder,
           provider: step.targetProvider,
           model: step.targetModel,
           errorMessage: result.errorMessage,
         });
+        previousResultWasCompleted = false;
+      }
       continue;
     }
 
-    previousResultText = effectiveOutput || result.errorMessage || "";
+    previousResultText = textOutputForPrompt(effectiveOutput) || result.errorMessage || "";
+    previousResultWasCompleted = Boolean(textOutputForPrompt(effectiveOutput));
     previousResultId = result.id;
     if (result.status === "completed") {
       completedResultCount += 1;
@@ -1584,6 +1623,7 @@ export async function executeSequentialRunIncremental(input: {
   }
   const expandedSteps = buildExpandedSteps(input.steps, input.workflowControl);
   let previousResultText: string | null = null;
+  let previousResultWasCompleted = false;
   let previousResultId: string | null = null;
   const results = [];
   let completedResultCount = 0;
@@ -1710,19 +1750,22 @@ export async function executeSequentialRunIncremental(input: {
           break;
         }
 
-        previousResultText =
-          previousResultText ||
-          buildFailedStepRecoverySource({
+        if (!(previousResultWasCompleted && previousResultText?.trim())) {
+          previousResultText = buildFailedStepRecoverySource({
             originalInput: input.session.originalInput,
             stepNumber: expandedStep.executionOrder,
             provider: step.targetProvider,
             model: step.targetModel,
             errorMessage: existingResult.errorMessage,
           });
+          previousResultWasCompleted = false;
+        }
         continue;
       }
 
-      previousResultText = effectiveOutput || existingResult.errorMessage || "";
+      previousResultText =
+        textOutputForPrompt(effectiveOutput) || existingResult.errorMessage || "";
+      previousResultWasCompleted = Boolean(textOutputForPrompt(effectiveOutput));
       previousResultId = existingResult.id;
       if (existingResult.status === "completed") {
         completedResultCount += 1;
@@ -1736,13 +1779,14 @@ export async function executeSequentialRunIncremental(input: {
       continue;
     }
 
-    const sourceText = await resolveSourceText({
+    const sourceContext = await resolveSourceText({
       userId: input.userId,
       sessionId: session.id,
       originalInput: input.session.originalInput,
       sourceMode: step.sourceMode,
       sourceResultId: step.sourceResultId,
       previousResultText,
+      previousResultWasCompleted,
     });
 
     await input.callbacks?.onStepStart?.({
@@ -1763,6 +1807,7 @@ export async function executeSequentialRunIncremental(input: {
     });
 
     const lastUsableResultText: string | null = previousResultText;
+    const lastUsableResultWasCompleted = previousResultWasCompleted;
     const lastUsableResultId: string | null = previousResultId;
     let result: Awaited<ReturnType<typeof executeAndPersistResult>>;
     try {
@@ -1798,7 +1843,9 @@ export async function executeSequentialRunIncremental(input: {
           projectContext,
           outputStyle: input.session.outputStyle,
           outputLanguage: input.session.outputLanguage,
-          sourceText,
+          sourceContextKind: sourceContext.kind,
+          sourceText: sourceContext.kind === "original" ? null : sourceContext.text,
+          researchSourceText: sourceContext.text,
           instructionTemplate: mergedInstruction || null,
         }),
       });
@@ -1842,6 +1889,7 @@ export async function executeSequentialRunIncremental(input: {
       }
 
       previousResultText = lastUsableResultText;
+      previousResultWasCompleted = lastUsableResultWasCompleted;
       previousResultId = lastUsableResultId;
       continue;
     }
@@ -1863,7 +1911,7 @@ export async function executeSequentialRunIncremental(input: {
       }
 
       previousResultText =
-        lastUsableResultText ||
+        (lastUsableResultWasCompleted ? lastUsableResultText : null) ||
         buildFailedStepRecoverySource({
           originalInput: input.session.originalInput,
           stepNumber: expandedStep.executionOrder,
@@ -1871,11 +1919,13 @@ export async function executeSequentialRunIncremental(input: {
           model: step.targetModel,
           errorMessage: result.errorMessage,
         });
+      previousResultWasCompleted = lastUsableResultWasCompleted;
       previousResultId = lastUsableResultId;
       continue;
     }
 
-    previousResultText = effectiveOutput || result.errorMessage || "";
+    previousResultText = textOutputForPrompt(effectiveOutput) || result.errorMessage || "";
+    previousResultWasCompleted = Boolean(textOutputForPrompt(effectiveOutput));
     previousResultId = result.id;
     if (result.status === "completed") {
       completedResultCount += 1;
@@ -1931,6 +1981,12 @@ export async function executeBranchRun(input: {
     throw new Error("Result was not found for this account.");
   }
 
+  const parentSourceText = requireUsableCompletedSource(parent, "branch");
+  const parentSourceContext = resolveSourceContext({
+    sourceMode: "branch",
+    priorText: parentSourceText,
+  });
+
   const branchKey = `${input.actionType}-${Date.now()}`;
   const projectContext = await buildProjectPromptContext({
     userId: input.userId,
@@ -1959,7 +2015,9 @@ export async function executeBranchRun(input: {
           projectContext,
           outputStyle: parent.session.outputStyle,
           outputLanguage: input.outputLanguage,
-          sourceText: textOutputForPrompt(parent.outputText) || parent.errorMessage || "",
+          sourceContextKind: parentSourceContext.kind,
+          sourceText: parentSourceContext.text,
+          researchSourceText: parentSourceContext.text,
           instructionTemplate: input.instruction,
         }),
       }),

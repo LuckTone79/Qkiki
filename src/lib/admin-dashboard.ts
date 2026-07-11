@@ -1,5 +1,10 @@
 import "server-only";
 
+import {
+  mergeModelUsageRows,
+  mergeProviderUsageRows,
+  mergeUserCostRows,
+} from "@/lib/admin-usage-metrics";
 import { prisma } from "@/lib/prisma";
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -40,6 +45,8 @@ export async function getAdminDashboardData() {
     modelUsage,
     topUserCosts,
     monthlyUserCosts,
+    orphanResultUsageToday,
+    orphanResultUsageMonth,
     recentAudits,
     usageLimits,
     activePaidUsers,
@@ -104,6 +111,36 @@ export async function getAdminDashboardData() {
         outputTokens: true,
       },
     }),
+    prisma.result.findMany({
+      where: {
+        createdAt: { gte: today },
+        executionRunStep: { isNot: null },
+        aiRequests: { none: {} },
+      },
+      select: {
+        provider: true,
+        model: true,
+        estimatedCost: true,
+        tokenUsagePrompt: true,
+        tokenUsageCompletion: true,
+        executionRun: { select: { userId: true } },
+      },
+    }),
+    prisma.result.findMany({
+      where: {
+        createdAt: { gte: monthStart },
+        executionRunStep: { isNot: null },
+        aiRequests: { none: {} },
+      },
+      select: {
+        provider: true,
+        model: true,
+        estimatedCost: true,
+        tokenUsagePrompt: true,
+        tokenUsageCompletion: true,
+        executionRun: { select: { userId: true } },
+      },
+    }),
     prisma.adminAuditLog.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -126,29 +163,67 @@ export async function getAdminDashboardData() {
     }),
   ]);
 
-  const topUserIds = topUserCosts
-    .sort(
-      (a, b) =>
-        (b._sum.estimatedCostUsd ?? 0) - (a._sum.estimatedCostUsd ?? 0),
-    )
-    .slice(0, 5)
-    .map((item) => item.userId);
+  const topUserIds = [
+    ...topUserCosts.map((item) => item.userId),
+    ...orphanResultUsageToday
+      .map((item) => item.executionRun?.userId)
+      .filter((userId): userId is string => Boolean(userId)),
+  ];
   const topUsers = topUserIds.length
     ? await prisma.user.findMany({
         where: { id: { in: topUserIds } },
         select: { id: true, email: true, name: true },
       })
     : [];
-  const monthlyTopUserIds = monthlyUserCosts
-    .sort((a, b) => (b._sum.estimatedCostUsd ?? 0) - (a._sum.estimatedCostUsd ?? 0))
-    .slice(0, 20)
-    .map((item) => item.userId);
+  const monthlyTopUserIds = [
+    ...monthlyUserCosts.map((item) => item.userId),
+    ...orphanResultUsageMonth
+      .map((item) => item.executionRun?.userId)
+      .filter((userId): userId is string => Boolean(userId)),
+  ];
   const monthlyTopUsers = monthlyTopUserIds.length
     ? await prisma.user.findMany({
         where: { id: { in: monthlyTopUserIds } },
         select: { id: true, email: true, name: true },
       })
     : [];
+  const usersById = new Map(
+    [...topUsers, ...monthlyTopUsers].map((user) => [user.id, user]),
+  );
+  const todayAiRequestRows = providerUsage.map((item) => ({
+    provider: item.provider,
+    model: null,
+    requests: item._count._all,
+    estimatedCost: item._sum.estimatedCostUsd ?? 0,
+    inputTokens: item._sum.inputTokens ?? 0,
+    outputTokens: item._sum.outputTokens ?? 0,
+  }));
+  const modelAiRequestRows = modelUsage.map((item) => ({
+    provider: item.provider,
+    model: item.model,
+    requests: item._count._all,
+    estimatedCost: item._sum.estimatedCostUsd ?? 0,
+    inputTokens: item._sum.inputTokens ?? 0,
+    outputTokens: item._sum.outputTokens ?? 0,
+  }));
+  const topUserAiRequestRows = topUserCosts.map((item) => ({
+    userId: item.userId,
+    provider: "",
+    model: null,
+    requests: item._count._all,
+    estimatedCost: item._sum.estimatedCostUsd ?? 0,
+    inputTokens: 0,
+    outputTokens: 0,
+  }));
+  const monthlyUserAiRequestRows = monthlyUserCosts.map((item) => ({
+    userId: item.userId,
+    provider: "",
+    model: null,
+    requests: item._count._all,
+    estimatedCost: item._sum.estimatedCostUsd ?? 0,
+    inputTokens: item._sum.inputTokens ?? 0,
+    outputTokens: item._sum.outputTokens ?? 0,
+  }));
 
   const todayTotalRequests = requestBreakdown.reduce(
     (sum, row) => sum + row._count._all,
@@ -181,8 +256,13 @@ export async function getAdminDashboardData() {
       todayCouponRedemptions,
       lifetimeUsers,
       monthlyUsers,
-      todayAiRequests,
-      todayEstimatedCost: todayAiCost._sum.estimatedCostUsd ?? 0,
+      todayAiRequests: todayAiRequests + orphanResultUsageToday.length,
+      todayEstimatedCost:
+        (todayAiCost._sum.estimatedCostUsd ?? 0) +
+        orphanResultUsageToday.reduce(
+          (sum, row) => sum + (row.estimatedCost ?? 0),
+          0,
+        ),
       todayAiErrors,
       todayTotalRequests,
       freeUserRequests,
@@ -192,51 +272,29 @@ export async function getAdminDashboardData() {
       freeToPaidConversionRate,
       suspiciousRepeatSignups,
     },
-    providerUsageRows: providerUsage
-      .map((item) => ({
-        label: item.provider,
-        requests: item._count._all,
-        estimatedCost: item._sum.estimatedCostUsd ?? 0,
-        inputTokens: item._sum.inputTokens ?? 0,
-        outputTokens: item._sum.outputTokens ?? 0,
-      }))
-      .sort((a, b) => b.requests - a.requests),
-    modelUsageRows: modelUsage
-      .map((item) => ({
-        label: `${item.provider}/${item.model}`,
-        requests: item._count._all,
-        estimatedCost: item._sum.estimatedCostUsd ?? 0,
-        inputTokens: item._sum.inputTokens ?? 0,
-        outputTokens: item._sum.outputTokens ?? 0,
-      }))
-      .sort((a, b) => b.requests - a.requests)
-      .slice(0, 10),
-    topUserRows: topUserCosts
-      .map((item) => {
-        const user = topUsers.find((candidate) => candidate.id === item.userId);
-        return {
-          label: user?.name || user?.email || "Unknown user",
-          requests: item._count._all,
-          estimatedCost: item._sum.estimatedCostUsd ?? 0,
-          inputTokens: 0,
-          outputTokens: 0,
-        };
-      })
-      .sort((a, b) => b.estimatedCost - a.estimatedCost)
-      .slice(0, 5),
-    monthlyUserCostRows: monthlyUserCosts
-      .map((item) => {
-        const user = monthlyTopUsers.find((candidate) => candidate.id === item.userId);
-        return {
-          label: user?.name || user?.email || "Unknown user",
-          requests: item._count._all,
-          estimatedCost: item._sum.estimatedCostUsd ?? 0,
-          inputTokens: item._sum.inputTokens ?? 0,
-          outputTokens: item._sum.outputTokens ?? 0,
-        };
-      })
-      .sort((a, b) => b.estimatedCost - a.estimatedCost)
-      .slice(0, 20),
+    providerUsageRows: mergeProviderUsageRows({
+      aiRequests: todayAiRequestRows,
+      orphanResults: orphanResultUsageToday,
+    }),
+    modelUsageRows: mergeModelUsageRows({
+      aiRequests: modelAiRequestRows,
+      orphanResults: orphanResultUsageToday,
+      take: 10,
+    }),
+    topUserRows: mergeUserCostRows({
+      aiRequests: topUserAiRequestRows,
+      orphanResults: orphanResultUsageToday,
+      usersById,
+      take: 5,
+      includeTokens: false,
+    }),
+    monthlyUserCostRows: mergeUserCostRows({
+      aiRequests: monthlyUserAiRequestRows,
+      orphanResults: orphanResultUsageMonth,
+      usersById,
+      take: 20,
+      includeTokens: true,
+    }),
     recentAudits: recentAudits.map((log) => ({
       id: log.id,
       createdAt: log.createdAt.toISOString(),

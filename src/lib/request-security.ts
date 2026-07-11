@@ -3,11 +3,6 @@ const SERVER_TO_SERVER_PREFIXES = [
   "/api/internal/",
   "/.well-known/workflow/",
 ];
-const HANDOFF_SOURCE_HOSTS = new Set([
-  "qkiki.wideget.net",
-  "www.qkiki.wideget.net",
-  "qkiki.vercel.app",
-]);
 
 function normalizedOrigin(value: string | null) {
   if (!value || value === "null") {
@@ -42,15 +37,6 @@ export function isTrustedMutationRequest(request: Request) {
   const expectedOrigin = requestUrl.origin;
   if (origin === expectedOrigin) {
     return true;
-  }
-
-  if (requestUrl.pathname === "/api/auth/consume-handoff") {
-    try {
-      const source = new URL(origin);
-      return source.protocol === "https:" && HANDOFF_SOURCE_HOSTS.has(source.hostname);
-    } catch {
-      return false;
-    }
   }
 
   return false;
