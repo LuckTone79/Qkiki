@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   adminApiErrorResponse,
   getRequestMeta,
-  requireApiAdminManager,
+  requireApiAdminCritical,
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function GET() {
   try {
-    await requireApiAdminManager();
+    await requireApiAdminCritical();
     const settings = await prisma.adminSystemSetting.findMany({
       orderBy: { updatedAt: "desc" },
       take: 200,
@@ -29,7 +29,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const admin = await requireApiAdminManager();
+    const admin = await requireApiAdminCritical();
     const parsed = schema.safeParse(await request.json());
     const meta = getRequestMeta(request);
 

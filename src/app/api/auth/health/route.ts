@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { getAuthRuntimeDiagnostics } from "@/lib/auth-config";
 
+// Public probes are liveness-only. Dependency and environment readiness must
+// stay behind authenticated operator tooling so this endpoint cannot become a
+// deployment-configuration oracle.
 export async function GET() {
-  const diagnostics = getAuthRuntimeDiagnostics();
-  return NextResponse.json({
-    ok:
-      diagnostics.databaseConfigured &&
-      diagnostics.appSecretConfigured &&
-      diagnostics.googleOAuthConfigured,
-    diagnostics,
-  });
+  return NextResponse.json(
+    { ok: true },
+    {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        Pragma: "no-cache",
+      },
+    },
+  );
 }

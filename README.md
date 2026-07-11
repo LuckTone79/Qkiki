@@ -51,8 +51,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```bash
 DATABASE_URL="file:./dev.db"
-APP_SECRET="replace-with-a-long-random-secret"
-DB_ENCRYPTION_KEY="replace-with-a-different-long-random-secret"
+# Keep these empty in the repository; set independent random values in the
+# deployment secret store (openssl rand -base64 48).
+APP_SECRET=""
+DB_ENCRYPTION_KEY=""
 
 OPENAI_API_KEY=""
 ANTHROPIC_API_KEY=""

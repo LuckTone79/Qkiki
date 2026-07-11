@@ -4,7 +4,6 @@ const WEB_SEARCH_PROMPT_MARKERS = [
   "Freshness and web research rules:",
   "use web search",
   "web-grounded",
-  "Current time context:",
 ];
 
 export function shouldEnableProviderWebSearch(input: {

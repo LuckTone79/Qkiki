@@ -1,5 +1,16 @@
 const TRANSIENT_PRISMA_TRANSACTION_CODES = new Set(["P2028", "P2034"]);
 
+export class ProviderLeaseCapacityTimeoutError extends Error {
+  readonly code = "PROVIDER_LEASE_CAPACITY_TIMEOUT";
+
+  constructor(provider: string, timeoutMs: number) {
+    super(
+      `Provider capacity for ${provider} was not available within ${timeoutMs}ms.`,
+    );
+    this.name = "ProviderLeaseCapacityTimeoutError";
+  }
+}
+
 function getErrorCode(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code?: unknown }).code ?? "")

@@ -283,11 +283,11 @@ export function AccountClient({
               className="mt-1 w-full rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-500"
             />
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-2 sm:flex sm:flex-wrap">
             <button
               type="submit"
               disabled={savingAccount}
-              className={`rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed ${accountSavedAt ? "bg-teal-600" : "bg-stone-950 hover:bg-stone-800 disabled:opacity-60"}`}
+              className={`w-full rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed sm:w-auto ${accountSavedAt ? "bg-teal-600" : "bg-stone-950 hover:bg-stone-800 disabled:opacity-60"}`}
             >
               {savingAccount
                 ? localize(language, {
@@ -305,7 +305,9 @@ export function AccountClient({
                     })
                   : t("saveAccount")}
             </button>
-            <SignOutButton />
+            <div className="w-full sm:w-auto [&>*]:w-full sm:[&>*]:w-auto">
+              <SignOutButton />
+            </div>
           </div>
         </form>
       </section>
@@ -383,10 +385,10 @@ export function AccountClient({
             })}
           </p>
         ) : null}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 grid gap-2 sm:flex sm:flex-wrap">
           <Link
             href="/app/pricing?intent=monthly"
-            className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
+            className="rounded-md bg-stone-950 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
           >
             {localize(language, {
               en: "Start monthly plan",
@@ -397,7 +399,7 @@ export function AccountClient({
           </Link>
           <Link
             href="/app/pricing?intent=yearly"
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+            className="rounded-md border border-stone-300 px-4 py-2 text-center text-sm font-semibold text-stone-700 hover:bg-stone-50"
           >
             {localize(language, {
               en: "Get yearly discount",
@@ -408,7 +410,7 @@ export function AccountClient({
           </Link>
           <Link
             href="/app/pricing?intent=credit"
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
+            className="rounded-md border border-stone-300 px-4 py-2 text-center text-sm font-semibold text-stone-700 hover:bg-stone-50"
           >
             {localize(language, {
               en: "Buy credit pack",
@@ -444,7 +446,7 @@ export function AccountClient({
           <button
             type="submit"
             disabled={redeemingCoupon}
-            className="rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-md bg-stone-950 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {redeemingCoupon
               ? localize(language, {

@@ -13,6 +13,11 @@ import { prisma } from "@/lib/prisma";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
+import {
+  getPublicFailureMessage,
+  sanitizePublicWorkbenchPayload,
+  secureLogError,
+} from "@/lib/error-safety";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
@@ -94,7 +99,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         const encoder = new TextEncoder();
         return new Response(
           encoder.encode(
-            `${JSON.stringify({
+            `${JSON.stringify(sanitizePublicWorkbenchPayload({
               type: "done",
               session: session
                 ? {
@@ -111,12 +116,12 @@ export async function GET(request: Request, { params }: RouteContext) {
                   stoppedEarly: true,
                   stopReason: "canceled",
                 },
-            })}\n`,
+            }))}\n`,
           ),
           {
             headers: {
               "Content-Type": "application/x-ndjson; charset=utf-8",
-              "Cache-Control": "no-cache, no-transform",
+              "Cache-Control": "private, no-store, no-transform",
             },
           },
         );
@@ -128,16 +133,13 @@ export async function GET(request: Request, { params }: RouteContext) {
           encoder.encode(
             `${JSON.stringify({
               type: "error",
-              error:
-                executionRun.streamError ||
-                executionRun.errorMessage ||
-                "The AI run stopped before returning a result.",
+              error: getPublicFailureMessage("workbench-run"),
             })}\n`,
           ),
           {
             headers: {
               "Content-Type": "application/x-ndjson; charset=utf-8",
-              "Cache-Control": "no-cache, no-transform",
+              "Cache-Control": "private, no-store, no-transform",
             },
           },
         );
@@ -156,7 +158,11 @@ export async function GET(request: Request, { params }: RouteContext) {
         const stream = new ReadableStream<Uint8Array>({
           start(controller) {
             const send = (event: unknown) => {
-              controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+              controller.enqueue(
+                encoder.encode(
+                  `${JSON.stringify(sanitizePublicWorkbenchPayload(event))}\n`,
+                ),
+              );
             };
 
             const wait = (ms: number) =>
@@ -319,9 +325,13 @@ export async function GET(request: Request, { params }: RouteContext) {
 
               controller.close();
             })().catch((error) => {
+              secureLogError("workbench.v2_stream_failed", error, {
+                executionRunId,
+                userId: user.id,
+              });
               send({
                 type: "error",
-                error: error instanceof Error ? error.message : "Run stream failed.",
+                error: getPublicFailureMessage("workbench-stream"),
               });
               controller.close();
             });
@@ -331,7 +341,7 @@ export async function GET(request: Request, { params }: RouteContext) {
         return new Response(stream, {
           headers: {
             "Content-Type": "application/x-ndjson; charset=utf-8",
-            "Cache-Control": "no-cache, no-transform",
+            "Cache-Control": "private, no-store, no-transform",
           },
         });
       }
@@ -356,7 +366,11 @@ export async function GET(request: Request, { params }: RouteContext) {
     const ndjsonStream = (readable as ReadableStream<unknown>).pipeThrough(
       new TransformStream<unknown, Uint8Array>({
         transform(chunk, controller) {
-          controller.enqueue(encoder.encode(`${JSON.stringify(chunk)}\n`));
+          controller.enqueue(
+            encoder.encode(
+              `${JSON.stringify(sanitizePublicWorkbenchPayload(chunk))}\n`,
+            ),
+          );
         },
       }),
     );
@@ -364,7 +378,7 @@ export async function GET(request: Request, { params }: RouteContext) {
     return new Response(ndjsonStream, {
       headers: {
         "Content-Type": "application/x-ndjson; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
+        "Cache-Control": "private, no-store, no-transform",
         "X-Workflow-Stream-Tail-Index": String(tailIndex),
       },
     });

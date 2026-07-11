@@ -5,6 +5,10 @@ import {
   ActiveSessionRunExistsError,
 } from "@/lib/execution-runs";
 import { UsageCreditLimitReachedError } from "@/lib/usage-policy";
+import {
+  getPublicFailureMessage,
+  secureLogError,
+} from "@/lib/error-safety";
 
 export class ApiUnauthorizedError extends Error {
   redirectUrl?: string;
@@ -86,10 +90,12 @@ export function apiErrorResponse(error: unknown) {
     );
   }
 
-  console.error("[api] unhandled request failure", error);
+  secureLogError("api.unhandled_request_failure", error);
 
+  // Never echo raw error messages to the client: database/driver errors can
+  // contain connection details, file paths, or query fragments.
   return NextResponse.json(
-    { error: error instanceof Error ? error.message : "Request failed." },
+    { error: getPublicFailureMessage("api") },
     { status: 500 },
   );
 }

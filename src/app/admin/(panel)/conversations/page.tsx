@@ -1,4 +1,5 @@
 import { AdminConversationsClient } from "@/components/admin/AdminConversationsClient";
+import { buildConversationUsageSummaries } from "@/lib/admin-usage-metrics";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +57,48 @@ export default async function AdminConversationsPage({
       },
     },
   });
+  const conversationIds = conversations.map((conversation) => conversation.id);
+  const [resultUsageRows, requestOnlyUsageRows] = conversationIds.length
+    ? await Promise.all([
+        prisma.result.findMany({
+          where: { sessionId: { in: conversationIds } },
+          select: {
+            sessionId: true,
+            estimatedCost: true,
+            tokenUsagePrompt: true,
+            tokenUsageCompletion: true,
+          },
+        }),
+        prisma.aiRequest.findMany({
+          where: {
+            conversationId: { in: conversationIds },
+            messageId: null,
+          },
+          select: {
+            conversationId: true,
+            messageId: true,
+            estimatedCostUsd: true,
+            inputTokens: true,
+            outputTokens: true,
+          },
+        }),
+      ])
+    : [[], []];
+  const usageSummaries = buildConversationUsageSummaries({
+    results: resultUsageRows.map((result) => ({
+      sessionId: result.sessionId,
+      estimatedCost: result.estimatedCost ?? null,
+      tokenUsagePrompt: result.tokenUsagePrompt,
+      tokenUsageCompletion: result.tokenUsageCompletion,
+    })),
+    aiRequests: requestOnlyUsageRows.map((request) => ({
+      conversationId: request.conversationId,
+      messageId: request.messageId,
+      estimatedCostUsd: request.estimatedCostUsd ?? null,
+      inputTokens: request.inputTokens,
+      outputTokens: request.outputTokens,
+    })),
+  });
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
@@ -94,6 +137,12 @@ export default async function AdminConversationsPage({
         counts: {
           workflowSteps: conversation._count.workflowSteps,
           results: conversation._count.results,
+        },
+        usage: usageSummaries.get(conversation.id) ?? {
+          totalCreditsUsed: 0,
+          totalInputTokens: 0,
+          totalOutputTokens: 0,
+          totalEstimatedCostUsd: 0,
         },
       }))}
     />

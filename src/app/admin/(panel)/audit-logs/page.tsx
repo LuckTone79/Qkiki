@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdminCriticalPage } from "@/lib/admin-page-auth";
+import {
+  sanitizeAdminAccessReasonCode,
+  sanitizeStoredAdminAuditDetailJson,
+} from "@/lib/admin-audit-sanitizer";
 import {
   AdminAuditLogsClient,
   type AuditLogItem,
@@ -8,6 +13,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminAuditLogsPage() {
+  await requireAdminCriticalPage();
+
   const [auditLogs, contentAccessLogs] = await Promise.all([
     prisma.adminAuditLog.findMany({
       orderBy: { createdAt: "desc" },
@@ -34,7 +41,7 @@ export default async function AdminAuditLogsPage() {
     action: log.action,
     targetType: log.targetType,
     targetId: log.targetId,
-    detailJson: log.detailJson,
+    detailJson: sanitizeStoredAdminAuditDetailJson(log.detailJson),
   }));
 
   const contentItems: ContentAccessLogItem[] = contentAccessLogs.map((log) => ({
@@ -43,7 +50,7 @@ export default async function AdminAuditLogsPage() {
     adminName: log.adminUser?.name || log.adminUser?.email || "-",
     viewedUserName: log.viewedUser?.name || log.viewedUser?.email || "-",
     conversationTitle: log.conversation?.title ?? null,
-    accessReasonCode: log.accessReasonCode,
+    accessReasonCode: sanitizeAdminAccessReasonCode(log.accessReasonCode),
   }));
 
   return <AdminAuditLogsClient auditLogs={auditItems} contentAccessLogs={contentItems} />;

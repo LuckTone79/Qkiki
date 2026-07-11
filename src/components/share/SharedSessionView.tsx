@@ -83,6 +83,7 @@ export function SharedSessionView({
 }) {
   const { language } = useLanguage();
   const { session } = payload;
+  const isResultOnly = payload.scope === "RESULT";
   const resultById = new Map(session.results.map((result) => [result.id, result]));
   const [resultExpansionById, setResultExpansionById] = useState<Record<string, boolean>>(
     () => buildCollapsedResultExpansionMap(session.results),
@@ -175,7 +176,7 @@ export function SharedSessionView({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      {!isResultOnly ? <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-stone-950">
           {localize(language, { en: "Input", ko: "입력", ja: "入力", es: "Entrada" })}
         </h2>
@@ -209,9 +210,9 @@ export function SharedSessionView({
             </div>
           ) : null}
         </div>
-      </section>
+      </section> : null}
 
-      {session.mode === "sequential" ? (
+      {!isResultOnly && session.mode === "sequential" ? (
         <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-stone-950">
             {localize(language, {

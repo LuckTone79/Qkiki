@@ -40,14 +40,14 @@ export function OpenInBrowserClient({
     <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-6 py-12 text-stone-900">
       <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
         <p className="text-sm font-semibold tracking-[0.18em] text-teal-700">
-          GOOGLE SIGN-IN
+          SOCIAL SIGN-IN
         </p>
         <h1 className="mt-3 text-3xl font-semibold leading-tight">
-          인앱 브라우저에서는 Google 로그인이 차단될 수 있습니다.
+          인앱 브라우저에서는 소셜 로그인이 차단될 수 있습니다.
         </h1>
         <p className="mt-4 text-sm leading-6 text-stone-600">
-          카카오톡, 인스타그램, 페이스북 같은 앱 안 브라우저는 Google의
-          보안 정책 때문에 <span className="font-semibold">disallowed_useragent</span>
+          카카오톡, 인스타그램, 페이스북 같은 앱 안 브라우저는 보안 정책 때문에
+          {" "}<span className="font-semibold">disallowed_useragent</span>
           {" "}오류가 날 수 있습니다. 아래 버튼으로 Chrome, Safari 같은 기본
           브라우저에서 다시 열어주세요.
         </p>

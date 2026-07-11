@@ -1,16 +1,8 @@
 import "server-only";
 
-import crypto from "crypto";
 import { UserRole } from "@prisma/client";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ADMIN_SESSION_COOKIE,
-  LEGACY_ADMIN_SESSION_COOKIE,
-} from "@/lib/auth-constants";
-import { prisma } from "@/lib/prisma";
-
-const ADMIN_SESSION_DAYS = 7;
+import { getCurrentUser } from "@/lib/auth";
 
 export type CurrentAdmin = {
   id: string;
@@ -18,10 +10,6 @@ export type CurrentAdmin = {
   name: string | null;
   role: UserRole;
 };
-
-function hashAdminToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
 
 export function canViewAdmin(role: UserRole) {
   return role === "SUPPORT_VIEWER" || role === "ADMIN" || role === "SUPER_ADMIN";
@@ -35,78 +23,27 @@ export function canManageCritical(role: UserRole) {
   return role === "SUPER_ADMIN";
 }
 
-export async function createAdminSession(userId: string, mfaVerifiedAt: Date | null) {
-  const token = crypto.randomBytes(32).toString("base64url");
-  const tokenHash = hashAdminToken(token);
-  const expiresAt = new Date(Date.now() + ADMIN_SESSION_DAYS * 24 * 60 * 60 * 1000);
-
-  await prisma.adminSession.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt,
-      mfaVerifiedAt,
-    },
-  });
-
-  const cookieStore = await cookies();
-  cookieStore.set(ADMIN_SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    expires: expiresAt,
-    path: "/",
-  });
-}
-
-export async function clearAdminSession() {
-  const cookieStore = await cookies();
-  const token =
-    cookieStore.get(ADMIN_SESSION_COOKIE)?.value ??
-    cookieStore.get(LEGACY_ADMIN_SESSION_COOKIE)?.value;
-
-  if (token) {
-    await prisma.adminSession.deleteMany({
-      where: { tokenHash: hashAdminToken(token) },
-    });
-  }
-
-  cookieStore.delete(ADMIN_SESSION_COOKIE);
-  cookieStore.delete(LEGACY_ADMIN_SESSION_COOKIE);
-}
-
+/**
+ * Admin sign-in shares the same Supabase Auth session as the regular app —
+ * there is no separate admin session/cookie anymore. Access is gated purely
+ * by `User.role`, checked fresh on every call (no caching of the admin
+ * grant itself, though `getCurrentUser()` is per-request cached).
+ */
 export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
-  const cookieStore = await cookies();
-  const token =
-    cookieStore.get(ADMIN_SESSION_COOKIE)?.value ??
-    cookieStore.get(LEGACY_ADMIN_SESSION_COOKIE)?.value;
+  const user = await getCurrentUser();
 
-  if (!token) {
+  if (!user || user.isTrial) {
     return null;
   }
-
-  const session = await prisma.adminSession.findUnique({
-    where: { tokenHash: hashAdminToken(token) },
-    include: { user: true },
-  });
-
-  if (!session || session.expiresAt.getTime() < Date.now()) {
-    return null;
-  }
-
-  if (!process.env.ADMIN_MFA_CODE?.trim() || !session.mfaVerifiedAt) {
-    return null;
-  }
-
-  if (session.user.status === "SUSPENDED" || !canViewAdmin(session.user.role)) {
+  if (user.status === "SUSPENDED" || !canViewAdmin(user.role)) {
     return null;
   }
 
   return {
-    id: session.user.id,
-    email: session.user.email,
-    name: session.user.name,
-    role: session.user.role,
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
   };
 }
 

@@ -30,12 +30,20 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local dev-server logs and captures (may contain request data or secrets)
+.codex-*
+*.log
+Report/*.log
+
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
 
 # vercel
 .vercel
+
+# local git worktrees
+.worktrees/
 
 # typescript
 *.tsbuildinfo

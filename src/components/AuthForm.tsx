@@ -183,7 +183,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      {isSignUp ? (
+      {false ? (
         <label className="block">
           <span className="text-sm font-medium text-stone-700">
             {t("name")}
@@ -197,7 +197,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </label>
       ) : null}
 
-      <label className="block">
+      {!isSignUp ? <label className="block">
         <span className="text-sm font-medium text-stone-700">
           {t("email")}
         </span>
@@ -209,9 +209,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
           placeholder="you@example.com"
         />
-      </label>
+      </label> : null}
 
-      <label className="block">
+      {!isSignUp ? <label className="block">
         <span className="text-sm font-medium text-stone-700">
           {t("password")}
         </span>
@@ -223,9 +223,9 @@ export function AuthForm({ mode }: AuthFormProps) {
           autoComplete={isSignUp ? "new-password" : "current-password"}
           className="mt-1 w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-teal-600"
         />
-      </label>
+      </label> : null}
 
-      {isSignUp ? (
+      {false ? (
         <label className="block">
           <span className="text-sm font-medium text-stone-700">
             {t("confirmPassword")}
@@ -249,9 +249,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         {googleCta}
       </a>
 
-      <p className="text-center text-xs font-medium uppercase tracking-wide text-stone-500">
-        {dividerText}
-      </p>
+      {!isSignUp ? (
+        <p className="text-center text-xs font-medium uppercase tracking-wide text-stone-500">
+          {dividerText}
+        </p>
+      ) : null}
 
       {error || oauthError || authReason ? (
         <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
@@ -259,13 +261,15 @@ export function AuthForm({ mode }: AuthFormProps) {
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full rounded-md bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
-      >
-        {loading ? t("working") : isSignUp ? t("createAccount") : t("signIn")}
-      </button>
+      {!isSignUp ? (
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full rounded-md bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-stone-800 disabled:opacity-60"
+        >
+          {loading ? t("working") : t("signIn")}
+        </button>
+      ) : null}
 
       <p className="text-center text-sm text-stone-600">
         {isSignUp ? t("alreadyHaveAccount") : t("newToMultiAi")}{" "}

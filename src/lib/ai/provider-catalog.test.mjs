@@ -1,11 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import {
   getImageModels,
   getProviderCatalog,
   isImageModel,
   normalizeProviderModel,
+  requireSupportedProviderModel,
+  resolveSupportedProviderModel,
 } from "./provider-catalog.ts";
 
 test("provider catalog keeps only current supported model tiers", () => {
@@ -87,4 +90,40 @@ test("isImageModel only matches configured image generators", () => {
   assert.equal(isImageModel("xai", "grok-imagine-image-quality"), true);
   assert.equal(isImageModel("openai", "gpt-5.5"), false);
   assert.equal(isImageModel("anthropic", "gpt-image-1"), false);
+});
+
+test("provider model resolution normalizes aliases and rejects non-catalog models", () => {
+  assert.equal(
+    resolveSupportedProviderModel("google", "  gemini-3-pro-preview  "),
+    "gemini-3.1-pro-preview",
+  );
+  assert.equal(
+    resolveSupportedProviderModel("openai", "gpt-image-2"),
+    "gpt-image-2",
+  );
+  assert.equal(
+    resolveSupportedProviderModel("openai", "gemini-3.5-flash"),
+    null,
+  );
+  assert.throws(
+    () => requireSupportedProviderModel("xai", "attacker-controlled-model"),
+    /Unsupported model for xai/,
+  );
+});
+
+test("callProvider enforces catalog and pricing policy before runtime lookup", () => {
+  const source = readFileSync(new URL("./providers.ts", import.meta.url), "utf8");
+  const modelGuardIndex = source.indexOf(
+    "const model = requireSupportedProviderModel(input.provider, input.model);",
+  );
+  const pricingGuardIndex = source.indexOf(
+    "requireRegisteredProviderPricing({ provider: input.provider, model });",
+  );
+  const runtimeLookupIndex = source.indexOf(
+    "getProviderRuntimeConfig(normalizedInput.provider)",
+  );
+
+  assert.ok(modelGuardIndex >= 0);
+  assert.ok(pricingGuardIndex > modelGuardIndex);
+  assert.ok(runtimeLookupIndex > pricingGuardIndex);
 });

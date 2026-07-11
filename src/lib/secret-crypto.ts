@@ -25,6 +25,16 @@ function toKey(secret: string) {
   return crypto.createHash("sha256").update(secret).digest();
 }
 
+function assertFallbackAllowed(): void {
+  // A publicly known fallback key would make every "encrypted" secret
+  // readable by anyone with database access. Never allow it in production.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Secret encryption requires DB_ENCRYPTION_KEY (or APP_SECRET) in production.",
+    );
+  }
+}
+
 function getPrimaryEncryptionSecret(): {
   secret: string;
   source: EncryptionKeySource;
@@ -39,6 +49,7 @@ function getPrimaryEncryptionSecret(): {
     return { secret: appSecret, source: "app_secret" };
   }
 
+  assertFallbackAllowed();
   return { secret: devFallbackSecret, source: "dev_fallback" };
 }
 
@@ -68,6 +79,7 @@ function getDecryptionSecrets(): Array<{
   }
 
   if (!candidates.length) {
+    assertFallbackAllowed();
     candidates.push({
       secret: devFallbackSecret,
       source: "dev_fallback",

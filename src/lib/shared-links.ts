@@ -1,21 +1,18 @@
 import "server-only";
 
-import { randomBytes } from "node:crypto";
+import crypto from "node:crypto";
+import { SharedLinkScope } from "@prisma/client";
 import type { ActionType, ProviderName } from "@/lib/ai/types";
 import { prisma } from "@/lib/prisma";
-import {
-  buildSharedResultPath,
-  buildSharedSessionPath,
-} from "@/lib/workbench-sharing";
+import { buildSharedResultPath, buildSharedSessionPath } from "@/lib/workbench-sharing";
 import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
-import {
-  buildWorkbenchResultSelect,
-  ensureWorkbenchResultReadSchema,
-} from "@/lib/workbench-result-read";
-import {
-  ensureWorkflowControlJsonColumn,
-  ensureWorkflowTemplateStepsJsonColumn,
-} from "@/lib/workbench-session-schema";
+import { buildWorkbenchResultSelect, ensureWorkbenchResultReadSchema } from "@/lib/workbench-result-read";
+import { ensureWorkflowControlJsonColumn, ensureWorkflowTemplateStepsJsonColumn } from "@/lib/workbench-session-schema";
+
+const SHARE_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const COMPROMISED_TOKEN_HASHES = new Set([
+  "60e34c06400f3f93364c9086aa2f3a116c222a112eae9312d2f9cbccecc25b5a",
+]);
 
 type SharedWorkflowStep = {
   id: string;
@@ -46,10 +43,7 @@ export type SharedWorkbenchResult = {
   latencyMs: number | null;
   createdAt: string;
   updatedAt: string;
-  workflowStep?: {
-    orderIndex: number;
-    actionType: ActionType;
-  } | null;
+  workflowStep?: { orderIndex: number; actionType: ActionType } | null;
   executionRunStep?: {
     orderIndex: number;
     templateStepIndex: number;
@@ -65,6 +59,8 @@ export type SharedWorkbenchResult = {
 
 export type SharedSessionPayload = {
   token: string;
+  scope: "SESSION" | "RESULT";
+  expiresAt: string;
   session: {
     id: string;
     title: string;
@@ -80,10 +76,7 @@ export type SharedSessionPayload = {
 };
 
 function parseWorkflowTemplateStepsJson(value: string | null | undefined) {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : null;
@@ -93,155 +86,216 @@ function parseWorkflowTemplateStepsJson(value: string | null | undefined) {
 }
 
 function newShareToken() {
-  return randomBytes(18).toString("base64url");
+  return crypto.randomBytes(32).toString("base64url");
 }
 
-async function createSharedLink(input: { userId: string; sessionId: string }) {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    try {
-      return await prisma.sharedLink.create({
-        data: {
-          userId: input.userId,
-          sessionId: input.sessionId,
-          token: newShareToken(),
-        },
-        select: { token: true },
-      });
-    } catch (error) {
-      const code =
-        typeof error === "object" &&
-        error !== null &&
-        "code" in error &&
-        typeof (error as { code?: string }).code === "string"
-          ? (error as { code: string }).code
-          : null;
-
-      if (code !== "P2002") {
-        throw error;
-      }
-    }
-  }
-
-  throw new Error("Could not create a unique share token.");
+export function hashShareToken(token: string) {
+  return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export async function getOrCreateSharedLink(input: {
+export async function createScopedSharedLink(input: {
   userId: string;
   sessionId: string;
+  resultId?: string | null;
 }) {
   const session = await prisma.workbenchSession.findFirst({
     where: { id: input.sessionId, userId: input.userId },
     select: { id: true },
   });
+  if (!session) throw new Error("Session not found.");
 
-  if (!session) {
-    throw new Error("Session not found.");
+  const scope = input.resultId ? SharedLinkScope.RESULT : SharedLinkScope.SESSION;
+  if (input.resultId) {
+    const valid = await verifySharedResultBelongsToSession({
+      sessionId: session.id,
+      resultId: input.resultId,
+    });
+    if (!valid) throw new Error("Result does not belong to this session.");
   }
 
-  const existing = await prisma.sharedLink.findUnique({
-    where: { sessionId: session.id },
-    select: { token: true },
-  });
-
-  if (existing) {
-    return existing;
+  const expiresAt = new Date(Date.now() + SHARE_LINK_TTL_MS);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const token = newShareToken();
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.sharedLink.updateMany({
+          where: {
+            userId: input.userId,
+            sessionId: session.id,
+            scope,
+            resultId: input.resultId ?? null,
+            revokedAt: null,
+          },
+          data: { revokedAt: new Date() },
+        });
+        await tx.sharedLink.create({
+          data: {
+            userId: input.userId,
+            sessionId: session.id,
+            scope,
+            resultId: input.resultId ?? null,
+            tokenHash: hashShareToken(token),
+            expiresAt,
+          },
+        });
+      });
+      return { token, scope, expiresAt };
+    } catch (error) {
+      const code =
+        typeof error === "object" && error && "code" in error
+          ? String((error as { code?: string }).code)
+          : null;
+      if (code !== "P2002") throw error;
+    }
   }
-
-  const created = await createSharedLink({
-    userId: input.userId,
-    sessionId: session.id,
-  });
-
-  return created;
+  throw new Error("Could not create a unique share token.");
 }
 
-export async function verifySharedResultBelongsToSession(input: {
-  sessionId: string;
-  resultId: string;
-}) {
-  const result = await prisma.result.findFirst({
-    where: {
-      id: input.resultId,
-      sessionId: input.sessionId,
-    },
+export async function revokeSharedLinks(input: { userId: string; sessionId: string }) {
+  const session = await prisma.workbenchSession.findFirst({
+    where: { id: input.sessionId, userId: input.userId },
     select: { id: true },
   });
+  if (!session) throw new Error("Session not found.");
+  return prisma.sharedLink.updateMany({
+    where: { sessionId: session.id, userId: input.userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
 
+export async function verifySharedResultBelongsToSession(input: { sessionId: string; resultId: string }) {
+  if (!input.resultId || input.resultId.length > 128) return false;
+  const result = await prisma.result.findFirst({
+    where: { id: input.resultId, sessionId: input.sessionId },
+    select: { id: true },
+  });
   return Boolean(result);
 }
 
-export async function getSharedSessionPayload(
-  token: string,
-): Promise<SharedSessionPayload | null> {
-  const [supportsWorkflowControl, supportsWorkflowTemplateSteps] =
-    await Promise.all([
-      ensureWorkflowControlJsonColumn(),
-      ensureWorkflowTemplateStepsJsonColumn(),
-    ]);
-  await ensureResultExecutionRunIdColumn();
-  const { supportsRunExecutionOrder } =
-    await ensureWorkbenchResultReadSchema();
+function serializeResults(results: Array<Record<string, unknown>>): SharedWorkbenchResult[] {
+  return results.map((result) => {
+    const source = result as Record<string, unknown> & {
+      provider: string;
+      createdAt: Date;
+      updatedAt: Date;
+      workflowStep?: { actionType: string } | null;
+      executionRunStep?: { actionType: string } | null;
+    };
+    return ({
+    ...source,
+    provider: source.provider as ProviderName,
+    workflowStep: source.workflowStep
+      ? { ...source.workflowStep, actionType: source.workflowStep.actionType as ActionType }
+      : null,
+    executionRunStep: source.executionRunStep
+      ? { ...source.executionRunStep, actionType: source.executionRunStep.actionType as ActionType }
+      : null,
+    createdAt: source.createdAt.toISOString(),
+    updatedAt: source.updatedAt.toISOString(),
+  }) as SharedWorkbenchResult;
+  });
+}
 
-  const sharedLink = await prisma.sharedLink.findUnique({
-    where: { token },
-    select: {
-      token: true,
+export async function getSharedSessionPayload(token: string): Promise<SharedSessionPayload | null> {
+  if (!token || token.length < 32 || token.length > 128) return null;
+  const tokenHash = hashShareToken(token);
+  if (COMPROMISED_TOKEN_HASHES.has(tokenHash)) return null;
+
+  const sharedLink = await prisma.sharedLink.findFirst({
+    where: { tokenHash, revokedAt: null, expiresAt: { gt: new Date() } },
+    select: { sessionId: true, scope: true, resultId: true, expiresAt: true },
+  });
+  if (!sharedLink || (sharedLink.scope === SharedLinkScope.RESULT && !sharedLink.resultId)) return null;
+
+  await ensureResultExecutionRunIdColumn();
+  const { supportsRunExecutionOrder } = await ensureWorkbenchResultReadSchema();
+  const resultSelect = buildWorkbenchResultSelect({
+    includeOutputText: true,
+    includeBranching: true,
+    includeUsage: true,
+    includeExecutionFields: supportsRunExecutionOrder,
+    includeTimestamps: true,
+    includeWorkflowStep: true,
+  });
+
+  if (sharedLink.scope === SharedLinkScope.RESULT) {
+    const session = await prisma.workbenchSession.findUnique({
+      where: { id: sharedLink.sessionId },
+      select: {
+        id: true,
+        title: true,
+        mode: true,
+        finalResultId: true,
+        results: { where: { id: sharedLink.resultId! }, select: resultSelect },
+      },
+    });
+    if (!session || session.results.length !== 1) return null;
+    return {
+      token,
+      scope: "RESULT",
+      expiresAt: sharedLink.expiresAt.toISOString(),
       session: {
+        id: session.id,
+        title: session.title,
+        originalInput: "",
+        additionalInstruction: null,
+        outputStyle: null,
+        outputLanguage: null,
+        mode: session.mode === "sequential" ? "sequential" : "parallel",
+        finalResultId: session.finalResultId,
+        workflowSteps: [],
+        results: serializeResults(session.results),
+      },
+    };
+  }
+
+  const [supportsWorkflowControl, supportsWorkflowTemplateSteps] = await Promise.all([
+    ensureWorkflowControlJsonColumn(),
+    ensureWorkflowTemplateStepsJsonColumn(),
+  ]);
+  const session = await prisma.workbenchSession.findUnique({
+    where: { id: sharedLink.sessionId },
+    select: {
+      id: true,
+      title: true,
+      originalInput: true,
+      additionalInstruction: true,
+      outputStyle: true,
+      outputLanguage: true,
+      mode: true,
+      finalResultId: true,
+      ...(supportsWorkflowControl ? { workflowControlJson: true } : {}),
+      ...(supportsWorkflowTemplateSteps ? { workflowTemplateStepsJson: true } : {}),
+      workflowSteps: {
+        orderBy: { orderIndex: "asc" },
         select: {
           id: true,
-          title: true,
-          originalInput: true,
-          additionalInstruction: true,
-          outputStyle: true,
-          outputLanguage: true,
-          mode: true,
-          finalResultId: true,
-          ...(supportsWorkflowControl ? { workflowControlJson: true } : {}),
-          ...(supportsWorkflowTemplateSteps
-            ? { workflowTemplateStepsJson: true }
-            : {}),
-          workflowSteps: {
-            orderBy: { orderIndex: "asc" },
-            select: {
-              id: true,
-              orderIndex: true,
-              actionType: true,
-              targetProvider: true,
-              targetModel: true,
-              sourceMode: true,
-              sourceResultId: true,
-              instructionTemplate: true,
-            },
-          },
-          results: {
-            orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
-            select: buildWorkbenchResultSelect({
-              includeOutputText: true,
-              includeBranching: true,
-              includeUsage: true,
-              includeExecutionFields: supportsRunExecutionOrder,
-              includeTimestamps: true,
-              includeWorkflowStep: true,
-            }),
-          },
+          orderIndex: true,
+          actionType: true,
+          targetProvider: true,
+          targetModel: true,
+          sourceMode: true,
+          sourceResultId: true,
+          instructionTemplate: true,
         },
+      },
+      results: {
+        orderBy: [{ executionOrder: "asc" }, { createdAt: "asc" }],
+        select: resultSelect,
       },
     },
   });
+  if (!session) return null;
 
-  if (!sharedLink) {
-    return null;
-  }
-
-  const session = sharedLink.session;
   const workflowSteps =
     parseWorkflowTemplateStepsJson(
-      (session as { workflowTemplateStepsJson?: string | null })
-        .workflowTemplateStepsJson,
+      (session as { workflowTemplateStepsJson?: string | null }).workflowTemplateStepsJson,
     ) ?? session.workflowSteps;
 
   return {
-    token: sharedLink.token,
+    token,
+    scope: "SESSION",
+    expiresAt: sharedLink.expiresAt.toISOString(),
     session: {
       id: session.id,
       title: session.title,
@@ -256,37 +310,16 @@ export async function getSharedSessionPayload(
         actionType: step.actionType as ActionType,
         targetProvider: step.targetProvider as ProviderName,
       })),
-      results: session.results.map((result) => ({
-        ...result,
-        provider: result.provider as ProviderName,
-        workflowStep: result.workflowStep
-          ? {
-              ...result.workflowStep,
-              actionType: result.workflowStep.actionType as ActionType,
-            }
-          : null,
-        executionRunStep: result.executionRunStep
-          ? {
-              ...result.executionRunStep,
-              actionType: result.executionRunStep.actionType as ActionType,
-            }
-          : null,
-        createdAt: result.createdAt.toISOString(),
-        updatedAt: result.updatedAt.toISOString(),
-      })),
+      results: serializeResults(session.results),
     },
   };
 }
 
-export function buildSharedLinkResponse(input: {
-  token: string;
-  resultId?: string | null;
-}) {
+export function buildSharedLinkResponse(input: { token: string; resultId?: string | null; expiresAt: Date }) {
   return {
     token: input.token,
+    expiresAt: input.expiresAt.toISOString(),
     sessionPath: buildSharedSessionPath(input.token),
-    resultPath: input.resultId
-      ? buildSharedResultPath(input.token, input.resultId)
-      : null,
+    resultPath: input.resultId ? buildSharedResultPath(input.token, input.resultId) : null,
   };
 }

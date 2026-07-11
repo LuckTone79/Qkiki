@@ -6,8 +6,12 @@ import {
   costUsdToCredits,
   estimateComparisonSummaryCredits,
   estimateImageGenerationCostUsd,
+  estimateProviderCostUsd,
   estimateWorkbenchRunCredits,
+  getImageGenerationPricing,
+  getModelPricing,
 } from "./credits.ts";
+import { PROVIDERS } from "./ai/provider-catalog.ts";
 
 const miniTarget = { provider: "openai", model: "gpt-5.4-mini" };
 
@@ -143,4 +147,51 @@ test("comparison summary estimate is a single model call with result text risk",
   assert.equal(estimate.plannedCallCount, 1);
   assert.ok(estimate.estimatedCredits > 0);
   assert.ok(estimate.estimatedInputTokens > estimate.estimatedOutputTokens);
+});
+
+test("unregistered text models fail closed instead of receiving fallback pricing", () => {
+  assert.equal(getModelPricing("openai", "not-a-real-model"), undefined);
+  assert.throws(
+    () =>
+      estimateProviderCostUsd({
+        provider: "openai",
+        model: "not-a-real-model",
+        promptTokens: 1000,
+        completionTokens: 1000,
+      }),
+    /Pricing is not registered/,
+  );
+  assert.throws(
+    () =>
+      estimateWorkbenchRunCredits({
+        mode: "parallel",
+        originalInput: "Do not let unknown models bypass credit reservation.",
+        targets: [{ provider: "openai", model: "not-a-real-model" }],
+      }),
+    /Pricing is not registered/,
+  );
+});
+
+test("legacy model aliases resolve to registered pricing", () => {
+  assert.deepEqual(
+    getModelPricing("google", "gemini-3-pro-preview"),
+    getModelPricing("google", "gemini-3.1-pro-preview"),
+  );
+});
+
+test("every provider-catalog model has an explicit pricing entry", () => {
+  for (const provider of PROVIDERS) {
+    for (const model of provider.models) {
+      assert.ok(
+        getModelPricing(provider.name, model),
+        `missing text pricing for ${provider.name}/${model}`,
+      );
+    }
+    for (const model of provider.imageModels) {
+      assert.ok(
+        getImageGenerationPricing(provider.name, model),
+        `missing image pricing for ${provider.name}/${model}`,
+      );
+    }
+  }
 });

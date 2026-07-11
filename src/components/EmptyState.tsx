@@ -11,7 +11,9 @@ export function EmptyState({ title, description, action }: EmptyStateProps) {
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-stone-600">
         {description}
       </p>
-      {action ? <div className="mt-4">{action}</div> : null}
+      {action ? (
+        <div className="mt-4 [&>*]:w-full sm:[&>*]:w-auto">{action}</div>
+      ) : null}
     </div>
   );
 }

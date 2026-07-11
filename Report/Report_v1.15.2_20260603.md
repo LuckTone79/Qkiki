@@ -27,7 +27,7 @@ Also verified that repeated V2 steps were using `sourceMode=previous` with saved
 - Updated result cards to label V2 sources as original input, previous completed result, selected result, or prior completed results according to `ExecutionRunStep.sourceMode`.
 
 ## Production Evidence
-- Shared token investigated: `YG5jHouJwo7ghLR_DVhQA04G`.
+- Shared token investigated: [REDACTED; sha256=60e34c06400f3f93364c9086aa2f3a116c222a112eae9312d2f9cbccecc25b5a].
 - Execution run: `cmpxk56ny001kjp04dxu6aujf`, runner `v2`, status `partial`, planned steps `11`.
 - Failed step: order `8`, template step `2`, iteration `4`, model `anthropic / Opus 4.7`, error `PROVIDER_TIMEOUT`, message `anthropic: provider request timed out after 180 seconds.`
 - Step 8 source snapshot came from step 7 completed output.

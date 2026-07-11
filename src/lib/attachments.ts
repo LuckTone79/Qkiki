@@ -1,12 +1,14 @@
 import "server-only";
 
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import {
+  AttachmentFileValidationError,
   extractAttachmentTextContent,
   listAcceptedAttachmentTypes as listAcceptedAttachmentTypeValues,
   resolveAttachmentDescriptor,
+  validateAttachmentContent,
 } from "@/lib/attachment-files";
 import { prisma } from "@/lib/prisma";
 import type { AttachmentKind, SessionAttachment } from "@prisma/client";
@@ -31,9 +33,29 @@ const STORAGE_DIR = path.join(
   "yapp-storage",
   "attachments",
 );
-const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 4_000_000;
+export const MAX_ATTACHMENT_REQUEST_BYTES = 4_500_000;
+const MAX_ATTACHMENT_BYTES_PER_RUN = 16 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_RUN = 8;
+const MAX_ATTACHMENTS_PER_USER = 100;
+const MAX_ATTACHMENT_BYTES_PER_USER = 64 * 1024 * 1024;
 const MAX_PROMPT_TEXT_LENGTH = 24000;
+
+export type AttachmentPolicyErrorCode =
+  | "INVALID_FILE"
+  | "FILE_TOO_LARGE"
+  | "USER_QUOTA_EXCEEDED"
+  | "RUN_QUOTA_EXCEEDED";
+
+export class AttachmentPolicyError extends Error {
+  constructor(
+    message: string,
+    readonly code: AttachmentPolicyErrorCode,
+  ) {
+    super(message);
+    this.name = "AttachmentPolicyError";
+  }
+}
 
 function sanitizeName(value: string) {
   return value.replace(/[^\w.\-() ]+/g, "_").slice(0, 120) || "attachment";
@@ -61,8 +83,65 @@ export function listAcceptedAttachmentTypes() {
 export function getAttachmentLimits() {
   return {
     maxBytes: MAX_ATTACHMENT_BYTES,
+    maxRequestBytes: MAX_ATTACHMENT_REQUEST_BYTES,
     maxPerRun: MAX_ATTACHMENTS_PER_RUN,
+    maxBytesPerRun: MAX_ATTACHMENT_BYTES_PER_RUN,
+    maxPerUser: MAX_ATTACHMENTS_PER_USER,
+    maxBytesPerUser: MAX_ATTACHMENT_BYTES_PER_USER,
   };
+}
+
+function assertUserAttachmentQuota(
+  usage: { count: number; sizeBytes: number },
+  incomingBytes: number,
+) {
+  if (
+    usage.count >= MAX_ATTACHMENTS_PER_USER ||
+    usage.sizeBytes + incomingBytes > MAX_ATTACHMENT_BYTES_PER_USER
+  ) {
+    throw new AttachmentPolicyError(
+      "Your attachment storage quota has been reached. Remove unused attachments before uploading another file.",
+      "USER_QUOTA_EXCEEDED",
+    );
+  }
+}
+
+async function readUserAttachmentUsage(userId: string) {
+  const usage = await prisma.sessionAttachment.aggregate({
+    where: { userId },
+    _count: { _all: true },
+    _sum: { sizeBytes: true },
+  });
+  return {
+    count: usage._count._all,
+    sizeBytes: usage._sum.sizeBytes || 0,
+  };
+}
+
+function isPathWithinStorage(storagePath: string) {
+  const root = path.resolve(STORAGE_DIR);
+  const candidate = path.resolve(storagePath);
+  return candidate.startsWith(`${root}${path.sep}`);
+}
+
+async function removeStoredAttachmentFile(storagePath: string) {
+  if (!storagePath || !isPathWithinStorage(storagePath)) {
+    return;
+  }
+
+  try {
+    await unlink(storagePath);
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return;
+    }
+    throw new Error("The attachment file could not be removed from storage.");
+  }
 }
 
 export async function createAttachment(input: {
@@ -76,13 +155,45 @@ export async function createAttachment(input: {
   const descriptor = resolveAttachmentDescriptor(safeName, input.mimeType);
 
   if (!descriptor) {
-    throw new Error("Supported attachments are text, JSON, CSV, Markdown, Word (.docx), PDF, and common images.");
+    throw new AttachmentPolicyError(
+      "The file extension and content type must match a supported text, JSON, CSV, Markdown, Word (.docx), PDF, or image format.",
+      "INVALID_FILE",
+    );
   }
   const { kind, mimeType } = descriptor;
 
   if (input.bytes.byteLength > MAX_ATTACHMENT_BYTES) {
-    throw new Error(`Each attachment must be ${Math.floor(MAX_ATTACHMENT_BYTES / (1024 * 1024))}MB or smaller.`);
+    throw new AttachmentPolicyError(
+      `Each attachment must be ${Math.floor(MAX_ATTACHMENT_BYTES / 1_000_000)}MB or smaller.`,
+      "FILE_TOO_LARGE",
+    );
   }
+
+  assertUserAttachmentQuota(
+    await readUserAttachmentUsage(input.userId),
+    input.bytes.byteLength,
+  );
+
+  try {
+    validateAttachmentContent({
+      fileName: safeName,
+      kind,
+      mimeType,
+      bytes: input.bytes,
+    });
+  } catch (error) {
+    if (error instanceof AttachmentFileValidationError) {
+      throw error;
+    }
+    throw new AttachmentPolicyError("The attachment could not be validated safely.", "INVALID_FILE");
+  }
+
+  const buffer = Buffer.from(input.bytes);
+  const extractedText = await extractAttachmentTextContent({
+    kind,
+    mimeType,
+    bytes: buffer,
+  });
 
   const now = new Date();
   const folder = path.join(
@@ -92,33 +203,56 @@ export async function createAttachment(input: {
   );
   const storedName = `${Date.now()}-${randomUUID()}${extensionOf(safeName)}`;
   const absolutePath = path.join(folder, storedName);
-  const buffer = Buffer.from(input.bytes);
+  let wroteFile = false;
   try {
     await mkdir(folder, { recursive: true });
     await writeFile(absolutePath, buffer);
-  } catch (error) {
-    console.warn("[attachments] falling back to database-backed storage", error);
+    wroteFile = true;
+  } catch {
+    console.warn("[attachments] filesystem storage unavailable; using database-backed storage");
   }
 
-  const extractedText = await extractAttachmentTextContent({
-    kind,
-    mimeType,
-    bytes: buffer,
-  });
+  let created: SessionAttachment;
+  try {
+    created = await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`
+        SELECT pg_advisory_xact_lock(
+          hashtextextended(${`attachment-quota:${input.userId}`}, 0)
+        )
+      `;
+      const usage = await transaction.sessionAttachment.aggregate({
+        where: { userId: input.userId },
+        _count: { _all: true },
+        _sum: { sizeBytes: true },
+      });
+      assertUserAttachmentQuota(
+        {
+          count: usage._count._all,
+          sizeBytes: usage._sum.sizeBytes || 0,
+        },
+        buffer.byteLength,
+      );
 
-  const created = await prisma.sessionAttachment.create({
-    data: {
-      userId: input.userId,
-      sessionId: input.sessionId || null,
-      name: safeName,
-      mimeType,
-      kind,
-      sizeBytes: buffer.byteLength,
-      storagePath: absolutePath,
-      extractedText,
-      dataBase64: buffer.toString("base64"),
-    },
-  });
+      return transaction.sessionAttachment.create({
+        data: {
+          userId: input.userId,
+          sessionId: input.sessionId || null,
+          name: safeName,
+          mimeType,
+          kind,
+          sizeBytes: buffer.byteLength,
+          storagePath: absolutePath,
+          extractedText,
+          dataBase64: buffer.toString("base64"),
+        },
+      });
+    });
+  } catch (error) {
+    if (wroteFile) {
+      await removeStoredAttachmentFile(absolutePath).catch(() => undefined);
+    }
+    throw error;
+  }
 
   return toMeta(created);
 }
@@ -157,6 +291,17 @@ export async function claimSessionAttachments(input: {
 
   if (attachments.length !== uniqueIds.length) {
     throw new Error("One or more attachments could not be used in this session.");
+  }
+
+  const totalBytes = attachments.reduce(
+    (sum, attachment) => sum + attachment.sizeBytes,
+    0,
+  );
+  if (totalBytes > MAX_ATTACHMENT_BYTES_PER_RUN) {
+    throw new AttachmentPolicyError(
+      `Attachments for one run may total at most ${Math.floor(MAX_ATTACHMENT_BYTES_PER_RUN / (1024 * 1024))}MB.`,
+      "RUN_QUOTA_EXCEEDED",
+    );
   }
 
   await prisma.sessionAttachment.updateMany({
@@ -279,9 +424,8 @@ export async function deleteAttachment(input: {
     throw new Error("This attachment is already linked to saved results and cannot be removed.");
   }
 
-  await prisma.sessionAttachment.delete({
-    where: { id: attachment.id },
-  });
+  await removeStoredAttachmentFile(attachment.storagePath);
+  await prisma.sessionAttachment.delete({ where: { id: attachment.id } });
 }
 
 export function buildAttachmentContext(attachments: RuntimeAttachment[]) {

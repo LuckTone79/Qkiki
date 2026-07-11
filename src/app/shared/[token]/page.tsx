@@ -7,6 +7,14 @@ type SharedPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export const metadata = {
+  robots: { index: false, follow: false, nocache: true },
+  referrer: "no-referrer",
+};
+
 export default async function SharedPage(props: SharedPageProps) {
   const [{ token }, searchParams] = await Promise.all([
     props.params,

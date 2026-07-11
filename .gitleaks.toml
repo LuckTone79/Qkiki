@@ -1,0 +1,8 @@
+title = "Yapp secret scanning policy"
+
+[[allowlists]]
+description = "Non-secret migration fingerprint and public RFC test fixture"
+paths = [
+  '''^prisma/migrations/20260711130000_security_launch_phase2/migration\.sql$''',
+  '''^src/lib/totp\.test\.mjs$''',
+]

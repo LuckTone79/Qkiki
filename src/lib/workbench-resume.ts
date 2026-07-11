@@ -69,6 +69,20 @@ export function canAutoResumeFromSearch(currentSearch: string) {
   return !params.get("session") && !params.get("project") && params.get("new") !== "1";
 }
 
+export function shouldRevalidateWorkbenchOnPageResume(input: {
+  activeRunId: string | null;
+  sessionId: string | null;
+  pagePersisted?: boolean;
+  visibilityState?: DocumentVisibilityState;
+}) {
+  return Boolean(
+    input.activeRunId ||
+      input.sessionId ||
+      input.pagePersisted ||
+      input.visibilityState === "visible",
+  );
+}
+
 export function resolveWorkbenchEntryAction(
   input: ResolveWorkbenchEntryActionInput,
 ): WorkbenchEntryAction {

@@ -1,5 +1,7 @@
 import { AdminProvidersClient } from "@/components/admin/AdminProvidersClient";
+import { requireAdminCriticalPage } from "@/lib/admin-page-auth";
 
-export default function AdminProvidersPage() {
+export default async function AdminProvidersPage() {
+  await requireAdminCriticalPage();
   return <AdminProvidersClient />;
 }

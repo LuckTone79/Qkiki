@@ -1,7 +1,16 @@
 import "server-only";
 
-import crypto from "node:crypto";
 import { Receiver } from "@upstash/qstash";
+import { readBoundedRequestBody } from "@/lib/bounded-request-body";
+import {
+  buildInternalWorkerSignature,
+  isFreshInternalWorkerTimestamp,
+  isStrongInternalWorkerSecret,
+  requiresQstashOnlyVerification,
+  timingSafeSignatureEqual,
+} from "@/lib/internal-worker-auth-core";
+
+export const INTERNAL_WORKER_MAX_BODY_BYTES = 16 * 1024;
 
 function getReceiver() {
   const currentSigningKey = process.env.QSTASH_CURRENT_SIGNING_KEY?.trim();
@@ -17,10 +26,6 @@ function getReceiver() {
   });
 }
 
-function bodyHash(body: string) {
-  return crypto.createHash("sha256").update(body).digest("hex");
-}
-
 function getHmacSignature(input: {
   timestamp: string;
   method: string;
@@ -28,18 +33,17 @@ function getHmacSignature(input: {
   body: string;
 }) {
   const secret = process.env.INTERNAL_WORKER_SECRET?.trim();
-  if (!secret) {
+  if (!isStrongInternalWorkerSecret(secret)) {
     return null;
   }
 
-  const payload = [
-    input.timestamp,
-    input.method.toUpperCase(),
-    input.path,
-    bodyHash(input.body),
-  ].join(".");
-
-  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  return buildInternalWorkerSignature({
+    secret: secret!,
+    timestamp: input.timestamp,
+    method: input.method,
+    path: input.path,
+    body: input.body,
+  });
 }
 
 async function verifyQstashSignature(request: Request, rawBody: string) {
@@ -49,13 +53,11 @@ async function verifyQstashSignature(request: Request, rawBody: string) {
     return false;
   }
 
-  await receiver.verify({
+  return receiver.verify({
     signature,
     body: rawBody,
     url: request.url,
   });
-
-  return true;
 }
 
 function verifyHmacFallback(request: Request, rawBody: string) {
@@ -83,46 +85,73 @@ function verifyHmacFallback(request: Request, rawBody: string) {
     return false;
   }
 
-  const ageMs = Math.abs(Date.now() - Number(timestamp));
-  if (!Number.isFinite(ageMs) || ageMs > 5 * 60 * 1000) {
+  if (!isFreshInternalWorkerTimestamp(timestamp)) {
     return false;
   }
 
-  const expectedBuffer = Buffer.from(expected, "utf8");
-  const actualBuffer = Buffer.from(signature, "utf8");
-
-  return (
-    expectedBuffer.length === actualBuffer.length &&
-    crypto.timingSafeEqual(expectedBuffer, actualBuffer)
-  );
+  return timingSafeSignatureEqual(expected, signature);
 }
 
 export async function verifyInternalWorkerRequest(request: Request) {
-  const rawBody = await request.text();
+  const boundedBody = await readBoundedRequestBody(
+    request,
+    INTERNAL_WORKER_MAX_BODY_BYTES,
+  );
+  if (!boundedBody.ok) {
+    return {
+      ok: false as const,
+      status: 413 as const,
+      bodyText: "",
+    };
+  }
+
+  const rawBody = boundedBody.bodyText;
+  const qstashOnly = requiresQstashOnlyVerification({
+    nodeEnv: process.env.NODE_ENV,
+    currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
+    nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY,
+  });
 
   try {
     if (await verifyQstashSignature(request, rawBody)) {
       return {
         ok: true as const,
+        verificationMethod: "qstash" as const,
         bodyText: rawBody,
       };
     }
   } catch {
+    if (qstashOnly) {
+      return {
+        ok: false as const,
+        status: 401 as const,
+        bodyText: "",
+      };
+    }
+  }
+
+  // A production deployment with either QStash signing key configured must
+  // never downgrade to the custom HMAC path. Partial or invalid key rotation
+  // configuration therefore fails closed as well.
+  if (qstashOnly) {
     return {
       ok: false as const,
-      bodyText: rawBody,
+      status: 401 as const,
+      bodyText: "",
     };
   }
 
   if (verifyHmacFallback(request, rawBody)) {
     return {
       ok: true as const,
+      verificationMethod: "hmac" as const,
       bodyText: rawBody,
     };
   }
 
   return {
     ok: false as const,
-    bodyText: rawBody,
+    status: 401 as const,
+    bodyText: "",
   };
 }

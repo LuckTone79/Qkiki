@@ -1,16 +1,58 @@
 export type ProviderName = "openai" | "anthropic" | "google" | "xai";
 
-export type ActionType =
-  | "generate"
-  | "brainstorm"
-  | "critique"
-  | "fact_check"
-  | "improve"
-  | "summarize"
-  | "simplify"
-  | "consistency_review"
-  | "code_review"
-  | "follow_up";
+const WORKFLOW_ACTION_TYPES_BASE = [
+  "generate",
+  "brainstorm",
+  "critique",
+  "fact_check",
+  "improve",
+  "summarize",
+  "simplify",
+  "consistency_review",
+  "code_review",
+] as const;
+
+const BRANCH_REVIEW_ACTION_TYPES_BASE = [
+  "brainstorm",
+  "critique",
+  "fact_check",
+  "improve",
+  "summarize",
+  "simplify",
+  "consistency_review",
+  "code_review",
+] as const;
+
+export const ACTION_TYPES = [
+  ...WORKFLOW_ACTION_TYPES_BASE,
+  "follow_up",
+  "scenario_develop",
+  "deep_dive",
+] as const;
+
+export const WORKFLOW_ACTION_TYPES = [
+  ...WORKFLOW_ACTION_TYPES_BASE,
+  "scenario_develop",
+  "deep_dive",
+] as const;
+
+export const BRANCH_REVIEW_ACTION_TYPES = [
+  ...BRANCH_REVIEW_ACTION_TYPES_BASE,
+  "scenario_develop",
+  "deep_dive",
+] as const;
+
+export type ActionType = (typeof ACTION_TYPES)[number];
+
+export const WORKFLOW_STEP_ACTION_TYPES = [
+  ...WORKFLOW_ACTION_TYPES,
+  "follow_up",
+] as const satisfies readonly ActionType[];
+
+export const BRANCH_ACTION_TYPES = [
+  ...BRANCH_REVIEW_ACTION_TYPES,
+  "follow_up",
+] as const satisfies readonly ActionType[];
 
 export type SourceMode = "original" | "previous" | "selected_result" | "all_results";
 
@@ -22,6 +64,7 @@ export type ProviderCallInput = {
   allowFallback?: boolean;
   disableInternalRetries?: boolean;
   enableWebSearch?: boolean;
+  requestType?: ActionType | "rerun" | "parallel_comparison_summary";
   timeoutSecondsOverride?: number;
   abortSignal?: AbortSignal;
   concurrencyOwner?: {

@@ -3,9 +3,13 @@ import "server-only";
 import crypto from "node:crypto";
 import type { ProviderName } from "@/lib/ai/types";
 import { prisma } from "@/lib/prisma";
+import { ProviderLeaseCapacityTimeoutError } from "@/lib/provider-lease-errors";
 
-const PROVIDER_LEASE_TTL_MS = 6 * 60 * 60 * 1000;
-const PROVIDER_WAIT_MS = 750;
+const PROVIDER_LEASE_TTL_MS = 10 * 60 * 1000;
+const PROVIDER_WAIT_MS = 250;
+const DEFAULT_PROVIDER_ACQUIRE_TIMEOUT_MS = 15_000;
+const MIN_PROVIDER_ACQUIRE_TIMEOUT_MS = 1_000;
+const MAX_PROVIDER_ACQUIRE_TIMEOUT_MS = 60_000;
 // Expired-lease cleanup is hygiene only (expired leases never count toward the
 // limit), so run it on a small fraction of acquisitions instead of every call.
 const LEASE_CLEANUP_PROBABILITY = 0.05;
@@ -49,10 +53,25 @@ function getProviderLimit(provider: ProviderName) {
   const envKey = `PROVIDER_CONCURRENCY_${provider.toUpperCase()}`;
   const envValue = process.env[envKey]?.trim();
   const parsed = envValue ? Number.parseInt(envValue, 10) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) {
+  if (Number.isFinite(parsed) && parsed > 0 && parsed <= 500) {
     return parsed;
   }
   return DEFAULT_PROVIDER_LIMITS[provider];
+}
+
+function getProviderAcquireTimeoutMs() {
+  const parsed = Number.parseInt(
+    process.env.PROVIDER_LEASE_ACQUIRE_TIMEOUT_MS?.trim() ?? "",
+    10,
+  );
+  if (
+    Number.isFinite(parsed) &&
+    parsed >= MIN_PROVIDER_ACQUIRE_TIMEOUT_MS &&
+    parsed <= MAX_PROVIDER_ACQUIRE_TIMEOUT_MS
+  ) {
+    return parsed;
+  }
+  return DEFAULT_PROVIDER_ACQUIRE_TIMEOUT_MS;
 }
 
 async function cleanupExpiredLeases(provider: ProviderName) {
@@ -90,11 +109,15 @@ async function tryAcquireProviderLease(input: {
   const leaseKey = crypto.randomUUID();
 
   const rows = await prisma.$queryRaw<Array<{ id: string }>>`
+    WITH provider_lock AS (
+      SELECT pg_advisory_xact_lock(hashtextextended(${input.provider}, 0))
+    )
     INSERT INTO "ProviderLease"
       ("id", "providerName", "leaseKey", "ownerKind", "ownerId", "model", "expiresAt", "createdAt", "updatedAt")
     SELECT
       ${id}, ${input.provider}, ${leaseKey}, ${input.owner.ownerKind},
       ${input.owner.ownerId}, ${input.model}, ${expiresAt}, now(), now()
+    FROM provider_lock
     WHERE (
       SELECT count(*)
       FROM "ProviderLease"
@@ -118,6 +141,8 @@ export async function acquireProviderLease(input: {
     await cleanupExpiredLeases(input.provider);
   }
 
+  const timeoutMs = getProviderAcquireTimeoutMs();
+  const deadline = Date.now() + timeoutMs;
   while (true) {
     if (input.abortSignal?.aborted) {
       throw input.abortSignal.reason ?? new Error("The operation was aborted.");
@@ -127,7 +152,13 @@ export async function acquireProviderLease(input: {
     if (lease) {
       return lease;
     }
-    await delay(PROVIDER_WAIT_MS, input.abortSignal);
+    if (Date.now() >= deadline) {
+      throw new ProviderLeaseCapacityTimeoutError(input.provider, timeoutMs);
+    }
+    await delay(
+      Math.min(PROVIDER_WAIT_MS, Math.max(1, deadline - Date.now())),
+      input.abortSignal,
+    );
   }
 }
 

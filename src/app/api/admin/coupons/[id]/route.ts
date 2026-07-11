@@ -31,7 +31,6 @@ export async function PATCH(
       where: { id },
       select: {
         id: true,
-        code: true,
         note: true,
       },
     });
@@ -49,7 +48,6 @@ export async function PATCH(
       },
       select: {
         id: true,
-        code: true,
         note: true,
         updatedAt: true,
       },
@@ -61,9 +59,9 @@ export async function PATCH(
       targetType: "coupon",
       targetId: coupon.id,
       detail: {
-        code: coupon.code,
-        previousNote: existing.note,
-        note: coupon.note,
+        noteChanged: existing.note !== coupon.note,
+        previousNoteProvided: Boolean(existing.note),
+        noteProvided: Boolean(coupon.note),
       },
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
@@ -88,7 +86,6 @@ export async function DELETE(
       where: { id },
       select: {
         id: true,
-        code: true,
         isActive: true,
         type: true,
         redeemedByUserId: true,
@@ -120,7 +117,6 @@ export async function DELETE(
       targetType: "coupon",
       targetId: coupon.id,
       detail: {
-        code: coupon.code,
         operation: "delete",
       },
       ipAddress: meta.ipAddress,

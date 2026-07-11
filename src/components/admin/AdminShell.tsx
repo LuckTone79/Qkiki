@@ -9,14 +9,14 @@ import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentAdmin } from "@/lib/admin-auth";
 
 const navItems = [
-  { href: "/admin", key: "dashboard" },
-  { href: "/admin/users", key: "users" },
-  { href: "/admin/conversations", key: "conversations" },
-  { href: "/admin/feedback", key: "feedback" },
-  { href: "/admin/coupons", key: "coupons" },
-  { href: "/admin/providers", key: "providers" },
-  { href: "/admin/audit-logs", key: "auditLogs" },
-  { href: "/admin/about", key: "about" },
+  { href: "/admin", key: "dashboard", access: "viewer" },
+  { href: "/admin/users", key: "users", access: "viewer" },
+  { href: "/admin/conversations", key: "conversations", access: "viewer" },
+  { href: "/admin/feedback", key: "feedback", access: "viewer" },
+  { href: "/admin/coupons", key: "coupons", access: "manager" },
+  { href: "/admin/providers", key: "providers", access: "critical" },
+  { href: "/admin/audit-logs", key: "auditLogs", access: "critical" },
+  { href: "/admin/about", key: "about", access: "viewer" },
 ] as const;
 
 const adminText = {
@@ -63,6 +63,15 @@ export function AdminShell({
   const pathname = usePathname();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const t = adminText[adminTextKey(language)];
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.access === "critical") {
+      return admin.role === "SUPER_ADMIN";
+    }
+    if (item.access === "manager") {
+      return admin.role === "ADMIN" || admin.role === "SUPER_ADMIN";
+    }
+    return true;
+  });
 
   useEffect(() => {
     setPendingHref(null);
@@ -121,7 +130,7 @@ export function AdminShell({
           </div>
 
           <nav className="mt-5 hidden gap-2 lg:flex lg:flex-col">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -165,7 +174,7 @@ export function AdminShell({
         className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur lg:hidden"
       >
         <div className="mx-auto flex max-w-[620px] gap-1 overflow-x-auto">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
