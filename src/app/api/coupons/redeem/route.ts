@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     // Coupon codes are guessable strings; throttle per user to block
     // brute-force enumeration of valid codes.
-    const limited = enforceRateLimit({
+    const limited = await enforceRateLimit({
       request,
       scope: "coupons:redeem",
       limit: 10,

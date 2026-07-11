@@ -100,6 +100,11 @@ enum ProjectItemKind {
   RESULT
 }
 
+enum SharedLinkScope {
+  SESSION
+  RESULT
+}
+
 enum AdminAuditAction {
   ADMIN_LOGIN
   ADMIN_LOGOUT
@@ -263,7 +268,7 @@ model WorkbenchSession {
   aiRequests             AiRequest[]
   adminContentAccessLogs AdminContentAccessLog[]
   attachments            SessionAttachment[]
-  sharedLink             SharedLink?
+  sharedLinks            SharedLink[]
   parallelComparisons    ParallelComparison[]
   projectItems           ProjectItem[]
 
@@ -383,17 +388,24 @@ model WorkflowStep {
 }
 
 model SharedLink {
-  id        String   @id @default(cuid())
-  token     String   @unique
+  id        String          @id @default(cuid())
+  tokenHash String          @unique @map("token")
   userId    String
-  sessionId String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sessionId String
+  scope     SharedLinkScope @default(SESSION)
+  resultId  String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   session WorkbenchSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([sessionId])
+  @@index([resultId])
+  @@index([expiresAt])
   @@index([createdAt])
 }
 
@@ -524,6 +536,7 @@ model AiRequest {
 model TrialAccess {
   id                String    @id @default(cuid())
   ipHash            String    @unique
+  browserTokenHash  String?   @unique
   trialUserId       String    @unique
   conversationCount Int       @default(0)
   startedAt         DateTime  @default(now())

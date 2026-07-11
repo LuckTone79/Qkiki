@@ -1,3 +1,5 @@
+import { sanitizeInternalPath } from "@/lib/safe-path";
+
 const EMBEDDED_BROWSER_PATTERNS = [
   /KAKAOTALK/i,
   /FBAN/i,
@@ -26,19 +28,10 @@ export function isLikelyEmbeddedBrowser(userAgent: string | null | undefined) {
 export function sanitizeOpenInBrowserTarget(
   candidate: string | null | undefined,
 ) {
-  if (!candidate) {
-    return "/sign-in";
-  }
-
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) {
-    return "/sign-in";
-  }
-
-  if (!candidate.startsWith("/api/auth/google/start")) {
-    return "/sign-in";
-  }
-
-  return candidate;
+  return sanitizeInternalPath(candidate, {
+    fallback: "/sign-in",
+    allowedExactPaths: ["/api/auth/google/start"],
+  });
 }
 
 export function buildOpenInBrowserPath(targetPath: string) {

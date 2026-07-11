@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   adminApiErrorResponse,
   getRequestMeta,
-  requireApiAdminManager,
+  requireApiAdminCritical,
 } from "@/lib/admin-api-auth";
 import {
   PROVIDERS,
@@ -17,7 +17,7 @@ import { adminProviderConfigSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
-    await requireApiAdminManager();
+    await requireApiAdminCritical();
     const configs = await prisma.adminProviderConfig.findMany();
 
     const payload = PROVIDERS.map((provider) => {
@@ -65,7 +65,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const admin = await requireApiAdminManager();
+    const admin = await requireApiAdminCritical();
     const meta = getRequestMeta(request);
     const parsed = adminProviderConfigSchema.safeParse(await request.json());
 

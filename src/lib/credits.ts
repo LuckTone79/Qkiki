@@ -1,3 +1,6 @@
+import { isProviderName, normalizeProviderModel } from "./ai/provider-catalog";
+import { getQuotedOutputTokenLimit } from "./ai/output-token-policy";
+
 export const CREDIT_PRICING_VERSION = "credit-v2-image-20260615";
 export const CREDIT_FX_RATE_KRW_PER_USD = 1560;
 export const CREDIT_RISK_MULTIPLIER = 2.2;
@@ -103,11 +106,6 @@ export const IMAGE_GENERATION_PRICING: Record<string, ImageGenerationPricing> = 
   },
 };
 
-const FALLBACK_MODEL_PRICING: ModelPricing = {
-  promptPerMillion: 1.25,
-  completionPerMillion: 10,
-};
-
 type CreditConversionOptions = {
   fxRateKrwPerUsd?: number;
   riskMultiplier?: number;
@@ -174,12 +172,23 @@ export type WorkbenchCreditEstimateInput = {
   workflowControl?: WorkflowControlLike;
 };
 
+function normalizePricingModel(provider: string, model: string) {
+  const normalizedProvider = provider.trim();
+  const normalizedModel = model.trim();
+
+  return isProviderName(normalizedProvider)
+    ? normalizeProviderModel(normalizedProvider, normalizedModel)
+    : normalizedModel;
+}
+
 export function getModelPricing(provider: string, model: string) {
-  return MODEL_PRICING[`${provider}:${model}`] ?? FALLBACK_MODEL_PRICING;
+  return MODEL_PRICING[`${provider.trim()}:${normalizePricingModel(provider, model)}`];
 }
 
 export function getImageGenerationPricing(provider: string, model: string) {
-  return IMAGE_GENERATION_PRICING[`${provider}:${model}`];
+  return IMAGE_GENERATION_PRICING[
+    `${provider.trim()}:${normalizePricingModel(provider, model)}`
+  ];
 }
 
 function normalizeImageCount(imageCount: number | undefined) {
@@ -242,6 +251,13 @@ export function estimateProviderCostUsd(input: {
   completionTokens: number;
 }) {
   const pricing = getModelPricing(input.provider, input.model);
+
+  if (!pricing) {
+    throw new Error(
+      `Pricing is not registered for ${input.provider.trim()}/${input.model.trim()}.`,
+    );
+  }
+
   return (
     (input.promptTokens / 1_000_000) * pricing.promptPerMillion +
     (input.completionTokens / 1_000_000) * pricing.completionPerMillion
@@ -249,23 +265,7 @@ export function estimateProviderCostUsd(input: {
 }
 
 export function estimateOutputTokensForAction(actionType: string) {
-  if (actionType === "generate" || actionType === "improve") {
-    return 2200;
-  }
-  if (actionType === "brainstorm") {
-    return 1800;
-  }
-  if (actionType === "summarize" || actionType === "simplify") {
-    return 900;
-  }
-  if (
-    actionType === "critique" ||
-    actionType === "fact_check" ||
-    actionType === "consistency_review"
-  ) {
-    return 1400;
-  }
-  return 1400;
+  return getQuotedOutputTokenLimit(actionType);
 }
 
 function estimateOutputTokensForModel(input: {
@@ -507,7 +507,7 @@ export function estimateComparisonSummaryCredits(input: {
       model: "gpt-5.5",
       actionType: "parallel_comparison_summary",
       inputTokens,
-      outputTokens: 1200,
+      outputTokens: getQuotedOutputTokenLimit("parallel_comparison_summary"),
     }),
   ]);
 }

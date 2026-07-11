@@ -26,7 +26,9 @@ function getPolicySecret() {
 }
 
 export function getRequestIp(request: Request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
+  const forwardedFor =
+    request.headers.get("x-vercel-forwarded-for") ||
+    request.headers.get("x-forwarded-for");
   if (forwardedFor) {
     const [firstIp] = forwardedFor.split(",");
     if (firstIp?.trim()) {

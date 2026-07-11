@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   adminApiErrorResponse,
   getRequestMeta,
-  requireApiAdminManager,
+  requireApiAdminCritical,
 } from "@/lib/admin-api-auth";
 import {
   PROVIDERS,
@@ -17,7 +17,7 @@ export async function POST(
   context: { params: Promise<{ providerName: string }> },
 ) {
   try {
-    const admin = await requireApiAdminManager();
+    const admin = await requireApiAdminCritical();
     const meta = getRequestMeta(request);
     const { providerName } = await context.params;
 

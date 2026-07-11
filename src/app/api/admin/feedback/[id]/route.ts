@@ -3,8 +3,10 @@ import { AdminAuditAction, FeedbackStatus } from "@prisma/client";
 import {
   adminApiErrorResponse,
   getRequestMeta,
+  requireApiAdminManager,
   requireApiAdminViewer,
 } from "@/lib/admin-api-auth";
+import { canManageAdmin } from "@/lib/admin-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { FEEDBACK_STATUSES, toFeedbackAttachmentMeta } from "@/lib/feedback";
@@ -33,7 +35,7 @@ export async function GET(
       return NextResponse.json({ error: "Feedback not found." }, { status: 404 });
     }
 
-    if (post.adminUnread) {
+    if (post.adminUnread && canManageAdmin(admin.role)) {
       await prisma.feedbackPost.update({
         where: { id: post.id },
         data: { adminUnread: false },
@@ -87,7 +89,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const admin = await requireApiAdminViewer();
+    const admin = await requireApiAdminManager();
     const { id } = await context.params;
     const payload = (await request.json().catch(() => ({}))) as {
       status?: unknown;

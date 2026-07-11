@@ -645,6 +645,7 @@ export async function generateParallelComparisonSummary(input: {
   const providerResult = await callProvider(input.userId, {
     provider,
     model,
+    requestType: "parallel_comparison_summary",
     prompt: buildParallelComparisonPrompt({
       originalInput: session.originalInput,
       results: comparableResults.map((result) => ({
@@ -897,6 +898,7 @@ export async function executeAndPersistResult(input: ExecutePersistInput) {
   const providerResult = await callProvider(input.userId, {
     provider: input.provider,
     model: input.model,
+    requestType: input.requestType,
     prompt: input.prompt,
     attachments: toProviderAttachments(input.attachments),
     allowFallback: input.allowFallback ?? false,

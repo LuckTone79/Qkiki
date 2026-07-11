@@ -32,6 +32,8 @@ function signInErrorRedirect(requestUrl: string, errorCode: string) {
   redirectUrl.searchParams.set("error", errorCode);
   const response = NextResponse.redirect(redirectUrl);
   response.cookies.delete(GOOGLE_OAUTH_STATE_COOKIE);
+  response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
   return response;
 }
 
@@ -103,6 +105,25 @@ export async function GET(request: Request) {
   const providerAccountId = profile.sub;
   const displayName = profile.name?.trim().slice(0, 80) || null;
 
+  const existingIdentityConflict = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      accounts: {
+        where: { provider: GOOGLE_OAUTH_PROVIDER },
+        select: { providerAccountId: true },
+      },
+    },
+  });
+
+  if (
+    existingIdentityConflict &&
+    !existingIdentityConflict.accounts.some(
+      (account) => account.providerAccountId === providerAccountId,
+    )
+  ) {
+    return signInErrorRedirect(request.url, "account_link_required");
+  }
+
   const user = await prisma.$transaction(async (tx) => {
     const linkedAccount = await tx.authAccount.findUnique({
       where: {
@@ -129,22 +150,9 @@ export async function GET(request: Request) {
     });
 
     if (existingUser) {
-      await tx.authAccount.create({
-        data: {
-          userId: existingUser.id,
-          provider: GOOGLE_OAUTH_PROVIDER,
-          providerAccountId,
-        },
-      });
-
-      if (existingUser.name !== displayName && displayName) {
-        await tx.user.update({
-          where: { id: existingUser.id },
-          data: { name: displayName },
-        });
-      }
-
-      return existingUser;
+      // The preflight above permits only an already-linked identity. A
+      // password account is never silently linked by matching email alone.
+      throw new Error("Existing identity must be linked through recovery.");
     }
 
     const generatedPassword = crypto.randomBytes(32).toString("base64url");
@@ -183,5 +191,7 @@ export async function GET(request: Request) {
 
   const successRedirect = NextResponse.redirect(new URL(statePayload.nextPath, request.url));
   successRedirect.cookies.delete(GOOGLE_OAUTH_STATE_COOKIE);
+  successRedirect.headers.set("Cache-Control", "private, no-store");
+  successRedirect.headers.set("Referrer-Policy", "no-referrer");
   return successRedirect;
 }

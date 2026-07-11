@@ -1361,6 +1361,7 @@ export async function executeSingleRunStep(input: {
     providerResult = await callProvider(executionRun.userId, {
       provider: step.targetProvider as ProviderName,
       model: step.targetModel,
+      requestType: step.actionType as WorkflowStepInput["actionType"],
       prompt: step.promptSnapshot ?? promptData.promptSnapshot,
       attachments: promptData.attachmentsForProvider,
       allowFallback: false,

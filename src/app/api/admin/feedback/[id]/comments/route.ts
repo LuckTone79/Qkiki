@@ -3,7 +3,7 @@ import { AdminAuditAction } from "@prisma/client";
 import {
   adminApiErrorResponse,
   getRequestMeta,
-  requireApiAdminViewer,
+  requireApiAdminManager,
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +14,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const admin = await requireApiAdminViewer();
+    const admin = await requireApiAdminManager();
     const { id } = await context.params;
     const payload = (await request.json().catch(() => ({}))) as {
       body?: unknown;

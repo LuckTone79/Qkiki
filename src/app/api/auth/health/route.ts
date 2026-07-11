@@ -1,18 +1,16 @@
 import { NextResponse } from "next/server";
-import { getAuthRuntimeDiagnostics } from "@/lib/auth-config";
 
-// Health probes only need a boolean. Per-component diagnostics stay out of
-// the public response so the endpoint cannot be used to map server
-// configuration (which env vars are set) from the outside.
+// Public probes are liveness-only. Dependency and environment readiness must
+// stay behind authenticated operator tooling so this endpoint cannot become a
+// deployment-configuration oracle.
 export async function GET() {
-  const diagnostics = getAuthRuntimeDiagnostics();
   return NextResponse.json(
+    { ok: true },
     {
-      ok:
-        diagnostics.databaseConfigured &&
-        diagnostics.appSecretConfigured &&
-        diagnostics.googleOAuthConfigured,
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+        Pragma: "no-cache",
+      },
     },
-    { headers: { "Cache-Control": "no-store" } },
   );
 }

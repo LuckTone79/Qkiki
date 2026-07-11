@@ -1,5 +1,7 @@
 import { AdminCouponsClient } from "@/components/admin/AdminCouponsClient";
+import { requireAdminManagerPage } from "@/lib/admin-page-auth";
 
-export default function AdminCouponsPage() {
+export default async function AdminCouponsPage() {
+  await requireAdminManagerPage();
   return <AdminCouponsClient />;
 }

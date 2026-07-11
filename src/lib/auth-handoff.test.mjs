@@ -14,6 +14,9 @@ test("sanitizeInternalReturnPath keeps safe internal paths", () => {
 test("sanitizeInternalReturnPath rejects external or malformed targets", () => {
   assert.equal(sanitizeInternalReturnPath("https://example.com"), "/app/workbench");
   assert.equal(sanitizeInternalReturnPath("//evil.example"), "/app/workbench");
+  assert.equal(sanitizeInternalReturnPath("/\\\\evil.example"), "/app/workbench");
+  assert.equal(sanitizeInternalReturnPath("/\t/evil.example"), "/app/workbench");
+  assert.equal(sanitizeInternalReturnPath("/guide"), "/app/workbench");
 });
 
 test("auth handoff token round-trips the payload", () => {
@@ -21,7 +24,7 @@ test("auth handoff token round-trips the payload", () => {
     {
       sessionTokenHash: "hash_123",
       userId: "user_123",
-      nextPath: "/guide",
+      nextPath: "/app/guide",
     },
     { secret: "test-secret", now: 1000, ttlMs: 60_000 },
   );
@@ -34,7 +37,7 @@ test("auth handoff token round-trips the payload", () => {
   assert.deepEqual(payload, {
     sessionTokenHash: "hash_123",
     userId: "user_123",
-    nextPath: "/guide",
+    nextPath: "/app/guide",
   });
 });
 

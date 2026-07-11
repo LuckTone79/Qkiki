@@ -5,6 +5,7 @@ import {
   requireApiAdminViewer,
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
+import { sanitizeAdminAccessReasonCode } from "@/lib/admin-audit-sanitizer";
 import { prisma } from "@/lib/prisma";
 import { decryptTextContent } from "@/lib/secret-crypto";
 import { ensureWorkbenchResultReadSchema } from "@/lib/workbench-result-read";
@@ -53,7 +54,9 @@ export async function POST(
       return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
     }
 
-    const reason = body.accessReasonCode?.trim() || "raw_view";
+    const requestedReason = body.accessReasonCode?.trim() || "raw_view";
+    const sanitizedReason = sanitizeAdminAccessReasonCode(requestedReason);
+    const reason = sanitizedReason === "other" ? "raw_view" : sanitizedReason;
 
     await prisma.adminContentAccessLog.create({
       data: {

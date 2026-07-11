@@ -5,12 +5,12 @@ import { UserRole } from "@prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  ADMIN_SESSION_COOKIE_CANDIDATES,
   ADMIN_SESSION_COOKIE,
-  LEGACY_ADMIN_SESSION_COOKIE,
 } from "@/lib/auth-constants";
 import { prisma } from "@/lib/prisma";
 
-const ADMIN_SESSION_DAYS = 7;
+const ADMIN_SESSION_HOURS = 12;
 
 export type CurrentAdmin = {
   id: string;
@@ -38,7 +38,7 @@ export function canManageCritical(role: UserRole) {
 export async function createAdminSession(userId: string, mfaVerifiedAt: Date | null) {
   const token = crypto.randomBytes(32).toString("base64url");
   const tokenHash = hashAdminToken(token);
-  const expiresAt = new Date(Date.now() + ADMIN_SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + ADMIN_SESSION_HOURS * 60 * 60 * 1000);
 
   await prisma.adminSession.create({
     data: {
@@ -61,9 +61,9 @@ export async function createAdminSession(userId: string, mfaVerifiedAt: Date | n
 
 export async function clearAdminSession() {
   const cookieStore = await cookies();
-  const token =
-    cookieStore.get(ADMIN_SESSION_COOKIE)?.value ??
-    cookieStore.get(LEGACY_ADMIN_SESSION_COOKIE)?.value;
+  const token = ADMIN_SESSION_COOKIE_CANDIDATES
+    .map((cookieName) => cookieStore.get(cookieName)?.value)
+    .find(Boolean);
 
   if (token) {
     await prisma.adminSession.deleteMany({
@@ -71,15 +71,16 @@ export async function clearAdminSession() {
     });
   }
 
-  cookieStore.delete(ADMIN_SESSION_COOKIE);
-  cookieStore.delete(LEGACY_ADMIN_SESSION_COOKIE);
+  for (const cookieName of ADMIN_SESSION_COOKIE_CANDIDATES) {
+    cookieStore.delete(cookieName);
+  }
 }
 
 export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
   const cookieStore = await cookies();
-  const token =
-    cookieStore.get(ADMIN_SESSION_COOKIE)?.value ??
-    cookieStore.get(LEGACY_ADMIN_SESSION_COOKIE)?.value;
+  const token = ADMIN_SESSION_COOKIE_CANDIDATES
+    .map((cookieName) => cookieStore.get(cookieName)?.value)
+    .find(Boolean);
 
   if (!token) {
     return null;
@@ -94,7 +95,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
     return null;
   }
 
-  if (!process.env.ADMIN_MFA_CODE?.trim() || !session.mfaVerifiedAt) {
+  if (!process.env.ADMIN_TOTP_SECRET?.trim() || !session.mfaVerifiedAt) {
     return null;
   }
 

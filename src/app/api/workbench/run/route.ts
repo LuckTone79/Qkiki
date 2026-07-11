@@ -35,6 +35,10 @@ import type { ProviderName } from "@/lib/ai/types";
 import { upsertWorkbenchSession } from "@/lib/ai/workflow";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
 import { releaseUsageReservation, reserveUsage } from "@/lib/usage-policy";
+import {
+  getPublicFailureMessage,
+  secureLogError,
+} from "@/lib/error-safety";
 
 export async function POST(request: Request) {
   let userId = "";
@@ -272,6 +276,11 @@ export async function POST(request: Request) {
         await enqueueExecutionRunStep(firstStep.id);
         await enqueueWorkbenchWatchdog(getWorkbenchWatchdogIntervalSeconds()).catch(() => undefined);
       } catch (error) {
+        const publicError = getPublicFailureMessage("workbench-run");
+        secureLogError("workbench.v2_first_step_enqueue_failed", error, {
+          executionRunId: executionRun.executionRun.id,
+          userId: user.id,
+        });
         if (reservation?.id) {
           await releaseUsageReservation({
             reservationId: reservation.id,
@@ -280,10 +289,7 @@ export async function POST(request: Request) {
         }
         await failExecutionRun({
           executionRunId: executionRun.executionRun.id,
-          errorMessage:
-            error instanceof Error
-              ? error.message
-              : "The V2 sequential runner could not queue the first step.",
+          errorMessage: publicError,
         }).catch(() => undefined);
         throw error;
       }
@@ -333,6 +339,11 @@ export async function POST(request: Request) {
         },
       ]);
     } catch (error) {
+      const publicError = getPublicFailureMessage("workbench-run");
+      secureLogError("workbench.workflow_start_failed", error, {
+        executionRunId: executionRun.id,
+        userId: user.id,
+      });
       if (reservation) {
         await releaseUsageReservation({
           reservationId: reservation.id,
@@ -341,10 +352,7 @@ export async function POST(request: Request) {
       }
       await failExecutionRun({
         executionRunId: executionRun.id,
-        errorMessage:
-          error instanceof Error
-            ? error.message
-            : "The durable AI run could not be started.",
+        errorMessage: publicError,
       }).catch(() => undefined);
       throw error;
     }

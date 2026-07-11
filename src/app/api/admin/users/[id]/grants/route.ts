@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   adminApiErrorResponse,
+  assertApiAdminCanMutateUser,
   getRequestMeta,
-  requireApiAdminManager,
+  requireApiAdminCritical,
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
+import { prisma } from "@/lib/prisma";
 import { grantManualSubscription } from "@/lib/subscription";
 import { manualGrantSchema } from "@/lib/validation";
 
@@ -13,7 +15,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const admin = await requireApiAdminManager();
+    const admin = await requireApiAdminCritical();
     const { id } = await context.params;
     const meta = getRequestMeta(request);
     const parsed = manualGrantSchema.safeParse(await request.json());
@@ -24,6 +26,17 @@ export async function POST(
         { status: 400 },
       );
     }
+
+    const target = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+
+    if (!target) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+
+    assertApiAdminCanMutateUser(admin, target);
 
     const result = await grantManualSubscription({
       targetUserId: id,

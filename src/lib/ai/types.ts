@@ -22,6 +22,7 @@ export type ProviderCallInput = {
   allowFallback?: boolean;
   disableInternalRetries?: boolean;
   enableWebSearch?: boolean;
+  requestType?: ActionType | "rerun" | "parallel_comparison_summary";
   timeoutSecondsOverride?: number;
   abortSignal?: AbortSignal;
   concurrencyOwner?: {

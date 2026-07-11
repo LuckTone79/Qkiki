@@ -77,6 +77,7 @@ export type UserDetailData = {
   email: string;
   role: string;
   status: "ACTIVE" | "SUSPENDED";
+  canManageAccount: boolean;
   createdAt: string;
   lastActiveAt: string;
   totals: {
@@ -280,7 +281,9 @@ export function AdminUserDetailClient({ user }: { user: UserDetailData }) {
               {user.subscription?.isLifetime ? "Lifetime" : user.subscription?.planEndsAt ? user.subscription.planEndsAt : "-"}
             </p>
           </section>
-          <AdminUserActions userId={user.id} status={user.status} />
+          {user.canManageAccount ? (
+            <AdminUserActions userId={user.id} status={user.status} />
+          ) : null}
         </div>
       </section>
     </div>

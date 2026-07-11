@@ -8,7 +8,7 @@ import { enforceRateLimit } from "@/lib/rate-limit";
 import { signUpSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
-  const limited = enforceRateLimit({
+  const limited = await enforceRateLimit({
     request,
     scope: "auth:sign-up",
     limit: 5,
@@ -18,10 +18,20 @@ export async function POST(request: Request) {
     return limited;
   }
 
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      {
+        error:
+          "Password sign-up is disabled. Continue with a verified identity provider.",
+      },
+      { status: 403, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+
   const diagnostics = getAuthRuntimeDiagnostics();
   if (!diagnostics.databaseConfigured) {
     return NextResponse.json(
-      { error: "Server auth is misconfigured: DATABASE_URL (PostgreSQL) is required." },
+      { error: "Authentication is temporarily unavailable." },
       { status: 500 },
     );
   }
@@ -39,7 +49,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = signUpSchema.safeParse(await request.json());
+  const parsed = signUpSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -49,6 +59,10 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (parsed.data.email.endsWith("@trial.local")) {
+      return NextResponse.json({ error: "Email is not eligible." }, { status: 400 });
+    }
+
     const existing = await prisma.user.findUnique({
       where: { email: parsed.data.email },
     });

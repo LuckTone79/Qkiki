@@ -7,6 +7,7 @@
     "build": "node scripts/prebuild-migrate.mjs && next build",
     "start": "next start",
     "lint": "eslint",
+    "test:security": "tsx --test src/lib/safe-path.test.mjs src/lib/totp.test.mjs src/lib/env-validation.test.mjs src/lib/ai/output-token-policy.test.mjs src/lib/ai/pricing.test.mjs src/lib/validation.test.mjs src/lib/admin-authorization.test.mjs src/lib/admin-audit-sanitizer.test.mjs src/lib/error-safety.test.mjs",
     "user:reset-password": "node scripts/reset-password.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -15,15 +16,17 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
-    "@upstash/qstash": "^2.11.0",
+    "@upstash/qstash": "2.11.1",
+    "@upstash/ratelimit": "2.0.8",
+    "@upstash/redis": "1.38.0",
     "bcryptjs": "^3.0.3",
     "mammoth": "^1.12.0",
-    "next": "16.2.3",
+    "next": "16.2.10",
     "pdf-parse": "^2.4.5",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "workflow": "^4.2.4",
-    "zod": "^4.3.6"
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "workflow": "4.6.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -31,10 +34,12 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.3",
+    "eslint-config-next": "16.2.10",
     "playwright": "^1.59.1",
+    "postcss": "8.5.10",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",
+    "tsx": "4.23.0",
     "typescript": "^5"
   }
 }

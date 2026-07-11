@@ -83,7 +83,10 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ coupons: payload });
+    return NextResponse.json(
+      { coupons: payload },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     return adminApiErrorResponse(error);
   }
@@ -148,17 +151,19 @@ export async function POST(request: Request) {
         targetType: "coupon",
         targetId: coupon.id,
         detail: {
-          code: coupon.code,
           type: coupon.type,
           creditAmount,
-          note: coupon.note,
+          noteProvided: Boolean(coupon.note),
         },
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,
       });
     }
 
-    return NextResponse.json({ coupons, coupon: coupons[0] });
+    return NextResponse.json(
+      { coupons, coupon: coupons[0] },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     if (error instanceof Error && error.message.includes("Unique constraint")) {
       return NextResponse.json({ error: "Coupon code already exists." }, { status: 409 });

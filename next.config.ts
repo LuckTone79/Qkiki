@@ -3,29 +3,17 @@ import { withWorkflow } from "workflow/next";
 
 const isProduction = process.env.NODE_ENV === "production";
 
-// The app serves no third-party scripts; next/font self-hosts fonts at build
-// time, so every source can stay first-party. `unsafe-inline` covers Next.js
-// bootstrap inline scripts; `unsafe-eval` is only needed by dev tooling (HMR).
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://images.unsplash.com",
-  "font-src 'self' data:",
-  `connect-src 'self'${isProduction ? "" : " ws: wss:"}`,
-  "object-src 'none'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join("; ");
-
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "Origin-Agent-Cluster", value: "?1" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value:
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), browsing-topics=()",
   },
   ...(isProduction
     ? [
@@ -41,68 +29,23 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     return [
+      { source: "/:path*", headers: securityHeaders },
       {
-        // Static design mockups under /design-concepts pull CDN assets and
-        // get headers without the CSP; everything else gets the full set.
-        source: "/((?!design-concepts).*)",
+        source: "/shared/:path*",
         headers: [
-          ...securityHeaders,
-          { key: "Content-Security-Policy", value: contentSecurityPolicy },
+          { key: "Cache-Control", value: "private, no-store, max-age=0" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
+          { key: "Referrer-Policy", value: "no-referrer" },
         ],
       },
       {
-        source: "/design-concepts/:path*",
-        headers: securityHeaders,
-      },
-    ];
-  },
-  async redirects() {
-    return [
-      {
-        source: "/",
-        has: [
-          {
-            type: "host",
-            value: "qkiki.vercel.app",
-          },
-        ],
-        missing: [
-          {
-            type: "cookie",
-            key: "qkiki_session",
-          },
-        ],
-        destination: "https://yapp.wideget.net",
-        permanent: false,
-        basePath: false,
-      },
-      {
-        source: "/:path((?!api(?:/|$)|_next(?:/|$)|favicon\\.ico$|\\.well-known(?:/|$)).*)",
-        has: [
-          {
-            type: "host",
-            value: "qkiki.vercel.app",
-          },
-        ],
-        missing: [
-          {
-            type: "cookie",
-            key: "qkiki_session",
-          },
-        ],
-        destination: "https://yapp.wideget.net/:path",
-        permanent: false,
-        basePath: false,
+        source: "/api/auth/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store, max-age=0" }],
       },
     ];
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-    ],
+    remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
   },
 };
 

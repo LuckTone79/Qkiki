@@ -21,7 +21,6 @@ export async function POST(
       where: { id },
       select: {
         id: true,
-        code: true,
         isActive: true,
         type: true,
         redeemedByUserId: true,
@@ -53,9 +52,6 @@ export async function POST(
       action: "COUPON_DEACTIVATE",
       targetType: "coupon",
       targetId: coupon.id,
-      detail: {
-        code: coupon.code,
-      },
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
@@ -63,7 +59,6 @@ export async function POST(
     return NextResponse.json({
       coupon: {
         id: coupon.id,
-        code: coupon.code,
         isActive: false,
       },
     });

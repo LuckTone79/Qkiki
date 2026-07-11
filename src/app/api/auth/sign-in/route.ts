@@ -6,8 +6,11 @@ import { buildCanonicalRedirectUrl } from "@/lib/canonical-host";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { signInSchema } from "@/lib/validation";
 
+const DUMMY_PASSWORD_HASH =
+  "$2b$12$sIp.SfxT2prxayqAGwlPL.ZUg4eAdfsf5eZRTj756hI/z6vLZk7MG";
+
 export async function POST(request: Request) {
-  const limited = enforceRateLimit({
+  const limited = await enforceRateLimit({
     request,
     scope: "auth:sign-in",
     limit: 10,
@@ -20,7 +23,7 @@ export async function POST(request: Request) {
   const diagnostics = getAuthRuntimeDiagnostics();
   if (!diagnostics.databaseConfigured) {
     return NextResponse.json(
-      { error: "Server auth is misconfigured: DATABASE_URL (PostgreSQL) is required." },
+      { error: "Authentication is temporarily unavailable." },
       { status: 500 },
     );
   }
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const parsed = signInSchema.safeParse(await request.json());
+  const parsed = signInSchema.safeParse(await request.json().catch(() => null));
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -52,7 +55,12 @@ export async function POST(request: Request) {
       where: { email: parsed.data.email },
     });
 
-    if (!user || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+    const passwordMatches = await verifyPassword(
+      parsed.data.password,
+      user?.passwordHash ?? DUMMY_PASSWORD_HASH,
+    );
+
+    if (!user || !passwordMatches) {
       return NextResponse.json(
         { error: "Email or password is incorrect." },
         { status: 401 },

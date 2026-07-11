@@ -36,8 +36,10 @@ export type AdminFeedbackDetailData = {
 
 export function AdminFeedbackDetailClient({
   post,
+  canManage,
 }: {
   post: AdminFeedbackDetailData;
+  canManage: boolean;
 }) {
   const { language } = useLanguage();
   const ko = language === "ko";
@@ -135,7 +137,8 @@ export function AdminFeedbackDetailClient({
             >
               {statusLabel(status, language)}
             </span>
-            <select
+            {canManage ? (
+              <select
               value={status}
               disabled={savingStatus}
               onChange={(event) =>
@@ -148,7 +151,8 @@ export function AdminFeedbackDetailClient({
                   {statusLabel(value, language)}
                 </option>
               ))}
-            </select>
+              </select>
+            ) : null}
           </div>
         </div>
         <div className="mt-4 border-t border-slate-100 pt-4">
@@ -219,7 +223,8 @@ export function AdminFeedbackDetailClient({
         )}
       </section>
 
-      <form
+      {canManage ? (
+        <form
         onSubmit={submitReply}
         className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
       >
@@ -252,7 +257,8 @@ export function AdminFeedbackDetailClient({
                 : "Send reply"}
           </button>
         </div>
-      </form>
+        </form>
+      ) : null}
     </div>
   );
 }

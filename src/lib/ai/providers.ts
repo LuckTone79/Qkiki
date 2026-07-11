@@ -7,9 +7,16 @@ import {
   isImageModel,
   isProviderName,
   normalizeProviderModel,
+  requireSupportedProviderModel,
   resolveProviderTimeoutSeconds,
 } from "@/lib/ai/provider-catalog";
 import { buildImageDataUrl } from "@/lib/ai/image-output";
+import {
+  buildGeminiOutputTokenConfig,
+  buildMessagesOutputTokenConfig,
+  buildResponsesOutputTokenConfig,
+  getQuotedOutputTokenLimit,
+} from "@/lib/ai/output-token-policy";
 import {
   acquireProviderLease,
   releaseProviderLease,
@@ -19,7 +26,10 @@ import {
   getProviderRetryDelayMs,
   isRetryableProviderErrorMessage,
 } from "@/lib/provider-retry";
-import { estimateCost } from "@/lib/ai/pricing";
+import {
+  estimateCost,
+  requireRegisteredProviderPricing,
+} from "@/lib/ai/pricing";
 import { buildProviderWebSearchTools } from "@/lib/ai/provider-web-search";
 import {
   decryptSecretWithMetadata,
@@ -44,8 +54,11 @@ type ProviderRuntimeConfig = {
   timeoutSeconds: number;
 };
 
+type ProviderExecutionInput = ProviderCallInput & {
+  outputTokenLimit: number;
+};
+
 const DEFAULT_PROVIDER_TIMEOUT_SECONDS = 90;
-const ANTHROPIC_MAX_TOKENS = 4096;
 const ANTHROPIC_MAX_CONTINUATIONS = 2;
 const ANTHROPIC_CONTINUE_PROMPT =
   "Continue exactly where you left off. Do not repeat prior text. Return only the continuation.";
@@ -611,7 +624,7 @@ function buildFallbackResponse(
 
 async function executeProviderCall(
   runtime: ProviderRuntimeConfig,
-  input: ProviderCallInput,
+  input: ProviderExecutionInput,
 ): Promise<ProviderCallResult> {
   const apiKey = runtime.apiKey;
   const startedAt = Date.now();
@@ -689,9 +702,13 @@ export async function callProvider(
   userId: string,
   input: ProviderCallInput,
 ): Promise<ProviderCallResult> {
-  const normalizedInput: ProviderCallInput = {
+  const model = requireSupportedProviderModel(input.provider, input.model);
+  requireRegisteredProviderPricing({ provider: input.provider, model });
+
+  const normalizedInput: ProviderExecutionInput = {
     ...input,
-    model: normalizeProviderModel(input.provider, input.model),
+    model,
+    outputTokenLimit: getQuotedOutputTokenLimit(input.requestType),
   };
   const baseOwnerKind = input.concurrencyOwner?.ownerKind ?? "provider_call";
   const baseOwnerId =
@@ -701,7 +718,7 @@ export async function callProvider(
   const executeAttemptWithLease = async (
     provider: ProviderName,
     runtimeConfig: ProviderRuntimeConfig,
-    runtimeInput: ProviderCallInput,
+    runtimeInput: ProviderExecutionInput,
     ownerSuffix: string,
   ) => {
     const startedAt = Date.now();
@@ -838,7 +855,7 @@ export async function callProvider(
 
 async function callOpenAi(
   apiKey: string,
-  input: ProviderCallInput,
+  input: ProviderExecutionInput,
   startedAt: number,
   signal: AbortSignal,
 ) {
@@ -858,6 +875,7 @@ async function callOpenAi(
       input: buildOpenAiResponsesInput(input),
       background: false,
       store: false,
+      ...buildResponsesOutputTokenConfig(input.outputTokenLimit),
       ...(webSearchTools.length ? { tools: webSearchTools } : {}),
       ...(reasoningEffort ? { reasoning: { effort: reasoningEffort } } : {}),
     }),
@@ -923,7 +941,7 @@ async function callOpenAi(
 
 async function callAnthropic(
   apiKey: string,
-  input: ProviderCallInput,
+  input: ProviderExecutionInput,
   startedAt: number,
   signal: AbortSignal,
 ) {
@@ -943,6 +961,11 @@ async function callAnthropic(
     continuationIndex <= ANTHROPIC_MAX_CONTINUATIONS;
     continuationIndex += 1
   ) {
+    const remainingOutputTokens = input.outputTokenLimit - completionTokens;
+    if (remainingOutputTokens <= 0) {
+      throw new Error("anthropic: response reached the quoted output token limit.");
+    }
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       signal,
@@ -953,7 +976,7 @@ async function callAnthropic(
       },
       body: JSON.stringify({
         model: normalizeAnthropicModel(input.model),
-        max_tokens: ANTHROPIC_MAX_TOKENS,
+        ...buildMessagesOutputTokenConfig(remainingOutputTokens),
         messages,
         ...(webSearchTools.length ? { tools: webSearchTools } : {}),
       }),
@@ -972,8 +995,9 @@ async function callAnthropic(
 
     const usageBody = body.usage as JsonRecord | undefined;
     promptTokens += typeof usageBody?.input_tokens === "number" ? usageBody.input_tokens : 0;
-    completionTokens +=
+    const responseOutputTokens =
       typeof usageBody?.output_tokens === "number" ? usageBody.output_tokens : 0;
+    completionTokens += responseOutputTokens;
 
     const stopReason = getText(body.stop_reason);
     if (stopReason === "end_turn" || stopReason === "stop_sequence") {
@@ -1004,8 +1028,12 @@ async function callAnthropic(
       );
     }
 
-    if (continuationIndex >= ANTHROPIC_MAX_CONTINUATIONS) {
-      throw new Error("anthropic: response reached the token limit before completion.");
+    if (
+      responseOutputTokens <= 0 ||
+      completionTokens >= input.outputTokenLimit ||
+      continuationIndex >= ANTHROPIC_MAX_CONTINUATIONS
+    ) {
+      throw new Error("anthropic: response reached the quoted output token limit.");
     }
 
     messages.push({
@@ -1037,7 +1065,7 @@ async function callAnthropic(
 
 async function callGoogle(
   apiKey: string,
-  input: ProviderCallInput,
+  input: ProviderExecutionInput,
   startedAt: number,
   signal: AbortSignal,
 ) {
@@ -1055,7 +1083,10 @@ async function callGoogle(
     headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       contents: [{ role: "user", parts: buildGoogleParts(input) }],
-      generationConfig: { temperature: 0.4 },
+      generationConfig: {
+        temperature: 0.4,
+        ...buildGeminiOutputTokenConfig(input.outputTokenLimit),
+      },
       ...(webSearchTools.length ? { tools: webSearchTools } : {}),
     }),
   });
@@ -1096,7 +1127,7 @@ async function callGoogle(
 
 async function callXai(
   apiKey: string,
-  input: ProviderCallInput,
+  input: ProviderExecutionInput,
   startedAt: number,
   signal: AbortSignal,
 ) {
@@ -1115,6 +1146,7 @@ async function callXai(
       model: input.model,
       messages: buildChatCompletionInput(input),
       temperature: 0.4,
+      ...buildMessagesOutputTokenConfig(input.outputTokenLimit),
     }),
   });
   const body = await readJson(response);
@@ -1146,7 +1178,7 @@ async function callXai(
 
 async function callXaiResponses(
   apiKey: string,
-  input: ProviderCallInput,
+  input: ProviderExecutionInput,
   startedAt: number,
   signal: AbortSignal,
 ) {
@@ -1166,6 +1198,7 @@ async function callXaiResponses(
         },
       ],
       tools: buildProviderWebSearchTools("xai"),
+      ...buildResponsesOutputTokenConfig(input.outputTokenLimit),
     }),
   });
   const body = await readJson(response);

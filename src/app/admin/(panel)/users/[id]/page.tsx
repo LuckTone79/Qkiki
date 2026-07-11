@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireAdminViewer } from "@/lib/admin-auth";
+import { canAdminMutateUser } from "@/lib/admin-authorization";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { AdminUserDetailClient, type UserDetailData } from "@/components/admin/AdminUserDetailClient";
@@ -37,7 +38,7 @@ export default async function AdminUserDetailPage({
         orderBy: { createdAt: "desc" },
         take: 20,
         include: {
-          coupon: { select: { code: true, type: true } },
+          coupon: { select: { type: true } },
         },
       },
       aiRequests: {
@@ -109,6 +110,7 @@ export default async function AdminUserDetailPage({
     email: user.email,
     role: user.role,
     status: user.status,
+    canManageAccount: canAdminMutateUser(admin, user),
     createdAt: user.createdAt.toISOString(),
     lastActiveAt: (user.lastActiveAt ?? user.createdAt).toISOString(),
     totals: {
@@ -142,7 +144,9 @@ export default async function AdminUserDetailPage({
     }),
     couponRedemptions: user.couponRedemptions.map((item) => ({
       id: item.id,
-      couponCode: item.coupon.code,
+      // A redeemed coupon remains a credential-shaped value. The user-detail
+      // view needs the grant type and result, not the reusable raw code.
+      couponCode: "[redacted]",
       couponType: item.coupon.type,
       result: item.result,
       note: item.note,

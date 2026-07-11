@@ -1,6 +1,10 @@
 import "server-only";
 
 import { AdminAuditAction } from "@prisma/client";
+import {
+  sanitizeAdminAuditText,
+  serializeAdminAuditDetail,
+} from "@/lib/admin-audit-sanitizer";
 import { prisma } from "@/lib/prisma";
 
 type AdminAuditInput = {
@@ -20,9 +24,11 @@ export async function logAdminAudit(input: AdminAuditInput) {
       action: input.action,
       targetType: input.targetType,
       targetId: input.targetId,
-      detailJson: input.detail ? JSON.stringify(input.detail) : null,
+      detailJson: serializeAdminAuditDetail(input.detail),
       ipAddress: input.ipAddress ?? null,
-      userAgent: input.userAgent ?? null,
+      userAgent: input.userAgent
+        ? sanitizeAdminAuditText(input.userAgent)
+        : null,
     },
   });
 }

@@ -3,7 +3,7 @@ import {
   AdminFeedbackDetailClient,
   type AdminFeedbackDetailData,
 } from "@/components/admin/AdminFeedbackDetailClient";
-import { requireAdminViewer } from "@/lib/admin-auth";
+import { canManageAdmin, requireAdminViewer } from "@/lib/admin-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { toFeedbackAttachmentMeta } from "@/lib/feedback";
@@ -17,6 +17,7 @@ export default async function AdminFeedbackDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const admin = await requireAdminViewer();
+  const canManage = canManageAdmin(admin.role);
   const { id } = await params;
 
   const post = await prisma.feedbackPost.findUnique({
@@ -35,7 +36,7 @@ export default async function AdminFeedbackDetailPage({
     notFound();
   }
 
-  if (post.adminUnread) {
+  if (post.adminUnread && canManage) {
     await prisma.feedbackPost.update({
       where: { id: post.id },
       data: { adminUnread: false },
@@ -77,5 +78,5 @@ export default async function AdminFeedbackDetailPage({
     })),
   };
 
-  return <AdminFeedbackDetailClient post={data} />;
+  return <AdminFeedbackDetailClient post={data} canManage={canManage} />;
 }

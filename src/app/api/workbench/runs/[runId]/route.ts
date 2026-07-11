@@ -17,10 +17,15 @@ import { ensureWorkbenchRunSchema } from "@/lib/workbench-run-schema";
 import { buildWorkbenchResultSelect } from "@/lib/workbench-result-read";
 import { releaseUsageReservation } from "@/lib/usage-policy";
 import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
+import { sanitizePublicWorkbenchPayload } from "@/lib/error-safety";
 
 type RouteContext = {
   params: Promise<{ runId: string }>;
 };
+
+function safeRunResponse(payload: unknown) {
+  return NextResponse.json(sanitizePublicWorkbenchPayload(payload));
+}
 
 export async function GET(_request: Request, { params }: RouteContext) {
   try {
@@ -84,7 +89,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
           return NextResponse.json({ error: "Run not found." }, { status: 404 });
         }
 
-        return NextResponse.json({
+        return safeRunResponse({
           runId,
           executionRunId: executionRun.id,
           mode: token.mode,
@@ -134,7 +139,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
             includeWorkflowStep: true,
           }),
         });
-        return NextResponse.json({
+        return safeRunResponse({
           runId,
           executionRunId: executionRun.id,
           mode: token.mode,
@@ -179,7 +184,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
         }),
       });
 
-      return NextResponse.json({
+      return safeRunResponse({
         runId,
         executionRunId: executionRun.id,
         workflowRunId: executionRun.workflowRunId,
@@ -212,7 +217,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
       run.completedAt,
     ]);
 
-    return NextResponse.json({
+    return safeRunResponse({
       runId,
       workflowRunId: token.workflowRunId,
       mode: token.mode,

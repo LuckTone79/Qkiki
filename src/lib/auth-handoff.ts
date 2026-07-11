@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { sanitizeInternalPath } from "@/lib/safe-path";
 
 const DEFAULT_NEXT_PATH = "/app/workbench";
 const DEFAULT_TTL_MS = 60_000;
@@ -37,15 +38,11 @@ function signPayload(encodedPayload: string, secret?: string) {
 }
 
 export function sanitizeInternalReturnPath(candidate: string | null | undefined) {
-  if (!candidate) {
-    return DEFAULT_NEXT_PATH;
-  }
-
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) {
-    return DEFAULT_NEXT_PATH;
-  }
-
-  return candidate;
+  return sanitizeInternalPath(candidate, {
+    fallback: DEFAULT_NEXT_PATH,
+    allowedPrefixes: ["/app"],
+    allowedExactPaths: ["/"],
+  });
 }
 
 export function createAuthHandoffToken(

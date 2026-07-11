@@ -1,9 +1,13 @@
 import "server-only";
 
 import crypto from "crypto";
+import { sanitizeInternalPath } from "@/lib/safe-path";
 
 export const GOOGLE_OAUTH_PROVIDER = "google";
-export const GOOGLE_OAUTH_STATE_COOKIE = "yapp_google_oauth_state";
+export const GOOGLE_OAUTH_STATE_COOKIE =
+  process.env.NODE_ENV === "production"
+    ? "__Host-yapp_google_oauth_state"
+    : "yapp_google_oauth_state";
 export const DEFAULT_POST_AUTH_PATH = "/app/workbench";
 
 const GOOGLE_OAUTH_STATE_MAX_AGE_SECONDS = 10 * 60;
@@ -38,16 +42,10 @@ function signEncodedPayload(encodedPayload: string) {
 }
 
 export function sanitizePostAuthPath(candidate: string | null | undefined) {
-  if (!candidate) {
-    return DEFAULT_POST_AUTH_PATH;
-  }
-  if (!candidate.startsWith("/") || candidate.startsWith("//")) {
-    return DEFAULT_POST_AUTH_PATH;
-  }
-  if (!candidate.startsWith("/app")) {
-    return DEFAULT_POST_AUTH_PATH;
-  }
-  return candidate;
+  return sanitizeInternalPath(candidate, {
+    fallback: DEFAULT_POST_AUTH_PATH,
+    allowedPrefixes: ["/app"],
+  });
 }
 
 export function getGoogleOAuthConfig(requestUrl: string) {

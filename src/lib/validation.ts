@@ -1,9 +1,14 @@
 import { z } from "zod";
-import { isImageModel, isProviderName, PROVIDERS } from "./ai/provider-catalog";
+import {
+  isImageModel,
+  PROVIDERS,
+  resolveSupportedProviderModel,
+} from "./ai/provider-catalog";
+import type { ProviderName } from "./ai/types";
 
 const providerNames = PROVIDERS.map((provider) => provider.name) as [
-  string,
-  ...string[],
+  ProviderName,
+  ...ProviderName[],
 ];
 
 export const authEmailSchema = z
@@ -35,31 +40,64 @@ export const adminSignInSchema = z.object({
   mfaCode: z.string().trim().max(20).optional(),
 });
 
-export const targetModelSchema = z.object({
-  provider: z.enum(providerNames),
-  model: z.string().min(1).max(100),
-});
+export const targetModelSchema = z
+  .object({
+    provider: z.enum(providerNames),
+    model: z.string().trim().min(1).max(100),
+  })
+  .transform((value, ctx) => {
+    const model = resolveSupportedProviderModel(value.provider, value.model);
 
-export const workflowStepSchema = z.object({
-  orderIndex: z.number().int().min(1).max(50),
-  actionType: z.enum([
-    "generate",
-    "brainstorm",
-    "critique",
-    "fact_check",
-    "improve",
-    "summarize",
-    "simplify",
-    "consistency_review",
-    "code_review",
-    "follow_up",
-  ]),
-  targetProvider: z.enum(providerNames),
-  targetModel: z.string().min(1).max(100),
-  sourceMode: z.enum(["original", "previous", "selected_result", "all_results"]),
-  sourceResultId: z.string().nullable().optional(),
-  instructionTemplate: z.string().max(4000).nullable().optional(),
-});
+    if (!model) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["model"],
+        message: "Select a supported model for this provider.",
+      });
+      return z.NEVER;
+    }
+
+    return { ...value, model };
+  });
+
+export const workflowStepSchema = z
+  .object({
+    orderIndex: z.number().int().min(1).max(50),
+    actionType: z.enum([
+      "generate",
+      "brainstorm",
+      "critique",
+      "fact_check",
+      "improve",
+      "summarize",
+      "simplify",
+      "consistency_review",
+      "code_review",
+      "follow_up",
+    ]),
+    targetProvider: z.enum(providerNames),
+    targetModel: z.string().trim().min(1).max(100),
+    sourceMode: z.enum(["original", "previous", "selected_result", "all_results"]),
+    sourceResultId: z.string().nullable().optional(),
+    instructionTemplate: z.string().max(4000).nullable().optional(),
+  })
+  .transform((value, ctx) => {
+    const targetModel = resolveSupportedProviderModel(
+      value.targetProvider,
+      value.targetModel,
+    );
+
+    if (!targetModel) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["targetModel"],
+        message: "Select a supported model for this provider.",
+      });
+      return z.NEVER;
+    }
+
+    return { ...value, targetModel };
+  });
 
 export const workflowRepeatSchema = z.object({
   enabled: z.boolean(),
@@ -114,7 +152,7 @@ export const runWorkbenchSchema = z.object({
   }
 
   value.targets.forEach((target, index) => {
-    if (!isProviderName(target.provider) || !isImageModel(target.provider, target.model)) {
+    if (!isImageModel(target.provider, target.model)) {
       ctx.addIssue({
         code: "custom",
         path: ["targets", index, "model"],

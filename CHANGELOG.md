@@ -1,5 +1,15 @@
 # Changelog
 
+## Security Launch Hardening Phase 2 (v1.39.0-20260711)
+
+- Removed the public same-origin design-concepts prototype surface and tracked admin screenshots.
+- Added nonce-based CSP in proxy, strict mutation-origin checks, hardened security headers, and safe internal redirect parsing.
+- Replaced static admin MFA with RFC 6238 TOTP, shortened admin sessions, and moved production sessions to `__Host-` cookies.
+- Disabled public password sign-up/admin-email bootstrap, blocked unsafe Google account auto-linking, and added trial browser proof tokens.
+- Hashed share bearer tokens, added expiry/revocation/result-only scope, revoked the compromised historical token, and removed raw token text from the report.
+- Added distributed Upstash rate limiting, model/catalog allowlists, provider output caps, fail-closed pricing, bounded worker bodies, and provider lease timeouts.
+- Added error redaction, protected liveness output, attachment/body hardening, RBAC controls, and security-focused regression tests.
+
 ## Patch 31 (v1.38.0-20260710) — 브랜드 아이콘(모노 노드) + Qkiki→Yapp 전면 리브랜딩
 
 - 브랜드 로고를 노드 네트워크 모노 마크(`BrandMark`)로 통일: 앱 셸·로그인/회원가입·관리자 콘솔 + `icon.svg`/`apple-icon.svg`(스파크 favicon.ico 제거). 기존 ✦/⬡ 마크 폐기.

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   adminApiErrorResponse,
+  assertApiAdminCanMutateUser,
   getRequestMeta,
-  requireApiAdminManager,
+  requireApiAdminCritical,
   requireApiAdminViewer,
 } from "@/lib/admin-api-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
@@ -81,7 +82,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const admin = await requireApiAdminManager();
+    const admin = await requireApiAdminCritical();
     const { id } = await context.params;
     const meta = getRequestMeta(request);
     const parsed = statusSchema.safeParse(await request.json());
@@ -93,15 +94,48 @@ export async function PATCH(
       );
     }
 
-    const user = await prisma.user.update({
+    const target = await prisma.user.findUnique({
       where: { id },
-      data: { status: parsed.data.status },
-      select: { id: true, status: true },
+      select: { id: true, role: true },
     });
 
-    if (parsed.data.status === "SUSPENDED") {
-      await prisma.authSession.deleteMany({ where: { userId: id } });
-      await prisma.adminSession.deleteMany({ where: { userId: id } });
+    if (!target) {
+      return NextResponse.json({ error: "User not found." }, { status: 404 });
+    }
+
+    assertApiAdminCanMutateUser(admin, target);
+
+    const user = await prisma.$transaction(async (tx) => {
+      // Keep the privilege check in the write predicate as a defense against
+      // a concurrent role elevation between the read and the update.
+      const updated = await tx.user.updateMany({
+        where: {
+          id,
+          role: { not: "SUPER_ADMIN" },
+        },
+        data: { status: parsed.data.status },
+      });
+
+      if (updated.count !== 1) {
+        return null;
+      }
+
+      if (parsed.data.status === "SUSPENDED") {
+        await tx.authSession.deleteMany({ where: { userId: id } });
+        await tx.adminSession.deleteMany({ where: { userId: id } });
+      }
+
+      return tx.user.findUnique({
+        where: { id },
+        select: { id: true, status: true },
+      });
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "This account can no longer be modified." },
+        { status: 409 },
+      );
     }
 
     await logAdminAudit({

@@ -151,6 +151,36 @@ export function normalizeProviderModel(
   return model;
 }
 
+export function resolveSupportedProviderModel(
+  provider: ProviderName,
+  model: string,
+) {
+  const normalizedModel = normalizeProviderModel(provider, model.trim());
+  const catalog = getProviderCatalog(provider);
+
+  if (
+    catalog.models.includes(normalizedModel) ||
+    catalog.imageModels.includes(normalizedModel)
+  ) {
+    return normalizedModel;
+  }
+
+  return null;
+}
+
+export function requireSupportedProviderModel(
+  provider: ProviderName,
+  model: string,
+) {
+  const normalizedModel = resolveSupportedProviderModel(provider, model);
+
+  if (!normalizedModel) {
+    throw new Error(`Unsupported model for ${provider}: ${model.trim() || "(empty)"}`);
+  }
+
+  return normalizedModel;
+}
+
 export function getDefaultTimeoutSeconds(provider: ProviderName) {
   return getProviderCatalog(provider).defaultTimeoutSeconds;
 }

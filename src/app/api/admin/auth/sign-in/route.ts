@@ -1,4 +1,3 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { adminSignInSchema } from "@/lib/validation";
@@ -7,15 +6,10 @@ import { canViewAdmin, createAdminSession } from "@/lib/admin-auth";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { getRequestMeta } from "@/lib/admin-api-auth";
 import { enforceRateLimit } from "@/lib/rate-limit";
-
-function timingSafeCodeEquals(provided: string, expected: string) {
-  const providedHash = crypto.createHash("sha256").update(provided).digest();
-  const expectedHash = crypto.createHash("sha256").update(expected).digest();
-  return crypto.timingSafeEqual(providedHash, expectedHash);
-}
+import { verifyTotp } from "@/lib/totp";
 
 export async function POST(request: Request) {
-  const limited = enforceRateLimit({
+  const limited = await enforceRateLimit({
     request,
     scope: "admin:sign-in",
     limit: 5,
@@ -77,10 +71,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Account suspended." }, { status: 403 });
   }
 
-  const expectedMfaCode = process.env.ADMIN_MFA_CODE?.trim();
+  const totpSecret = process.env.ADMIN_TOTP_SECRET?.trim();
   const providedMfaCode = parsed.data.mfaCode?.trim();
 
-  if (!expectedMfaCode) {
+  if (!totpSecret) {
     await logAdminAudit({
       adminUserId: user.id,
       action: "ADMIN_MFA_FAILURE",
@@ -90,12 +84,12 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { error: "Admin MFA is required but ADMIN_MFA_CODE is not configured." },
+      { error: "Admin MFA is unavailable." },
       { status: 503 },
     );
   }
 
-  if (!providedMfaCode || !timingSafeCodeEquals(providedMfaCode, expectedMfaCode)) {
+  if (!providedMfaCode || !verifyTotp(providedMfaCode, totpSecret)) {
     await logAdminAudit({
       adminUserId: user.id,
       action: "ADMIN_MFA_FAILURE",
