@@ -56,3 +56,6 @@ next-env.d.ts
 /storage/attachments
 
 .vercel
+
+# SWC compiler cache
+.swc/

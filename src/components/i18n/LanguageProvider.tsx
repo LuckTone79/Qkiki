@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import {
-  readBrowserStorageValue,
+  readBrowserStorageValueAny,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
 
@@ -1106,7 +1106,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>("en");
 
   useEffect(() => {
-    const stored = readBrowserStorageValue("qkiki-language");
+    const stored = readBrowserStorageValueAny(["yapp-language", "qkiki-language"]);
     const nextLanguage = isAppLanguage(stored) ? stored : "en";
     setLanguageState(nextLanguage);
     document.documentElement.lang = nextLanguage;
@@ -1114,7 +1114,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   function setLanguage(nextLanguage: AppLanguage) {
     setLanguageState(nextLanguage);
-    writeBrowserStorageValue("qkiki-language", nextLanguage);
+    writeBrowserStorageValue("yapp-language", nextLanguage);
     document.documentElement.lang = nextLanguage;
   }
 

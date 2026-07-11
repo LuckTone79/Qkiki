@@ -3,7 +3,7 @@ import "server-only";
 import crypto from "crypto";
 
 export const GOOGLE_OAUTH_PROVIDER = "google";
-export const GOOGLE_OAUTH_STATE_COOKIE = "qkiki_google_oauth_state";
+export const GOOGLE_OAUTH_STATE_COOKIE = "yapp_google_oauth_state";
 export const DEFAULT_POST_AUTH_PATH = "/app/workbench";
 
 const GOOGLE_OAUTH_STATE_MAX_AGE_SECONDS = 10 * 60;

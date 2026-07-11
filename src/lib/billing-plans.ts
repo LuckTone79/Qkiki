@@ -8,7 +8,7 @@ export type PlanLimitPolicy = {
 
 export type PaidPlanKey = "starter" | "pro" | "team";
 
-export const QKIKI_PLAN_LIMITS = {
+export const YAPP_PLAN_LIMITS = {
   // Non-logged-in (anonymous) visitors. Metered purely by daily credits.
   anon: {
     monthlyCreditLimit: 900,
@@ -37,13 +37,13 @@ export const QKIKI_PLAN_LIMITS = {
   },
 } satisfies Record<string, PlanLimitPolicy>;
 
-export const QKIKI_PRICING_PLANS = [
+export const YAPP_PRICING_PLANS = [
   {
     key: "starter",
     title: "Starter",
     monthlyPriceUsd: 7.3,
     annualPriceUsd: 73,
-    limits: QKIKI_PLAN_LIMITS.starter,
+    limits: YAPP_PLAN_LIMITS.starter,
     positioning:
       "Entry plan priced well below the $20 single-chatbot subscriptions, with a monthly credit bucket for light multi-model comparison.",
     positioningKo:
@@ -54,7 +54,7 @@ export const QKIKI_PRICING_PLANS = [
     title: "Pro",
     monthlyPriceUsd: 19,
     annualPriceUsd: 190,
-    limits: QKIKI_PLAN_LIMITS.pro,
+    limits: YAPP_PLAN_LIMITS.pro,
     positioning:
       "Main individual plan for users who repeatedly compare models and run structured review chains.",
     positioningKo:
@@ -65,7 +65,7 @@ export const QKIKI_PRICING_PLANS = [
     title: "Team",
     monthlyPriceUsd: 59,
     annualPriceUsd: 590,
-    limits: QKIKI_PLAN_LIMITS.team,
+    limits: YAPP_PLAN_LIMITS.team,
     positioning:
       "Shared plan for small teams that need longer inputs and heavier monthly credit usage.",
     positioningKo:
@@ -73,7 +73,7 @@ export const QKIKI_PRICING_PLANS = [
   },
 ] as const;
 
-export const QKIKI_CREDIT_PACK = {
+export const YAPP_CREDIT_PACK = {
   key: "credit",
   title: "Credit Pack",
   priceUsd: 25,

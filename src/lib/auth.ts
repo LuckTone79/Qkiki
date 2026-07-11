@@ -6,7 +6,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, TRIAL_COOKIE } from "@/lib/auth-constants";
+import {
+  LEGACY_SESSION_COOKIE,
+  LEGACY_TRIAL_COOKIE,
+  SESSION_COOKIE,
+  TRIAL_COOKIE,
+} from "@/lib/auth-constants";
 
 const SESSION_DAYS = 30;
 const TRIAL_EMAIL_DOMAIN = "@trial.local";
@@ -64,6 +69,7 @@ export async function createAuthSession(
 
   const cookieStore = await cookies();
   cookieStore.delete(TRIAL_COOKIE);
+  cookieStore.delete(LEGACY_TRIAL_COOKIE);
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -75,7 +81,9 @@ export async function createAuthSession(
 
 export async function clearAuthSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const token =
+    cookieStore.get(SESSION_COOKIE)?.value ??
+    cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
 
   if (token) {
     await prisma.authSession.deleteMany({
@@ -85,6 +93,8 @@ export async function clearAuthSession() {
 
   cookieStore.delete(SESSION_COOKIE);
   cookieStore.delete(TRIAL_COOKIE);
+  cookieStore.delete(LEGACY_SESSION_COOKIE);
+  cookieStore.delete(LEGACY_TRIAL_COOKIE);
 }
 
 export function getInitialRoleForEmail(email: string): UserRole {
@@ -96,7 +106,9 @@ export function getInitialRoleForEmail(email: string): UserRole {
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
 
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  const token =
+    cookieStore.get(SESSION_COOKIE)?.value ??
+    cookieStore.get(LEGACY_SESSION_COOKIE)?.value;
   if (!token) {
     return null;
   }

@@ -28,7 +28,7 @@ export type RuntimeAttachment = AttachmentMeta & {
 
 const STORAGE_DIR = path.join(
   process.env.ATTACHMENT_STORAGE_DIR || process.env.TMPDIR || "/tmp",
-  "qkiki-storage",
+  "yapp-storage",
   "attachments",
 );
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;

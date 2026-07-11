@@ -77,11 +77,11 @@ type StepAbortMonitor = {
 };
 
 function buildStepKey(executionRunId: string, orderIndex: number) {
-  return `qkiki:run:${executionRunId}:step:${orderIndex}`;
+  return `yapp:run:${executionRunId}:step:${orderIndex}`;
 }
 
 function buildAttemptKey(executionRunId: string, orderIndex: number, attemptCount: number) {
-  return `qkiki:run:${executionRunId}:step:${orderIndex}:attempt:${attemptCount}`;
+  return `yapp:run:${executionRunId}:step:${orderIndex}:attempt:${attemptCount}`;
 }
 
 function now() {
@@ -275,7 +275,7 @@ export async function claimExecutionRunStep(stepId: string, workerId: string) {
       "heartbeatAt" = ${currentNow},
       "startedAt" = COALESCE("startedAt", ${currentNow}),
       "attemptCount" = "attemptCount" + 1,
-      "attemptKey" = CONCAT('qkiki:run:', "executionRunId", ':step:', "orderIndex", ':attempt:', ("attemptCount" + 1)),
+      "attemptKey" = CONCAT('yapp:run:', "executionRunId", ':step:', "orderIndex", ':attempt:', ("attemptCount" + 1)),
       "updatedAt" = ${currentNow}
     WHERE "id" = ${stepId}
       AND "status" IN ('queued', 'retrying')

@@ -7,21 +7,22 @@ import { SignOutButton } from "@/components/SignOutButton";
 import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentUser } from "@/lib/auth";
 import {
-  readBrowserStorageValue,
+  readBrowserStorageValueAny,
   writeBrowserStorageValue,
 } from "@/lib/browser-storage";
 import { shouldShowAuthEntryPoints } from "@/lib/trial-user";
 import { APP_VERSION } from "@/lib/version";
 import { buildNewWorkbenchPath, NEW_WORKBENCH_EVENT } from "@/lib/workbench-sharing";
+import { APP_NAME } from "@/lib/brand";
 import {
   BoltIcon,
   BookIcon,
+  BrandMark,
   ChatIcon,
   FileIcon,
   FolderIcon,
   HomeIcon,
   MoreIcon,
-  SparkMarkIcon,
   UserIcon,
 } from "@/components/ui/icons";
 
@@ -55,13 +56,16 @@ export function AppShell({
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
 
   useEffect(() => {
-    const stored = readBrowserStorageValue("qkiki-sidebar-collapsed");
+    const stored = readBrowserStorageValueAny([
+      "yapp-sidebar-collapsed",
+      "qkiki-sidebar-collapsed",
+    ]);
     setSidebarCollapsed(stored === "true");
   }, []);
 
   useEffect(() => {
     writeBrowserStorageValue(
-      "qkiki-sidebar-collapsed",
+      "yapp-sidebar-collapsed",
       sidebarCollapsed ? "true" : "false",
     );
   }, [sidebarCollapsed]);
@@ -143,9 +147,9 @@ export function AppShell({
                     aria-hidden="true"
                     className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-stone-950 text-white"
                   >
-                    <SparkMarkIcon className="h-[18px] w-[18px]" />
+                    <BrandMark className="h-[18px] w-[18px]" />
                   </span>
-                  Qkiki
+                  {APP_NAME}
                 </p>
                 <p className="mt-1 text-xs text-stone-500">
                   {t("orchestrationWorkbench")}

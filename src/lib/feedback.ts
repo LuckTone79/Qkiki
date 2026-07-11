@@ -28,7 +28,7 @@ export const MAX_FEEDBACK_BODY_LENGTH = 20000;
 
 const STORAGE_DIR = path.join(
   process.env.ATTACHMENT_STORAGE_DIR || process.env.TMPDIR || "/tmp",
-  "qkiki-storage",
+  "yapp-storage",
   "feedback",
 );
 

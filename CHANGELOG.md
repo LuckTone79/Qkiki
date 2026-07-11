@@ -1,12 +1,23 @@
 # Changelog
 
-## Patch 30 (v1.38.0-20260710) — 런칭 전 보안 하드닝
+## Patch 31 (v1.38.0-20260710) — 브랜드 아이콘(모노 노드) + Qkiki→Yapp 전면 리브랜딩
+
+- 브랜드 로고를 노드 네트워크 모노 마크(`BrandMark`)로 통일: 앱 셸·로그인/회원가입·관리자 콘솔 + `icon.svg`/`apple-icon.svg`(스파크 favicon.ico 제거). 기존 ✦/⬡ 마크 폐기.
+- 화면·코드 심볼의 Qkiki를 Yapp으로 전면 교체: 하드코딩 이름→`APP_NAME`, `QKIKI_*`→`YAPP_*`, 이벤트/패키지명/웹서치 env.
+- 런타임 식별자(쿠키·localStorage 키·워커 헤더·실행 스텝 키·임시 저장 디렉터리)를 yapp로 전환하되 **레거시 폴백**을 함께 두어 기존 사용자 로그아웃·데이터 유실 없이 무중단 이관. 옛 도메인 리다이렉트 등 의도적 레거시 호환은 유지.
+- `AGENTS.md`에 "제품명 Yapp" 브랜딩 규칙을 명문화해 향후 지속 적용. 상세는 `Report/Report_v1.38.0_20260710.md`.
+
+## Patch 30 (v1.37.1-20260710) — 브랜드 아이콘 시안 7종
+
+- 레퍼런스(Y자형 노드 네트워크 앱 아이콘)를 반영한 브랜드 아이콘 시안 7종 제작: `design-concepts/17-brand-icon/index.html` (모노 노드/블루 코어/그라디언트 라인/네온 시안/퍼플 필/민트 듀오/선셋 스펙트럼). 제품 미적용, 시안 전용. 상세는 `Report/Report_v1.37.1_20260710.md`.
+
+## Security Patch (v1.38.0-20260710) — 런칭 전 1차 보안 하드닝
 
 - **env 유출 차단**: 부팅 시 env 검증(`instrumentation.ts`+`env-guard.ts`) — 운영에서 자리표시자/약한 `APP_SECRET`·`DB_ENCRYPTION_KEY`·`ADMIN_MFA_CODE`면 기동 거부. 운영에서 개발용 폴백 암호화 키 사용 시도 시 즉시 예외. 커밋돼 있던 개발 서버 로그 13개 파일 추적 해제(+`.gitignore` 보강).
 - **키 유출 경로 제거**: Google API 키를 URL 쿼리스트링 → `x-goog-api-key` 헤더로 이동(3곳). 미처리 500 응답의 내부 에러 메시지 원문 노출 제거(서버 로그만). `/api/auth/health`를 `{ ok }` 불리언만 반환하도록 축소.
 - **브루트포스 방어**: 인메모리 레이트리밋 신설(`rate-limit.ts`) — sign-in 10/분, sign-up 5/10분, admin sign-in 5/분, 쿠폰 사용 10/분, 체험판 시작 10/분. 관리자 MFA 코드 비교를 타이밍세이프로 교체.
 - **보안 헤더**: CSP(전 소스 1st-party, `frame-ancestors 'none'`), HSTS(운영), `X-Frame-Options: DENY`, nosniff, Referrer-Policy, Permissions-Policy, `poweredByHeader: false`.
-- 방어 구조 설계 문서 `docs/SECURITY.md` 신설(위협 모델·계층별 방어·잔여 리스크). 상세는 `Report/Report_v1.38.0_20260710.md`.
+- 방어 구조 설계 문서 `docs/SECURITY.md` 신설. 1차 상세 보고서는 버전 충돌을 피하기 위해 `Report/Security_Hardening_Phase1_v1.38.0_20260710.md`로 보존.
 
 ## Patch 29 (v1.37.0-20260710) — 리디자인을 실제 제품 UI에 적용
 

@@ -48,18 +48,30 @@ export type SessionCacheEntry<T> = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DRAFT_KEY = "qkiki-draft";
-const SESSION_PREFIX = "qkiki-sc-";
-const USAGE_KEY = "qkiki-usage-cache";
+const DRAFT_KEY = "yapp-draft";
+const SESSION_PREFIX = "yapp-sc-";
+const USAGE_KEY = "yapp-usage-cache";
 const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // 7 days
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;       // 12 hours
 const USAGE_TTL_MS = 15 * 1000; // 15 seconds
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 
+// Keys were renamed from the legacy "qkiki-" prefix to "yapp-" during the
+// rebrand. Reads fall back to the legacy key so cached drafts/sessions survive.
+function legacyKey(key: string): string | null {
+  return key.startsWith("yapp-") ? `qkiki-${key.slice("yapp-".length)}` : null;
+}
+
 function read<T>(key: string): T | null {
   try {
-    const raw = localStorage.getItem(key);
+    let raw = localStorage.getItem(key);
+    if (raw === null) {
+      const legacy = legacyKey(key);
+      if (legacy) {
+        raw = localStorage.getItem(legacy);
+      }
+    }
     return raw ? (JSON.parse(raw) as T) : null;
   } catch {
     return null;
