@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdminSignOutButton } from "@/components/admin/AdminSignOutButton";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { BrandMark } from "@/components/ui/icons";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 import type { CurrentAdmin } from "@/lib/admin-auth";
 
 const navItems = [
@@ -61,7 +62,7 @@ export function AdminShell({
   const { language, setLanguage } = useLanguage();
   const pathname = usePathname();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const t = adminText[language];
+  const t = adminText[adminTextKey(language)];
 
   useEffect(() => {
     setPendingHref(null);
@@ -103,8 +104,14 @@ export function AdminShell({
         <aside className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur lg:static lg:w-72 lg:border-b-0 lg:border-r lg:bg-white lg:px-5">
           <div className="flex items-center justify-between gap-4 lg:block">
             <Link href="/admin" className="block">
-              <p className="flex items-center gap-2 font-serif text-xl font-semibold tracking-tight">
-                <span aria-hidden="true">⬡</span> {t.title}
+              <p className="flex items-center gap-2.5 text-xl font-extrabold tracking-tight">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-slate-950 text-white"
+                >
+                  <BrandMark className="h-[18px] w-[18px]" />
+                </span>
+                {t.title}
               </p>
               <p className="mt-0.5 text-xs text-slate-500">{t.subtitle}</p>
             </Link>

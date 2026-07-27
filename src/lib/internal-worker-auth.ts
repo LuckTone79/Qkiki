@@ -59,8 +59,14 @@ async function verifyQstashSignature(request: Request, rawBody: string) {
 }
 
 function verifyHmacFallback(request: Request, rawBody: string) {
-  const timestamp = request.headers.get("X-Qkiki-Timestamp");
-  const signature = request.headers.get("X-Qkiki-Signature");
+  // Primary headers are X-Yapp-*; legacy X-Qkiki-* are still accepted so any
+  // in-flight worker request enqueued before the rebrand still verifies.
+  const timestamp =
+    request.headers.get("X-Yapp-Timestamp") ??
+    request.headers.get("X-Qkiki-Timestamp");
+  const signature =
+    request.headers.get("X-Yapp-Signature") ??
+    request.headers.get("X-Qkiki-Signature");
 
   if (!timestamp || !signature) {
     return false;

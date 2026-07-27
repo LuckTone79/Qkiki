@@ -1,3 +1,16 @@
+# Branding: 이 제품의 이름은 Yapp 이다 (Qkiki 아님)
+
+이 프로그램은 **Qkiki → Yapp** 으로 리브랜딩되었다. 앞으로 모든 작업에서 다음을 지킨다.
+
+- 사용자에게 보이는 모든 이름·문구·메타데이터는 **Yapp** 을 쓴다. 새 문자열에 `Qkiki`
+  를 절대 넣지 않는다. 하드코딩 대신 `src/lib/brand.ts` 의 `APP_NAME` 등 상수를 사용한다.
+- 브랜드 마크(로고 아이콘)는 `BrandMark`(노드 네트워크 모노 마크, `src/components/ui/icons.tsx`)
+  와 `src/app/icon.svg` / `apple-icon.svg` 를 쓴다. 예전 스파크(✦)/⬡ 마크는 부활시키지 않는다.
+- 기존에 남은 `qkiki` 문자열은 **의도된 레거시 호환**(쿠키·저장키·도메인 리다이렉트 폴백,
+  `brand.ts` 의 `LEGACY_*`)일 때만 유지한다. 그 외 새로 발견되는 Qkiki 흔적은 Yapp 으로 바꾼다.
+- 런타임 식별자(쿠키명·localStorage 키·워커 헤더 등)를 바꿀 때는 기존 사용자가 로그아웃되거나
+  데이터를 잃지 않도록 **레거시 값을 읽는 폴백을 함께** 둔다.
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

@@ -18,6 +18,9 @@ export default async function AdminUserDetailPage({
     where: { id },
     include: {
       subscription: true,
+      creditWallet: {
+        select: { paidCredits: true, bonusCredits: true, totalUsedCredits: true },
+      },
       sessions: {
         orderBy: { updatedAt: "desc" },
         take: 50,
@@ -63,6 +66,36 @@ export default async function AdminUserDetailPage({
 
   if (!user) notFound();
 
+  const [requestTotals, usageTotals, perConversationUsage] = await Promise.all([
+    prisma.aiRequest.aggregate({
+      where: { userId: user.id },
+      _count: { _all: true },
+      _sum: { inputTokens: true, outputTokens: true, estimatedCostUsd: true },
+    }),
+    prisma.usageLog.aggregate({
+      where: { userId: user.id },
+      _sum: { creditsUsed: true },
+    }),
+    prisma.aiRequest.groupBy({
+      by: ["conversationId"],
+      where: { userId: user.id, conversationId: { not: null } },
+      _count: { _all: true },
+      _sum: { inputTokens: true, outputTokens: true, estimatedCostUsd: true },
+    }),
+  ]);
+
+  const conversationUsageMap = new Map(
+    perConversationUsage.map((row) => [
+      row.conversationId,
+      {
+        requests: row._count._all,
+        inputTokens: row._sum.inputTokens ?? 0,
+        outputTokens: row._sum.outputTokens ?? 0,
+        estimatedCostUsd: row._sum.estimatedCostUsd ?? 0,
+      },
+    ]),
+  );
+
   await logAdminAudit({
     adminUserId: admin.id,
     action: "USER_DETAIL_VIEW",
@@ -77,13 +110,36 @@ export default async function AdminUserDetailPage({
     role: user.role,
     status: user.status,
     createdAt: user.createdAt.toISOString(),
-    sessions: user.sessions.map((s) => ({
-      id: s.id,
-      title: s.title ?? "",
-      mode: s.mode,
-      updatedAt: s.updatedAt.toISOString(),
-      resultCount: s._count.results,
-    })),
+    lastActiveAt: (user.lastActiveAt ?? user.createdAt).toISOString(),
+    totals: {
+      totalRequests: requestTotals._count._all,
+      inputTokens: requestTotals._sum.inputTokens ?? 0,
+      outputTokens: requestTotals._sum.outputTokens ?? 0,
+      estimatedCostUsd: requestTotals._sum.estimatedCostUsd ?? 0,
+      creditsUsed: usageTotals._sum.creditsUsed ?? 0,
+      totalConversations: user.sessions.length,
+    },
+    creditWallet: user.creditWallet
+      ? {
+          paidCredits: user.creditWallet.paidCredits,
+          bonusCredits: user.creditWallet.bonusCredits,
+          totalUsedCredits: user.creditWallet.totalUsedCredits,
+        }
+      : null,
+    sessions: user.sessions.map((s) => {
+      const usage = conversationUsageMap.get(s.id);
+      return {
+        id: s.id,
+        title: s.title ?? "",
+        mode: s.mode,
+        updatedAt: s.updatedAt.toISOString(),
+        resultCount: s._count.results,
+        requests: usage?.requests ?? 0,
+        inputTokens: usage?.inputTokens ?? 0,
+        outputTokens: usage?.outputTokens ?? 0,
+        estimatedCostUsd: usage?.estimatedCostUsd ?? 0,
+      };
+    }),
     couponRedemptions: user.couponRedemptions.map((item) => ({
       id: item.id,
       couponCode: item.coupon.code,

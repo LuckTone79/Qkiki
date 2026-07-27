@@ -1,6 +1,6 @@
 "use client";
 
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 
 type StatusBadgeProps = {
   status: string;
@@ -32,13 +32,19 @@ export function StatusBadge({ status }: StatusBadgeProps) {
             : status === "failed"
               ? t("statusFailed")
               : status === "canceled"
-                ? language === "ko"
-                  ? "\uc911\uc9c0\ub428"
-                  : "canceled"
+                ? localize(language, {
+                    en: "canceled",
+                    ko: "\uc911\uc9c0\ub428",
+                    ja: "\u4e2d\u6b62",
+                    es: "cancelado",
+                  })
               : status === "skipped"
-                ? language === "ko"
-                  ? "\uac74\ub108\ub700"
-                  : "skipped"
+                ? localize(language, {
+                    en: "skipped",
+                    ko: "\uac74\ub108\ub700",
+                    ja: "\u30b9\u30ad\u30c3\u30d7",
+                    es: "omitido",
+                  })
               : status === "disabled"
                 ? t("statusDisabled")
                 : status === "saved"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
 
@@ -48,7 +48,7 @@ export function AdminConversationRawViewer({
   conversationId: string;
 }) {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[adminTextKey(language)];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [raw, setRaw] = useState<RawPayload | null>(null);

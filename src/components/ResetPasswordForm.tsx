@@ -32,7 +32,7 @@ const text = {
 
 export function ResetPasswordForm() {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[language as keyof typeof text] ?? text.en;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");

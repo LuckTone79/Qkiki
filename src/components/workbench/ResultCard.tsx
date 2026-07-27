@@ -3,14 +3,14 @@
 import { FormEvent, useMemo, useState } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AddToProjectButton } from "@/components/projects/AddToProjectButton";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
-import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
 import {
-  BRANCH_REVIEW_ACTION_TYPES,
-  type ActionType,
-  type ProviderName,
-  type TargetModelInput,
-} from "@/lib/ai/types";
+  intlLocale,
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
+import type { ProviderOption } from "@/components/workbench/ProviderSelectorRow";
+import type { ActionType, ProviderName, TargetModelInput } from "@/lib/ai/types";
 import { getActionTypeDisplayLabel } from "@/lib/ai/action-display";
 import { buildResultDomId } from "@/lib/workbench-sharing";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
@@ -18,6 +18,7 @@ import {
   getModelDisplayName,
   getModelOptionLabel,
 } from "@/lib/ai/model-display";
+import { ProviderLogoTile } from "@/components/ui/icons";
 import { isImageDataUrl } from "@/lib/ai/image-output";
 
 export type WorkbenchResult = {
@@ -82,10 +83,51 @@ type ResultCardProps = {
   onToggleExpanded: (resultId: string) => void;
 };
 
+const reviewTypes: ({ value: ActionType } & Record<AppLanguage, string>)[] = [
+  {
+    value: "brainstorm",
+    en: "Brainstorm",
+    ko: "브레인스토밍",
+    ja: "ブレインストーミング",
+    es: "Lluvia de ideas",
+  },
+  { value: "critique", en: "Critique", ko: "비판", ja: "批評", es: "Crítica" },
+  {
+    value: "fact_check",
+    en: "Fact-check style review",
+    ko: "팩트체크식 검토",
+    ja: "ファクトチェック形式のレビュー",
+    es: "Revisión tipo verificación",
+  },
+  { value: "improve", en: "Improve", ko: "개선", ja: "改善", es: "Mejorar" },
+  { value: "summarize", en: "Summarize", ko: "요약", ja: "要約", es: "Resumir" },
+  {
+    value: "simplify",
+    en: "Simplify",
+    ko: "쉽게 정리",
+    ja: "簡潔化",
+    es: "Simplificar",
+  },
+  {
+    value: "consistency_review",
+    en: "Consistency review",
+    ko: "일관성 검토",
+    ja: "一貫性レビュー",
+    es: "Revisión de consistencia",
+  },
+  {
+    value: "code_review",
+    en: "Code review",
+    ko: "코드 리뷰",
+    ja: "コードレビュー",
+    es: "Revisión de código",
+  },
+];
+
 const providerOrder: ProviderName[] = ["openai", "anthropic", "google", "xai"];
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(intlLocale(language), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -93,14 +135,19 @@ function formatDate(value: string, language: "en" | "ko") {
   }).format(new Date(value));
 }
 
-function formatLatencyMs(value: number | null, language: "en" | "ko", fallback: string) {
+function formatLatencyMs(value: number | null, language: AppLanguage, fallback: string) {
   if (!value || value <= 0) {
     return fallback;
   }
 
   const seconds = value / 1000;
   const formatted = seconds >= 10 ? seconds.toFixed(1) : seconds.toFixed(2);
-  return language === "ko" ? `${formatted}초` : `${formatted} sec`;
+  return localize(language, {
+    en: `${formatted} sec`,
+    ko: `${formatted}초`,
+    ja: `${formatted}秒`,
+    es: `${formatted} s`,
+  });
 }
 
 function firstVisibleLine(value: string) {
@@ -111,7 +158,7 @@ function firstVisibleLine(value: string) {
 function getExecutionSourceLabel(
   result: WorkbenchResult,
   sourceLabel: string | undefined,
-  language: "en" | "ko",
+  language: AppLanguage,
   originalSourceLabel: string,
 ) {
   if (sourceLabel) {
@@ -121,21 +168,30 @@ function getExecutionSourceLabel(
   const sourceMode = result.executionRunStep?.sourceMode;
 
   if (sourceMode === "previous") {
-    return language === "ko"
-      ? "소스: 이전 완료 결과"
-      : "Source: previous completed result";
+    return localize(language, {
+      en: "Source: previous completed result",
+      ko: "소스: 이전 완료 결과",
+      ja: "ソース: 直前の完了結果",
+      es: "Fuente: resultado completado anterior",
+    });
   }
 
   if (sourceMode === "selected_result") {
-    return language === "ko"
-      ? "소스: 선택한 결과"
-      : "Source: selected result";
+    return localize(language, {
+      en: "Source: selected result",
+      ko: "소스: 선택한 결과",
+      ja: "ソース: 選択した結果",
+      es: "Fuente: resultado seleccionado",
+    });
   }
 
   if (sourceMode === "all_results") {
-    return language === "ko"
-      ? "소스: 이전 완료 결과 전체"
-      : "Source: prior completed results";
+    return localize(language, {
+      en: "Source: prior completed results",
+      ko: "소스: 이전 완료 결과 전체",
+      ja: "ソース: これまでの完了結果すべて",
+      es: "Fuente: resultados completados previos",
+    });
   }
 
   return originalSourceLabel;
@@ -177,9 +233,12 @@ export function ResultCard({
         ? `${t("step")} ${result.executionOrder}`
         : null;
   const templateStepLabel = result.executionRunStep
-    ? language === "ko"
-      ? `템플릿 ${result.executionRunStep.templateStepIndex}단계`
-      : `Template step ${result.executionRunStep.templateStepIndex}`
+    ? localize(language, {
+        en: `Template step ${result.executionRunStep.templateStepIndex}`,
+        ko: `템플릿 ${result.executionRunStep.templateStepIndex}단계`,
+        ja: `テンプレート ${result.executionRunStep.templateStepIndex} ステップ`,
+        es: `Paso de plantilla ${result.executionRunStep.templateStepIndex}`,
+      })
     : null;
   const actionLabel = result.executionRunStep
     ? getActionTypeDisplayLabel(result.executionRunStep.actionType, language)
@@ -188,37 +247,55 @@ export function ResultCard({
       : null;
   const repeatLabel =
     result.executionRunStep?.repeatIteration && result.executionRunStep.repeatIteration > 0
-      ? language === "ko"
-        ? `${result.executionRunStep.repeatIteration}회차`
-        : `Iteration ${result.executionRunStep.repeatIteration}`
+      ? localize(language, {
+          en: `Iteration ${result.executionRunStep.repeatIteration}`,
+          ko: `${result.executionRunStep.repeatIteration}회차`,
+          ja: `${result.executionRunStep.repeatIteration} 回目`,
+          es: `Iteración ${result.executionRunStep.repeatIteration}`,
+        })
       : null;
 
   const meta = useMemo(() => {
     return [
       result.status === "completed"
-        ? language === "ko"
-          ? "결과 생성 완료"
-          : "Comparison generated"
+        ? localize(language, {
+            en: "Comparison generated",
+            ko: "결과 생성 완료",
+            ja: "結果の生成が完了",
+            es: "Comparación generada",
+          })
         : result.status === "failed"
-          ? language === "ko"
-            ? "생성 실패"
-            : "Generation failed"
+          ? localize(language, {
+              en: "Generation failed",
+              ko: "생성 실패",
+              ja: "生成に失敗",
+              es: "La generación falló",
+            })
           : result.status === "canceled"
-            ? language === "ko"
-              ? "중지됨"
-              : "Canceled"
-            : language === "ko"
-              ? "생성 중"
-              : "Generating",
+            ? localize(language, {
+                en: "Canceled",
+                ko: "중지됨",
+                ja: "中止",
+                es: "Cancelado",
+              })
+            : localize(language, {
+                en: "Generating",
+                ko: "생성 중",
+                ja: "生成中",
+                es: "Generando",
+              }),
       formatLatencyMs(result.latencyMs, language, t("latencyNotAvailable")),
     ].join(" / ");
   }, [language, result, t]);
 
   const displayBody = useMemo(() => {
     if (isRunning) {
-      return language === "ko"
-        ? "모델이 응답을 생성하는 중입니다. 결과가 도착하면 이 카드가 자동으로 업데이트됩니다."
-        : "The model is generating a response. This card will update when the result arrives.";
+      return localize(language, {
+        en: "The model is generating a response. This card will update when the result arrives.",
+        ko: "모델이 응답을 생성하는 중입니다. 결과가 도착하면 이 카드가 자동으로 업데이트됩니다.",
+        ja: "モデルが応答を生成しています。結果が届くとこのカードは自動的に更新されます。",
+        es: "El modelo está generando una respuesta. Esta tarjeta se actualizará cuando llegue el resultado.",
+      });
     }
 
     if (result.status === "failed" || result.status === "canceled") {
@@ -238,9 +315,12 @@ export function ResultCard({
   const collapsedPreview = useMemo(
     () =>
       imageOutput
-        ? language === "ko"
-          ? "🖼 생성된 이미지"
-          : "🖼 Generated image"
+        ? localize(language, {
+            en: "Generated image",
+            ko: "생성된 이미지",
+            ja: "生成された画像",
+            es: "Imagen generada",
+          })
         : firstVisibleLine(displayBody),
     [displayBody, imageOutput, language],
   );
@@ -277,26 +357,45 @@ export function ResultCard({
   return (
     <article
       id={buildResultDomId(result.id)}
-      className={`rounded-lg border bg-white shadow-sm transition-colors ${
+      className={`rounded-2xl border bg-white shadow-sm transition-colors ${
         compact ? "p-3" : "p-3 sm:p-4"
-      } ${highlighted ? "border-teal-400 ring-2 ring-teal-200" : "border-stone-200"}`}
+      } ${highlighted ? "border-teal-400 ring-2 ring-teal-200" : "border-stone-200"} ${
+        isFinal ? "border-[1.5px] border-stone-950" : ""
+      }`}
       style={{ marginLeft: `${Math.min(depth, 3) * 10}px` }}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-[#f1f0ee] px-2 py-1 text-xs font-semibold text-teal-800">
-              {result.provider} / {getModelDisplayName(result.provider, result.model)}
+            <span className="flex items-center gap-2.5">
+              <ProviderLogoTile
+                provider={result.provider}
+                className="h-8 w-8 rounded-full"
+                glyphClassName="h-4 w-4"
+              />
+              <span className="text-sm font-bold text-stone-950">
+                {getModelDisplayName(result.provider, result.model)}
+              </span>
             </span>
             <StatusBadge status={result.status} />
             {isFinal ? (
-              <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-800">
-                {language === "ko" ? "최종결과" : "Final result"}
+              <span className="rounded-full bg-stone-950 px-2.5 py-1 text-xs font-bold text-white">
+                {localize(language, {
+                  en: "Final result",
+                  ko: "최종결과",
+                  ja: "最終結果",
+                  es: "Resultado final",
+                })}
               </span>
             ) : null}
             {!isFinal && isLatestProgress ? (
-              <span className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
-                {language === "ko" ? "진행 step중 최신결과" : "Latest result in progress"}
+              <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                {localize(language, {
+                  en: "Latest result in progress",
+                  ko: "진행 step중 최신결과",
+                  ja: "進行中の最新結果",
+                  es: "Último resultado en progreso",
+                })}
               </span>
             ) : null}
           </div>
@@ -313,26 +412,32 @@ export function ResultCard({
               .join(" / ")}
           </p>
         </div>
-        <div className="flex w-full flex-wrap items-start justify-between gap-2 self-start sm:w-auto sm:flex-nowrap sm:justify-end">
+        <div className="flex items-start gap-2 self-start">
           <button
             type="button"
             onClick={() => onToggleExpanded(result.id)}
             className="shrink-0 rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {expanded
-              ? language === "ko"
-                ? "접기"
-                : "Collapse"
-              : language === "ko"
-                ? "펼치기"
-                : "Expand"}
+              ? localize(language, {
+                  en: "Collapse",
+                  ko: "접기",
+                  ja: "折りたたむ",
+                  es: "Contraer",
+                })
+              : localize(language, {
+                  en: "Expand",
+                  ko: "펼치기",
+                  ja: "展開",
+                  es: "Expandir",
+                })}
           </button>
-          <p className="min-w-0 break-words pt-1 text-xs text-stone-500">{meta}</p>
+          <p className="pt-1 text-xs text-stone-500">{meta}</p>
         </div>
       </div>
 
       <div
-        className={`mt-4 rounded-md border border-stone-200 bg-[#f7f6f3] text-stone-800 ${
+        className={`mt-4 rounded-md border border-stone-200 bg-[#f4f5f6] text-stone-800 ${
           compact ? "p-2.5 text-[13px] leading-5" : "p-3 text-sm leading-6"
         }`}
       >
@@ -342,7 +447,12 @@ export function ResultCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={imageOutput}
-                alt={language === "ko" ? "생성된 이미지" : "Generated image"}
+                alt={localize(language, {
+                  en: "Generated image",
+                  ko: "생성된 이미지",
+                  ja: "生成された画像",
+                  es: "Imagen generada",
+                })}
                 className="w-full max-w-md rounded-md border border-stone-200 object-contain"
               />
               <a
@@ -350,7 +460,12 @@ export function ResultCard({
                 download={`yapp-image-${result.id}.png`}
                 className="inline-block text-xs font-semibold text-teal-700 underline"
               >
-                {language === "ko" ? "이미지 다운로드" : "Download image"}
+                {localize(language, {
+                  en: "Download image",
+                  ko: "이미지 다운로드",
+                  ja: "画像をダウンロード",
+                  es: "Descargar imagen",
+                })}
               </a>
             </figure>
           ) : (
@@ -369,7 +484,7 @@ export function ResultCard({
             type="button"
             disabled={!onBranch}
             onClick={() => setComposer(composer === "follow_up" ? null : "follow_up")}
-            className="min-h-10 rounded-md bg-stone-950 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-800"
+            className="min-h-10 rounded-full bg-stone-950 px-4 py-2 text-xs font-bold text-white hover:bg-stone-800"
           >
             {t("followUp")}
           </button>
@@ -377,7 +492,7 @@ export function ResultCard({
             type="button"
             disabled={!onBranch}
             onClick={() => setComposer(composer === "review" ? null : "review")}
-            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {t("reviewWithModel")}
           </button>
@@ -385,14 +500,14 @@ export function ResultCard({
             type="button"
             disabled={!onRerun}
             onClick={() => onRerun?.(result.id)}
-            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {t("rerun")}
           </button>
           <button
             type="button"
             onClick={copy}
-            className="min-h-10 rounded-md border border-stone-300 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+            className="min-h-10 rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50"
           >
             {copied ? t("copied") : t("copy")}
           </button>
@@ -404,16 +519,25 @@ export function ResultCard({
               className="min-h-10 rounded-md border border-sky-300 px-3 py-2 text-xs font-semibold text-sky-800 hover:bg-sky-50 disabled:opacity-60"
             >
               {sharing
-                ? language === "ko"
-                  ? "공유 중..."
-                  : "Sharing..."
+                ? localize(language, {
+                    en: "Sharing...",
+                    ko: "공유 중...",
+                    ja: "共有中...",
+                    es: "Compartiendo...",
+                  })
                 : shareCopied
-                  ? language === "ko"
-                    ? "링크 복사됨"
-                    : "Link copied"
-                  : language === "ko"
-                    ? "결과 공유"
-                    : "Share result"}
+                  ? localize(language, {
+                      en: "Link copied",
+                      ko: "링크 복사됨",
+                      ja: "リンクをコピーしました",
+                      es: "Enlace copiado",
+                    })
+                  : localize(language, {
+                      en: "Share result",
+                      ko: "결과 공유",
+                      ja: "結果を共有",
+                      es: "Compartir resultado",
+                    })}
             </button>
           ) : null}
           <button
@@ -438,7 +562,7 @@ export function ResultCard({
                 kind: "RESULT",
                 sessionId,
                 resultId: result.id,
-                title: `${actionLabel || (language === "ko" ? "결과" : "Result")} · ${result.provider}/${getModelDisplayName(result.provider, result.model)}`,
+                title: `${actionLabel || localize(language, { en: "Result", ko: "결과", ja: "結果", es: "Resultado" })} · ${result.provider}/${getModelDisplayName(result.provider, result.model)}`,
               }}
               className="min-h-10 rounded-md border border-indigo-300 px-3 py-2 text-xs font-semibold text-indigo-800 hover:bg-indigo-50"
             />
@@ -450,9 +574,12 @@ export function ResultCard({
         <div className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3">
           {shareCopyBlocked ? (
             <p className="mb-2 text-xs font-medium text-sky-900">
-              {language === "ko"
-                ? "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 직접 복사해 주세요."
-                : "Automatic copying was blocked. The link was still created, so open it or select it below."}
+              {localize(language, {
+                en: "Automatic copying was blocked. The link was still created, so open it or select it below.",
+                ko: "자동 복사가 차단됐습니다. 링크는 정상 생성됐으니 아래에서 열거나 직접 복사해 주세요.",
+                ja: "自動コピーがブロックされました。リンクは作成されているので、下から開くか選択してください。",
+                es: "Se bloqueó la copia automática. El enlace se creó igualmente, así que ábrelo o selecciónalo abajo.",
+              })}
             </p>
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -461,7 +588,12 @@ export function ResultCard({
               value={sharedUrl}
               onFocus={(event) => event.currentTarget.select()}
               className="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-3 py-2 text-xs text-stone-700"
-              aria-label={language === "ko" ? "결과 공유 링크" : "Shared result link"}
+              aria-label={localize(language, {
+                en: "Shared result link",
+                ko: "결과 공유 링크",
+                ja: "結果の共有リンク",
+                es: "Enlace de resultado compartido",
+              })}
             />
             <a
               href={sharedUrl}
@@ -469,7 +601,12 @@ export function ResultCard({
               rel="noreferrer"
               className="rounded-md border border-sky-300 bg-white px-3 py-2 text-center text-xs font-semibold text-sky-900 hover:bg-sky-100"
             >
-              {language === "ko" ? "링크 열기" : "Open link"}
+              {localize(language, {
+                en: "Open link",
+                ko: "링크 열기",
+                ja: "リンクを開く",
+                es: "Abrir enlace",
+              })}
             </a>
           </div>
         </div>
@@ -549,7 +686,7 @@ function BranchComposer({
   return (
     <form
       onSubmit={submit}
-      className="mt-4 rounded-lg border border-stone-200 bg-[#f7f6f3] p-3"
+      className="mt-4 rounded-lg border border-stone-200 bg-[#f4f5f6] p-3"
     >
       <div className="grid gap-3 md:grid-cols-[1fr_1fr]">
         <label className="block">
@@ -565,9 +702,9 @@ function BranchComposer({
             {mode === "follow_up" ? (
               <option value="follow_up">{t("followUp")}</option>
             ) : (
-              BRANCH_REVIEW_ACTION_TYPES.map((actionType) => (
-                <option key={actionType} value={actionType}>
-                  {getActionTypeDisplayLabel(actionType, language)}
+              reviewTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type[language]}
                 </option>
               ))
             )}
@@ -579,21 +716,21 @@ function BranchComposer({
             <div>
               <p className="text-xs font-medium text-stone-500">{t("targetModels")}</p>
               <p className="mt-1 text-[11px] text-stone-400">
-                {language === "ko"
-                  ? "공급자를 먼저 고르고 필요한 세부 모델만 펼쳐서 선택합니다."
-                  : "Choose a provider first, then expand only the models you need."}
+                {localize(language, {
+                  en: "Choose a provider first, then expand only the models you need.",
+                  ko: "공급자를 먼저 고르고 필요한 세부 모델만 펼쳐서 선택합니다.",
+                  ja: "まずプロバイダーを選び、必要なモデルだけを展開して選択します。",
+                  es: "Elige primero un proveedor y luego expande solo los modelos que necesites.",
+                })}
               </p>
             </div>
             <span className="rounded-full border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-500">
-              {language === "ko"
-                ? `기준 결과: ${parentResult.provider}/${getModelDisplayName(
-                    parentResult.provider,
-                    parentResult.model,
-                  )}`
-                : `From ${parentResult.provider}/${getModelDisplayName(
-                    parentResult.provider,
-                    parentResult.model,
-                  )}`}
+              {localize(language, {
+                en: `From ${parentResult.provider}/${getModelDisplayName(parentResult.provider, parentResult.model)}`,
+                ko: `기준 결과: ${parentResult.provider}/${getModelDisplayName(parentResult.provider, parentResult.model)}`,
+                ja: `基準の結果: ${parentResult.provider}/${getModelDisplayName(parentResult.provider, parentResult.model)}`,
+                es: `Desde ${parentResult.provider}/${getModelDisplayName(parentResult.provider, parentResult.model)}`,
+              })}
             </span>
           </div>
           <div className="mt-2 space-y-3">
@@ -617,22 +754,34 @@ function BranchComposer({
                     </p>
                     <p className="mt-1 text-[11px] text-stone-500">
                       {(selectedModels[provider.providerName] ?? []).length > 0
-                        ? language === "ko"
-                          ? `${(selectedModels[provider.providerName] ?? []).length}개 모델 선택`
-                          : `${(selectedModels[provider.providerName] ?? []).length} model(s) selected`
-                        : language === "ko"
-                          ? "선택된 모델 없음"
-                          : "No models selected"}
+                        ? localize(language, {
+                            en: `${(selectedModels[provider.providerName] ?? []).length} model(s) selected`,
+                            ko: `${(selectedModels[provider.providerName] ?? []).length}개 모델 선택`,
+                            ja: `${(selectedModels[provider.providerName] ?? []).length} 個のモデルを選択`,
+                            es: `${(selectedModels[provider.providerName] ?? []).length} modelo(s) seleccionado(s)`,
+                          })
+                        : localize(language, {
+                            en: "No models selected",
+                            ko: "선택된 모델 없음",
+                            ja: "選択されたモデルなし",
+                            es: "Ningún modelo seleccionado",
+                          })}
                     </p>
                   </div>
                   <span className="text-xs font-semibold text-stone-500">
                     {expandedProvider === provider.providerName
-                      ? language === "ko"
-                        ? "접기"
-                        : "Hide"
-                      : language === "ko"
-                        ? "모델 보기"
-                        : "Show models"}
+                      ? localize(language, {
+                          en: "Hide",
+                          ko: "접기",
+                          ja: "隠す",
+                          es: "Ocultar",
+                        })
+                      : localize(language, {
+                          en: "Show models",
+                          ko: "모델 보기",
+                          ja: "モデルを表示",
+                          es: "Mostrar modelos",
+                        })}
                   </span>
                 </button>
                 {expandedProvider === provider.providerName ? (

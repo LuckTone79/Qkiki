@@ -1,6 +1,10 @@
 "use client";
 
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 import { AdminConversationRawViewer } from "@/components/admin/AdminConversationRawViewer";
 import { getModelDisplayName } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
@@ -68,8 +72,8 @@ export function AdminConversationDetailClient({
   conversation: ConversationDetailData;
 }) {
   const { language } = useLanguage();
-  const t = text[language];
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const t = text[adminTextKey(language)];
+  const locale = intlLocale(language);
 
   return (
     <div className="space-y-5">

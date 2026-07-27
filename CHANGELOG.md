@@ -1,72 +1,45 @@
 # Changelog
 
-## Patch 36 (v1.35.1-20260630)
+## Patch 32 (v1.38.1-20260728) - Restore v1.38 redesign with current production catalog
 
-- Fixed project creation after an authenticated page becomes stale because the user session has expired.
-- Project list and create requests now redirect `401 Unauthorized` responses to sign-in and return users to the project page afterward.
-- Added a safe internal-redirect guard and focused regression coverage for expired API authentication.
+- Merged the v1.38 Yapp redesign back onto the current production branch that contained the v1.36.4 model catalog refresh.
+- Kept the refreshed 30-model text catalog, default sequential-chain models, credit pricing, and current Supabase/Auth runtime behavior while restoring the redesigned app shell, auth pages, workbench cards, provider selection, and brand icon surfaces.
+- Bumped the visible app version to `v1.38.1-20260728` for live verification.
 
-## Patch 35 (v1.35.0-20260630)
+## Patch 31 (v1.38.0-20260710) — 브랜드 아이콘(모노 노드) + Qkiki→Yapp 전면 리브랜딩
 
-- Added `Scenario development` and `Deep dive` as first-class sequential and branch actions.
-- Scenario passes now carry a compact canon snapshot, stable thread IDs, an actual next scene, classified state deltas, and explicit continuity/conflict handling between models.
-- Deep-dive passes now compare competing hypotheses, descend through mechanism/implication/boundary layers, label evidence versus inference, stress-test prior stopping points, and end with one discriminating question.
-- Added semantic source provenance so original input and failed-source fallbacks cannot be mistaken for a real multi-model continuation.
-- Preserved the latest handoff under token pressure, corrected provider search activation for separately attached prior context, and centralized action lists/labels across validation, UI, presets, and guides.
-- Added focused regression coverage, a repository `npm test` command, updated credit estimates, and two rounds of pre-implementation model review using GPT-5.5 and GPT-5.4.
+- 브랜드 로고를 노드 네트워크 모노 마크(`BrandMark`)로 통일: 앱 셸·로그인/회원가입·관리자 콘솔 + `icon.svg`/`apple-icon.svg`(스파크 favicon.ico 제거). 기존 ✦/⬡ 마크 폐기.
+- 화면·코드 심볼의 Qkiki를 Yapp으로 전면 교체: 하드코딩 이름→`APP_NAME`, `QKIKI_*`→`YAPP_*`, 이벤트/패키지명/웹서치 env.
+- 런타임 식별자(쿠키·localStorage 키·워커 헤더·실행 스텝 키·임시 저장 디렉터리)를 yapp로 전환하되 **레거시 폴백**을 함께 두어 기존 사용자 로그아웃·데이터 유실 없이 무중단 이관. 옛 도메인 리다이렉트 등 의도적 레거시 호환은 유지.
+- `AGENTS.md`에 "제품명 Yapp" 브랜딩 규칙을 명문화해 향후 지속 적용. 상세는 `Report/Report_v1.38.0_20260710.md`.
 
-## Patch 34 (v1.33.0-20260621)
+## Patch 30 (v1.37.1-20260710) — 브랜드 아이콘 시안 7종
 
-- Rebuilt the admin Users tab around live usage visibility: filters for status/role, sorting by latest use, task count, credit use, token use, and account creation.
-- Added per-user task totals, active task counts, credit totals, token totals, estimated cost, and recent task usage rows directly in the user list.
-- Shared the same admin user list aggregation between the page and `/api/admin/users`, with dynamic/no-store behavior so recent work is reflected immediately.
-- Updated usage settlement paths to refresh `User.lastActiveAt` when credit usage is recorded.
+- 레퍼런스(Y자형 노드 네트워크 앱 아이콘)를 반영한 브랜드 아이콘 시안 7종 제작: `design-concepts/17-brand-icon/index.html` (모노 노드/블루 코어/그라디언트 라인/네온 시안/퍼플 필/민트 듀오/선셋 스펙트럼). 제품 미적용, 시안 전용. 상세는 `Report/Report_v1.37.1_20260710.md`.
 
-## Patch 33 (v1.32.12-20260620)
+## Patch 29 (v1.37.0-20260710) — 리디자인을 실제 제품 UI에 적용
 
-- Replaced the landing hero's external stock image with the provided network animation as an optimized local background.
-- Added separate desktop and mobile animated WebP assets, plus lightweight JPEG poster fallbacks, so the original 93MB GIF is not served directly.
-- Updated the landing hero markup to use responsive `picture` sources and select the mobile-specialized background on narrow screens.
+- design-concepts/16 시안(Genspark 레퍼런스)을 `src/`에 적용. 쿨 뉴트럴+블루 단일 포인트 토큰(globals.css), 세리프 헤딩 폐지.
+- 이모지 내비 → 라인 아이콘 세트, 브랜드 마크(검정 스파크 타일+Qkiki), 모바일 4탭+더보기 바텀시트(AppShell).
+- 모델 선택을 공식 AI 로고(OpenAI/Anthropic/Gemini/xAI) 브랜드 타일 + 모델 필 칩으로 재설계(ProviderSelectorRow).
+- 워크벤치 컴포저 카드화(세그먼트 필·필 버튼·검정 Run 필), ResultCard 공식 로고 아바타+라운드 카드+필 액션.
+- 검증: next build/eslint 통과, 로컬 Postgres로 실제 구동해 데스크톱·모바일 스크린샷 확인. 상세는 `Report/Report_v1.37.0_20260710.md`.
 
-## Patch 32 (v1.32.11-20260620)
+## Patch 28 (v1.36.0-20260710) — Genspark 레퍼런스 UI 리디자인 시안 7종
 
-- Changed the prominent workbench Run button color from orange to a sky-blue primary CTA.
-- Kept the larger desktop/mobile sizing, shadow, ring, hover, focus, and disabled states aligned to the new sky-blue palette.
+- 사용자가 첨부한 Genspark 모바일 앱 스크린샷을 레퍼런스로, 현재 UI의 "AI가 대충 만든 느낌"을 걷어내는 리디자인 시안 7종을 제작: `design-concepts/16-genspark-redesign/index.html` (진단 + 시안 7종 목업 + 적용 로드맵).
+- 시안: ① 컴포저 허브 홈 ② 데스크톱 아이콘 레일 셸 ③ 모델 브랜드 타일 ④ 4탭 내비+바텀시트 ⑤ 결과 카드 스트림 ⑥ 모노 필 컴포넌트 시스템(공통 기반) ⑦ 플랜&사용량 시트.
+- **제품 코드에는 미적용** — 기존 design-concepts 관례와 동일한 탐색용 목업. 상세는 `Report/Report_v1.36.0_20260710.md`.
+- **v1.36.1**: 사용자 피드백 반영 — 시안 03에 웹(데스크톱) 프레임 추가, AI 공급자 아이콘을 각 사 공식 로고 마크(OpenAI·Anthropic·Gemini 그라디언트·xAI)로 교체, 시안 05 결과 카드 아바타도 동일 적용. 상세는 `Report/Report_v1.36.1_20260710.md`.
+- **v1.36.2**: 시안 페이지 모바일 레이아웃 깨짐 수정 — 데스크톱 목업(880px)·컴포넌트 보드(660px)를 고정 설계폭 + 자동 비율 축소(scale) 방식으로 변경, 좁은 화면에서 내부 재배치로 깨지던 문제 해결. 상세는 `Report/Report_v1.36.2_20260710.md`.
 
-## Patch 31 (v1.32.4-20260620)
+## Patch 27 (v1.34.0-20260701) — AI 모델 카탈로그 최신화
 
-- Made both desktop and mobile workbench Run buttons larger and more prominent.
-- Changed the Run button from the previous dark style to a bright orange primary CTA with stronger shadow, ring, and focus states.
-- Shared the Run button class between parallel and sequential layouts so both modes stay visually aligned.
-
-## Patch 30 (v1.32.3-20260620)
-
-- Added automatic scrolling/focus to the credit warning banner when a workbench run is blocked by insufficient credits.
-- Covered both client-side preflight credit checks and server-side `CREDIT_LIMIT_REACHED` responses so users land on the visible warning instead of staying at the run button.
-
-## Patch 29 (v1.32.1-20260619)
-
-- Added the missing cookie helper exports in `src/lib/auth-constants.ts` that the Phase 1/2 auth changes depended on.
-- Fixed the Vercel remote build failure where `src/lib/auth.ts` imported `SESSION_COOKIE_CANDIDATES`, `TRIAL_COOKIE_CANDIDATES`, `deleteCookies`, and `readCookieValue` but the deployed commit did not include those exports yet.
-- Re-deployed production from commit `a78c997` after the missing auth constants were committed.
-
-## Patch 28 (v1.32.0-20260619)
-
-- Applied backend optimization Phase 1 and Phase 2 from the execution plan.
-- Restored prefetching for primary authenticated app navigation and limited growing sidebar lists to hover/focus prefetch.
-- Added loading skeletons for app route transitions.
-- Moved sessions/projects/presets initial list data into Server Components so first render no longer waits on client-side fetch waterfalls.
-- Wrapped `getCurrentUser()` in React request-scope cache and shared list query shapes between RSC pages and existing APIs.
-- Excluded local worktree build output from ESLint so verification checks source files instead of generated `.next` chunks.
-
-## Patch 27 (v1.31.0-20260618)
-
-- Upgraded the `code_review` action from a generic improvement prompt into a findings-first code review protocol.
-- Code review steps now require concrete findings ordered by severity, with location/evidence/impact/fix details when issues exist.
-- Meaningful fixes must return the full runnable improved code plus a short changes list; already-good code must remain unchanged with `NO_CHANGES`.
-- The queued sequential runner now frames separately budgeted `code_review` source blocks as prior code to review instead of a generic source result.
-- Increased the code-review output-token estimate so credit planning leaves room for findings plus complete improved code.
-- Added regression coverage for the code-review prompt protocol and code-review credit estimate.
+- **Anthropic**: 기본 모델을 `claude-sonnet-4-6` → **`claude-sonnet-5`**(2026-06-30 정식 출시)로 변경. `claude-sonnet-4-6`은 선택 가능한 옵션으로 유지.
+- **Google**: 기본 모델을 `gemini-3-flash-preview` → **`gemini-3.5-flash`**(2026-05-19 정식 출시, GA)로 변경.
+- **버그 수정**: `GOOGLE_LEGACY_MODEL_MAP`에 `"gemini-3.5-flash" → "gemini-3-flash-preview"` 오정규화 항목이 있어, 세션/프리셋에 `gemini-3.5-flash`를 저장해도 실제로는 구형 preview 모델로 강제 치환되던 문제를 제거(이제 정식 모델이므로 자기 자신으로 정규화).
+- 모델 표시 이름·크레딧 단가·타임아웃 하한 테이블에 `claude-sonnet-5`, `gemini-3.5-flash` 반영.
+- **xAI(`grok-4.3`)는 이미 최신 플래그십**이라 변경 없음. **OpenAI GPT-5.6(Sol/Terra/Luna)**는 아직 일부 파트너 대상 제한 프리뷰 단계(정식 출시 전)라 기본값 변경 보류 — 접근 권한 없는 사용자에게 오히려 오류를 유발할 수 있어 제외.
 
 ## Patch 26 (v1.28.0-20260618) — 크레딧 단일화 (횟수 개념 제거)
 
@@ -284,9 +257,3 @@
 - Added a new "Code review" (코드 리뷰) action type for the sequential review chain. It lets a later model review the code produced by an earlier model, find concrete issues (bugs, edge cases, security, performance, readability, missing tests), and return an improved version of the full code.
 - Built the review prompt so it does NOT force changes: when the code is already high quality and has nothing worth changing, the model returns it unchanged with a `NO_CHANGES:` note instead of inventing cosmetic edits. This matches a chain where the first step codes and later review steps only edit when there is a genuine improvement.
 - Exposed the action everywhere it is selectable: sequential workflow step builder, "review with another model" composer on result cards, preset previews, validation schemas, and the in-app guide.
-
-## Patch 24 (v1.32.2-20260620)
-
-- Moved the sequential review chain "Add step" action directly below the step cards, so it appears immediately after the default third step.
-- Replaced the small secondary button with a full-width dashed CTA that includes a plus marker and the current step count.
-- Verified the local trial workbench screen with Playwright and confirmed the new button renders as a prominent 3/50 action before the run preview.

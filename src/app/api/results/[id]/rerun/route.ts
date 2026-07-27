@@ -172,7 +172,7 @@ export async function POST(
           executionRunId: branchRun.id,
           sessionId: step.sessionId,
           orderIndex: step.orderIndex,
-          stepKey: `qkiki:run:${branchRun.id}:step:${step.orderIndex}`,
+          stepKey: `yapp:run:${branchRun.id}:step:${step.orderIndex}`,
           templateStepIndex: step.templateStepIndex,
           templateStepId: step.templateStepId,
           actionType: step.actionType,

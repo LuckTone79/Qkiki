@@ -1,0 +1,254 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qkiki 브랜드 아이콘 시안 — 노드 네트워크 마크</title>
+<style>
+  :root{
+    --bg:#ffffff; --ink:#141517; --mut:#6b7076; --line:#e7e8ea;
+    --panel:#f4f5f6; --acc:#2f6bff; --card:#ffffff;
+    --shadow:0 1px 2px rgba(20,21,23,.05), 0 12px 32px rgba(20,21,23,.07);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#121316; --ink:#f0f1f2; --mut:#9aa0a6; --line:#2a2c30;
+           --panel:#1b1d21; --acc:#6b96ff; --card:#17181c;
+           --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.45); }
+  }
+  :root[data-theme="dark"]{ --bg:#121316; --ink:#f0f1f2; --mut:#9aa0a6; --line:#2a2c30;
+           --panel:#1b1d21; --acc:#6b96ff; --card:#17181c;
+           --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.45); }
+  :root[data-theme="light"]{ --bg:#ffffff; --ink:#141517; --mut:#6b7076; --line:#e7e8ea;
+           --panel:#f4f5f6; --acc:#2f6bff; --card:#ffffff;
+           --shadow:0 1px 2px rgba(20,21,23,.05), 0 12px 32px rgba(20,21,23,.07); }
+
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink); word-break:keep-all;
+    font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,
+      "Apple SD Gothic Neo","Noto Sans KR","Segoe UI",Roboto,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px; margin:0 auto; padding:52px 20px 80px}
+  .eyebrow{font-size:12px; font-weight:700; letter-spacing:.14em; color:var(--mut); text-transform:uppercase}
+  h1{font-size:clamp(24px,4.6vw,36px); font-weight:800; letter-spacing:-.02em; line-height:1.25; margin:10px 0 12px; text-wrap:balance}
+  .lede{max-width:62ch; color:var(--mut); font-size:15px; margin:0}
+  .meta{display:flex; flex-wrap:wrap; gap:8px; margin-top:20px}
+  .meta span{font-size:12.5px; font-weight:600; color:var(--mut); border:1px solid var(--line); border-radius:999px; padding:5px 12px}
+
+  .grid{margin-top:44px; display:grid; gap:20px; grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .vc{border:1px solid var(--line); border-radius:22px; background:var(--card); box-shadow:var(--shadow); padding:22px; display:flex; flex-direction:column; gap:16px}
+  .vc .hd{display:flex; align-items:baseline; gap:10px}
+  .vc .no{font-size:12px; font-weight:800; color:var(--acc); font-variant-numeric:tabular-nums}
+  .vc h2{margin:0; font-size:16.5px; font-weight:800; letter-spacing:-.01em}
+  .vc .rec{margin-left:auto; font-size:10.5px; font-weight:800; color:#fff; background:var(--acc); border-radius:999px; padding:3px 10px}
+  .vc p{margin:0; font-size:13px; color:var(--mut)}
+
+  .stage{display:flex; align-items:center; gap:18px}
+  .appicon{width:92px; height:92px; border-radius:24px; display:grid; place-items:center; flex:0 0 auto}
+  .appicon svg{width:60px; height:60px; display:block}
+  .favs{display:flex; flex-direction:column; gap:10px}
+  .favrow{display:flex; align-items:center; gap:10px}
+  .fav{border-radius:7px; display:grid; place-items:center; flex:0 0 auto}
+  .fav.f32{width:32px; height:32px} .fav.f32 svg{width:21px; height:21px}
+  .fav.f16{width:16px; height:16px; border-radius:4px} .fav.f16 svg{width:11px; height:11px}
+  .favrow span{font-size:11px; color:var(--mut); font-variant-numeric:tabular-nums}
+
+  /* 실제 헤더 컨텍스트 (라이트 UI 고정 — 실제 앱과 동일) */
+  .ctx{border:1px solid #e7e8ea; border-radius:14px; background:#fff; color:#141517; padding:14px 16px}
+  .ctx .brand{display:flex; align-items:center; gap:10px; font-size:17px; font-weight:800; letter-spacing:-.02em}
+  .ctx .tile{width:32px; height:32px; border-radius:10px; display:grid; place-items:center}
+  .ctx .tile svg{width:20px; height:20px}
+  .ctx .sub{margin:4px 0 0 42px; font-size:11px; color:#8a8d92}
+
+  .apply{margin-top:48px; border:1px solid var(--line); border-radius:18px; padding:20px 24px; background:var(--card)}
+  .apply h3{margin:0 0 8px; font-size:15px; font-weight:800}
+  .apply p{margin:0; font-size:13.5px; color:var(--mut)}
+  footer{margin-top:56px; padding-top:18px; border-top:1px solid var(--line); font-size:12.5px; color:var(--mut); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px}
+</style>
+
+<!-- 공용 노드 네트워크 마크: 중앙 노드에서 두 갈래 위로, 한 갈래 아래로.
+     "하나의 질문 → 여러 모델로 분기"라는 Qkiki 오케스트레이션 구조의 도식. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="ymark">
+      <path d="M12 12.6 L6.9 5.9 M12 12.6 L17.2 5.9 M12 12.6 L9.6 19.8" fill="none" stroke-linecap="round"/>
+      <circle cx="12" cy="12.6" r="2.2"/>
+      <circle cx="6.9" cy="5.9" r="1.75"/>
+      <circle cx="17.2" cy="5.9" r="1.75"/>
+      <circle cx="9.6" cy="19.8" r="1.75"/>
+    </g>
+    <linearGradient id="g-bluepurple" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f6bff"/><stop offset="1" stop-color="#9b72cb"/>
+    </linearGradient>
+    <linearGradient id="g-mint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#35d6ae"/><stop offset="1" stop-color="#2f8fff"/>
+    </linearGradient>
+    <linearGradient id="g-purpletile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8f7bff"/><stop offset="1" stop-color="#6a4df4"/>
+    </linearGradient>
+    <linearGradient id="g-sunset" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff4d9d"/><stop offset=".5" stop-color="#ff7a45"/><stop offset="1" stop-color="#7a5cff"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <p class="eyebrow">Qkiki · Brand Icon Proposal</p>
+  <h1>브랜드 아이콘 시안 7종 — 노드 네트워크 마크</h1>
+  <p class="lede">
+    첨부해주신 레퍼런스의 Y자형 노드-엣지 마크를 Qkiki에 맞게 다시 그렸습니다.
+    중앙 노드에서 갈라지는 세 개의 가지는 “하나의 질문이 여러 AI 모델로 분기”하는
+    Qkiki의 오케스트레이션 구조 그 자체라 현재 스파크(✦) 마크보다 제품 정체성을 훨씬 잘 설명합니다.
+    각 시안은 앱 아이콘 · 파비콘(32/16px) · 실제 헤더 적용 모습을 함께 보여줍니다.
+  </p>
+  <div class="meta"><span>시안 7종</span><span>레퍼런스: 노드 네트워크 아이콘</span><span>v1.37.1-20260710</span><span>SVG — 즉시 적용 가능</span></div>
+
+  <div class="grid">
+
+    <!-- V1 모노 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V1</span><h2>모노 노드</h2><span class="rec">추천</span></div>
+      <p>검정 타일 + 화이트 마크. 현재 적용된 모노 필 디자인 시스템과 1:1로 맞는 기본안. 어디서든 무채색으로 안전합니다.</p>
+      <div class="stage">
+        <span class="appicon" style="background:#141517">
+          <svg viewBox="0 0 24 24"><use href="#ymark" stroke="#fff" stroke-width="1.6" fill="#141517" style="stroke:#fff"/></svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:#141517"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#141517" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:#141517"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#141517" stroke-width="2.6"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:#141517"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#141517" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+
+    <!-- V2 블루 코어 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V2</span><h2>블루 코어</h2></div>
+      <p>V1과 동일하되 중앙 노드만 포인트 블루(#2F6BFF). “선택·실행”에만 파랑을 쓰는 현행 규칙과 어울리는 절제된 포인트.</p>
+      <div class="stage">
+        <span class="appicon" style="background:#141517">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 12.6 L6.9 5.9 M12 12.6 L17.2 5.9 M12 12.6 L9.6 19.8" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="6.9" cy="5.9" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="17.2" cy="5.9" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="9.6" cy="19.8" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.6"/>
+            <circle cx="12" cy="12.6" r="2.2" fill="#2f6bff" stroke="#fff" stroke-width="1.6"/>
+          </svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:#141517"><svg viewBox="0 0 24 24"><path d="M12 12.6 L6.9 5.9 M12 12.6 L17.2 5.9 M12 12.6 L9.6 19.8" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/><circle cx="6.9" cy="5.9" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.9"/><circle cx="17.2" cy="5.9" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.9"/><circle cx="9.6" cy="19.8" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.9"/><circle cx="12" cy="12.6" r="2.2" fill="#2f6bff" stroke="#fff" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:#141517"><svg viewBox="0 0 24 24"><path d="M12 12.6 L6.9 5.9 M12 12.6 L17.2 5.9 M12 12.6 L9.6 19.8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><circle cx="12" cy="12.6" r="2.6" fill="#2f6bff" stroke="#fff" stroke-width="2.2"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:#141517"><svg viewBox="0 0 24 24"><path d="M12 12.6 L6.9 5.9 M12 12.6 L17.2 5.9 M12 12.6 L9.6 19.8" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="6.9" cy="5.9" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="5.9" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.8"/><circle cx="9.6" cy="19.8" r="1.75" fill="#141517" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12.6" r="2.2" fill="#2f6bff" stroke="#fff" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+
+    <!-- V3 그라디언트 라인 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V3</span><h2>그라디언트 라인</h2></div>
+      <p>화이트 타일 + 블루→퍼플 그라디언트 스트로크(레퍼런스 1행 3번). 라이트 UI에서 가장 산뜻하고 “AI 제품” 인상이 분명합니다.</p>
+      <div class="stage">
+        <span class="appicon" style="background:#fff; border:1px solid #e7e8ea">
+          <svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-bluepurple); fill:#fff" stroke-width="1.6"/></svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:#fff; border:1px solid #e7e8ea"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-bluepurple); fill:#fff" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:#fff; border:1px solid #e7e8ea"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-bluepurple); fill:#fff" stroke-width="2.6"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:#fff; border:1px solid #e7e8ea"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-bluepurple); fill:#fff" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+
+    <!-- V4 네온 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V4</span><h2>네온 시안</h2></div>
+      <p>딥네이비 타일 + 시안 네온 글로우(레퍼런스 1행 2번). 임팩트는 가장 크지만 라이트 UI 헤더에서는 다소 무겁습니다 — 다크 모드 도입 시 강력.</p>
+      <div class="stage">
+        <span class="appicon" style="background:#0c1030">
+          <svg viewBox="0 0 24 24" style="filter:drop-shadow(0 0 4px rgba(76,224,255,.9))"><use href="#ymark" style="stroke:#4ce0ff; fill:#0c1030" stroke-width="1.6"/></svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:#0c1030"><svg viewBox="0 0 24 24" style="filter:drop-shadow(0 0 3px rgba(76,224,255,.9))"><use href="#ymark" style="stroke:#4ce0ff; fill:#0c1030" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:#0c1030"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#4ce0ff; fill:#0c1030" stroke-width="2.6"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:#0c1030"><svg viewBox="0 0 24 24" style="filter:drop-shadow(0 0 3px rgba(76,224,255,.8))"><use href="#ymark" style="stroke:#4ce0ff; fill:#0c1030" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+
+    <!-- V5 퍼플 필 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V5</span><h2>퍼플 필</h2></div>
+      <p>퍼플 그라디언트 타일 + 화이트 마크(레퍼런스 2행 1번). 친근하고 소비자 앱다운 인상. 단, 현행 “블루 1색” 규칙과 컬러가 하나 늘어납니다.</p>
+      <div class="stage">
+        <span class="appicon" style="background:linear-gradient(135deg,#8f7bff,#6a4df4)">
+          <svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#7c63f9" stroke-width="1.6"/></svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:linear-gradient(135deg,#8f7bff,#6a4df4)"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#7c63f9" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:linear-gradient(135deg,#8f7bff,#6a4df4)"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#7c63f9" stroke-width="2.6"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:linear-gradient(135deg,#8f7bff,#6a4df4)"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#7c63f9" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+
+    <!-- V6 민트 듀오 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V6</span><h2>민트 듀오</h2></div>
+      <p>민트→블루 그라디언트 타일(레퍼런스 2행 4번). 신선하고 눈에 잘 띄어 앱스토어/홈화면 식별성이 좋습니다.</p>
+      <div class="stage">
+        <span class="appicon" style="background:linear-gradient(135deg,#35d6ae,#2f8fff)">
+          <svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#33bcd2" stroke-width="1.6"/></svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:linear-gradient(135deg,#35d6ae,#2f8fff)"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#33bcd2" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:linear-gradient(135deg,#35d6ae,#2f8fff)"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#33bcd2" stroke-width="2.6"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:linear-gradient(135deg,#35d6ae,#2f8fff)"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:#fff; fill:#33bcd2" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+
+    <!-- V7 선셋 -->
+    <div class="vc">
+      <div class="hd"><span class="no">V7</span><h2>선셋 스펙트럼</h2></div>
+      <p>검정 타일 + 핑크→오렌지→퍼플 그라디언트 라인(레퍼런스 3행 4번). “여러 모델의 스펙트럼”이라는 멀티-AI 메시지가 가장 직관적입니다.</p>
+      <div class="stage">
+        <span class="appicon" style="background:#0b0d12">
+          <svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-sunset); fill:#0b0d12" stroke-width="1.6"/></svg>
+        </span>
+        <div class="favs">
+          <div class="favrow"><span class="fav f32" style="background:#0b0d12"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-sunset); fill:#0b0d12" stroke-width="1.9"/></svg></span><span>32px</span></div>
+          <div class="favrow"><span class="fav f16" style="background:#0b0d12"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-sunset); fill:#0b0d12" stroke-width="2.6"/></svg></span><span>16px</span></div>
+        </div>
+      </div>
+      <div class="ctx">
+        <div class="brand"><span class="tile" style="background:#0b0d12"><svg viewBox="0 0 24 24"><use href="#ymark" style="stroke:url(#g-sunset); fill:#0b0d12" stroke-width="1.8"/></svg></span>Qkiki</div>
+        <p class="sub">오케스트레이션 워크벤치</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="apply">
+    <h3>적용 방법</h3>
+    <p>번호를 선택해주시면 ① <b>AppShell·sign-in/up의 브랜드 마크 SVG</b>(SparkMarkIcon → 노드 네트워크 마크),
+    ② <b>favicon.ico / 앱 아이콘</b>을 해당 시안으로 교체해 커밋·배포합니다. 마크는 순수 SVG라 어떤 크기에서도 선명합니다.</p>
+  </div>
+
+  <footer>
+    <span>Qkiki Brand Icon Proposal · design-concepts/17-brand-icon</span>
+    <span>v1.37.1-20260710 · 시안 전용, 제품 미적용</span>
+  </footer>
+</div>

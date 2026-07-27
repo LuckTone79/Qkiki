@@ -144,7 +144,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
             executionRunId: createdRun.id,
             sessionId: step.sessionId,
             orderIndex: step.orderIndex,
-            stepKey: `qkiki:run:${createdRun.id}:step:${step.orderIndex}`,
+            stepKey: `yapp:run:${createdRun.id}:step:${step.orderIndex}`,
             templateStepIndex: step.templateStepIndex,
             templateStepId: step.templateStepId,
             actionType: step.actionType,

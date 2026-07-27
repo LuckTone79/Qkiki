@@ -1,15 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  /* Notion-style palette for all detail pages */
+  /* Mono-pill palette: cool neutrals + single blue accent
+     (Genspark-reference redesign, design-concepts/16) */
   --background: #ffffff;
-  --foreground: #37352f;
-  --notion-ink: #37352f;
-  --notion-muted: #787774;
-  --notion-line: #ecebe9;
-  --notion-soft: #f7f6f3;
-  --notion-softer: #f1f0ee;
-  --notion-faint: #fafaf9;
+  --foreground: #141517;
+  --ink: #141517;
+  --muted: #6b7076;
+  --line: #e7e8ea;
+  --soft: #f4f5f6;
+  --softer: #eff0f1;
+  --faint: #fafafa;
+  --accent: #2f6bff;
 }
 
 @theme inline {
@@ -17,50 +19,52 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-lora);
+  /* Serif display headings are retired: font-serif now resolves to the
+     sans stack so every page converges on sans 700-800 headlines. */
+  --font-serif: var(--font-geist-sans);
 
-  /* Remap stone -> Notion warm-gray neutrals
+  /* Remap stone -> cool neutral scale.
      The codebase uses stone extensively for borders/text/bg; remapping
-     here propagates the Notion look to every detail page automatically. */
-  --color-stone-50: #fafaf9;
-  --color-stone-100: #f1f0ee;
-  --color-stone-200: #ecebe9;
-  --color-stone-300: #d9d8d5;
-  --color-stone-400: #b1b0ad;
-  --color-stone-500: #9b9a97;
-  --color-stone-600: #787774;
-  --color-stone-700: #5c5b58;
-  --color-stone-800: #4b4a47;
-  --color-stone-900: #3d3c3a;
-  --color-stone-950: #37352f;
+     here propagates the new look to every page automatically. */
+  --color-stone-50: #fafafa;
+  --color-stone-100: #f4f5f6;
+  --color-stone-200: #e7e8ea;
+  --color-stone-300: #d6d8da;
+  --color-stone-400: #a6a9ad;
+  --color-stone-500: #8a8d92;
+  --color-stone-600: #6b7076;
+  --color-stone-700: #5c6066;
+  --color-stone-800: #3c3f43;
+  --color-stone-900: #26282b;
+  --color-stone-950: #141517;
 
   /* Remap slate to the same neutral scale for consistency across pages */
-  --color-slate-50: #fafaf9;
-  --color-slate-100: #f1f0ee;
-  --color-slate-200: #ecebe9;
-  --color-slate-300: #d9d8d5;
-  --color-slate-400: #b1b0ad;
-  --color-slate-500: #9b9a97;
-  --color-slate-600: #787774;
-  --color-slate-700: #5c5b58;
-  --color-slate-800: #4b4a47;
-  --color-slate-900: #3d3c3a;
-  --color-slate-950: #37352f;
+  --color-slate-50: #fafafa;
+  --color-slate-100: #f4f5f6;
+  --color-slate-200: #e7e8ea;
+  --color-slate-300: #d6d8da;
+  --color-slate-400: #a6a9ad;
+  --color-slate-500: #8a8d92;
+  --color-slate-600: #6b7076;
+  --color-slate-700: #5c6066;
+  --color-slate-800: #3c3f43;
+  --color-slate-900: #26282b;
+  --color-slate-950: #141517;
 
-  /* Teal was the accent color. Notion's primary action is the ink color
-     itself; secondary accents are subtle. Remap to keep the same visual
-     hierarchy (text-teal-700 ~ ink, bg-teal-50 ~ soft, border-teal-200 ~ line). */
-  --color-teal-50: #f7f6f3;
-  --color-teal-100: #f1f0ee;
-  --color-teal-200: #e3e2df;
-  --color-teal-300: #c9c8c4;
-  --color-teal-400: #8e8d89;
-  --color-teal-500: #5c5b58;
-  --color-teal-600: #37352f;
-  --color-teal-700: #37352f;
-  --color-teal-800: #37352f;
-  --color-teal-900: #2a2a28;
-  --color-teal-950: #1f1f1d;
+  /* Teal was flattened into gray by the previous Notion theme. It now maps
+     to the single blue accent (#2F6BFF) reserved for selected states,
+     upgrade/billing and "recommended" badges — the only point color. */
+  --color-teal-50: #eef3ff;
+  --color-teal-100: #e3ecff;
+  --color-teal-200: #c5d7ff;
+  --color-teal-300: #9db9ff;
+  --color-teal-400: #6b96ff;
+  --color-teal-500: #4a7dff;
+  --color-teal-600: #2f6bff;
+  --color-teal-700: #2456d6;
+  --color-teal-800: #1e46ad;
+  --color-teal-900: #1a3a8c;
+  --color-teal-950: #12265c;
 }
 
 html {
@@ -82,11 +86,6 @@ textarea {
 }
 
 ::selection {
-  background: #ecebe9;
-  color: #37352f;
+  background: #e3ecff;
+  color: #141517;
 }
-
-/* Notion-style serif for display headings in the app shell.
-   Components opt in by using the Tailwind `font-serif` utility
-   (mapped above to Lora). No global override is applied so the
-   Tesla landing keeps its sans-serif look. */

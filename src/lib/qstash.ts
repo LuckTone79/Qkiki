@@ -140,8 +140,8 @@ function buildInternalWorkerHeaders(input: {
   const signature = crypto.createHmac("sha256", secret).update(payload).digest("hex");
 
   return {
-    "X-Qkiki-Timestamp": timestamp,
-    "X-Qkiki-Signature": signature,
+    "X-Yapp-Timestamp": timestamp,
+    "X-Yapp-Signature": signature,
   };
 }
 
@@ -157,7 +157,7 @@ export async function enqueueExecutionRunStep(stepId: string, delaySeconds = 0) 
     body,
     delay: delaySeconds,
     headers: {
-      "X-Qkiki-Internal-Intent": "execute-run-step",
+      "X-Yapp-Internal-Intent": "execute-run-step",
       ...buildInternalWorkerHeaders({
         path,
         body: bodyText,
@@ -180,7 +180,7 @@ export async function enqueueWorkbenchWatchdog(
     body,
     delay: delaySeconds,
     headers: {
-      "X-Qkiki-Internal-Intent": "watchdog",
+      "X-Yapp-Internal-Intent": "watchdog",
       ...buildInternalWorkerHeaders({
         path,
         body: bodyText,

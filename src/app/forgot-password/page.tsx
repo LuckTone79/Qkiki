@@ -16,7 +16,7 @@ const text = {
 
 export default function ForgotPasswordPage() {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[language as keyof typeof text] ?? text.en;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#ffffff] px-5 py-10">

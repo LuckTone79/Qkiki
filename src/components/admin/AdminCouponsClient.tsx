@@ -1,7 +1,12 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  adminTextKey,
+  intlLocale,
+  localize,
+  useLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 type CouponTypeValue =
   | "MONTHLY_FREE_30D"
@@ -216,7 +221,7 @@ function statusClass(status: CouponItem["usageStatus"]) {
 
 export function AdminCouponsClient() {
   const { language } = useLanguage();
-  const t = couponText[language];
+  const t = couponText[adminTextKey(language)];
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [duration, setDuration] = useState<DurationValue>("7d");
   const [unlimited, setUnlimited] = useState(false);
@@ -462,7 +467,7 @@ export function AdminCouponsClient() {
     void loadCoupons();
   }, [loadCoupons]);
 
-  const locale = language === "ko" ? "ko-KR" : "en-US";
+  const locale = intlLocale(language);
 
   function formatDateTime(value: string | null) {
     if (!value) {
@@ -746,7 +751,14 @@ export function AdminCouponsClient() {
                 onClick={() => copyCodes([coupon.code])}
                 className={`min-h-10 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${copiedCode === coupon.code ? "border-teal-300 bg-teal-50 text-teal-700" : "border-slate-300 text-slate-700 hover:bg-slate-100"}`}
               >
-                {copiedCode === coupon.code ? (language === "ko" ? "복사됨 ✓" : "Copied ✓") : t.copy}
+                {copiedCode === coupon.code
+                  ? localize(language, {
+                      en: "Copied ✓",
+                      ko: "복사됨 ✓",
+                      ja: "コピーしました ✓",
+                      es: "Copiado ✓",
+                    })
+                  : t.copy}
               </button>
               <button
                 type="button"
@@ -764,7 +776,12 @@ export function AdminCouponsClient() {
                   className="min-h-10 rounded-md border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {deactivatingId === coupon.id
-                    ? (language === "ko" ? "비활성화 중…" : "Deactivating…")
+                    ? localize(language, {
+                        en: "Deactivating…",
+                        ko: "비활성화 중…",
+                        ja: "無効化中…",
+                        es: "Desactivando…",
+                      })
                     : t.deactivate}
                 </button>
               ) : null}
@@ -775,7 +792,12 @@ export function AdminCouponsClient() {
                 className="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {deletingCouponId === coupon.id
-                  ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                  ? localize(language, {
+                      en: "Deleting…",
+                      ko: "삭제 중…",
+                      ja: "削除中…",
+                      es: "Eliminando…",
+                    })
                   : t.delete}
               </button>
             </div>

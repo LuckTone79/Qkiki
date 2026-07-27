@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
 import { AddToProjectButton } from "@/components/projects/AddToProjectButton";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import {
+  intlLocale,
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 import { copyTextToClipboard } from "@/lib/browser-clipboard";
 import { buildSessionInputCopyNotice } from "@/lib/session-input-copy";
 
@@ -29,13 +34,8 @@ type SessionListItem = {
   }>;
 };
 
-type SessionsClientProps = {
-  initialSessions?: SessionListItem[];
-  initialLoaded?: boolean;
-};
-
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(intlLocale(language), {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -47,63 +47,98 @@ function displayMode(mode: string, t: ReturnType<typeof useLanguage>["t"]) {
   return mode === "sequential" ? t("sequentialReviewChain") : t("parallelCompare");
 }
 
-function formatRunSummary(
-  session: SessionListItem,
-  language: "en" | "ko",
-) {
+function formatRunSummary(session: SessionListItem, language: AppLanguage) {
   const latestRun = session.executionRuns[0];
   if (!latestRun) {
-    return language === "ko" ? "아직 실행 기록이 없습니다." : "No runs yet.";
+    return localize(language, {
+      en: "No runs yet.",
+      ko: "아직 실행 기록이 없습니다.",
+      ja: "まだ実行履歴がありません。",
+      es: "Aún no hay ejecuciones.",
+    });
   }
 
+  const stepsDone = `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}`;
+  const resultCount = session._count.results;
   const doneLabel =
     latestRun.mode === "sequential"
-      ? language === "ko"
-        ? `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned}단계 완료`
-        : `${latestRun.totalStepsDone}/${latestRun.totalStepsPlanned} steps done`
-      : language === "ko"
-        ? `${session._count.results}개 결과 저장`
-        : `${session._count.results} results saved`;
+      ? localize(language, {
+          en: `${stepsDone} steps done`,
+          ko: `${stepsDone}단계 완료`,
+          ja: `${stepsDone} ステップ完了`,
+          es: `${stepsDone} pasos completados`,
+        })
+      : localize(language, {
+          en: `${resultCount} results saved`,
+          ko: `${resultCount}개 결과 저장`,
+          ja: `${resultCount} 件の結果を保存`,
+          es: `${resultCount} resultados guardados`,
+        });
 
   const statusLabel =
     latestRun.status === "completed"
-      ? language === "ko"
-        ? "완료"
-        : "Completed"
+      ? localize(language, {
+          en: "Completed",
+          ko: "완료",
+          ja: "完了",
+          es: "Completado",
+        })
       : latestRun.status === "failed"
-        ? language === "ko"
-          ? "실패"
-          : "Failed"
+        ? localize(language, {
+            en: "Failed",
+            ko: "실패",
+            ja: "失敗",
+            es: "Fallido",
+          })
         : latestRun.status === "canceled"
-          ? language === "ko"
-            ? "중지됨"
-            : "Canceled"
+          ? localize(language, {
+              en: "Canceled",
+              ko: "중지됨",
+              ja: "中止",
+              es: "Cancelado",
+            })
           : latestRun.status === "running"
-            ? language === "ko"
-              ? "진행 중"
-              : "Running"
-            : language === "ko"
-              ? "대기 중"
-              : "Queued";
+            ? localize(language, {
+                en: "Running",
+                ko: "진행 중",
+                ja: "実行中",
+                es: "En ejecución",
+              })
+            : localize(language, {
+                en: "Queued",
+                ko: "대기 중",
+                ja: "待機中",
+                es: "En cola",
+              });
 
   const finalLabel = latestRun.finalResultId
-    ? language === "ko"
-      ? "최종결과 선택됨"
-      : "Final result picked"
-    : language === "ko"
-      ? "최종결과 미선택"
-      : "Final result pending";
+    ? localize(language, {
+        en: "Final result picked",
+        ko: "최종결과 선택됨",
+        ja: "最終結果を選択済み",
+        es: "Resultado final elegido",
+      })
+    : localize(language, {
+        en: "Final result pending",
+        ko: "최종결과 미선택",
+        ja: "最終結果は未選択",
+        es: "Resultado final pendiente",
+      });
 
   return `${statusLabel} · ${doneLabel} · ${finalLabel}`;
 }
+
+type SessionsClientProps = {
+  initialSessions?: SessionListItem[];
+  initialLoaded?: boolean;
+};
 
 export function SessionsClient({
   initialSessions = [],
   initialLoaded = false,
 }: SessionsClientProps = {}) {
   const { language, t } = useLanguage();
-  const [sessions, setSessions] =
-    useState<SessionListItem[]>(initialSessions);
+  const [sessions, setSessions] = useState<SessionListItem[]>(initialSessions);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copyingInputId, setCopyingInputId] = useState<string | null>(null);
@@ -120,9 +155,9 @@ export function SessionsClient({
 
     if (!response.ok || !data.sessions) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadSessions")
-          : data.error || t("couldNotLoadSessions"),
+        language === "en"
+          ? data.error || t("couldNotLoadSessions")
+          : t("couldNotLoadSessions"),
       );
       return;
     }
@@ -143,9 +178,9 @@ export function SessionsClient({
 
       if (!response.ok) {
         setError(
-          language === "ko"
-            ? t("couldNotDuplicateSession")
-            : data.error || t("couldNotDuplicateSession"),
+          language === "en"
+            ? data.error || t("couldNotDuplicateSession")
+            : t("couldNotDuplicateSession"),
         );
         return;
       }
@@ -193,11 +228,13 @@ export function SessionsClient({
   }
 
   useEffect(() => {
-    if (initialLoaded) return;
+    if (initialLoaded) {
+      return;
+    }
     loadSessions();
     // Load session history once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialLoaded]);
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -235,7 +272,7 @@ export function SessionsClient({
               className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
             >
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
+                <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-stone-950">
                       {session.title}
@@ -264,10 +301,10 @@ export function SessionsClient({
                     {formatRunSummary(session, language)}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                <div className="flex flex-wrap gap-2">
                   <Link
                     href={`/app/workbench?session=${session.id}`}
-                    className="rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold text-white hover:bg-stone-800"
+                    className="rounded-md bg-stone-950 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800"
                   >
                     {t("open")}
                   </Link>
@@ -278,8 +315,18 @@ export function SessionsClient({
                     className={`rounded-md border px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${copiedInputId === session.id ? "border-teal-300 bg-teal-50 text-teal-700" : "border-stone-300 text-stone-700 hover:bg-stone-50"}`}
                   >
                     {copiedInputId === session.id
-                      ? (language === "ko" ? "복사됨" : "Copied")
-                      : (language === "ko" ? "질문 복사" : "Copy input")}
+                      ? localize(language, {
+                          en: "Copied",
+                          ko: "복사됨",
+                          ja: "コピーしました",
+                          es: "Copiado",
+                        })
+                      : localize(language, {
+                          en: "Copy input",
+                          ko: "질문 복사",
+                          ja: "入力をコピー",
+                          es: "Copiar entrada",
+                        })}
                   </button>
                   <button
                     type="button"
@@ -288,7 +335,12 @@ export function SessionsClient({
                     className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {duplicatingId === session.id
-                      ? (language === "ko" ? "복제 중…" : "Duplicating…")
+                      ? localize(language, {
+                          en: "Duplicating…",
+                          ko: "복제 중…",
+                          ja: "複製中…",
+                          es: "Duplicando…",
+                        })
                       : t("duplicate")}
                   </button>
                   <AddToProjectButton
@@ -297,7 +349,7 @@ export function SessionsClient({
                       sessionId: session.id,
                       title: session.title,
                     }}
-                    className="w-full rounded-md border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-50 sm:w-auto"
+                    className="rounded-md border border-indigo-300 px-3 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-50"
                   />
                   <button
                     type="button"
@@ -306,7 +358,12 @@ export function SessionsClient({
                     className="rounded-md border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {deletingId === session.id
-                      ? (language === "ko" ? "삭제 중…" : "Deleting…")
+                      ? localize(language, {
+                          en: "Deleting…",
+                          ko: "삭제 중…",
+                          ja: "削除中…",
+                          es: "Eliminando…",
+                        })
                       : t("delete")}
                   </button>
                 </div>

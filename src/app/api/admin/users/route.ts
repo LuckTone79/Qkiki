@@ -1,28 +1,23 @@
 import { NextResponse } from "next/server";
 import { adminApiErrorResponse, requireApiAdminViewer } from "@/lib/admin-api-auth";
-import { getAdminUserRows, parseAdminUserListFilters } from "@/lib/admin-users";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { getAdminUserList, normalizeUserSort } from "@/lib/admin-users";
 
 export async function GET(request: Request) {
   try {
     await requireApiAdminViewer();
 
     const url = new URL(request.url);
-    const filters = parseAdminUserListFilters({
-      q: url.searchParams.get("q") ?? undefined,
-      sort: url.searchParams.get("sort") ?? undefined,
-      status: url.searchParams.get("status") ?? undefined,
-      role: url.searchParams.get("role") ?? undefined,
-      all: url.searchParams.get("all") ?? undefined,
-    });
-    const users = await getAdminUserRows(filters);
+    const q = url.searchParams.get("q")?.trim() || "";
+    const sort = normalizeUserSort(url.searchParams.get("sort") ?? undefined);
+    const all = url.searchParams.get("all") === "1";
 
-    return NextResponse.json(
-      { users, filters },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    const users = await getAdminUserList({
+      q,
+      sort,
+      limit: all ? Number.MAX_SAFE_INTEGER : 100,
+    });
+
+    return NextResponse.json({ users });
   } catch (error) {
     return adminApiErrorResponse(error);
   }

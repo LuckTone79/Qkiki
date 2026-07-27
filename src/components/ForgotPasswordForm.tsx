@@ -31,7 +31,7 @@ const text = {
 
 export function ForgotPasswordForm() {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[language as keyof typeof text] ?? text.en;
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);

@@ -1,10 +1,10 @@
 import type { ActionType } from "@/lib/ai/types";
 
-type ActionDisplayLanguage = "en" | "ko";
+type ActionDisplayLanguage = "en" | "ko" | "ja" | "es";
 
 const ACTION_DISPLAY_LABELS: Record<
   ActionType,
-  Record<ActionDisplayLanguage, string>
+  Record<"en" | "ko", string> & Partial<Record<ActionDisplayLanguage, string>>
 > = {
   generate: { en: "Generate", ko: "생성" },
   brainstorm: { en: "Brainstorm", ko: "브레인스토밍" },
@@ -24,5 +24,5 @@ export function getActionTypeDisplayLabel(
   actionType: ActionType,
   language: ActionDisplayLanguage,
 ) {
-  return ACTION_DISPLAY_LABELS[actionType][language];
+  return ACTION_DISPLAY_LABELS[actionType][language] ?? ACTION_DISPLAY_LABELS[actionType].en;
 }

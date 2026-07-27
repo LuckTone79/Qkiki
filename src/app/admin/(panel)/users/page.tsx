@@ -1,22 +1,17 @@
+import { getAdminUserList, normalizeUserSort } from "@/lib/admin-users";
 import { AdminUsersClient } from "@/components/admin/AdminUsersClient";
-import { getAdminUserRows, parseAdminUserListFilters } from "@/lib/admin-users";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    q?: string;
-    sort?: string;
-    status?: string;
-    role?: string;
-    all?: string;
-  }>;
+  searchParams: Promise<{ q?: string; sort?: string }>;
 }) {
-  const filters = parseAdminUserListFilters(await searchParams);
-  const users = await getAdminUserRows(filters);
+  const { q, sort } = await searchParams;
+  const normalizedSort = normalizeUserSort(sort);
 
-  return <AdminUsersClient users={users} filters={filters} />;
+  const rows = await getAdminUserList({ q, sort: normalizedSort });
+
+  return <AdminUsersClient users={rows} q={q || ""} sort={normalizedSort} />;
 }

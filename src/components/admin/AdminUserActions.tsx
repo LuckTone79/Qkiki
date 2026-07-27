@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 
 const text = {
   en: {
@@ -42,7 +42,7 @@ export function AdminUserActions({
   status: "ACTIVE" | "SUSPENDED";
 }) {
   const { language } = useLanguage();
-  const t = text[language];
+  const t = text[adminTextKey(language)];
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");

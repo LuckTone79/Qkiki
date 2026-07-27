@@ -1,7 +1,7 @@
 "use client";
 
 import { APP_VERSION } from "@/lib/version";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
+import { adminTextKey, useLanguage } from "@/components/i18n/LanguageProvider";
 
 const aboutContent = {
   en: {
@@ -20,7 +20,7 @@ const aboutContent = {
 
 export default function AboutPage() {
   const { language } = useLanguage();
-  const t = aboutContent[language];
+  const t = aboutContent[adminTextKey(language)];
 
   return (
     <div className="space-y-6">

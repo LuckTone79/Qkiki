@@ -4,8 +4,11 @@ import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { SectionHeader } from "@/components/SectionHeader";
-import { useLanguage } from "@/components/i18n/LanguageProvider";
-import { resolveApiAuthRedirect } from "@/lib/api-auth-navigation";
+import {
+  localize,
+  useLanguage,
+  type AppLanguage,
+} from "@/components/i18n/LanguageProvider";
 
 type ProjectListItem = {
   id: string;
@@ -22,13 +25,15 @@ type ProjectListItem = {
   }>;
 };
 
-type ProjectsClientProps = {
-  initialProjects?: ProjectListItem[];
-  initialLoaded?: boolean;
+const DATE_LOCALES: Record<AppLanguage, string> = {
+  en: "en-US",
+  ko: "ko-KR",
+  ja: "ja-JP",
+  es: "es-ES",
 };
 
-function formatDate(value: string, language: "en" | "ko") {
-  return new Intl.DateTimeFormat(language === "ko" ? "ko-KR" : "en-US", {
+function formatDate(value: string, language: AppLanguage) {
+  return new Intl.DateTimeFormat(DATE_LOCALES[language], {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -47,7 +52,22 @@ const projectSettingsText = {
     defaultGuidelinePlaceholder:
       "\uC774 \uD504\uB85C\uC81D\uD2B8\uC5D0\uC11C AI\uAC00 \uAE30\uBCF8\uC73C\uB85C \uCC38\uACE0\uD560 \uC9C0\uCE68",
   },
+  ja: {
+    defaultGuideline: "AI \u306E\u57FA\u672C\u30AC\u30A4\u30C9\u30E9\u30A4\u30F3",
+    defaultGuidelinePlaceholder:
+      "\u3053\u306E\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u3067 AI \u304C\u57FA\u672C\u7684\u306B\u5F93\u3046\u3079\u304D\u6307\u793A",
+  },
+  es: {
+    defaultGuideline: "Directriz de IA predeterminada",
+    defaultGuidelinePlaceholder:
+      "Instrucci\u00F3n base que la IA debe seguir en este proyecto",
+  },
 } as const;
+
+type ProjectsClientProps = {
+  initialProjects?: ProjectListItem[];
+  initialLoaded?: boolean;
+};
 
 export function ProjectsClient({
   initialProjects = [],
@@ -55,8 +75,7 @@ export function ProjectsClient({
 }: ProjectsClientProps = {}) {
   const { language, t } = useLanguage();
   const settingsText = projectSettingsText[language];
-  const [projects, setProjects] =
-    useState<ProjectListItem[]>(initialProjects);
+  const [projects, setProjects] = useState<ProjectListItem[]>(initialProjects);
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -71,24 +90,13 @@ export function ProjectsClient({
     const data = (await response.json().catch(() => ({}))) as {
       projects?: ProjectListItem[];
       error?: string;
-      redirectUrl?: string;
     };
-
-    const authRedirect = resolveApiAuthRedirect({
-      status: response.status,
-      redirectUrl: data.redirectUrl,
-      returnTo: "/app/projects",
-    });
-    if (authRedirect) {
-      window.location.href = authRedirect;
-      return;
-    }
 
     if (!response.ok || !data.projects) {
       setError(
-        language === "ko"
-          ? t("couldNotLoadProjects")
-          : data.error || t("couldNotLoadProjects"),
+        language === "en"
+          ? data.error || t("couldNotLoadProjects")
+          : t("couldNotLoadProjects"),
       );
       return;
     }
@@ -114,24 +122,13 @@ export function ProjectsClient({
     const data = (await response.json().catch(() => ({}))) as {
       project?: { id: string; name: string };
       error?: string;
-      redirectUrl?: string;
     };
-
-    const authRedirect = resolveApiAuthRedirect({
-      status: response.status,
-      redirectUrl: data.redirectUrl,
-      returnTo: "/app/projects?create=1",
-    });
-    if (authRedirect) {
-      window.location.href = authRedirect;
-      return;
-    }
 
     if (!response.ok || !data.project) {
       setError(
-        language === "ko"
-          ? t("couldNotCreateProject")
-          : data.error || t("couldNotCreateProject"),
+        language === "en"
+          ? data.error || t("couldNotCreateProject")
+          : t("couldNotCreateProject"),
       );
       setCreatingProject(false);
       return;
@@ -155,11 +152,13 @@ export function ProjectsClient({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setShowCreate(params.get("create") === "1");
-    if (initialLoaded) return;
+    if (initialLoaded) {
+      return;
+    }
     loadProjects();
     // Load project list once on entry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialLoaded]);
+  }, []);
 
   return (
     <div className="space-y-5">
@@ -231,24 +230,34 @@ export function ProjectsClient({
               placeholder={settingsText.defaultGuidelinePlaceholder}
             />
           </label>
-          <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
+          <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="submit"
               disabled={creatingProject}
-              className="w-full rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creatingProject
-                ? (language === "ko" ? "생성 중…" : "Creating…")
+                ? localize(language, {
+                    en: "Creating…",
+                    ko: "생성 중…",
+                    ja: "作成中…",
+                    es: "Creando…",
+                  })
                 : t("createProject")}
             </button>
             <button
               type="submit"
               data-start="true"
               disabled={creatingProject}
-              className="w-full rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="rounded-md bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {creatingProject
-                ? (language === "ko" ? "생성 중…" : "Creating…")
+                ? localize(language, {
+                    en: "Creating…",
+                    ko: "생성 중…",
+                    ja: "作成中…",
+                    es: "Creando…",
+                  })
                 : t("createAndStart")}
             </button>
           </div>
@@ -260,35 +269,35 @@ export function ProjectsClient({
           {projects.map((project) => (
             <article
               key={project.id}
-              className="overflow-hidden rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
+              className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
+                <div>
                   <div className="flex items-center gap-2">
                     <span className="text-stone-400">[ ]</span>
-                    <h2 className="line-clamp-2 break-words text-lg font-semibold leading-snug text-stone-950">
+                    <h2 className="text-lg font-semibold text-stone-950">
                       {project.name}
                     </h2>
                   </div>
-                  <p className="mt-2 break-words text-sm leading-6 text-stone-600">
+                  <p className="mt-2 text-sm leading-6 text-stone-600">
                     {project.description || t("noDescription")}
                   </p>
-                  <p className="mt-3 break-words text-xs text-stone-500">
+                  <p className="mt-3 text-xs text-stone-500">
                     {project._count.sessions} {t("conversationWindows")} -{" "}
                     {t("updated")}{" "}
                     {formatDate(project.updatedAt, language)}
                   </p>
                 </div>
-                <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:w-auto sm:min-w-[14rem]">
+                <div className="flex flex-wrap gap-2">
                   <Link
                     href={`/app/projects/${project.id}`}
-                    className="flex min-w-0 items-center justify-center rounded-md bg-stone-950 px-3 py-2 text-center text-sm font-semibold leading-5 text-white hover:bg-stone-800"
+                    className="rounded-md bg-stone-950 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-800"
                   >
                     {t("open")}
                   </Link>
                   <Link
                     href={`/app/workbench?project=${project.id}`}
-                    className="flex min-w-0 items-center justify-center rounded-md border border-stone-300 px-3 py-2 text-center text-sm font-semibold leading-5 text-stone-700 hover:bg-stone-50"
+                    className="rounded-md border border-stone-300 px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50"
                   >
                     {t("newWindow")}
                   </Link>
@@ -301,12 +310,12 @@ export function ProjectsClient({
                     <Link
                       key={session.id}
                       href={`/app/workbench?session=${session.id}`}
-                      className="block overflow-hidden rounded-md border border-stone-200 bg-[#f7f6f3] px-3 py-2 hover:bg-[#f1f0ee]"
+                      className="block rounded-md border border-stone-200 bg-[#f4f5f6] px-3 py-2 hover:bg-[#eff0f1]"
                     >
-                      <span className="block line-clamp-2 break-words text-sm font-medium leading-5 text-stone-800">
+                      <span className="block truncate text-sm font-medium text-stone-800">
                         {session.title}
                       </span>
-                      <span className="mt-1 block break-words text-xs text-stone-500">
+                      <span className="text-xs text-stone-500">
                         {session._count.results} {t("results")} -{" "}
                         {formatDate(session.updatedAt, language)}
                       </span>
