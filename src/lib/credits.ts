@@ -1,4 +1,4 @@
-export const CREDIT_PRICING_VERSION = "credit-v2-image-20260615";
+export const CREDIT_PRICING_VERSION = "credit-v3-all-text-models-20260727";
 export const CREDIT_FX_RATE_KRW_PER_USD = 1560;
 export const CREDIT_RISK_MULTIPLIER = 2.2;
 export const PROTECTED_KRW_PER_CREDIT = 10;
@@ -19,17 +19,34 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   "openai:gpt-5.6-sol": { promptPerMillion: 5, completionPerMillion: 30 },
   "openai:gpt-5.6-terra": { promptPerMillion: 2.5, completionPerMillion: 15 },
   "openai:gpt-5.6-luna": { promptPerMillion: 1, completionPerMillion: 6 },
+  "openai:gpt-5.5": { promptPerMillion: 5, completionPerMillion: 30 },
+  "openai:gpt-5.5-pro": { promptPerMillion: 30, completionPerMillion: 180 },
+  "openai:gpt-5.4": { promptPerMillion: 2.5, completionPerMillion: 15 },
+  "openai:gpt-5.4-mini": { promptPerMillion: 0.75, completionPerMillion: 4.5 },
+  "openai:gpt-5.4-nano": { promptPerMillion: 0.2, completionPerMillion: 1.25 },
+  "openai:gpt-5.4-pro": { promptPerMillion: 30, completionPerMillion: 180 },
 
   "anthropic:claude-fable-5": { promptPerMillion: 10, completionPerMillion: 50 },
   "anthropic:claude-opus-5": { promptPerMillion: 5, completionPerMillion: 25 },
   "anthropic:claude-sonnet-5": { promptPerMillion: 2, completionPerMillion: 10 },
   "anthropic:claude-haiku-4-5": { promptPerMillion: 1, completionPerMillion: 5 },
+  "anthropic:claude-sonnet-4-6": { promptPerMillion: 3, completionPerMillion: 15 },
+  "anthropic:claude-sonnet-4-5": { promptPerMillion: 3, completionPerMillion: 15 },
+  "anthropic:claude-opus-4-8": { promptPerMillion: 5, completionPerMillion: 25 },
+  "anthropic:claude-opus-4-7": { promptPerMillion: 5, completionPerMillion: 25 },
+  "anthropic:claude-opus-4-6": { promptPerMillion: 5, completionPerMillion: 25 },
+  "anthropic:claude-opus-4-5": { promptPerMillion: 5, completionPerMillion: 25 },
 
   "google:gemini-3.1-pro-preview": { promptPerMillion: 2, completionPerMillion: 12 },
   "google:gemini-3.6-flash": { promptPerMillion: 1.5, completionPerMillion: 7.5 },
   "google:gemini-3.5-flash": { promptPerMillion: 1.5, completionPerMillion: 9 },
   "google:gemini-3.5-flash-lite": { promptPerMillion: 0.3, completionPerMillion: 2.5 },
   "google:gemini-3.1-flash-lite": { promptPerMillion: 0.25, completionPerMillion: 1.5 },
+  "google:gemini-3-flash-preview": { promptPerMillion: 0.5, completionPerMillion: 3 },
+  "google:gemini-2.5-pro": { promptPerMillion: 1.25, completionPerMillion: 10 },
+  "google:gemini-2.5-flash": { promptPerMillion: 0.3, completionPerMillion: 2.5 },
+  "google:gemini-2.5-flash-lite": { promptPerMillion: 0.1, completionPerMillion: 0.4 },
+  "google:gemini-2.5-flash-lite-preview-09-2025": { promptPerMillion: 0.1, completionPerMillion: 0.4 },
 
   "xai:grok-4.5": { promptPerMillion: 2, completionPerMillion: 6 },
 };

@@ -8,11 +8,17 @@ import {
   normalizeProviderModel,
 } from "./provider-catalog.ts";
 
-test("provider catalog keeps only current supported model tiers", () => {
+test("provider catalog exposes every supported text model tier", () => {
   assert.deepEqual(getProviderCatalog("openai").models, [
     "gpt-5.6-luna",
     "gpt-5.6-terra",
     "gpt-5.6-sol",
+    "gpt-5.5",
+    "gpt-5.5-pro",
+    "gpt-5.4",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    "gpt-5.4-pro",
   ]);
 
   assert.deepEqual(getProviderCatalog("anthropic").models, [
@@ -20,6 +26,12 @@ test("provider catalog keeps only current supported model tiers", () => {
     "claude-sonnet-5",
     "claude-opus-5",
     "claude-fable-5",
+    "claude-sonnet-4-6",
+    "claude-sonnet-4-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-opus-4-6",
+    "claude-opus-4-5",
   ]);
 
   assert.deepEqual(getProviderCatalog("google").models, [
@@ -28,6 +40,11 @@ test("provider catalog keeps only current supported model tiers", () => {
     "gemini-3.5-flash",
     "gemini-3.6-flash",
     "gemini-3.1-pro-preview",
+    "gemini-3-flash-preview",
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash-lite-preview-09-2025",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
   ]);
 
   assert.deepEqual(getProviderCatalog("xai").models, [
@@ -35,23 +52,23 @@ test("provider catalog keeps only current supported model tiers", () => {
   ]);
 });
 
-test("normalizeProviderModel upgrades legacy aliases to current supported models", () => {
+test("normalizeProviderModel preserves selectable models and upgrades retired aliases", () => {
   assert.equal(
     normalizeProviderModel("openai", "gpt-5.5"),
-    "gpt-5.6-sol",
+    "gpt-5.5",
   );
   assert.equal(
     normalizeProviderModel("openai", "gpt-5.4"),
-    "gpt-5.6-terra",
+    "gpt-5.4",
   );
   assert.equal(
     normalizeProviderModel("openai", "gpt-5.4-mini"),
-    "gpt-5.6-luna",
+    "gpt-5.4-mini",
   );
 
   assert.equal(
     normalizeProviderModel("anthropic", "claude-opus-4-7"),
-    "claude-opus-5",
+    "claude-opus-4-7",
   );
   assert.equal(
     normalizeProviderModel("anthropic", "claude-opus-4-1-20250805"),
@@ -59,7 +76,7 @@ test("normalizeProviderModel upgrades legacy aliases to current supported models
   );
   assert.equal(
     normalizeProviderModel("anthropic", "claude-sonnet-4-6"),
-    "claude-sonnet-5",
+    "claude-sonnet-4-6",
   );
   assert.equal(
     normalizeProviderModel("anthropic", "claude-haiku-4-5-20251001"),
@@ -80,15 +97,19 @@ test("normalizeProviderModel upgrades legacy aliases to current supported models
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-3-flash-preview"),
-    "gemini-3.5-flash",
+    "gemini-3-flash-preview",
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-2.5-flash"),
-    "gemini-3.6-flash",
+    "gemini-2.5-flash",
   );
   assert.equal(
     normalizeProviderModel("google", "gemini-2.5-flash-lite"),
-    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite",
+  );
+  assert.equal(
+    normalizeProviderModel("google", "gemini-2.5-flash-lite-preview-09-2025"),
+    "gemini-2.5-flash-lite-preview-09-2025",
   );
 
   assert.equal(

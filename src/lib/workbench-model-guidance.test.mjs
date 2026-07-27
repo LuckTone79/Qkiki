@@ -50,3 +50,14 @@ test("getModelGuidance classifies latest top-tier models correctly", () => {
     ["Deep", "Review"],
   );
 });
+
+test("getModelGuidance keeps legacy-but-supported GPT tiers selectable", () => {
+  assert.deepEqual(
+    getModelGuidance("openai", "gpt-5.5-pro", "gpt-5.6-terra", "en").traits,
+    ["Deep"],
+  );
+  assert.deepEqual(
+    getModelGuidance("openai", "gpt-5.4-nano", "gpt-5.6-terra", "en").traits,
+    ["Fast", "Balanced"],
+  );
+});

@@ -2,22 +2,13 @@ import type { ProviderName } from "@/lib/ai/types";
 
 const OPENAI_LEGACY_MODEL_MAP: Record<string, string> = {
   "gpt-5.6": "gpt-5.6-sol",
-  "gpt-5.5": "gpt-5.6-sol",
-  "gpt-5.5-pro": "gpt-5.6-sol",
-  "gpt-5.4": "gpt-5.6-terra",
-  "gpt-5.4-pro": "gpt-5.6-sol",
-  "gpt-5.4-mini": "gpt-5.6-luna",
-  "gpt-5.4-nano": "gpt-5.6-luna",
 };
 
 const ANTHROPIC_LEGACY_MODEL_MAP: Record<string, string> = {
   "claude-fable-5": "claude-fable-5",
   "claude-opus-5": "claude-opus-5",
   "claude-sonnet-5": "claude-sonnet-5",
-  "claude-opus-4-8": "claude-opus-5",
-  "claude-opus-4-7": "claude-opus-5",
   "claude-opus-4-1-20250805": "claude-opus-5",
-  "claude-sonnet-4-6": "claude-sonnet-5",
   "claude-sonnet-4-20250514": "claude-sonnet-5",
   "claude-haiku-4-5-20251001": "claude-haiku-4-5",
   "claude-3-5-haiku-20241022": "claude-haiku-4-5",
@@ -27,11 +18,6 @@ const GOOGLE_LEGACY_MODEL_MAP: Record<string, string> = {
   "gemini-3-pro-preview": "gemini-3.1-pro-preview",
   "gemini-3-pro": "gemini-3.1-pro-preview",
   "gemini-3.1-pro": "gemini-3.1-pro-preview",
-  "gemini-3-flash-preview": "gemini-3.5-flash",
-  "gemini-2.5-pro": "gemini-3.1-pro-preview",
-  "gemini-2.5-flash": "gemini-3.6-flash",
-  "gemini-2.5-flash-lite": "gemini-3.1-flash-lite",
-  "gemini-2.5-flash-lite-preview-09-2025": "gemini-3.1-flash-lite",
 };
 
 const XAI_LEGACY_MODEL_MAP: Record<string, string> = {
@@ -69,6 +55,12 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gpt-5.6-luna",
       "gpt-5.6-terra",
       "gpt-5.6-sol",
+      "gpt-5.5",
+      "gpt-5.5-pro",
+      "gpt-5.4",
+      "gpt-5.4-mini",
+      "gpt-5.4-nano",
+      "gpt-5.4-pro",
     ],
     imageModels: [
       "gpt-image-2",
@@ -87,6 +79,12 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "claude-sonnet-5",
       "claude-opus-5",
       "claude-fable-5",
+      "claude-sonnet-4-6",
+      "claude-sonnet-4-5",
+      "claude-opus-4-8",
+      "claude-opus-4-7",
+      "claude-opus-4-6",
+      "claude-opus-4-5",
     ],
     imageModels: [],
   },
@@ -103,6 +101,11 @@ export const PROVIDERS: ProviderCatalogItem[] = [
       "gemini-3.5-flash",
       "gemini-3.6-flash",
       "gemini-3.1-pro-preview",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash-lite",
+      "gemini-2.5-flash-lite-preview-09-2025",
+      "gemini-2.5-flash",
+      "gemini-2.5-pro",
     ],
     imageModels: [
       "imagen-4.0-generate-001",
@@ -188,17 +191,30 @@ export function getMinimumTimeoutSecondsForModel(
   const normalizedModel = normalizeProviderModel(provider, model?.trim() ?? "");
 
   if (provider === "openai") {
-    if (normalizedModel === "gpt-5.6-sol") {
-      return 180;
+    if (
+      normalizedModel === "gpt-5.6-sol" ||
+      normalizedModel === "gpt-5.5" ||
+      normalizedModel === "gpt-5.4-pro" ||
+      normalizedModel === "gpt-5.5-pro"
+    ) {
+      return normalizedModel.endsWith("pro") ? 300 : 180;
     }
 
-    if (normalizedModel === "gpt-5.6-terra") {
+    if (
+      normalizedModel === "gpt-5.6-terra" ||
+      normalizedModel === "gpt-5.4"
+    ) {
       return 150;
     }
 
-    if (normalizedModel === "gpt-5.6-luna") {
+    if (
+      normalizedModel === "gpt-5.6-luna" ||
+      normalizedModel === "gpt-5.4-mini"
+    ) {
       return 90;
     }
+
+    if (normalizedModel === "gpt-5.4-nano") return 60;
   }
 
   if (provider === "anthropic") {
@@ -206,11 +222,11 @@ export function getMinimumTimeoutSecondsForModel(
       return 240;
     }
 
-    if (normalizedModel === "claude-opus-5") {
+    if (normalizedModel === "claude-opus-5" || normalizedModel.includes("claude-opus-4")) {
       return 180;
     }
 
-    if (normalizedModel === "claude-sonnet-5") {
+    if (normalizedModel === "claude-sonnet-5" || normalizedModel.includes("claude-sonnet-4")) {
       return 150;
     }
 
@@ -221,6 +237,18 @@ export function getMinimumTimeoutSecondsForModel(
 
   if (provider === "xai" && normalizedModel === "grok-4.5") {
     return 90;
+  }
+
+  if (provider === "google") {
+    if (normalizedModel.includes("pro")) return 180;
+    if (
+      normalizedModel === "gemini-3.6-flash" ||
+      normalizedModel === "gemini-3.5-flash" ||
+      normalizedModel === "gemini-3-flash-preview"
+    ) {
+      return 120;
+    }
+    if (normalizedModel.includes("flash-lite")) return 75;
   }
 
   return getDefaultTimeoutSeconds(provider);

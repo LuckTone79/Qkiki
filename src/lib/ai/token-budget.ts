@@ -64,7 +64,7 @@ function truncateBlockText(text: string, targetTokens: number) {
 export function getMaxInputTokensForModel(model: string) {
   const normalized = model.toLowerCase();
 
-  if (normalized.includes("opus")) {
+  if (normalized.includes("opus") || normalized.includes("gemini-2.5-pro") || normalized.includes("gemini-3.1-pro")) {
     return 180_000;
   }
   if (normalized.includes("sonnet")) {
@@ -82,7 +82,7 @@ export function getMaxInputTokensForModel(model: string) {
   if (normalized.includes("gpt-5.4")) {
     return 128_000;
   }
-  if (normalized.includes("mini") || normalized.includes("haiku")) {
+  if (normalized.includes("mini") || normalized.includes("nano") || normalized.includes("haiku") || normalized.includes("flash-lite")) {
     return 64_000;
   }
 

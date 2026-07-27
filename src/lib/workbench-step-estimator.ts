@@ -16,16 +16,19 @@ export function estimateStepDurationMs(step: {
   if (model.includes("sonnet")) {
     return 120_000;
   }
-  if (model.includes("gpt-5.6-sol")) {
+  if (model.includes("gpt-5.5-pro") || model.includes("gpt-5.4-pro")) {
+    return 300_000;
+  }
+  if (model.includes("gpt-5.6-sol") || model === "gpt-5.5") {
     return 180_000;
   }
-  if (model.includes("gpt-5.6-terra") || model.includes("grok-4.5")) {
+  if (model.includes("gpt-5.6-terra") || model === "gpt-5.4" || model.includes("grok-4.5")) {
     return 150_000;
   }
-  if (model.includes("gpt-5.6-luna") || model.includes("gpt-5.5") || model.includes("gpt-5.4")) {
+  if (model.includes("gpt-5.6-luna") || model.includes("gpt-5.4-mini")) {
     return 120_000;
   }
-  if (model.includes("mini") || model.includes("haiku")) {
+  if (model.includes("nano") || model.includes("mini") || model.includes("haiku") || model.includes("flash-lite")) {
     return 30_000;
   }
 

@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 
 import {
   CREDIT_RISK_MULTIPLIER,
+  MODEL_PRICING,
   costUsdToCredits,
   estimateComparisonSummaryCredits,
   estimateImageGenerationCostUsd,
   estimateOutputTokensForAction,
   estimateWorkbenchRunCredits,
+  getModelPricing,
 } from "./credits.ts";
+import { PROVIDERS } from "./ai/provider-catalog.ts";
 
 const efficientOpenAiTarget = { provider: "openai", model: "gpt-5.6-luna" };
 
@@ -136,6 +139,40 @@ test("repeated image generation steps scale by generated image count", () => {
 
 test("code review output estimate allows findings plus complete improved code", () => {
   assert.equal(estimateOutputTokensForAction("code_review"), 2600);
+});
+
+test("each selectable text model uses its published pricing tier", () => {
+  assert.deepEqual(getModelPricing("openai", "gpt-5.5-pro"), {
+    promptPerMillion: 30,
+    completionPerMillion: 180,
+  });
+  assert.deepEqual(getModelPricing("openai", "gpt-5.4-nano"), {
+    promptPerMillion: 0.2,
+    completionPerMillion: 1.25,
+  });
+  assert.deepEqual(getModelPricing("google", "gemini-2.5-pro"), {
+    promptPerMillion: 1.25,
+    completionPerMillion: 10,
+  });
+  assert.deepEqual(getModelPricing("google", "gemini-2.5-flash-lite"), {
+    promptPerMillion: 0.1,
+    completionPerMillion: 0.4,
+  });
+  assert.deepEqual(getModelPricing("anthropic", "claude-opus-4-8"), {
+    promptPerMillion: 5,
+    completionPerMillion: 25,
+  });
+});
+
+test("every selectable text model has an explicit credit pricing record", () => {
+  for (const provider of PROVIDERS) {
+    for (const model of provider.models) {
+      assert.ok(
+        MODEL_PRICING[`${provider.name}:${model}`],
+        `${provider.name}/${model} is missing explicit pricing`,
+      );
+    }
+  }
 });
 
 test("scenario and deep-dive output estimates match their structured protocols", () => {

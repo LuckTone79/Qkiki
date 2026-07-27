@@ -35,6 +35,7 @@ export function getModelGuidance(
 
   if (
     normalizedModel.includes("mini") ||
+    normalizedModel.includes("nano") ||
     normalizedModel.includes("luna") ||
     normalizedModel.includes("flash") ||
     normalizedModel.includes("haiku")
@@ -53,6 +54,7 @@ export function getModelGuidance(
   if (
     normalizedModel.includes("gpt-5.6-sol") ||
     normalizedModel.includes("gpt-5.5") ||
+    normalizedModel.includes("gpt-5.4-pro") ||
     normalizedModel.includes("fable") ||
     normalizedModel.includes("opus") ||
     normalizedModel.includes("pro") ||
