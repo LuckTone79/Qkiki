@@ -1,5 +1,11 @@
 # Changelog
 
+## Patch 33 (v1.38.2-20260728) - Apply official Grok and Claude model icons
+
+- Replaced the xAI provider glyph shown in model selection and result cards with the Grok app icon mark.
+- Replaced the Anthropic "A" glyph with the Claude symbol and rendered the inner snowflake mark in Claude orange.
+- Kept the existing provider tile component and model catalog behavior unchanged.
+
 ## Patch 32 (v1.38.1-20260728) - Restore v1.38 redesign with current production catalog
 
 - Merged the v1.38 Yapp redesign back onto the current production branch that contained the v1.36.4 model catalog refresh.
