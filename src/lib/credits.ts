@@ -16,25 +16,22 @@ export type ImageGenerationPricing = {
 };
 
 export const MODEL_PRICING: Record<string, ModelPricing> = {
-  "openai:gpt-5.5": { promptPerMillion: 5, completionPerMillion: 22.5 },
-  "openai:gpt-5.4": { promptPerMillion: 2.5, completionPerMillion: 11.25 },
-  "openai:gpt-5.4-mini": { promptPerMillion: 0.375, completionPerMillion: 2.25 },
-  "openai:gpt-5.4-nano": { promptPerMillion: 0.1, completionPerMillion: 0.625 },
+  "openai:gpt-5.6-sol": { promptPerMillion: 5, completionPerMillion: 30 },
+  "openai:gpt-5.6-terra": { promptPerMillion: 2.5, completionPerMillion: 15 },
+  "openai:gpt-5.6-luna": { promptPerMillion: 1, completionPerMillion: 6 },
 
-  "anthropic:claude-opus-4-8": { promptPerMillion: 5, completionPerMillion: 25 },
-  "anthropic:claude-sonnet-4-6": { promptPerMillion: 3, completionPerMillion: 15 },
+  "anthropic:claude-fable-5": { promptPerMillion: 10, completionPerMillion: 50 },
+  "anthropic:claude-opus-5": { promptPerMillion: 5, completionPerMillion: 25 },
+  "anthropic:claude-sonnet-5": { promptPerMillion: 2, completionPerMillion: 10 },
   "anthropic:claude-haiku-4-5": { promptPerMillion: 1, completionPerMillion: 5 },
 
   "google:gemini-3.1-pro-preview": { promptPerMillion: 2, completionPerMillion: 12 },
-  "google:gemini-3-flash-preview": { promptPerMillion: 0.5, completionPerMillion: 3 },
-  "google:gemini-2.5-pro": { promptPerMillion: 1.25, completionPerMillion: 10 },
-  "google:gemini-2.5-flash": { promptPerMillion: 0.3, completionPerMillion: 2.5 },
-  "google:gemini-2.5-flash-lite": { promptPerMillion: 0.1, completionPerMillion: 0.4 },
+  "google:gemini-3.6-flash": { promptPerMillion: 1.5, completionPerMillion: 7.5 },
+  "google:gemini-3.5-flash": { promptPerMillion: 1.5, completionPerMillion: 9 },
+  "google:gemini-3.5-flash-lite": { promptPerMillion: 0.3, completionPerMillion: 2.5 },
+  "google:gemini-3.1-flash-lite": { promptPerMillion: 0.25, completionPerMillion: 1.5 },
 
-  "xai:grok-4.3": { promptPerMillion: 1.25, completionPerMillion: 2.5 },
-  "xai:grok-4.20-multi-agent": { promptPerMillion: 1.25, completionPerMillion: 2.5 },
-  "xai:grok-4.20-reasoning": { promptPerMillion: 1.25, completionPerMillion: 2.5 },
-  "xai:grok-4.20-non-reasoning": { promptPerMillion: 1.25, completionPerMillion: 2.5 },
+  "xai:grok-4.5": { promptPerMillion: 2, completionPerMillion: 6 },
 };
 
 export const IMAGE_GENERATION_PRICING: Record<string, ImageGenerationPricing> = {
@@ -510,7 +507,7 @@ export function estimateComparisonSummaryCredits(input: {
   return sumEstimateLines([
     estimateLine({
       provider: "openai",
-      model: "gpt-5.5",
+      model: "gpt-5.6-sol",
       actionType: "parallel_comparison_summary",
       inputTokens,
       outputTokens: 1200,

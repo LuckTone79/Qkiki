@@ -10,7 +10,7 @@ import {
   estimateWorkbenchRunCredits,
 } from "./credits.ts";
 
-const miniTarget = { provider: "openai", model: "gpt-5.4-mini" };
+const efficientOpenAiTarget = { provider: "openai", model: "gpt-5.6-luna" };
 
 test("credit conversion keeps at least a 2x API-cost safety margin", () => {
   assert.ok(CREDIT_RISK_MULTIPLIER >= 2);
@@ -29,13 +29,13 @@ test("parallel credit estimate scales with selected target count", () => {
     mode: "parallel",
     originalInput: "검토할 긴 입력입니다.".repeat(200),
     additionalInstruction: "핵심 리스크를 찾아줘.",
-    targets: [miniTarget],
+    targets: [efficientOpenAiTarget],
   });
   const twoTargets = estimateWorkbenchRunCredits({
     mode: "parallel",
     originalInput: "검토할 긴 입력입니다.".repeat(200),
     additionalInstruction: "핵심 리스크를 찾아줘.",
-    targets: [miniTarget, miniTarget],
+    targets: [efficientOpenAiTarget, efficientOpenAiTarget],
   });
 
   assert.equal(oneTarget.plannedCallCount, 1);
@@ -76,21 +76,21 @@ test("sequential credit estimate expands repeat blocks before pricing", () => {
         orderIndex: 1,
         actionType: "generate",
         targetProvider: "openai",
-        targetModel: "gpt-5.4-mini",
+        targetModel: "gpt-5.6-luna",
         sourceMode: "original",
       },
       {
         orderIndex: 2,
         actionType: "critique",
         targetProvider: "openai",
-        targetModel: "gpt-5.4-mini",
+        targetModel: "gpt-5.6-luna",
         sourceMode: "previous",
       },
       {
         orderIndex: 3,
         actionType: "improve",
         targetProvider: "openai",
-        targetModel: "gpt-5.4-mini",
+        targetModel: "gpt-5.6-luna",
         sourceMode: "previous",
       },
     ],

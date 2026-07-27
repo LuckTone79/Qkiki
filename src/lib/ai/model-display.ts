@@ -2,9 +2,19 @@ import type { ProviderName } from "@/lib/ai/types";
 import { normalizeProviderModel } from "@/lib/ai/provider-catalog";
 
 const MODEL_DISPLAY_NAMES: Record<string, string> = {
-  "anthropic:claude-opus-4-8": "Opus 4.8",
-  "anthropic:claude-sonnet-4-6": "Sonnet 4.6",
+  "openai:gpt-5.6-sol": "GPT-5.6 Sol",
+  "openai:gpt-5.6-terra": "GPT-5.6 Terra",
+  "openai:gpt-5.6-luna": "GPT-5.6 Luna",
+  "anthropic:claude-fable-5": "Fable 5",
+  "anthropic:claude-opus-5": "Opus 5",
+  "anthropic:claude-sonnet-5": "Sonnet 5",
   "anthropic:claude-haiku-4-5": "Haiku 4.5",
+  "google:gemini-3.6-flash": "Gemini 3.6 Flash",
+  "google:gemini-3.5-flash": "Gemini 3.5 Flash",
+  "google:gemini-3.5-flash-lite": "Gemini 3.5 Flash-Lite",
+  "google:gemini-3.1-flash-lite": "Gemini 3.1 Flash-Lite",
+  "google:gemini-3.1-pro-preview": "Gemini 3.1 Pro Preview",
+  "xai:grok-4.5": "Grok 4.5",
   // Image-generation models
   "openai:gpt-image-1": "GPT Image 1",
   "openai:gpt-image-2": "GPT Image 2",

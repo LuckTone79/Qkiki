@@ -70,6 +70,12 @@ export function getMaxInputTokensForModel(model: string) {
   if (normalized.includes("sonnet")) {
     return 120_000;
   }
+  if (normalized.includes("fable")) {
+    return 180_000;
+  }
+  if (normalized.includes("gpt-5.6")) {
+    return 180_000;
+  }
   if (normalized.includes("gpt-5.5")) {
     return 128_000;
   }

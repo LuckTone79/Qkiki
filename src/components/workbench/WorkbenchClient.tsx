@@ -592,7 +592,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 1,
       actionType: "generate",
       targetProvider: "openai",
-      targetModel: "gpt-5.4-mini",
+      targetModel: "gpt-5.6-terra",
       sourceMode: "original",
       instructionTemplate:
         language === "ko"
@@ -604,7 +604,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 2,
       actionType: "critique",
       targetProvider: "xai",
-      targetModel: "grok-4.3",
+      targetModel: "grok-4.5",
       sourceMode: "previous",
       instructionTemplate:
         language === "ko"
@@ -616,7 +616,7 @@ function initialSteps(language: AppLanguage): WorkflowStepState[] {
       orderIndex: 3,
       actionType: "improve",
       targetProvider: "google",
-      targetModel: "gemini-3-flash-preview",
+      targetModel: "gemini-3.6-flash",
       sourceMode: "previous",
       instructionTemplate:
         language === "ko"
@@ -3068,7 +3068,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           actionType: "improve",
           targetProvider: provider?.providerName ?? last?.targetProvider ?? "openai",
           targetModel:
-            provider?.defaultModel ?? last?.targetModel ?? "gpt-5.4-mini",
+            provider?.defaultModel ?? last?.targetModel ?? "gpt-5.6-terra",
           sourceMode: "previous",
           instructionTemplate:
             language === "ko"

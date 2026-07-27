@@ -10,13 +10,19 @@ export function estimateStepDurationMs(step: {
   if (model.includes("opus")) {
     return 180_000;
   }
+  if (model.includes("fable")) {
+    return 240_000;
+  }
   if (model.includes("sonnet")) {
     return 120_000;
   }
-  if (model.includes("gpt-5.5")) {
+  if (model.includes("gpt-5.6-sol")) {
+    return 180_000;
+  }
+  if (model.includes("gpt-5.6-terra") || model.includes("grok-4.5")) {
     return 150_000;
   }
-  if (model.includes("gpt-5.4")) {
+  if (model.includes("gpt-5.6-luna") || model.includes("gpt-5.5") || model.includes("gpt-5.4")) {
     return 120_000;
   }
   if (model.includes("mini") || model.includes("haiku")) {
@@ -36,6 +42,9 @@ export function canInlineContinue(step: {
     return false;
   }
   if (model.includes("opus")) {
+    return false;
+  }
+  if (model.includes("fable")) {
     return false;
   }
   if (model.includes("sonnet")) {

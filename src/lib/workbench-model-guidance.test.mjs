@@ -6,8 +6,8 @@ import { getModelGuidance } from "./workbench-model-guidance.ts";
 test("getModelGuidance marks the default model as recommended", () => {
   const guidance = getModelGuidance(
     "openai",
-    "gpt-5.4-mini",
-    "gpt-5.4-mini",
+    "gpt-5.6-terra",
+    "gpt-5.6-terra",
     "en",
   );
 
@@ -15,33 +15,38 @@ test("getModelGuidance marks the default model as recommended", () => {
   assert.equal(guidance.recommendedLabel, "Recommended start");
 });
 
-test("getModelGuidance derives fast traits for mini and flash models", () => {
+test("getModelGuidance derives fast traits for lightweight and flash models", () => {
   assert.deepEqual(
-    getModelGuidance("openai", "gpt-5.4-mini", "gpt-5.4", "en").traits,
-    ["Fast", "Balanced"],
+    getModelGuidance("openai", "gpt-5.6-luna", "gpt-5.6-terra", "en").traits,
+    ["Fast"],
   );
 
   assert.deepEqual(
-    getModelGuidance("google", "gemini-2.5-flash", "gemini-2.5-pro", "ko").traits,
-    ["빠름"],
+    getModelGuidance("google", "gemini-3.6-flash", "gemini-3.1-pro-preview", "en").traits,
+    ["Fast"],
   );
 });
 
-test("getModelGuidance classifies GPT-5.5 as a top-tier model", () => {
+test("getModelGuidance classifies balanced latest models correctly", () => {
   assert.deepEqual(
-    getModelGuidance("openai", "gpt-5.5", "gpt-5.4-mini", "en").traits,
+    getModelGuidance("openai", "gpt-5.6-terra", "gpt-5.6-terra", "en").traits,
+    ["Balanced"],
+  );
+
+  assert.deepEqual(
+    getModelGuidance("anthropic", "claude-sonnet-5", "claude-sonnet-5", "en").traits,
+    ["Balanced", "Review"],
+  );
+});
+
+test("getModelGuidance classifies latest top-tier models correctly", () => {
+  assert.deepEqual(
+    getModelGuidance("openai", "gpt-5.6-sol", "gpt-5.6-terra", "en").traits,
     ["Deep"],
   );
-});
 
-test("getModelGuidance derives deeper review traits for opus-like models", () => {
   assert.deepEqual(
-    getModelGuidance(
-      "anthropic",
-      "claude-opus-4-8",
-      "claude-sonnet-4-6",
-      "en",
-    ).traits,
+    getModelGuidance("anthropic", "claude-fable-5", "claude-sonnet-5", "en").traits,
     ["Deep", "Review"],
   );
 });

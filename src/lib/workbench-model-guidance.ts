@@ -35,6 +35,7 @@ export function getModelGuidance(
 
   if (
     normalizedModel.includes("mini") ||
+    normalizedModel.includes("luna") ||
     normalizedModel.includes("flash") ||
     normalizedModel.includes("haiku")
   ) {
@@ -43,13 +44,16 @@ export function getModelGuidance(
 
   if (
     normalizedModel.includes("sonnet") ||
+    normalizedModel.includes("terra") ||
     normalizedModel.includes("gpt-5.4")
   ) {
     traits.push(traitLabels("balanced", language));
   }
 
   if (
+    normalizedModel.includes("gpt-5.6-sol") ||
     normalizedModel.includes("gpt-5.5") ||
+    normalizedModel.includes("fable") ||
     normalizedModel.includes("opus") ||
     normalizedModel.includes("pro") ||
     normalizedModel.includes("ultra")
@@ -58,6 +62,7 @@ export function getModelGuidance(
   }
 
   if (
+    normalizedModel.includes("fable") ||
     normalizedModel.includes("opus") ||
     normalizedModel.includes("sonnet") ||
     normalizedModel.includes("grok")

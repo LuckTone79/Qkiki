@@ -9,8 +9,8 @@ import {
 test("token-budget trims older competing context before the latest handoff", () => {
   const latestHandoff = "LATEST ".repeat(1200).trim();
   const fitted = fitPromptBlocksToBudget({
-    model: "gpt-5.5",
-    reservedOutputTokens: 124_000,
+    model: "gpt-5.6-sol",
+    reservedOutputTokens: 176_000,
     blocks: [
       {
         key: "base",
@@ -43,8 +43,8 @@ test("token-budget trims older competing context before the latest handoff", () 
 
 test("token-budget still ends within budget after last-resort shrinking", () => {
   const fitted = fitPromptBlocksToBudget({
-    model: "gpt-5.5",
-    reservedOutputTokens: 124_000,
+    model: "gpt-5.6-sol",
+    reservedOutputTokens: 176_000,
     blocks: [
       {
         key: "base",
@@ -85,8 +85,8 @@ test("token-budget stays within budget when many minimum-size blocks must be dro
   ];
 
   const fitted = fitPromptBlocksToBudget({
-    model: "gpt-5.5",
-    reservedOutputTokens: 124_000,
+    model: "gpt-5.6-sol",
+    reservedOutputTokens: 176_000,
     blocks,
   });
 
