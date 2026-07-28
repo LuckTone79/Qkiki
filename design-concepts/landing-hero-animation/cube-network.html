@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Qkiki — AI Cube Network (Hero Animation)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05070b; overflow: hidden; }
+  #stage { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<script>
+(() => {
+  "use strict";
+
+  // ----- Render target -----
+  const W = 800, H = 450;
+  const canvas = document.getElementById("stage");
+  canvas.width = W;
+  canvas.height = H;
+  // Keep aspect ratio when shown full-screen.
+  function fit() {
+    const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    canvas.style.width = (W * s) + "px";
+    canvas.style.height = (H * s) + "px";
+    canvas.style.position = "absolute";
+    canvas.style.left = ((window.innerWidth - W * s) / 2) + "px";
+    canvas.style.top = ((window.innerHeight - H * s) / 2) + "px";
+  }
+  window.addEventListener("resize", fit);
+  fit();
+
+  const ctx = canvas.getContext("2d");
+  const TAU = Math.PI * 2;
+
+  // Brand palette — teal accent on a deep cinematic navy (matches the hero overlay).
+  const TEAL = [45, 212, 191];     // teal-400
+  const CYAN = [103, 232, 249];    // cyan-300
+  const FACE = [148, 178, 196];    // cool steel for cube faces
+
+  // ----- Seeded scene so the layout is stable every render -----
+  let seed = 1337;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+
+  // Nodes = AI "cubes" of varying size, scattered across the frame.
+  const NODE_COUNT = 16;
+  const nodes = [];
+  for (let i = 0; i < NODE_COUNT; i++) {
+    const big = rand();
+    nodes.push({
+      bx: 0.06 + rand() * 0.88,        // base x (0..1)
+      by: 0.10 + rand() * 0.80,        // base y (0..1)
+      size: 10 + big * big * 40,        // cube edge length, biased toward small
+      // organic drift — integer frequencies keep the loop seamless
+      ax: 0.012 + rand() * 0.03,        // drift amplitude x (fraction of W)
+      ay: 0.012 + rand() * 0.03,        // drift amplitude y (fraction of H)
+      fx: 1 + Math.floor(rand() * 2),   // drift frequency x (1 or 2 cycles / loop)
+      fy: 1 + Math.floor(rand() * 2),   // drift frequency y
+      px: rand() * TAU,                 // phase x
+      py: rand() * TAU,                 // phase y
+      spin: rand() * TAU,               // breathing phase
+      hot: rand(),                      // how "teal/active" the node glows
+    });
+  }
+
+  // Edges connect nearby nodes — the data fabric between AIs.
+  const edges = [];
+  for (let i = 0; i < NODE_COUNT; i++) {
+    for (let j = i + 1; j < NODE_COUNT; j++) {
+      const dx = nodes[i].bx - nodes[j].bx;
+      const dy = nodes[i].by - nodes[j].by;
+      const d = Math.hypot(dx, dy);
+      if (d < 0.30) {
+        edges.push({
+          a: i, b: j, d,
+          // each edge carries data pulses; integer speed => seamless loop
+          speed: 1 + Math.floor(rand() * 3),
+          offset: rand(),
+          count: 1 + Math.floor(rand() * 2),
+        });
+      }
+    }
+  }
+
+  // Position of a node at a given normalized loop phase (0..1).
+  function nodePos(n, phase) {
+    const x = (n.bx + n.ax * Math.sin(TAU * n.fx * phase + n.px)) * W;
+    const y = (n.by + n.ay * Math.cos(TAU * n.fy * phase + n.py)) * H;
+    return [x, y];
+  }
+
+  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  // Draw one isometric cube centered at (x,y).
+  function drawCube(x, y, size, glow, t) {
+    const breathe = 1 + 0.06 * Math.sin(t + 0.0);
+    const s = size * breathe;
+    const w = s;            // half-width of the iso top
+    const h = s * 0.5;      // iso vertical
+    const dh = s * 0.9;     // cube body height
+
+    // Vertices (isometric, top diamond + extruded body)
+    const top = [x, y - h];
+    const right = [x + w, y];
+    const bottom = [x, y + h];
+    const left = [x - w, y];
+    const bL = [x - w, y + dh];
+    const bB = [x, y + h + dh];
+    const bR = [x + w, y + dh];
+
+    const lum = 0.55 + glow * 0.45;
+
+    // Left face (darkest)
+    ctx.beginPath();
+    ctx.moveTo(left[0], left[1]);
+    ctx.lineTo(bottom[0], bottom[1]);
+    ctx.lineTo(bB[0], bB[1]);
+    ctx.lineTo(bL[0], bL[1]);
+    ctx.closePath();
+    ctx.fillStyle = rgba([FACE[0]*0.32, FACE[1]*0.34, FACE[2]*0.40], 0.9);
+    ctx.fill();
+
+    // Right face (mid, tinted teal by activity)
+    ctx.beginPath();
+    ctx.moveTo(right[0], right[1]);
+    ctx.lineTo(bottom[0], bottom[1]);
+    ctx.lineTo(bB[0], bB[1]);
+    ctx.lineTo(bR[0], bR[1]);
+    ctx.closePath();
+    ctx.fillStyle = rgba([
+      FACE[0]*0.5 + TEAL[0]*0.20*glow,
+      FACE[1]*0.5 + TEAL[1]*0.20*glow,
+      FACE[2]*0.5 + TEAL[2]*0.20*glow], 0.92);
+    ctx.fill();
+
+    // Top face (brightest, glows teal/cyan with activity)
+    ctx.beginPath();
+    ctx.moveTo(top[0], top[1]);
+    ctx.lineTo(right[0], right[1]);
+    ctx.lineTo(bottom[0], bottom[1]);
+    ctx.lineTo(left[0], left[1]);
+    ctx.closePath();
+    ctx.fillStyle = rgba([
+      FACE[0]*0.7*lum + CYAN[0]*0.5*glow,
+      FACE[1]*0.7*lum + CYAN[1]*0.5*glow,
+      FACE[2]*0.7*lum + CYAN[2]*0.5*glow], 0.96);
+    ctx.fill();
+
+    // Crisp top edges
+    ctx.strokeStyle = rgba(CYAN, 0.25 + glow * 0.6);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // ----- Master render for a normalized phase 0..1 -----
+  function renderFrame(phase) {
+    // Background — deep cinematic gradient
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#0a0f17");
+    g.addColorStop(0.55, "#070b12");
+    g.addColorStop(1, "#04060a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // Soft teal vignette / aura that slowly breathes
+    const aura = ctx.createRadialGradient(
+      W * (0.5 + 0.06 * Math.sin(TAU * phase)), H * 0.42, 40,
+      W * 0.5, H * 0.5, W * 0.7);
+    aura.addColorStop(0, rgba(TEAL, 0.10 + 0.04 * Math.sin(TAU * phase)));
+    aura.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = aura;
+    ctx.fillRect(0, 0, W, H);
+
+    const pos = nodes.map(n => nodePos(n, phase));
+
+    // --- Edges (the data fabric) ---
+    ctx.lineCap = "round";
+    for (const e of edges) {
+      const [x1, y1] = pos[e.a];
+      const [x2, y2] = pos[e.b];
+      const strength = 1 - e.d / 0.30;          // closer = brighter
+      const lg = ctx.createLinearGradient(x1, y1, x2, y2);
+      lg.addColorStop(0, rgba(TEAL, 0.05 + 0.10 * strength));
+      lg.addColorStop(0.5, rgba(CYAN, 0.10 + 0.18 * strength));
+      lg.addColorStop(1, rgba(TEAL, 0.05 + 0.10 * strength));
+      ctx.strokeStyle = lg;
+      ctx.lineWidth = 0.6 + strength * 1.2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    // --- Data pulses traveling along edges ---
+    for (const e of edges) {
+      const [x1, y1] = pos[e.a];
+      const [x2, y2] = pos[e.b];
+      for (let k = 0; k < e.count; k++) {
+        const u = (phase * e.speed + e.offset + k / e.count) % 1;
+        const px = x1 + (x2 - x1) * u;
+        const py = y1 + (y2 - y1) * u;
+        // fade in/out at the ends so pulses don't pop
+        const edge = Math.sin(Math.PI * u);
+        const r = 2.2 * edge + 0.6;
+        const glow = ctx.createRadialGradient(px, py, 0, px, py, r * 4);
+        glow.addColorStop(0, rgba(CYAN, 0.9 * edge));
+        glow.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(px, py, r * 4, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = rgba([240, 255, 255], edge);
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    // --- Cubes, drawn back-to-front by vertical position ---
+    const order = pos.map((p, i) => i).sort((a, b) => pos[a][1] - pos[b][1]);
+    for (const i of order) {
+      const n = nodes[i];
+      const [x, y] = pos[i];
+      // activity pulse — each cube "thinks" on its own rhythm
+      const act = 0.5 + 0.5 * Math.sin(TAU * (n.fx) * phase + n.spin);
+      const glow = Math.min(1, n.hot * 0.6 + act * 0.5);
+
+      // ground glow under active cubes
+      if (glow > 0.4) {
+        const gg = ctx.createRadialGradient(x, y + n.size * 0.4, 0, x, y + n.size * 0.4, n.size * 2.2);
+        gg.addColorStop(0, rgba(TEAL, 0.18 * glow));
+        gg.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gg;
+        ctx.beginPath();
+        ctx.arc(x, y + n.size * 0.4, n.size * 2.2, 0, TAU);
+        ctx.fill();
+      }
+
+      drawCube(x, y, n.size, glow, TAU * phase + n.spin);
+    }
+
+    // Subtle film grain / depth fade at edges
+    const edgeFade = ctx.createRadialGradient(W/2, H/2, H*0.35, W/2, H/2, W*0.62);
+    edgeFade.addColorStop(0, "rgba(0,0,0,0)");
+    edgeFade.addColorStop(1, "rgba(2,4,7,0.55)");
+    ctx.fillStyle = edgeFade;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Expose for the offline GIF renderer.
+  window.__W = W;
+  window.__H = H;
+  window.renderFrame = renderFrame;
+
+  // Live preview loop (3s seamless loop).
+  const LOOP_MS = 4000;
+  function tick(ts) {
+    const phase = (ts % LOOP_MS) / LOOP_MS;
+    renderFrame(phase);
+    requestAnimationFrame(tick);
+  }
+  // Only auto-run when viewed in a browser (not during headless frame capture).
+  if (!window.__CAPTURE__) requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
