@@ -80,6 +80,10 @@ AI 코딩 도구로 코드 변경이 발생하는 모든 작업에서 아래를 
 - `docs/development/SEARCH_BEFORE_BUILD.md`
 - `docs/feature-registry/REGISTRY.yaml`
 - `skills/wideget-feature-scout/SKILL.md`
+- `docs/feature-registry/CATALOG.json`
+- `tools/feature_scout.py`
+
+중앙 WideGet 저장소를 단일 원본으로 사용한다. 대상 앱 저장소에 Scout/카탈로그를 복사해 별도 유지하지 않는다. Codex에서 중앙 저장소에 접근 가능하면 `tools/feature_scout.py`와 `CATALOG.json`을 우선 사용한다.
 
 외부 코드를 채택할 때 stars 수만으로 선택하지 않는다. 라이선스가 없으면 기본적으로 사용하지 않고, GPL/AGPL/SSPL/custom/source-available 계열은 자동 채택하지 말고 검토 대상으로 둔다. 기존 인증/DB/라우팅/UI 아키텍처를 불필요하게 대체하지 않는다.
 <!-- END:wideget-search-before-build -->
