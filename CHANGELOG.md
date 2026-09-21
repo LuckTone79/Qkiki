@@ -1,5 +1,12 @@
 # Changelog
 
+## Patch 37 (v1.36.5-20260922)
+
+- Integrated the pinned WideGet Login Kit alpha.2 app-owned Yapp adapter and identity hooks.
+- Preserved existing Prisma `User` IDs and domain data while making Supabase UUID-to-CUID linking conflict-safe.
+- Centralized email/Google/Kakao login availability for sign-in and sign-up, keeping Facebook and WhatsApp OTP out of the public picker until their gates close.
+- Kept the public landing page at `/` and completed the app-owned identity bridge after email/password sign-in.
+
 ## Patch 36 (v1.35.1-20260630)
 
 - Fixed project creation after an authenticated page becomes stale because the user session has expired.

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kit": {
+    "package": "@wideget/login-kit",
+    "version": "0.1.0-alpha.2"
+  },
+  "application": {
+    "id": "net.wideget.yapp",
+    "displayName": "Yapp",
+    "environment": "production",
+    "platforms": [
+      "web"
+    ]
+  },
+  "authBoundary": {
+    "mode": "supabase-existing",
+    "boundaryId": "yapp-web-supabase-prisma"
+  },
+  "releaseGates": {
+    "iosAppleSignIn": "required"
+  },
+  "providers": [
+    {
+      "id": "email_password",
+      "purpose": "primary_login",
+      "status": "configured",
+      "platforms": [
+        "web"
+      ]
+    },
+    {
+      "id": "google",
+      "purpose": "primary_login",
+      "status": "configured",
+      "platforms": [
+        "web"
+      ]
+    },
+    {
+      "id": "kakao",
+      "purpose": "primary_login",
+      "status": "configured",
+      "platforms": [
+        "web"
+      ]
+    },
+    {
+      "id": "facebook",
+      "purpose": "primary_login",
+      "status": "planned",
+      "platforms": [
+        "web"
+      ]
+    },
+    {
+      "id": "whatsapp_otp",
+      "purpose": "otp_delivery",
+      "status": "planned",
+      "platforms": [
+        "web"
+      ]
+    },
+    {
+      "id": "apple",
+      "purpose": "primary_login",
+      "status": "planned",
+      "platforms": [
+        "web"
+      ]
+    }
+  ],
+  "appOwned": {
+    "adapter": "auth/wideget/adapter.mjs",
+    "hooks": "auth/wideget/hooks.mjs"
+  }
+}
