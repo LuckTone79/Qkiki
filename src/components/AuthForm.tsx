@@ -94,10 +94,10 @@ function getAuthReasonMessage(reason: string | null, language: AppLanguage) {
 
   if (reason === "trial_login_required") {
     return localize(language, {
-      en: "This device cannot start another anonymous trial. Sign in to continue.",
-      ko: "같은 기기에서 체험판을 다시 시작할 수 없습니다. 계속하려면 로그인해 주세요.",
-      ja: "この端末では別の匿名トライアルを開始できません。続けるにはログインしてください。",
-      es: "Este dispositivo no puede iniciar otra prueba. Inicia sesión para continuar.",
+      en: "Sign in to continue securely.",
+      ko: "안전하게 계속하려면 로그인해 주세요.",
+      ja: "安全に続けるにはログインしてください。",
+      es: "Inicia sesión para continuar de forma segura.",
     });
   }
 

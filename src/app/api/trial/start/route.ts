@@ -58,18 +58,14 @@ export async function POST(request: Request) {
   });
 
   if (existing) {
-    // Anonymous visitors are no longer capped by a conversation count — they
-    // are metered purely by their daily credit allowance (30/day).
-    await createAuthSession(existing.trialUserId, {
-      durationMs: TRIAL_SESSION_DURATION_MS,
-      persistCookie: false,
-    });
-
+    // An IP address can be shared by unrelated visitors. Only the authenticated
+    // session checked above proves ownership of an existing trial account.
     return NextResponse.json(
       {
-        success: true,
-        redirectUrl: "/app/workbench?trial=true",
+        error: "Sign in to continue securely.",
+        redirectUrl: buildTrialLoginRedirect(),
       },
+      { status: 401 },
     );
   }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## Trial privacy (v1.38.5-20261018)
+
+- Require the existing authenticated session to resume a trial; a shared IP alone can no longer grant access to another visitor's account.
+- Keep first visits and authenticated trial sessions working, and guide visitors without a session to sign in.
+
 ## Web release (v1.38.4-20261018)
 
 - Combined the published Yapp redesign and security fixes with the production Login Kit identity bridge.
