@@ -11,6 +11,10 @@ import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { sanitizeNextPath } from "@/lib/auth-next-path";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  getEnabledWebPrimaryLoginProviders,
+  type YappSocialLoginProvider,
+} from "@/lib/wideget-login-registry";
+import {
   buildOpenInBrowserPath,
   isLikelyEmbeddedBrowser,
 } from "@/lib/browser-detection";
@@ -20,6 +24,7 @@ type AuthFormProps = {
 };
 
 function getOAuthErrorMessage(errorCode: string | null, language: AppLanguage) {
+  errorCode = errorCode?.toLowerCase() ?? null;
   if (!errorCode) {
     return "";
   }
@@ -48,6 +53,24 @@ function getOAuthErrorMessage(errorCode: string | null, language: AppLanguage) {
       ko: "일부 인앱 브라우저에서는 소셜 로그인이 차단될 수 있습니다. 크롬 또는 사파리 같은 기본 브라우저로 열어서 다시 시도해주세요.",
       ja: "一部のアプリ内ブラウザーではソーシャルログインがブロックされることがあります。ChromeやSafariなどの標準ブラウザーで開いて再度お試しください。",
       es: "El inicio de sesión social puede bloquearse en algunos navegadores integrados. Abre esta página en Chrome, Safari u otro navegador del sistema y vuelve a intentarlo.",
+    });
+  }
+
+  if (errorCode === "identity_link_conflict") {
+    return localize(language, {
+      en: "This email is already linked to another Yapp account. Sign in with the existing method or contact support.",
+      ko: "이 이메일은 이미 다른 Yapp 계정에 연결되어 있습니다. 기존 로그인 방법으로 로그인하거나 운영팀에 문의해주세요.",
+      ja: "このメールアドレスは別のYappアカウントに連携されています。既存の方法でログインするか、サポートにお問い合わせください。",
+      es: "Este correo ya está vinculado a otra cuenta de Yapp. Inicia sesión con el método existente o contacta con soporte.",
+    });
+  }
+
+  if (errorCode === "identity_email_required") {
+    return localize(language, {
+      en: "This provider did not return an email, so the Yapp account could not be linked. Use a provider that supplies an email.",
+      ko: "이 로그인 서비스가 이메일을 제공하지 않아 계정을 연결할 수 없습니다. 이메일을 제공하는 로그인 방법을 사용해주세요.",
+      ja: "メールアドレスが提供されなかったため、アカウントを連携できません。メールアドレスを提供するログイン方法を使用してください。",
+      es: "El proveedor no devolvió un correo y no se pudo vincular la cuenta. Usa un método que proporcione un correo.",
     });
   }
 
@@ -144,12 +167,16 @@ export function AuthForm({ mode }: AuthFormProps) {
   const authReason = getAuthReasonMessage(reasonCode, language);
   const isSignUp = mode === "sign-up";
 
-  function oauthHref(provider: "google" | "kakao") {
-    return "/api/auth/oauth/" + provider + "?next=" + encodeURIComponent(nextPath);
+  const oauthProviders = getEnabledWebPrimaryLoginProviders()
+    .map((provider) => provider.id)
+    .filter((provider): provider is YappSocialLoginProvider => provider !== "email_password");
+
+  function oauthHref(provider: YappSocialLoginProvider) {
+    return `/api/auth/oauth/${provider}?next=${encodeURIComponent(nextPath)}`;
   }
 
   function handleOAuthClick(
-    provider: "google" | "kakao",
+    provider: YappSocialLoginProvider,
     event: MouseEvent<HTMLAnchorElement>,
   ) {
     if (typeof navigator === "undefined") {
@@ -160,7 +187,20 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
 
     event.preventDefault();
-    window.location.href = buildOpenInBrowserPath(oauthHref(provider));
+    window.location.assign(buildOpenInBrowserPath(oauthHref(provider)));
+  }
+
+  async function resolveAppIdentity() {
+    const response = await fetch("/api/auth/resolve", { method: "POST" });
+    if (response.ok) {
+      return true;
+    }
+
+    const data = (await response.json().catch(() => ({}))) as {
+      code?: string;
+    };
+    setError(getOAuthErrorMessage(data.code?.toLowerCase() ?? "oauth_failed", language));
+    return false;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -213,6 +253,10 @@ export function AuthForm({ mode }: AuthFormProps) {
           return;
         }
 
+        if (!(await resolveAppIdentity())) {
+          setLoading(false);
+          return;
+        }
         window.location.href = nextPath;
         return;
       }
@@ -232,6 +276,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
 
+      if (!(await resolveAppIdentity())) {
+        setLoading(false);
+        return;
+      }
       window.location.href = nextPath;
     } catch {
       setError(t("authFailed"));
@@ -327,26 +375,30 @@ export function AuthForm({ mode }: AuthFormProps) {
         resetSignal={turnstileResetSignal}
       />
 
-      <div className="space-y-2">
-        <a
-          href={oauthHref("google")}
-          onClick={(event) => handleOAuthClick("google", event)}
-          className="block w-full rounded-md border border-stone-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-stone-800 hover:bg-stone-50"
-        >
-          {oauthCopy.google}
-        </a>
-        <a
-          href={oauthHref("kakao")}
-          onClick={(event) => handleOAuthClick("kakao", event)}
-          className="block w-full rounded-md bg-[#FEE500] px-4 py-2.5 text-center text-sm font-semibold text-[#191919] hover:brightness-95"
-        >
-          {oauthCopy.kakao}
-        </a>
-      </div>
+      {oauthProviders.length > 0 ? (
+        <>
+          <div className="space-y-2">
+            {oauthProviders.map((provider) => (
+              <a
+                key={provider}
+                href={oauthHref(provider)}
+                onClick={(event) => handleOAuthClick(provider, event)}
+                className={
+                  provider === "kakao"
+                    ? "block w-full rounded-md border border-stone-300 bg-[#FEE500] px-4 py-2.5 text-center text-sm font-semibold text-[#191919] hover:brightness-95"
+                    : "block w-full rounded-md border border-stone-300 bg-white px-4 py-2.5 text-center text-sm font-semibold text-stone-800 hover:bg-stone-50"
+                }
+              >
+                {oauthCopy[provider]}
+              </a>
+            ))}
+          </div>
 
-      <p className="text-center text-xs font-medium uppercase tracking-wide text-stone-500">
-        {oauthCopy.divider}
-      </p>
+          <p className="text-center text-xs font-medium uppercase tracking-wide text-stone-500">
+            {oauthCopy.divider}
+          </p>
+        </>
+      ) : null}
 
       {error || oauthError || authReason ? (
         <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">

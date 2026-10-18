@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { sanitizeNextPath } from "@/lib/auth-next-path";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-const SUPPORTED_PROVIDERS = ["google", "kakao"] as const;
-type SupportedProvider = (typeof SUPPORTED_PROVIDERS)[number];
-
-function isSupportedProvider(value: string): value is SupportedProvider {
-  return (SUPPORTED_PROVIDERS as readonly string[]).includes(value);
-}
+import { isEnabledWebSocialLoginProvider } from "@/lib/wideget-login-registry";
 
 /**
  * Same-origin OAuth entry point (`/api/auth/oauth/google`, `/…/kakao`).
@@ -22,7 +16,7 @@ export async function GET(
 ) {
   const { provider } = await params;
 
-  if (!isSupportedProvider(provider)) {
+  if (!isEnabledWebSocialLoginProvider(provider)) {
     return NextResponse.redirect(new URL("/sign-in?error=oauth_failed", request.url));
   }
 

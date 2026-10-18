@@ -6,6 +6,19 @@ project `qkiki`). This document lists every environment variable and every
 Supabase Dashboard setting required to run it, plus the one-time rollout
 steps for migrating existing users.
 
+## WideGet Login Kit integration (v0.1.0-alpha.2)
+
+Yapp pins the exact Login Kit artifact in `wideget.auth.lock.json` and keeps
+the consumer-owned integration in `auth/wideget/adapter.mjs` and
+`auth/wideget/hooks.mjs`. The adapter treats the verified Supabase UUID as the
+immutable auth subject and maps it to the existing Prisma `User.id` CUID; it
+never replaces domain IDs, merges by email alone, or writes provider secrets.
+
+The app-owned provider registry is shared by sign-in and sign-up. Email,
+Google, and Kakao are currently declared `configured` from the Supabase
+settings check; Facebook and WhatsApp OTP remain planned. Configured is not a
+claim of successful browser callback, inbox delivery, or production E2E.
+
 ## Current production setup status (2026-07-10)
 
 Completed:
@@ -36,6 +49,11 @@ Still required before calling the auth rollout complete:
   running `npm run auth:migrate-legacy-users -- --send`.
 - Run the existing-user migration; currently the legacy `"User"` rows are not
   linked to `auth.users` yet.
+- Run the existing-user migration only as a separately reviewed, staged
+  operation after SMTP and test-account readiness are confirmed. The deployed
+  login bridge preserves each existing `User.id`, coupon, subscription, credit,
+  project, and role row; it refuses `IDENTITY_LINK_CONFLICT` instead of
+  attaching an already-linked row to another Supabase subject.
 
 ## 1. Architecture overview
 
