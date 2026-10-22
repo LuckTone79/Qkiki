@@ -1,5 +1,16 @@
 # Changelog
 
+## Trial privacy (v1.38.5-20261018)
+
+- Require the existing authenticated session to resume a trial; a shared IP alone can no longer grant access to another visitor's account.
+- Keep first visits and authenticated trial sessions working, and guide visitors without a session to sign in.
+
+## Web release (v1.38.4-20261018)
+
+- Combined the published Yapp redesign and security fixes with the production Login Kit identity bridge.
+- Preserved four-language authentication, provider registry, existing user IDs, and public landing access.
+- Complete identity resolution before redirecting from both password sign-in and immediate-session sign-up; display identity error codes consistently.
+
 ## Patch 33 (v1.38.2-20260728) - Apply official Grok and Claude model icons
 
 - Replaced the xAI provider glyph shown in model selection and result cards with the Grok app icon mark.

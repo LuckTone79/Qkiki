@@ -4,6 +4,11 @@ import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { grantWelcomeBoostToUser } from "@/lib/usage-policy";
+import {
+  assertIdentityLinkMayProceed,
+  requireLegacyEmail,
+} from "@/lib/supabase/identity-link-policy";
+import { assertYappAuthSubject } from "../../../auth/wideget/adapter.mjs";
 
 function getBootstrapAdminEmails() {
   return (process.env.INITIAL_ADMIN_EMAILS || "")
@@ -46,6 +51,18 @@ async function syncProfileRole(supabaseUserId: string, user: {
     });
 }
 
+async function findLegacyUserByEmail(email: string) {
+  return prisma.user.findFirst({
+    where: {
+      email: {
+        equals: email,
+        mode: "insensitive",
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
 /**
  * Resolves the legacy Prisma `User` row for an authenticated Supabase user,
  * creating or linking one if this is their first session since migrating to
@@ -54,6 +71,8 @@ async function syncProfileRole(supabaseUserId: string, user: {
  * keeps pointing at the returned row's `id`, unchanged.
  */
 export async function ensureLegacyUserLinked(authUser: SupabaseAuthUser) {
+  assertYappAuthSubject(authUser.id);
+
   const linked = await prisma.user.findUnique({
     where: { supabaseUserId: authUser.id },
   });
@@ -61,15 +80,11 @@ export async function ensureLegacyUserLinked(authUser: SupabaseAuthUser) {
     return linked;
   }
 
-  const email = authUser.email?.trim().toLowerCase();
-  if (!email) {
-    throw new Error(
-      `Supabase auth user ${authUser.id} has no email; cannot resolve a legacy account.`,
-    );
-  }
+  const email = requireLegacyEmail(authUser.email);
 
-  const existingByEmail = await prisma.user.findUnique({ where: { email } });
+  const existingByEmail = await findLegacyUserByEmail(email);
   if (existingByEmail) {
+    assertIdentityLinkMayProceed(existingByEmail.supabaseUserId, authUser.id);
     const updated = existingByEmail.supabaseUserId
       ? existingByEmail
       : await prisma.user.update({
@@ -94,11 +109,12 @@ export async function ensureLegacyUserLinked(authUser: SupabaseAuthUser) {
     });
   } catch (error) {
     // Concurrent request already created this row (e.g. two tabs completing
-    // sign-up at once) — link to it instead of failing the request.
-    const raceWinner = await prisma.user.findUnique({ where: { email } });
+    // sign-up at once) — link to it only when ownership is still unambiguous.
+    const raceWinner = await findLegacyUserByEmail(email);
     if (!raceWinner) {
       throw error;
     }
+    assertIdentityLinkMayProceed(raceWinner.supabaseUserId, authUser.id);
     created = raceWinner.supabaseUserId
       ? raceWinner
       : await prisma.user.update({

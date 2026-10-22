@@ -1,0 +1,24 @@
+{
+  "lockSchemaVersion": 1,
+  "kit": {
+    "package": "@wideget/login-kit",
+    "version": "0.1.0-alpha.2",
+    "artifactSha256": "d12e654f686cec8274b7bf50f591667bf6a9b192d828f3573e3309310e2a4f74"
+  },
+  "config": {
+    "schemaVersion": 1,
+    "sha256": "e65e2f3305d5b8b93650c199bab77f3bd87bc6383d25af463f205e163b0fad46"
+  },
+  "managedFiles": [
+    {
+      "path": "wideget.auth.json",
+      "sha256": "e65e2f3305d5b8b93650c199bab77f3bd87bc6383d25af463f205e163b0fad46"
+    }
+  ],
+  "appOwned": {
+    "excludedPaths": [
+      "auth/wideget/adapter.mjs",
+      "auth/wideget/hooks.mjs"
+    ]
+  }
+}
