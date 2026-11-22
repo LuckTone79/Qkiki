@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ModelUnavailableError } from "@/lib/ai/live-model-catalog";
 import { getCurrentUser, isAdminRole } from "@/lib/auth";
 import {
   ActiveRunLimitReachedError,
@@ -48,6 +49,9 @@ export async function requireApiAdmin() {
 }
 
 export function apiErrorResponse(error: unknown) {
+  if (error instanceof ModelUnavailableError) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
   if (error instanceof ApiUnauthorizedError) {
     return NextResponse.json(
       { error: error.message, redirectUrl: error.redirectUrl },

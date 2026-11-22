@@ -31,6 +31,7 @@ import { closeStaleWorkbenchRuns } from "@/lib/workbench-run-watchdog";
 import { selectWorkbenchRunnerVersion } from "@/lib/workbench-runner-version";
 import { syncWorkflowTemplateSteps } from "@/lib/workflow-templates";
 import { estimateWorkbenchRunCredits } from "@/lib/credits";
+import { getCatalogPrices } from "@/lib/ai/live-model-catalog";
 import type { ProviderName } from "@/lib/ai/types";
 import { upsertWorkbenchSession } from "@/lib/ai/workflow";
 import { workbenchRunWorkflow } from "@/workflows/workbench-run";
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
     await ensureWorkbenchRunSchema();
     await closeStaleWorkbenchRuns({ userId: user.id });
     const creditEstimate = estimateWorkbenchRunCredits({
+      modelPrices: await getCatalogPrices(parsed.data.mode === "sequential"
+        ? (parsed.data.steps ?? []).map((step) => ({ provider: step.targetProvider, model: step.targetModel }))
+        : parsed.data.targets ?? []),
       mode: parsed.data.mode,
       originalInput: parsed.data.originalInput,
       additionalInstruction: parsed.data.additionalInstruction,

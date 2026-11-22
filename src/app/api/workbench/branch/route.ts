@@ -13,6 +13,7 @@ import {
   settleUsageReservation,
 } from "@/lib/usage-policy";
 import { estimateTargetFanoutCredits } from "@/lib/credits";
+import { getCatalogPrices } from "@/lib/ai/live-model-catalog";
 import { branchRunSchema } from "@/lib/validation";
 import type { ProviderName } from "@/lib/ai/types";
 
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     }
 
     const creditEstimate = estimateTargetFanoutCredits({
+      modelPrices: await getCatalogPrices(parsed.data.targets),
       actionType: parsed.data.actionType,
       inputText: parsed.data.instruction,
       targets: parsed.data.targets,

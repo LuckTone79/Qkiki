@@ -4,6 +4,7 @@ import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 import { ProviderLogoTile } from "@/components/ui/icons";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
+import type { ModelPricing } from "@/lib/credits";
 import { getModelGuidance } from "@/lib/workbench-model-guidance";
 
 export type ProviderOption = {
@@ -11,6 +12,7 @@ export type ProviderOption = {
   displayName: string;
   shortName: string;
   models: string[];
+  modelPrices?: Record<string, ModelPricing>;
   imageModels: string[];
   defaultModel: string;
   fallbackProvider: ProviderName | null;
@@ -42,7 +44,8 @@ export function ProviderSelectorRow({
   variant = "text",
 }: ProviderSelectorRowProps) {
   const { language } = useLanguage();
-  const models = availableModels ?? provider.models;
+  const available = availableModels ?? provider.models;
+  const models = [...new Set([...available, ...selectedModels])];
   const isImageVariant = variant === "image";
   const isReady = provider.status === "ready";
   const fallbackProviderLabel = provider.fallbackProvider
@@ -140,7 +143,9 @@ export function ProviderSelectorRow({
             {models.map((option) => {
               const checked = selectedModels.includes(option);
               const label = getModelOptionLabel(provider.providerName, option);
-              const guidance = isImageVariant
+              const missing = !available.includes(option);
+              const automatic = Boolean(provider.modelPrices?.[`${provider.providerName}:${option}`]);
+              const guidance = isImageVariant || missing || automatic
                 ? null
                 : getModelGuidance(
                     provider.providerName,
@@ -148,6 +153,11 @@ export function ProviderSelectorRow({
                     provider.defaultModel,
                     language,
                   );
+              const statusLabel = missing
+                ? localize(language, { ko: "현재 실행할 수 없음", en: "Unavailable", ja: "利用できません", es: "No disponible" })
+                : automatic
+                  ? localize(language, { ko: "텍스트 전용", en: "Text only", ja: "テキストのみ", es: "Solo texto" })
+                  : null;
               const title = guidance
                 ? [
                     guidance.recommended ? guidance.recommendedLabel : null,
@@ -155,7 +165,7 @@ export function ProviderSelectorRow({
                   ]
                     .filter(Boolean)
                     .join(" · ")
-                : undefined;
+                : statusLabel ?? undefined;
               return (
                 <button
                   key={option}
@@ -176,6 +186,7 @@ export function ProviderSelectorRow({
                   }`}
                 >
                   {label}
+                  {statusLabel ? <span className="text-[10px] opacity-75">{statusLabel}</span> : null}
                   {guidance?.recommended ? (
                     <span
                       className={`inline-block h-1.5 w-1.5 rounded-full ${

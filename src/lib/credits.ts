@@ -136,6 +136,7 @@ export type CreditEstimateLine = {
   outputTokens: number;
   rawCostUsd: number;
   credits: number;
+  modelPricing?: ModelPricing;
 };
 
 export type CreditEstimate = {
@@ -183,6 +184,7 @@ export type WorkbenchCreditEstimateInput = {
   targets?: TargetLike[];
   steps?: WorkflowStepLike[];
   workflowControl?: WorkflowControlLike;
+  modelPrices?: Record<string, ModelPricing>;
 };
 
 export function getModelPricing(provider: string, model: string) {
@@ -251,8 +253,9 @@ export function estimateProviderCostUsd(input: {
   model: string;
   promptTokens: number;
   completionTokens: number;
+  modelPricing?: ModelPricing;
 }) {
-  const pricing = getModelPricing(input.provider, input.model);
+  const pricing = input.modelPricing ?? getModelPricing(input.provider, input.model);
   return (
     (input.promptTokens / 1_000_000) * pricing.promptPerMillion +
     (input.completionTokens / 1_000_000) * pricing.completionPerMillion
@@ -387,6 +390,7 @@ function estimateLine(input: {
   inputTokens: number;
   outputTokens: number;
   imageCount?: number;
+  modelPricing?: ModelPricing;
 }) {
   const imageRawCostUsd = estimateImageGenerationCostUsd({
     provider: input.provider,
@@ -414,6 +418,7 @@ function estimateLine(input: {
     model: input.model,
     promptTokens: input.inputTokens,
     completionTokens: input.outputTokens,
+    modelPricing: input.modelPricing,
   });
 
   return {
@@ -425,6 +430,7 @@ function estimateLine(input: {
     outputTokens: input.outputTokens,
     rawCostUsd: Number(rawCostUsd.toFixed(6)),
     credits: costUsdToCredits(rawCostUsd),
+    ...(input.modelPricing ? { modelPricing: input.modelPricing } : {}),
   } satisfies CreditEstimateLine;
 }
 
@@ -440,6 +446,7 @@ export function estimateWorkbenchRunCredits(input: WorkbenchCreditEstimateInput)
         estimateLine({
           provider: target.provider,
           model: target.model,
+          modelPricing: input.modelPrices?.[`${target.provider}:${target.model}`],
           actionType: "parallel_review",
           inputTokens: baseInputTokens,
           outputTokens: estimateOutputTokensForModel({
@@ -471,6 +478,7 @@ export function estimateWorkbenchRunCredits(input: WorkbenchCreditEstimateInput)
     const line = estimateLine({
       provider: step.targetProvider,
       model: step.targetModel,
+      modelPricing: input.modelPrices?.[`${step.targetProvider}:${step.targetModel}`],
       actionType: step.actionType,
       inputTokens: baseInputTokens + instructionTokens + sourceTokens + 120,
       outputTokens,
@@ -488,6 +496,7 @@ export function estimateTargetFanoutCredits(input: {
   inputText: string;
   additionalInstruction?: string | null;
   targets: TargetLike[];
+  modelPrices?: Record<string, ModelPricing>;
 }) {
   const baseInputTokens =
     estimateTextTokens(input.inputText) +
@@ -498,6 +507,7 @@ export function estimateTargetFanoutCredits(input: {
       estimateLine({
         provider: target.provider,
         model: target.model,
+        modelPricing: input.modelPrices?.[`${target.provider}:${target.model}`],
         actionType: input.actionType,
         inputTokens: baseInputTokens,
         outputTokens: estimateOutputTokensForModel({

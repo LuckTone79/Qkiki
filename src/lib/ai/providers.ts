@@ -20,6 +20,8 @@ import {
   isRetryableProviderErrorMessage,
 } from "@/lib/provider-retry";
 import { estimateCost } from "@/lib/ai/pricing";
+import { keyRevision, publishedModels, readCatalog, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
+import { estimateProviderCostUsd, MODEL_PRICING } from "@/lib/credits";
 import { buildProviderWebSearchTools } from "@/lib/ai/provider-web-search";
 import {
   decryptSecretWithMetadata,
@@ -512,13 +514,11 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
   const config = await prisma.adminProviderConfig.findUnique({
     where: { providerName: provider },
   });
-  const configuredModel = normalizeProviderModel(
-    provider,
-    config?.defaultModel ?? catalog.defaultModel,
+  const snapshot = await readCatalog(provider);
+  const resolveDefault = (key: string | null) => resolveCatalogDefault(
+    provider, config?.defaultModel, Boolean(config?.updatedByAdminId),
+    key && snapshot?.keyRevision === keyRevision(key) ? snapshot : undefined,
   );
-  const defaultModel = catalog.models.includes(configuredModel)
-    ? configuredModel
-    : catalog.defaultModel;
   const fallbackProvider =
     config?.fallbackProvider &&
     isProviderName(config.fallbackProvider) &&
@@ -529,9 +529,8 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
     typeof config?.timeoutSeconds === "number" && config.timeoutSeconds > 0
       ? config.timeoutSeconds
       : DEFAULT_PROVIDER_TIMEOUT_SECONDS;
-  const runtimeBase: Omit<ProviderRuntimeConfig, "apiKey"> = {
+  const runtimeBase: Omit<ProviderRuntimeConfig, "apiKey" | "defaultModel"> = {
     provider,
-    defaultModel,
     fallbackProvider,
     timeoutSeconds,
   };
@@ -539,6 +538,7 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
   if (envValue?.trim()) {
     return {
       ...runtimeBase,
+      defaultModel: resolveDefault(envValue.trim()),
       apiKey: envValue.trim(),
     };
   }
@@ -571,12 +571,14 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
 
     return {
       ...runtimeBase,
+      defaultModel: resolveDefault(decrypted.value),
       apiKey: decrypted.value,
     };
   }
 
   return {
     ...runtimeBase,
+    defaultModel: resolveDefault(null),
     apiKey: null,
   };
 }
@@ -750,6 +752,39 @@ export async function callProvider(
   };
 
   const runtime = await getProviderRuntimeConfig(normalizedInput.provider);
+  const catalog = getProviderCatalog(normalizedInput.provider);
+  const snapshot = await readCatalog(normalizedInput.provider);
+  const model = normalizedInput.model;
+  if (!catalog.models.includes(model) && !catalog.imageModels.includes(model) &&
+      !Object.hasOwn(MODEL_PRICING, `${normalizedInput.provider}:${model}`)) {
+    const price = publishedModels(snapshot).find((entry) => entry.id === model)?.price;
+    const failure = !price || !runtime.apiKey || snapshot?.keyRevision !== keyRevision(runtime.apiKey)
+      ? "This model is no longer available. Choose another model."
+      : normalizedInput.enableWebSearch || normalizedInput.attachments?.some((item) => item.kind === "IMAGE" || item.kind === "PDF")
+        ? "This model is available for text only. Choose another model for web search or image/PDF input."
+        : null;
+    if (failure || !price) return {
+      provider: normalizedInput.provider, model: normalizedInput.model, outputText: "",
+      rawResponse: null, latencyMs: 0, status: "failed", errorMessage: failure ?? undefined,
+    };
+    const result = await executeAttemptWithLease(normalizedInput.provider, runtime, normalizedInput, "primary");
+    const raw = result.rawResponse as JsonRecord | null;
+    const continuation = Array.isArray(raw?.responses) ? raw.responses[0] as JsonRecord | undefined : null;
+    const returned = getText(raw?.model ?? raw?.modelVersion ?? continuation?.model);
+    if (result.status === "completed" && returned && returned !== model &&
+        !/^-(?:\d{8}|\d{4}-\d{2}-\d{2})$/.test(returned.startsWith(model) ? returned.slice(model.length) : "")) {
+      return { ...result, outputText: "", rawResponse: null, status: "failed", errorMessage: "The provider returned a different model." };
+    }
+    if (result.status !== "completed" || result.usage?.promptTokens == null || result.usage?.completionTokens == null) return result;
+    return {
+      ...result,
+      estimatedCost: estimateProviderCostUsd({
+        provider: result.provider, model: result.model, promptTokens: result.usage.promptTokens,
+        completionTokens: result.usage.completionTokens, modelPricing: price,
+      }),
+      costIsEstimated: true,
+    };
+  }
   let primaryResult: ProviderCallResult | null = null;
 
   for (let attemptNumber = 1; ; attemptNumber += 1) {
@@ -803,13 +838,15 @@ export async function callProvider(
   });
 
   const fallbackRuntime = await getProviderRuntimeConfig(runtime.fallbackProvider);
+  const fallbackCatalog = getProviderCatalog(runtime.fallbackProvider);
   const fallbackResult = await executeAttemptWithLease(
     runtime.fallbackProvider,
     fallbackRuntime,
     {
       ...normalizedInput,
       provider: runtime.fallbackProvider,
-      model: fallbackRuntime.defaultModel,
+      model: fallbackCatalog.models.includes(fallbackRuntime.defaultModel)
+        ? fallbackRuntime.defaultModel : fallbackCatalog.defaultModel,
     },
     `fallback:${runtime.fallbackProvider}`,
   );

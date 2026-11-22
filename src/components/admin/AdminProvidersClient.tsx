@@ -81,6 +81,7 @@ type AdminProviderOption = {
   hasStoredKey: boolean;
   apiKeyMasked: string | null;
   status: string;
+  catalogSync?: { checkedAt: string; status: string; published: number; held: number };
 };
 
 type Drafts = Record<
@@ -273,6 +274,14 @@ export function AdminProvidersClient() {
                     }).format(new Date(provider.lastHealthCheckedAt))}`
                   : ` · ${t.neverChecked}`}
               </div>
+              {provider.catalogSync && (
+                <p className="mt-2 text-xs text-slate-600">
+                  {t === text.ko ? "모델 자동 확인" : "Automatic model check"}
+                  {" · "}{new Date(provider.catalogSync.checkedAt).toLocaleString(locale)}
+                  {" · "}{t === text.ko ? "공개" : "Published"} {provider.catalogSync.published}
+                  {" · "}{t === text.ko ? "보류" : "Pending review"} {provider.catalogSync.held}
+                </p>
+              )}
 
               <div className="mt-4 grid gap-3">
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-700">

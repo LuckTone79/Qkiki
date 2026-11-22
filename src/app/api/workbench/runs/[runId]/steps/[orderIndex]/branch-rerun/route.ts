@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { apiErrorResponse, requireApiGenerationUser } from "@/lib/api-auth";
 import { createSignedRunToken, failExecutionRun, readSignedRunToken } from "@/lib/execution-runs";
 import { estimateWorkbenchRunCredits } from "@/lib/credits";
+import { getCatalogPrices } from "@/lib/ai/live-model-catalog";
 import { prisma } from "@/lib/prisma";
 import {
   enqueueExecutionRunStep,
@@ -87,6 +88,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
     }
 
     const creditEstimate = estimateWorkbenchRunCredits({
+      modelPrices: await getCatalogPrices(parentRun.steps.map((step) => ({ provider: step.targetProvider, model: step.targetModel }))),
       mode: "sequential",
       originalInput: parentRun.session.originalInput,
       additionalInstruction: parentRun.session.additionalInstruction,

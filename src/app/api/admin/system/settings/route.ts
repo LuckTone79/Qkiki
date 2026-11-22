@@ -17,6 +17,7 @@ export async function GET() {
   try {
     await requireApiAdminManager();
     const settings = await prisma.adminSystemSetting.findMany({
+      where: { settingKey: { not: { startsWith: "model-catalog:" } } },
       orderBy: { updatedAt: "desc" },
       take: 200,
     });
@@ -33,9 +34,9 @@ export async function PUT(request: Request) {
     const parsed = schema.safeParse(await request.json());
     const meta = getRequestMeta(request);
 
-    if (!parsed.success) {
+    if (!parsed.success || parsed.data.settingKey.startsWith("model-catalog:")) {
       return NextResponse.json(
-        { error: parsed.error.issues[0]?.message ?? "Invalid system setting payload." },
+        { error: parsed.success ? "Reserved setting key." : parsed.error.issues[0]?.message ?? "Invalid system setting payload." },
         { status: 400 },
       );
     }

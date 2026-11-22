@@ -808,14 +808,7 @@ function normalizeStepsForProviders(
         step.targetModel,
       );
 
-      if (!provider) {
-        return {
-          ...step,
-          targetModel: normalizedModel,
-        };
-      }
-
-      if (provider.models.includes(normalizedModel)) {
+      if (provider?.models.includes(normalizedModel)) {
         return normalizedModel === step.targetModel
           ? step
           : {
@@ -824,10 +817,7 @@ function normalizeStepsForProviders(
             };
       }
 
-      return {
-        ...step,
-        targetModel: provider.defaultModel,
-      };
+      return step;
     }),
   );
 }
@@ -844,8 +834,7 @@ function normalizeProviderSelection(
     ...(Array.isArray(selection?.models) ? selection.models : []),
     ...(typeof selection?.model === "string" ? [selection.model] : []),
   ])
-    .map((model) => normalizeProviderModel(provider.providerName, model))
-    .filter((model) => provider.models.includes(model));
+    .map((model) => normalizeProviderModel(provider.providerName, model));
 
   return {
     enabled: selection?.enabled ?? provider.isEnabled,
@@ -2683,6 +2672,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
   const runCreditEstimate = useMemo(
     () =>
       estimateWorkbenchRunCredits({
+        modelPrices: Object.assign({}, ...providers.map((provider) => provider.modelPrices ?? {})),
         mode: effectiveMode,
         originalInput,
         additionalInstruction,
@@ -2697,6 +2687,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       imageMode,
       normalizedWorkflowControl,
       originalInput,
+      providers,
       workflowSteps,
     ],
   );

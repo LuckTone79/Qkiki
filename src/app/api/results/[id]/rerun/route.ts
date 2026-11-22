@@ -18,6 +18,7 @@ import { assertProvidersReadyForRun } from "@/lib/provider-availability";
 import { prisma } from "@/lib/prisma";
 import { ensureResultExecutionRunIdColumn } from "@/lib/workbench-run-schema";
 import { estimateTargetFanoutCredits, estimateWorkbenchRunCredits } from "@/lib/credits";
+import { getCatalogPrices } from "@/lib/ai/live-model-catalog";
 import {
   releaseUsageReservation,
   requireUsageAccess,
@@ -117,6 +118,7 @@ export async function POST(
       }
 
       const creditEstimate = estimateWorkbenchRunCredits({
+        modelPrices: await getCatalogPrices(parentRun.steps.map((step) => ({ provider: step.targetProvider, model: step.targetModel }))),
         mode: "sequential",
         originalInput: parentRun.session.originalInput,
         additionalInstruction: parentRun.session.additionalInstruction,
@@ -243,6 +245,7 @@ export async function POST(
     }
 
     const creditEstimate = estimateTargetFanoutCredits({
+      modelPrices: await getCatalogPrices([{ provider: result.provider, model: result.model }]),
       actionType: "rerun",
       inputText: result.promptSnapshot,
       targets: [{ provider: result.provider, model: result.model }],

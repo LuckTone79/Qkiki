@@ -5,11 +5,11 @@ import {
   requireApiAdminManager,
 } from "@/lib/admin-api-auth";
 import {
-  PROVIDERS,
   getDefaultTimeoutSeconds,
   isProviderName,
   normalizeProviderModel,
 } from "@/lib/ai/provider-catalog";
+import { getLiveProviderCatalogs, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
 import { logAdminAudit } from "@/lib/admin-audit";
 import { prisma } from "@/lib/prisma";
 import { encryptSecret, maskApiKey } from "@/lib/secret-crypto";
@@ -18,27 +18,25 @@ import { adminProviderConfigSchema } from "@/lib/validation";
 export async function GET() {
   try {
     await requireApiAdminManager();
-    const configs = await prisma.adminProviderConfig.findMany();
-
-    const payload = PROVIDERS.map((provider) => {
-      const config = configs.find((item) => item.providerName === provider.name);
+    const catalogs = await getLiveProviderCatalogs();
+    const payload = catalogs.map(({ provider, config, snapshot, models }) => {
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
       const effectiveEnabled = config ? config.isEnabled : hasCredential;
-      const configuredModel = normalizeProviderModel(
-        provider.name,
-        config?.defaultModel ?? provider.defaultModel,
-      );
 
       return {
         providerName: provider.name,
         displayName: provider.displayName,
         shortName: provider.shortName,
-        models: provider.models,
-        defaultModel: provider.models.includes(configuredModel)
-          ? configuredModel
-          : provider.defaultModel,
+        models: [...models.map((model) => model.id), ...provider.models],
+        defaultModel: resolveCatalogDefault(provider.name, config?.defaultModel, Boolean(config?.updatedByAdminId), snapshot, models),
+        catalogSync: snapshot && {
+          checkedAt: snapshot.checkedAt,
+          status: snapshot.status,
+          published: models.length,
+          held: snapshot.entries.filter((model) => model.blocked).length,
+        },
         isEnabled: effectiveEnabled,
         fallbackProvider: config?.fallbackProvider ?? null,
         perUserDailyLimit: config?.perUserDailyLimit ?? 100,

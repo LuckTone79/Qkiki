@@ -1,36 +1,25 @@
 import { NextResponse } from "next/server";
-import {
-  PROVIDERS,
-  normalizeProviderModel,
-} from "@/lib/ai/provider-catalog";
+import { getLiveProviderCatalogs, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
-import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
     await requireApiUser();
 
-    const configs = await prisma.adminProviderConfig.findMany();
-
-    const payload = PROVIDERS.map((provider) => {
-      const config = configs.find((item) => item.providerName === provider.name);
+    const catalogs = await getLiveProviderCatalogs();
+    const payload = catalogs.map(({ provider, config, snapshot, models }) => {
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
       const isEnabled = config ? config.isEnabled : hasCredential;
-      const configuredModel = normalizeProviderModel(
-        provider.name,
-        config?.defaultModel ?? provider.defaultModel,
-      );
-      const defaultModel = provider.models.includes(configuredModel)
-        ? configuredModel
-        : provider.defaultModel;
+      const defaultModel = resolveCatalogDefault(provider.name, config?.defaultModel, Boolean(config?.updatedByAdminId), snapshot, models);
 
       return {
         providerName: provider.name,
         displayName: provider.displayName,
         shortName: provider.shortName,
-        models: provider.models,
+        models: [...models.map((model) => model.id), ...provider.models],
+        modelPrices: Object.fromEntries(models.map((model) => [`${provider.name}:${model.id}`, model.price])),
         imageModels: provider.imageModels,
         defaultModel,
         fallbackProvider: config?.fallbackProvider ?? null,
