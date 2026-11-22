@@ -4745,15 +4745,11 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
                           onEnabledChange={(enabled) =>
                             setImageSelections((current) => ({
                               ...current,
-                              [provider.providerName]: {
+                              [provider.providerName]: nextProviderSelectionForEnabledChange(
+                                normalizeImageSelection(current[provider.providerName], provider),
+                                provider.imageModels[0],
                                 enabled,
-                                models: enabled
-                                  ? normalizeImageSelection(
-                                      current[provider.providerName],
-                                      provider,
-                                    ).models
-                                  : [],
-                              },
+                              ),
                             }))
                           }
                           onSelectedModelsChange={(models) =>
