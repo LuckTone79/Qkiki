@@ -34,3 +34,23 @@ test("holds previews and reads standard and tiered official rates", () => {
     modelPrices: { "openai:gpt-6.2-sol": price },
   }).callBreakdown[0].modelPricing, price);
 });
+
+test("Google selects the upper published standard rate across scheduled price bands", () => {
+  const document = `## Gemini Flash {% id="gemini-3.8-flash" %}
+{% tab title="Standard" %}
+* Paid Tier, per 1M tokens in USD
+---
+* Input price
+* Free of charge
+* $0.75 through December 31, 2026.
+$1.50 starting January 1, 2027.
+---
+* Output price (including thinking tokens)
+* Free of charge
+* $3.75 through December 31, 2026.
+$7.50 starting January 1, 2027.
+---
+{% /tab %}`;
+  assert.deepEqual(parseOfficialTextPrice("google", { id: "gemini-3.8-flash" }, document),
+    { promptPerMillion: 1.5, completionPerMillion: 7.5 });
+});

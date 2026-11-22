@@ -43,10 +43,24 @@ export function parseOfficialTextPrice(
     const rate = (label: RegExp) => {
       const row = standard.split(/^\s*---\s*$/m).find((block) => label.test(block));
       const lines = row?.trim().split("\n") ?? [];
-      if (lines.length !== 3) return NaN;
-      return dollars(lines[2].trim().replace(/^\* /, ""), "(?: \\(text\\))?");
+      const amounts = lines.slice(2).map((line) => line.trim().replace(/^\* /, ""));
+      if (amounts.length === 1) {
+        return dollars(amounts[0], "(?: \\(text(?: / (?:image|video|audio))*\\))?");
+      }
+      const calendarBand = /^(\$[\d.]+) (?:through|starting) [A-Z][a-z]+ \d{1,2}, \d{4}\.$/;
+      const contextBand = /^(\$[\d.]+), prompts (?:<=|>) \d+k(?: tokens)?$/;
+      const textBand = /^(\$[\d.]+) \(text(?: \/ (?:image|video|audio))*\)$/;
+      if (amounts.length === 2 && textBand.test(amounts[0]) && /^\$[\d.]+ \(audio\)$/.test(amounts[1])) {
+        return dollars(amounts[0].match(textBand)?.[1]);
+      }
+      for (const band of [calendarBand, contextBand]) {
+        if (amounts.length === 2 && amounts.every((line) => band.test(line))) {
+          return Math.max(...amounts.map((line) => dollars(line.match(band)?.[1])));
+        }
+      }
+      return NaN;
     };
-    return pricing(rate(/^\s*\* Input price\s*$/m), rate(/^\s*\* Output price(?: \(including thinking tokens\))?\s*$/m));
+    return pricing(rate(/^\s*\* Input price(?: \(text, image, video\))?\s*$/m), rate(/^\s*\* Output price(?: \(including thinking tokens\))?\s*$/m));
   }
 
   const rows = document.split("\n").filter((line) => line.startsWith("|"));
