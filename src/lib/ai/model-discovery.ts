@@ -12,6 +12,8 @@ type Entry = Record<string, unknown>;
 export type ObservedModel = {
   id: string;
   methods?: string[];
+  aliases?: string[];
+  retired?: boolean;
   name?: string;
   image?: boolean;
   price?: ModelPricing;
@@ -126,7 +128,9 @@ export async function fetchProviderModels(provider: ProviderName, key: string, r
     sources.forEach((source, index) => {
       for (const item of records(source.models)) {
         if (typeof item.id !== "string") throw new Error("invalid_model_id");
-        collected.push({ id: item.id, image: index === 1, price: pricing(
+        collected.push({ id: item.id, image: index === 1,
+          aliases: Array.isArray(item.aliases) ? item.aliases.filter((value): value is string => typeof value === "string") : undefined,
+          price: pricing(
           Math.max(Number(item.prompt_text_token_price), Number(item.prompt_text_token_price_long_context ?? 0)) / 10_000,
           Math.max(Number(item.completion_text_token_price), Number(item.completion_text_token_price_long_context ?? 0)) / 10_000,
         ) });
@@ -154,6 +158,8 @@ export async function fetchProviderModels(provider: ProviderName, key: string, r
             ? item.supportedGenerationMethods.filter((method): method is string => typeof method === "string") : undefined,
           name: typeof item.display_name === "string" ? item.display_name : undefined,
           image: /(?:^|[-.])(?:image|imagen)(?:[-.]|$)/.test(id) || /^models\/imagen-/.test(id),
+          aliases: provider === "anthropic" && /-\d{8}$/.test(id) ? [id.replace(/-\d{8}$/, "")] : undefined,
+          retired: item.lifecycle === "retired",
           shutdown: typeof item.shutdown_date === "string" ? item.shutdown_date : undefined,
         });
       }

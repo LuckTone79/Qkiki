@@ -14,6 +14,7 @@ export type ProviderOption = {
   models: string[];
   modelPrices?: Record<string, CatalogModelPricing>;
   imageModels: string[];
+  unavailableModels?: string[];
   defaultModel: string;
   fallbackProvider: ProviderName | null;
   isEnabled: boolean;
@@ -44,10 +45,9 @@ export function ProviderSelectorRow({
   variant = "text",
 }: ProviderSelectorRowProps) {
   const { language } = useLanguage();
-  const available = availableModels ?? provider.models;
-  const models = [...new Set([...available, ...selectedModels])];
+  const models = availableModels ?? provider.models;
   const isImageVariant = variant === "image";
-  const isReady = provider.status === "ready";
+  const isReady = provider.status === "ready" && models.length > 0;
   const fallbackProviderLabel = provider.fallbackProvider
     ? provider.fallbackProvider.toUpperCase()
     : "";
@@ -143,9 +143,8 @@ export function ProviderSelectorRow({
             {models.map((option) => {
               const checked = selectedModels.includes(option);
               const label = getModelOptionLabel(provider.providerName, option);
-              const missing = !available.includes(option);
               const automatic = !isImageVariant && Boolean(provider.modelPrices?.[`${provider.providerName}:${option}`]);
-              const guidance = isImageVariant || missing || automatic
+              const guidance = isImageVariant || automatic
                 ? null
                 : getModelGuidance(
                     provider.providerName,
@@ -153,9 +152,7 @@ export function ProviderSelectorRow({
                     provider.defaultModel,
                     language,
                   );
-              const statusLabel = missing
-                ? localize(language, { ko: "현재 실행할 수 없음", en: "Unavailable", ja: "利用できません", es: "No disponible" })
-                : automatic
+              const statusLabel = automatic
                   ? localize(language, { ko: "텍스트 전용", en: "Text only", ja: "テキストのみ", es: "Solo texto" })
                   : null;
               const title = guidance

@@ -1,9 +1,10 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
-import { PROVIDERS } from "@/lib/ai/provider-catalog";
+import { normalizeProviderModel, PROVIDERS } from "@/lib/ai/provider-catalog";
 import { getApiKeyForProvider } from "@/lib/ai/providers";
 import { catalogKey, keyRevision, parseCatalog, publishedImageModels, publishedModels, type CatalogSnapshot } from "@/lib/ai/live-model-catalog";
 import { imagePriceSource, isImageCandidate, parseImagePricing } from "@/lib/ai/image-model-discovery";
+import { missedModels, officialRetirements, RETIREMENT_DOCUMENTS } from "@/lib/ai/model-retirements";
 import { fetchProviderModels, isStableTextModel, parseOfficialTextPrice, PRICING_DOCUMENTS } from "@/lib/ai/model-discovery";
 import { prisma } from "@/lib/prisma";
 import { MODEL_PRICING } from "@/lib/credits";
@@ -11,6 +12,7 @@ import { MODEL_PRICING } from "@/lib/credits";
 type Metadata = { family?: string; release_date?: string; name?: string; status?: string; limit?: { context?: number; input?: number }; modalities?: { input?: string[]; output?: string[] } };
 type MetadataIndex = Record<string, { models?: Record<string, Metadata> }>;
 const IMAGE_CATALOG_VERSION = 1;
+const RETIREMENT_CATALOG_VERSION = 1;
 
 async function publicDocument(url: string) {
   const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(9000) });
@@ -33,7 +35,8 @@ export async function syncModelCatalog(now = new Date()) {
     const row = await prisma.adminSystemSetting.findUnique({ where: { settingKey } });
     const previous = parseCatalog(row?.valueJson);
     if (previous && (previous.date > date ||
-        (previous.date === date && previous.imageCatalogVersion === IMAGE_CATALOG_VERSION))) {
+        (previous.date === date && previous.imageCatalogVersion === IMAGE_CATALOG_VERSION &&
+          previous.retirementCatalogVersion === RETIREMENT_CATALOG_VERSION))) {
       return { provider: provider.name, status: "already_checked" };
     }
     const [key, config] = await Promise.all([
@@ -45,17 +48,25 @@ export async function syncModelCatalog(now = new Date()) {
       date, checkedAt, keyRevision: revision, status: config?.isEnabled === false ? "disabled" : "missing_key",
       entries: previous?.entries ?? [], automaticDefault: previous?.automaticDefault,
       imageCatalogVersion: IMAGE_CATALOG_VERSION,
+      retirementCatalogVersion: RETIREMENT_CATALOG_VERSION,
+      retiredModels: previous?.retiredModels ?? [],
+      catalogMisses: previous?.catalogMisses ?? {},
     };
     if (key && config?.isEnabled !== false) {
-      const [observed, priceDoc, index] = await Promise.all([
+      const [observed, priceDoc, index, retirementDoc] = await Promise.all([
         fetchProviderModels(provider.name, key),
         provider.name === "xai" ? "" : publicDocument(PRICING_DOCUMENTS[provider.name]).then((response) => response.text()),
         metadata(),
+        publicDocument(RETIREMENT_DOCUMENTS[provider.name]).then((response) => response.text()),
       ]);
       const models = index[provider.name]?.models;
       if (!models || Object.keys(models).length === 0) throw new Error("model_metadata_unavailable");
       const known = new Map(snapshot.entries.map((entry) => [entry.id, entry]));
       const seen = new Set<string>();
+      const retired = officialRetirements(provider.name, retirementDoc, observed, now);
+      snapshot.retiredModels = [...new Set([...snapshot.retiredModels ?? [], ...retired])];
+      snapshot.catalogMisses = missedModels(provider, observed, previous?.keyRevision === revision ? previous.catalogMisses ?? {} : {},
+        previous?.date !== date || previous.retirementCatalogVersion !== RETIREMENT_CATALOG_VERSION);
       const imageDocuments = new Map<string, string | null>();
       const candidates = observed.filter((model) => isImageCandidate(provider.name, model) &&
         !provider.imageModels.includes(model.id));
@@ -84,7 +95,8 @@ export async function syncModelCatalog(now = new Date()) {
         const imagePrice = image && isImageCandidate(provider.name, item)
           ? imageDocument === null ? prior?.imagePrice : parseImagePricing(provider.name, item, imageDocument ?? "")
           : undefined;
-        const shutdown = Boolean(item.shutdown && Number.isFinite(Date.parse(item.shutdown)) && Date.parse(item.shutdown) <= +now);
+        const shutdown = snapshot.retiredModels.includes(item.id);
+        const isRedirect = normalizeProviderModel(provider.name, item.id) !== item.id;
         const repriced = prior?.price && price && (
           prior.price.promptPerMillion !== price.promptPerMillion || prior.price.completionPerMillion !== price.completionPerMillion
         );
@@ -95,7 +107,7 @@ export async function syncModelCatalog(now = new Date()) {
           oldImageRate.outputImagePerMillion !== imagePrice.outputImagePerMillion ||
           oldImageRate.textOutputPerMillion !== imagePrice.textOutputPerMillion
         );
-        const blocked = shutdown ? "retired" : image
+        const blocked = shutdown || isRedirect ? "retired" : image
           ? !imagePrice ? "image_review" : imageRepriced ? "price_changed" : undefined
           : !compatible ? "compatibility_review" : !price ? "pricing_review" : repriced ? "price_changed" : undefined;
         known.set(item.id, {
@@ -151,7 +163,8 @@ export async function syncModelCatalog(now = new Date()) {
       }
     }
     return { provider: provider.name, status: snapshot.status, observed: snapshot.entries.length,
-      published: publishedModels(snapshot).length, publishedImages: publishedImageModels(snapshot).length };
+      published: publishedModels(snapshot).length, publishedImages: publishedImageModels(snapshot).length,
+      retired: snapshot.retiredModels?.length ?? 0 };
   }));
   return results.map((result, index) => {
     if (result.status === "fulfilled") return result.value;

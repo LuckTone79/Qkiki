@@ -149,12 +149,22 @@ export function WorkflowStepRow({
               ))}
             </select>
             <select
-              value={step.targetModel}
+              value={!currentProvider || currentProvider.models.includes(step.targetModel) ? step.targetModel : ""}
               onChange={(event) =>
                 onChange({ ...step, targetModel: event.target.value })
               }
               className="w-full rounded-md border border-stone-300 bg-white px-2 py-2 text-sm outline-none focus:border-teal-600"
             >
+              {currentProvider && !currentProvider.models.includes(step.targetModel) ? (
+                <option value="" disabled>
+                  {localize(language, {
+                    en: "Choose a supported model",
+                    ko: "지원되는 모델을 선택하세요",
+                    ja: "対応モデルを選択してください",
+                    es: "Elige un modelo compatible",
+                  })}
+                </option>
+              ) : null}
               {(currentProvider?.models ?? [step.targetModel]).map((model) => (
                 <option key={model} value={model}>
                   {getModelOptionLabel(step.targetProvider, model)}

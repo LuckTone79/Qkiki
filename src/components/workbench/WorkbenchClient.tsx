@@ -834,7 +834,9 @@ function normalizeProviderSelection(
     ...(Array.isArray(selection?.models) ? selection.models : []),
     ...(typeof selection?.model === "string" ? [selection.model] : []),
   ])
-    .map((model) => normalizeProviderModel(provider.providerName, model));
+    .filter((model) => !(provider.unavailableModels ?? []).includes(model))
+    .map((model) => normalizeProviderModel(provider.providerName, model))
+    .filter((model) => provider.models.includes(model));
 
   return {
     enabled: selection?.enabled ?? provider.isEnabled,
@@ -1856,7 +1858,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
           models:
             normalized.models.length || !normalized.enabled
               ? normalized.models
-              : [provider.defaultModel],
+              : provider.defaultModel ? [provider.defaultModel] : [],
         };
       });
       return next;

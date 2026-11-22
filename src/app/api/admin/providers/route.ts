@@ -19,7 +19,7 @@ export async function GET() {
   try {
     await requireApiAdminManager();
     const catalogs = await getLiveProviderCatalogs();
-    const payload = catalogs.map(({ provider, config, snapshot, models, images }) => {
+    const payload = catalogs.map(({ provider, config, snapshot, models, images, textModels }) => {
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
@@ -29,7 +29,7 @@ export async function GET() {
         providerName: provider.name,
         displayName: provider.displayName,
         shortName: provider.shortName,
-        models: [...models.map((model) => model.id), ...provider.models],
+        models: textModels,
         defaultModel: resolveCatalogDefault(provider.name, config?.defaultModel, Boolean(config?.updatedByAdminId), snapshot, models),
         catalogSync: snapshot && {
           checkedAt: snapshot.checkedAt,
@@ -89,6 +89,10 @@ export async function PUT(request: Request) {
       parsed.data.providerName,
       parsed.data.defaultModel,
     );
+    const catalog = (await getLiveProviderCatalogs()).find(({ provider }) => provider.name === parsed.data.providerName);
+    if (!catalog?.textModels.includes(normalizedDefaultModel)) {
+      return NextResponse.json({ error: "Choose a supported default model." }, { status: 400 });
+    }
     const encrypted = apiKey ? encryptSecret(apiKey) : null;
     const fallbackProvider = parsed.data.fallbackProvider ?? null;
     const perUserDailyLimit = parsed.data.perUserDailyLimit ?? 100;

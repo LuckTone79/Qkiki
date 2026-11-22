@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getLiveProviderCatalogs, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
+import { getLiveProviderCatalogs, resolveCatalogDefault, unavailableModel } from "@/lib/ai/live-model-catalog";
 import { apiErrorResponse, requireApiUser } from "@/lib/api-auth";
 
 export async function GET() {
@@ -7,7 +7,7 @@ export async function GET() {
     await requireApiUser();
 
     const catalogs = await getLiveProviderCatalogs();
-    const payload = catalogs.map(({ provider, config, snapshot, models, images }) => {
+    const payload = catalogs.map(({ provider, config, snapshot, models, images, textModels, imageModels }) => {
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
@@ -18,12 +18,14 @@ export async function GET() {
         providerName: provider.name,
         displayName: provider.displayName,
         shortName: provider.shortName,
-        models: [...models.map((model) => model.id), ...provider.models],
+        models: textModels,
         modelPrices: Object.fromEntries([
           ...models.map((model) => [`${provider.name}:${model.id}`, model.price]),
           ...images.map((model) => [`${provider.name}:${model.id}`, model.imagePrice]),
         ]),
-        imageModels: [...images.map((model) => model.id), ...provider.imageModels],
+        imageModels,
+        unavailableModels: [...new Set([...(snapshot?.retiredModels ?? []),
+          ...Object.keys(snapshot?.catalogMisses ?? {}).filter((id) => unavailableModel(snapshot, id))])],
         defaultModel,
         fallbackProvider: config?.fallbackProvider ?? null,
         isEnabled,

@@ -20,7 +20,7 @@ import {
   isRetryableProviderErrorMessage,
 } from "@/lib/provider-retry";
 import { estimateCost } from "@/lib/ai/pricing";
-import { keyRevision, publishedImageModels, publishedModels, readCatalog, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
+import { keyRevision, publishedImageModels, publishedModels, readCatalog, resolveCatalogDefault, unavailableModel } from "@/lib/ai/live-model-catalog";
 import { estimateProviderCostUsd, estimateTextTokens, MODEL_PRICING, type CatalogImagePricing } from "@/lib/credits";
 import { buildProviderWebSearchTools } from "@/lib/ai/provider-web-search";
 import {
@@ -42,6 +42,7 @@ type ProviderRuntimeConfig = {
   provider: ProviderName;
   apiKey: string | null;
   defaultModel: string;
+  catalogSnapshot?: Awaited<ReturnType<typeof readCatalog>>;
   fallbackProvider: ProviderName | null;
   timeoutSeconds: number;
 };
@@ -517,7 +518,7 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
   const snapshot = await readCatalog(provider);
   const resolveDefault = (key: string | null) => resolveCatalogDefault(
     provider, config?.defaultModel, Boolean(config?.updatedByAdminId),
-    key && snapshot?.keyRevision === keyRevision(key) ? snapshot : undefined,
+    snapshot, key && snapshot?.keyRevision === keyRevision(key) ? publishedModels(snapshot) : [],
   );
   const fallbackProvider =
     config?.fallbackProvider &&
@@ -533,6 +534,7 @@ async function getProviderRuntimeConfig(provider: ProviderName) {
     provider,
     fallbackProvider,
     timeoutSeconds,
+    catalogSnapshot: snapshot,
   };
 
   if (envValue?.trim()) {
@@ -755,8 +757,14 @@ export async function callProvider(
 
   const runtime = await getProviderRuntimeConfig(normalizedInput.provider);
   const catalog = getProviderCatalog(normalizedInput.provider);
-  const snapshot = await readCatalog(normalizedInput.provider);
+  const snapshot = runtime.catalogSnapshot;
   const model = normalizedInput.model;
+  if (unavailableModel(snapshot, input.model) || unavailableModel(snapshot, model)) {
+    return {
+      provider: input.provider, model: input.model, outputText: "", rawResponse: null,
+      latencyMs: 0, status: "failed", errorMessage: "This model is no longer supported. Choose another model.",
+    };
+  }
   if (!catalog.models.includes(model) && !catalog.imageModels.includes(model) &&
       !Object.hasOwn(MODEL_PRICING, `${normalizedInput.provider}:${model}`)) {
     const price = publishedModels(snapshot).find((entry) => entry.id === model)?.price;
@@ -843,14 +851,17 @@ export async function callProvider(
 
   const fallbackRuntime = await getProviderRuntimeConfig(runtime.fallbackProvider);
   const fallbackCatalog = getProviderCatalog(runtime.fallbackProvider);
+  const fallbackModel = fallbackCatalog.models.includes(fallbackRuntime.defaultModel)
+    ? fallbackRuntime.defaultModel
+    : fallbackCatalog.models.find((id) => !unavailableModel(fallbackRuntime.catalogSnapshot, id));
+  if (!fallbackModel) return primaryResult;
   const fallbackResult = await executeAttemptWithLease(
     runtime.fallbackProvider,
     fallbackRuntime,
     {
       ...normalizedInput,
       provider: runtime.fallbackProvider,
-      model: fallbackCatalog.models.includes(fallbackRuntime.defaultModel)
-        ? fallbackRuntime.defaultModel : fallbackCatalog.defaultModel,
+      model: fallbackModel,
     },
     `fallback:${runtime.fallbackProvider}`,
   );

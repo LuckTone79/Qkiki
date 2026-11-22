@@ -34,6 +34,9 @@ export const catalogSchema = z.object({
   entries: z.array(entry),
   automaticDefault: z.string().optional(),
   imageCatalogVersion: z.number().optional(),
+  retirementCatalogVersion: z.number().optional(),
+  retiredModels: z.array(z.string()).optional(),
+  catalogMisses: z.record(z.string(), z.number()).optional(),
 });
 export type CatalogSnapshot = z.infer<typeof catalogSchema>;
 export const catalogKey = (provider: ProviderName) => `model-catalog:${provider}`;
@@ -53,11 +56,15 @@ export function parseCatalog(value: string | undefined) {
 }
 
 export function publishedModels(snapshot?: CatalogSnapshot) {
-  return snapshot?.entries.filter((model) => model.publishedAt && model.price && !model.blocked) ?? [];
+  return snapshot?.entries.filter((model) => model.publishedAt && model.price && !model.blocked && !unavailableModel(snapshot, model.id)) ?? [];
 }
 
 export function publishedImageModels(snapshot?: CatalogSnapshot) {
-  return snapshot?.entries.filter((model) => model.image && model.publishedAt && model.imagePrice && !model.blocked) ?? [];
+  return snapshot?.entries.filter((model) => model.image && model.publishedAt && model.imagePrice && !model.blocked && !unavailableModel(snapshot, model.id)) ?? [];
+}
+
+export function unavailableModel(snapshot: CatalogSnapshot | undefined, id: string) {
+  return Boolean(snapshot?.retiredModels?.includes(id) || (snapshot?.catalogMisses?.[id] ?? 0) >= 3);
 }
 
 export async function readCatalog(provider: ProviderName) {
@@ -88,7 +95,9 @@ export async function getLiveProviderCatalogs() {
         // Static models remain available when an administrator credential cannot be read.
       }
     }
-    return { provider, config, snapshot, models, images };
+    const textModels = [...models.map((model) => model.id), ...provider.models.filter((id) => !unavailableModel(snapshot, id))];
+    const imageModels = [...images.map((model) => model.id), ...provider.imageModels.filter((id) => !unavailableModel(snapshot, id))];
+    return { provider, config, snapshot, models, images, textModels, imageModels };
   });
 }
 
@@ -102,8 +111,12 @@ export function resolveCatalogDefault(
   const catalog = getProviderCatalog(provider);
   const chosen = normalizeProviderModel(provider, configured ?? catalog.defaultModel);
   const automatic = snapshot?.automaticDefault;
-  if (!pinned && chosen === catalog.defaultModel && automatic && published.some((model) => model.id === automatic)) return automatic;
-  return catalog.models.includes(chosen) || published.some((model) => model.id === chosen) ? chosen : catalog.defaultModel;
+  const available = (id: string) => !unavailableModel(snapshot, id) &&
+    (catalog.models.includes(id) || published.some((model) => model.id === id));
+  if (!pinned && chosen === catalog.defaultModel && automatic && available(automatic)) return automatic;
+  if (!unavailableModel(snapshot, configured ?? chosen) && available(chosen)) return chosen;
+  if (available(catalog.defaultModel)) return catalog.defaultModel;
+  return catalog.models.find(available) ?? published.find((model) => available(model.id))?.id ?? "";
 }
 
 export async function getCatalogPrices(targets: ReadonlyArray<{ provider: string; model: string }>, mode?: "image" | "text") {
@@ -112,8 +125,11 @@ export async function getCatalogPrices(targets: ReadonlyArray<{ provider: string
   for (const target of targets) {
     const catalog = catalogs.find(({ provider }) => provider.name === target.provider);
     if (!catalog) throw new ModelUnavailableError("Unsupported AI provider.");
-    const { provider, models, images } = catalog;
+    const { provider, models, images, snapshot } = catalog;
     const model = normalizeProviderModel(provider.name, target.model);
+    if (unavailableModel(snapshot, target.model) || unavailableModel(snapshot, model)) {
+      throw new ModelUnavailableError("This model is no longer supported. Choose another model.");
+    }
     const imagePrice = images.find((item) => item.id === model)?.imagePrice;
     const external = imagePrice ?? models.find((item) => item.id === model)?.price;
     const isImage = Boolean(imagePrice || provider.imageModels.includes(model));
