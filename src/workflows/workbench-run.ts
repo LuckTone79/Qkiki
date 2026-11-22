@@ -100,7 +100,7 @@ const EXISTING_STEP_STILL_RUNNING_MESSAGE =
   "The sequential run is already being completed by another worker.";
 
 function getSelectedModels(session: RunWorkbenchInput) {
-  return session.mode === "parallel"
+  return session.mode !== "sequential"
     ? (session.targets ?? []).map(
         (target) => `${target.provider}/${target.model}`,
       )
@@ -282,7 +282,7 @@ async function executeWorkbenchRunStep(
         }
       | undefined;
 
-    if (sessionInput.mode === "parallel") {
+    if (sessionInput.mode !== "sequential") {
       result = await executeParallelRunIncremental({
         userId: payload.userId,
         executionRunId: payload.executionRunId,
@@ -398,7 +398,7 @@ async function executeWorkbenchRunStep(
       (wasCanceled
         ? {
             plannedTotal:
-              sessionInput.mode === "parallel"
+              sessionInput.mode !== "sequential"
                 ? sessionInput.targets?.length ?? result.results.length
                 : result.results.length,
             executedTotal: result.results.length,

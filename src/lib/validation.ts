@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isImageModel, isProviderName, PROVIDERS } from "./ai/provider-catalog.ts";
+import { PROVIDERS } from "./ai/provider-catalog.ts";
 import { BRANCH_ACTION_TYPES, WORKFLOW_STEP_ACTION_TYPES } from "./ai/types.ts";
 
 const providerNames = PROVIDERS.map((provider) => provider.name) as [
@@ -103,15 +103,6 @@ export const runWorkbenchSchema = z.object({
     return;
   }
 
-  value.targets.forEach((target, index) => {
-    if (!isProviderName(target.provider) || !isImageModel(target.provider, target.model)) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["targets", index, "model"],
-        message: "Image generation mode only accepts image generation models.",
-      });
-    }
-  });
 });
 
 export const branchRunSchema = z.object({

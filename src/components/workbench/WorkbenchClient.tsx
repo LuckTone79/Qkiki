@@ -3943,7 +3943,7 @@ export function WorkbenchClient({ isTrialMode = false }: WorkbenchClientProps = 
       outputStyle,
       outputLanguage,
       attachments,
-      mode: effectiveMode,
+      mode: imageMode ? "image" : effectiveMode,
       targets: effectiveTargets,
       workflowSteps: imageMode ? [] : workflowSteps,
       workflowControl: workflowControlToInput(normalizedWorkflowControl),

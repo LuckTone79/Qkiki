@@ -4,7 +4,7 @@ import { localize, useLanguage } from "@/components/i18n/LanguageProvider";
 import { ProviderLogoTile } from "@/components/ui/icons";
 import { getModelOptionLabel } from "@/lib/ai/model-display";
 import type { ProviderName } from "@/lib/ai/types";
-import type { ModelPricing } from "@/lib/credits";
+import type { CatalogModelPricing } from "@/lib/credits";
 import { getModelGuidance } from "@/lib/workbench-model-guidance";
 
 export type ProviderOption = {
@@ -12,7 +12,7 @@ export type ProviderOption = {
   displayName: string;
   shortName: string;
   models: string[];
-  modelPrices?: Record<string, ModelPricing>;
+  modelPrices?: Record<string, CatalogModelPricing>;
   imageModels: string[];
   defaultModel: string;
   fallbackProvider: ProviderName | null;
@@ -144,7 +144,7 @@ export function ProviderSelectorRow({
               const checked = selectedModels.includes(option);
               const label = getModelOptionLabel(provider.providerName, option);
               const missing = !available.includes(option);
-              const automatic = Boolean(provider.modelPrices?.[`${provider.providerName}:${option}`]);
+              const automatic = !isImageVariant && Boolean(provider.modelPrices?.[`${provider.providerName}:${option}`]);
               const guidance = isImageVariant || missing || automatic
                 ? null
                 : getModelGuidance(

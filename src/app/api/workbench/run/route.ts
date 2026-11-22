@@ -59,10 +59,13 @@ export async function POST(request: Request) {
 
     await ensureWorkbenchRunSchema();
     await closeStaleWorkbenchRuns({ userId: user.id });
+    const runMode = parsed.data.mode === "sequential" ? "sequential" : "parallel";
+    const requestType = runMode === "parallel" ? "compare" : "sequential";
     const creditEstimate = estimateWorkbenchRunCredits({
       modelPrices: await getCatalogPrices(parsed.data.mode === "sequential"
         ? (parsed.data.steps ?? []).map((step) => ({ provider: step.targetProvider, model: step.targetModel }))
-        : parsed.data.targets ?? []),
+        : parsed.data.targets ?? [],
+        parsed.data.mode === "image" ? "image" : parsed.data.mode === "sequential" ? "text" : undefined),
       mode: parsed.data.mode,
       originalInput: parsed.data.originalInput,
       additionalInstruction: parsed.data.additionalInstruction,
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
       estimatedCredits: creditEstimate.estimatedCredits,
     });
 
-    if (parsed.data.mode === "parallel") {
+    if (runMode === "parallel") {
       if (!parsed.data.targets?.length) {
         return NextResponse.json(
           { error: "Select at least one target model." },
@@ -111,7 +114,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const plannedTotal = calculatePlannedExecutionTotal(parsed.data);
+    const plannedTotal = calculatePlannedExecutionTotal({ ...parsed.data, mode: runMode });
     const preparedSession = await upsertWorkbenchSession(user.id, {
       ...parsed.data,
       workflowControl: parsed.data.workflowControl,
@@ -122,7 +125,7 @@ export async function POST(request: Request) {
               targetProvider: step.targetProvider as ProviderName,
             }))
           : undefined,
-      mode: parsed.data.mode,
+      mode: runMode,
     });
     const runnerVersion =
       parsed.data.mode === "sequential"
@@ -134,7 +137,7 @@ export async function POST(request: Request) {
     };
     const reservation = await reserveUsage({
       userId: user.id,
-      requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+      requestType,
       inputCharCount,
       reservationKey: `run:${crypto.randomUUID()}`,
       estimatedCredits: creditEstimate.estimatedCredits,
@@ -314,8 +317,8 @@ export async function POST(request: Request) {
     const executionRun = await createQueuedExecutionRun({
       userId: user.id,
       sessionId: preparedSession.id,
-      mode: parsed.data.mode,
-      requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+      mode: runMode,
+      requestType,
       inputCharCount,
       totalStepsPlanned: plannedTotal,
       usageReservationId: reservation?.id ?? null,
@@ -332,7 +335,7 @@ export async function POST(request: Request) {
           usageReservationId: reservation?.id ?? null,
           userId: user.id,
           inputCharCount,
-          requestType: parsed.data.mode === "parallel" ? "compare" : "sequential",
+          requestType,
           session: runSession,
         },
       ]);
@@ -361,7 +364,7 @@ export async function POST(request: Request) {
     const signedRunId = createSignedRunToken({
       executionRunId: executionRun.id,
       userId: user.id,
-      mode: parsed.data.mode,
+      mode: runMode,
       createdAt: new Date().toISOString(),
     });
 

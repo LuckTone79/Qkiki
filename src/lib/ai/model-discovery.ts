@@ -11,6 +11,7 @@ export const PRICING_DOCUMENTS = {
 type Entry = Record<string, unknown>;
 export type ObservedModel = {
   id: string;
+  methods?: string[];
   name?: string;
   image?: boolean;
   price?: ModelPricing;
@@ -149,6 +150,8 @@ export async function fetchProviderModels(provider: ProviderName, key: string, r
           !item.supportedGenerationMethods.some((method) => method === "generateContent" || method === "predict"))) continue;
         collected.push({
           id: id.replace(/^models\//, ""),
+          methods: Array.isArray(item.supportedGenerationMethods)
+            ? item.supportedGenerationMethods.filter((method): method is string => typeof method === "string") : undefined,
           name: typeof item.display_name === "string" ? item.display_name : undefined,
           image: /(?:^|[-.])(?:image|imagen)(?:[-.]|$)/.test(id) || /^models\/imagen-/.test(id),
           shutdown: typeof item.shutdown_date === "string" ? item.shutdown_date : undefined,

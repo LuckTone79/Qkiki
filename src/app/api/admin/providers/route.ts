@@ -19,7 +19,7 @@ export async function GET() {
   try {
     await requireApiAdminManager();
     const catalogs = await getLiveProviderCatalogs();
-    const payload = catalogs.map(({ provider, config, snapshot, models }) => {
+    const payload = catalogs.map(({ provider, config, snapshot, models, images }) => {
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
@@ -34,7 +34,7 @@ export async function GET() {
         catalogSync: snapshot && {
           checkedAt: snapshot.checkedAt,
           status: snapshot.status,
-          published: models.length,
+          published: models.length + images.length,
           held: snapshot.entries.filter((model) => model.blocked).length,
         },
         isEnabled: effectiveEnabled,

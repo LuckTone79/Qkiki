@@ -8,6 +8,16 @@ export type ModelPricing = {
   completionPerMillion: number;
 };
 
+export type CatalogImagePricing = {
+  imageProfile: "openai_square" | "gemini_1k" | "xai_1k" | "imagen_single";
+  perImageUsd: number;
+  promptPerMillion: number;
+  textOutputPerMillion?: number;
+  outputImagePerMillion?: number;
+  reference: string;
+};
+export type CatalogModelPricing = ModelPricing | CatalogImagePricing;
+
 export type ImageGenerationPricing = {
   perImageUsd: number;
   pricingBasis: "per_image";
@@ -137,6 +147,7 @@ export type CreditEstimateLine = {
   rawCostUsd: number;
   credits: number;
   modelPricing?: ModelPricing;
+  imagePricing?: CatalogImagePricing;
 };
 
 export type CreditEstimate = {
@@ -184,7 +195,7 @@ export type WorkbenchCreditEstimateInput = {
   targets?: TargetLike[];
   steps?: WorkflowStepLike[];
   workflowControl?: WorkflowControlLike;
-  modelPrices?: Record<string, ModelPricing>;
+  modelPrices?: Record<string, CatalogModelPricing>;
 };
 
 export function getModelPricing(provider: string, model: string) {
@@ -390,9 +401,13 @@ function estimateLine(input: {
   inputTokens: number;
   outputTokens: number;
   imageCount?: number;
-  modelPricing?: ModelPricing;
+  modelPricing?: CatalogModelPricing;
 }) {
-  const imageRawCostUsd = estimateImageGenerationCostUsd({
+  const imagePricing = input.modelPricing && "imageProfile" in input.modelPricing ? input.modelPricing : undefined;
+  const imageRawCostUsd = imagePricing ? (
+    imagePricing.perImageUsd + input.inputTokens * imagePricing.promptPerMillion / 1_000_000 +
+    input.outputTokens * (imagePricing.textOutputPerMillion ?? 0) / 1_000_000
+  ) * normalizeImageCount(input.imageCount) : estimateImageGenerationCostUsd({
     provider: input.provider,
     model: input.model,
     imageCount: input.imageCount,
@@ -410,15 +425,17 @@ function estimateLine(input: {
       outputTokens: 0,
       rawCostUsd: Number(imageRawCostUsd.toFixed(6)),
       credits: costUsdToCredits(imageRawCostUsd),
+      ...(imagePricing ? { imagePricing } : {}),
     } satisfies CreditEstimateLine;
   }
 
+  const modelPricing = input.modelPricing && "completionPerMillion" in input.modelPricing ? input.modelPricing : undefined;
   const rawCostUsd = estimateProviderCostUsd({
     provider: input.provider,
     model: input.model,
     promptTokens: input.inputTokens,
     completionTokens: input.outputTokens,
-    modelPricing: input.modelPricing,
+    modelPricing,
   });
 
   return {
@@ -430,7 +447,7 @@ function estimateLine(input: {
     outputTokens: input.outputTokens,
     rawCostUsd: Number(rawCostUsd.toFixed(6)),
     credits: costUsdToCredits(rawCostUsd),
-    ...(input.modelPricing ? { modelPricing: input.modelPricing } : {}),
+    ...(modelPricing ? { modelPricing } : {}),
   } satisfies CreditEstimateLine;
 }
 
@@ -496,7 +513,7 @@ export function estimateTargetFanoutCredits(input: {
   inputText: string;
   additionalInstruction?: string | null;
   targets: TargetLike[];
-  modelPrices?: Record<string, ModelPricing>;
+  modelPrices?: Record<string, CatalogModelPricing>;
 }) {
   const baseInputTokens =
     estimateTextTokens(input.inputText) +

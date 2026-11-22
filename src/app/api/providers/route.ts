@@ -7,7 +7,7 @@ export async function GET() {
     await requireApiUser();
 
     const catalogs = await getLiveProviderCatalogs();
-    const payload = catalogs.map(({ provider, config, snapshot, models }) => {
+    const payload = catalogs.map(({ provider, config, snapshot, models, images }) => {
       const hasEnvKey = Boolean(process.env[provider.envKey]?.trim());
       const hasStoredKey = Boolean(config?.apiKeyCiphertext);
       const hasCredential = hasEnvKey || hasStoredKey;
@@ -19,8 +19,11 @@ export async function GET() {
         displayName: provider.displayName,
         shortName: provider.shortName,
         models: [...models.map((model) => model.id), ...provider.models],
-        modelPrices: Object.fromEntries(models.map((model) => [`${provider.name}:${model.id}`, model.price])),
-        imageModels: provider.imageModels,
+        modelPrices: Object.fromEntries([
+          ...models.map((model) => [`${provider.name}:${model.id}`, model.price]),
+          ...images.map((model) => [`${provider.name}:${model.id}`, model.imagePrice]),
+        ]),
+        imageModels: [...images.map((model) => model.id), ...provider.imageModels],
         defaultModel,
         fallbackProvider: config?.fallbackProvider ?? null,
         isEnabled,

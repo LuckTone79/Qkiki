@@ -1026,7 +1026,7 @@ export async function executeParallelRun(input: {
         requestType: "generate",
         attachments: runtimeAttachments,
         allowFallback: shouldAllowConfiguredProviderFallback("parallel"),
-        prompt: isImageModel(target.provider, target.model)
+        prompt: input.session.mode === "image" || isImageModel(target.provider, target.model)
           ? composeImagePrompt({
               originalInput: input.session.originalInput,
               additionalInstruction: input.session.additionalInstruction,
@@ -1140,7 +1140,7 @@ export async function executeParallelRunIncremental(input: {
               result: startedResult,
             });
           },
-          prompt: isImageModel(target.provider, target.model)
+          prompt: input.session.mode === "image" || isImageModel(target.provider, target.model)
             ? composeImagePrompt({
                 originalInput: input.session.originalInput,
                 additionalInstruction: input.session.additionalInstruction,

@@ -20,8 +20,8 @@ import {
   isRetryableProviderErrorMessage,
 } from "@/lib/provider-retry";
 import { estimateCost } from "@/lib/ai/pricing";
-import { keyRevision, publishedModels, readCatalog, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
-import { estimateProviderCostUsd, MODEL_PRICING } from "@/lib/credits";
+import { keyRevision, publishedImageModels, publishedModels, readCatalog, resolveCatalogDefault } from "@/lib/ai/live-model-catalog";
+import { estimateProviderCostUsd, estimateTextTokens, MODEL_PRICING, type CatalogImagePricing } from "@/lib/credits";
 import { buildProviderWebSearchTools } from "@/lib/ai/provider-web-search";
 import {
   decryptSecretWithMetadata,
@@ -614,6 +614,7 @@ function buildFallbackResponse(
 async function executeProviderCall(
   runtime: ProviderRuntimeConfig,
   input: ProviderCallInput,
+  imagePricing?: CatalogImagePricing,
 ): Promise<ProviderCallResult> {
   const apiKey = runtime.apiKey;
   const startedAt = Date.now();
@@ -650,8 +651,8 @@ async function executeProviderCall(
     const signal = controller.signal;
 
     try {
-      if (isImageModel(input.provider, input.model)) {
-        return await callImageGeneration(apiKey, input, startedAt, signal);
+      if (imagePricing || isImageModel(input.provider, input.model)) {
+        return await callImageGeneration(apiKey, input, startedAt, signal, imagePricing);
       }
 
       if (input.provider === "openai") {
@@ -705,6 +706,7 @@ export async function callProvider(
     runtimeConfig: ProviderRuntimeConfig,
     runtimeInput: ProviderCallInput,
     ownerSuffix: string,
+    imagePricing?: CatalogImagePricing,
   ) => {
     const startedAt = Date.now();
     let lease: Awaited<ReturnType<typeof acquireProviderLease>>;
@@ -730,7 +732,7 @@ export async function callProvider(
           errorMessage:
             error instanceof Error ? error.message : String(error ?? ""),
         });
-        return executeProviderCall(runtimeConfig, runtimeInput);
+        return executeProviderCall(runtimeConfig, runtimeInput, imagePricing);
       }
 
       return {
@@ -745,7 +747,7 @@ export async function callProvider(
     }
 
     try {
-      return await executeProviderCall(runtimeConfig, runtimeInput);
+      return await executeProviderCall(runtimeConfig, runtimeInput, imagePricing);
     } finally {
       await releaseProviderLease(lease.id);
     }
@@ -758,16 +760,18 @@ export async function callProvider(
   if (!catalog.models.includes(model) && !catalog.imageModels.includes(model) &&
       !Object.hasOwn(MODEL_PRICING, `${normalizedInput.provider}:${model}`)) {
     const price = publishedModels(snapshot).find((entry) => entry.id === model)?.price;
-    const failure = !price || !runtime.apiKey || snapshot?.keyRevision !== keyRevision(runtime.apiKey)
+    const imagePricing = publishedImageModels(snapshot).find((entry) => entry.id === model)?.imagePrice;
+    const failure = (!price && !imagePricing) || !runtime.apiKey || snapshot?.keyRevision !== keyRevision(runtime.apiKey)
       ? "This model is no longer available. Choose another model."
-      : normalizedInput.enableWebSearch || normalizedInput.attachments?.some((item) => item.kind === "IMAGE" || item.kind === "PDF")
+      : !imagePricing && (normalizedInput.enableWebSearch || normalizedInput.attachments?.some((item) => item.kind === "IMAGE" || item.kind === "PDF"))
         ? "This model is available for text only. Choose another model for web search or image/PDF input."
         : null;
-    if (failure || !price) return {
+    if (failure) return {
       provider: normalizedInput.provider, model: normalizedInput.model, outputText: "",
       rawResponse: null, latencyMs: 0, status: "failed", errorMessage: failure ?? undefined,
     };
-    const result = await executeAttemptWithLease(normalizedInput.provider, runtime, normalizedInput, "primary");
+    const result = await executeAttemptWithLease(normalizedInput.provider, runtime, normalizedInput, "primary", imagePricing);
+    if (imagePricing || !price) return result;
     const raw = result.rawResponse as JsonRecord | null;
     const continuation = Array.isArray(raw?.responses) ? raw.responses[0] as JsonRecord | undefined : null;
     const returned = getText(raw?.model ?? raw?.modelVersion ?? continuation?.model);
@@ -1242,8 +1246,9 @@ function buildImageProviderResult(
   model: string,
   image: GeneratedImage,
   startedAt: number,
+  cost?: number,
 ) {
-  return withCost({
+  const result = withCost({
     provider,
     model,
     outputText: buildImageDataUrl(image.base64, image.mimeType),
@@ -1256,6 +1261,20 @@ function buildImageProviderResult(
     latencyMs: Date.now() - startedAt,
     status: "completed" as const,
   });
+  return cost === undefined ? result : { ...result, estimatedCost: cost, costIsEstimated: true };
+}
+
+function generatedImageCost(
+  rate: CatalogImagePricing | undefined,
+  prompt: string,
+  counts: { input?: unknown; imageOutput?: unknown; textOutput?: unknown } = {},
+) {
+  if (!rate) return;
+  const tokens = (value: unknown, fallback: number) => typeof value === "number" && value >= 0 ? value : fallback;
+  const input = tokens(counts.input, estimateTextTokens(prompt));
+  const image = typeof counts.imageOutput === "number" && counts.imageOutput > 0 && rate.outputImagePerMillion
+    ? counts.imageOutput * rate.outputImagePerMillion / 1_000_000 : rate.perImageUsd;
+  return image + (input * rate.promptPerMillion + tokens(counts.textOutput, 0) * (rate.textOutputPerMillion ?? 0)) / 1_000_000;
 }
 
 function extractOpenAiCompatibleImage(body: JsonRecord): GeneratedImage | null {
@@ -1300,17 +1319,18 @@ async function callImageGeneration(
   input: ProviderCallInput,
   startedAt: number,
   signal: AbortSignal,
+  rate?: CatalogImagePricing,
 ): Promise<ProviderCallResult> {
   if (input.provider === "openai") {
-    return callOpenAiImage(apiKey, input, startedAt, signal);
+    return callOpenAiImage(apiKey, input, startedAt, signal, rate);
   }
 
   if (input.provider === "google") {
-    return callGoogleImage(apiKey, input, startedAt, signal);
+    return callGoogleImage(apiKey, input, startedAt, signal, rate);
   }
 
   if (input.provider === "xai") {
-    return callXaiImage(apiKey, input, startedAt, signal);
+    return callXaiImage(apiKey, input, startedAt, signal, rate);
   }
 
   throw new Error(`${input.provider}: image generation is not supported.`);
@@ -1321,6 +1341,7 @@ async function callOpenAiImage(
   input: ProviderCallInput,
   startedAt: number,
   signal: AbortSignal,
+  rate?: CatalogImagePricing,
 ) {
   const response = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
@@ -1347,7 +1368,9 @@ async function callOpenAiImage(
     throw new Error("openai: image generation returned no image data.");
   }
 
-  return buildImageProviderResult("openai", input.model, image, startedAt);
+  const usage = body.usage as JsonRecord | undefined;
+  return buildImageProviderResult("openai", input.model, image, startedAt,
+    generatedImageCost(rate, input.prompt, { input: usage?.input_tokens, imageOutput: usage?.output_tokens }));
 }
 
 async function callXaiImage(
@@ -1355,6 +1378,7 @@ async function callXaiImage(
   input: ProviderCallInput,
   startedAt: number,
   signal: AbortSignal,
+  rate?: CatalogImagePricing,
 ) {
   const response = await fetch("https://api.x.ai/v1/images/generations", {
     method: "POST",
@@ -1368,6 +1392,7 @@ async function callXaiImage(
       prompt: input.prompt,
       n: 1,
       response_format: "b64_json",
+      ...(rate?.imageProfile === "xai_1k" ? { resolution: "1k", quality: "low", aspect_ratio: "1:1" } : {}),
     }),
   });
   const body = await readJson(response);
@@ -1381,7 +1406,7 @@ async function callXaiImage(
     throw new Error("xai: image generation returned no image data.");
   }
 
-  return buildImageProviderResult("xai", input.model, image, startedAt);
+  return buildImageProviderResult("xai", input.model, image, startedAt, generatedImageCost(rate, input.prompt));
 }
 
 async function callGoogleImage(
@@ -1389,6 +1414,7 @@ async function callGoogleImage(
   input: ProviderCallInput,
   startedAt: number,
   signal: AbortSignal,
+  rate?: CatalogImagePricing,
 ) {
   // Imagen models use the dedicated :predict endpoint, while the Gemini image
   // models return inline image bytes from the standard :generateContent route.
@@ -1424,6 +1450,7 @@ async function callGoogleImage(
       input.model,
       { base64, mimeType },
       startedAt,
+      generatedImageCost(rate, input.prompt),
     );
   }
 
@@ -1436,7 +1463,9 @@ async function callGoogleImage(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ role: "user", parts: [{ text: input.prompt }] }],
-      generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
+      generationConfig: rate?.imageProfile === "gemini_1k"
+        ? { responseModalities: ["IMAGE"], candidateCount: 1, imageConfig: { aspectRatio: "1:1", imageSize: "1K" } }
+        : { responseModalities: ["TEXT", "IMAGE"] },
     }),
   });
   const body = await readJson(response);
@@ -1450,5 +1479,14 @@ async function callGoogleImage(
     throw new Error("google: image generation returned no image data.");
   }
 
-  return buildImageProviderResult("google", input.model, image, startedAt);
+  const usage = body.usageMetadata as JsonRecord | undefined;
+  const details = Array.isArray(usage?.candidatesTokensDetails) ? usage.candidatesTokensDetails as JsonRecord[] : [];
+  const count = (modality: string) => details.reduce((sum, row) =>
+    row.modality === modality && typeof row.tokenCount === "number" ? sum + row.tokenCount : sum, 0);
+  const thoughtTokens = typeof usage?.thoughtsTokenCount === "number" ? usage.thoughtsTokenCount : 0;
+  return buildImageProviderResult("google", input.model, image, startedAt, generatedImageCost(rate, input.prompt, {
+    input: usage?.promptTokenCount,
+    imageOutput: count("IMAGE"),
+    textOutput: count("TEXT") + thoughtTokens,
+  }));
 }

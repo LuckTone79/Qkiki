@@ -26,7 +26,7 @@ type RunPayloadInput = {
   outputStyle: string;
   outputLanguage: string;
   attachments: AttachmentLike[];
-  mode: "parallel" | "sequential";
+  mode: "parallel" | "sequential" | "image";
   targets: TargetLike[];
   workflowSteps: WorkflowStepLike[];
   workflowControl: unknown;
@@ -43,7 +43,7 @@ export function buildWorkbenchRunPayload(input: RunPayloadInput) {
     outputLanguage: input.outputLanguage,
     attachmentIds: input.attachments.map((attachment) => attachment.id),
     mode: input.mode,
-    targets: input.mode === "parallel" ? input.targets : undefined,
+    targets: input.mode !== "sequential" ? input.targets : undefined,
     steps:
       input.mode === "sequential"
         ? input.workflowSteps.map((step) => ({
